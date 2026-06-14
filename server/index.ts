@@ -603,7 +603,7 @@ app.use((req, res, next) => {
       port,
       host: "0.0.0.0",
     };
-    if (process.platform !== 'win32') {
+    if (process.platform === 'linux') {
       listenOptions.reusePort = true;
     }
     
