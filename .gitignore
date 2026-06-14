@@ -2,7 +2,6 @@
 # Node / Package Managers
 # ============================
 node_modules/
-plugins/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
