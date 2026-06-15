@@ -1,9 +1,9 @@
 /**
  * ============================================================
- * © 2025 Diploy — a brand of Bisht Technologies Private Limited
+ * © 2025 Zonvo AI — a brand of Bisht Technologies Private Limited
  * Original Author: BTPL Engineering Team
- * Website: https://diploy.in
- * Contact: cs@diploy.in
+ * Website: https://zonvo.tech
+ * Contact: cs@zonvo.tech
  *
  * Distributed under the Envato / CodeCanyon License Agreement.
  * Licensed to the purchaser for use as defined by the
@@ -1028,7 +1028,7 @@ Disallow: /api/`}
                         <Input
                           value={formData.structuredDataProduct?.name || ""}
                           onChange={(e) => handleProductChange("name", e.target.value)}
-                          placeholder="AgentLabs Pro"
+                          placeholder="Zonvo AI Pro"
                           data-testid="input-product-name"
                         />
                       </div>
@@ -1037,7 +1037,7 @@ Disallow: /api/`}
                         <Input
                           value={formData.structuredDataProduct?.brand || ""}
                           onChange={(e) => handleProductChange("brand", e.target.value)}
-                          placeholder="AgentLabs"
+                          placeholder="Zonvo AI"
                           data-testid="input-product-brand"
                         />
                       </div>
@@ -1065,7 +1065,7 @@ Disallow: /api/`}
                         <Input
                           value={formData.structuredDataProduct?.sku || ""}
                           onChange={(e) => handleProductChange("sku", e.target.value)}
-                          placeholder="AGENTLABS-PRO-001"
+                          placeholder="Zonvo AI-PRO-001"
                           data-testid="input-product-sku"
                         />
                       </div>

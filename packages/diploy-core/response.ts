@@ -1,9 +1,9 @@
 /**
  * ============================================================
- * © 2025 Diploy — a brand of Bisht Technologies Private Limited
+ * © 2025 Zonvo AI — a brand of Bisht Technologies Private Limited
  * Original Author: BTPL Engineering Team
- * Website: https://diploy.in
- * Contact: cs@diploy.in
+ * Website: https://zonvo.tech
+ * Contact: cs@zonvo.tech
  *
  * Distributed under the Envato / CodeCanyon License Agreement.
  * Licensed to the purchaser for use as defined by the
@@ -17,7 +17,7 @@
 
 import type { Response } from 'express';
 
-export interface DiployApiResponse<T = unknown> {
+export interface Zonvo AIApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -30,15 +30,15 @@ export interface DiployApiResponse<T = unknown> {
   };
 }
 
-export interface DiployPaginationOptions {
+export interface Zonvo AIPaginationOptions {
   page: number;
   limit: number;
   total: number;
 }
 
-export const diployResponse = {
+export const Zonvo AIResponse = {
   success<T>(res: Response, data: T, statusCode: number = 200): Response {
-    const response: DiployApiResponse<T> = {
+    const response: Zonvo AIApiResponse<T> = {
       success: true,
       data
     };
@@ -46,7 +46,7 @@ export const diployResponse = {
   },
 
   created<T>(res: Response, data: T): Response {
-    return diployResponse.success(res, data, 201);
+    return Zonvo AIResponse.success(res, data, 201);
   },
 
   noContent(res: Response): Response {
@@ -59,7 +59,7 @@ export const diployResponse = {
     statusCode: number = 500,
     code?: string
   ): Response {
-    const response: DiployApiResponse = {
+    const response: Zonvo AIApiResponse = {
       success: false,
       error: message,
       code
@@ -68,7 +68,7 @@ export const diployResponse = {
   },
 
   validationError(res: Response, message: string, details?: Record<string, unknown>): Response {
-    const response: DiployApiResponse = {
+    const response: Zonvo AIApiResponse = {
       success: false,
       error: message,
       code: 'VALIDATION_ERROR',
@@ -78,24 +78,24 @@ export const diployResponse = {
   },
 
   unauthorized(res: Response, message: string = 'Authentication required'): Response {
-    return diployResponse.error(res, message, 401, 'UNAUTHORIZED');
+    return Zonvo AIResponse.error(res, message, 401, 'UNAUTHORIZED');
   },
 
   forbidden(res: Response, message: string = 'Access denied'): Response {
-    return diployResponse.error(res, message, 403, 'FORBIDDEN');
+    return Zonvo AIResponse.error(res, message, 403, 'FORBIDDEN');
   },
 
   notFound(res: Response, resource: string = 'Resource'): Response {
-    return diployResponse.error(res, `${resource} not found`, 404, 'NOT_FOUND');
+    return Zonvo AIResponse.error(res, `${resource} not found`, 404, 'NOT_FOUND');
   },
 
   paginated<T>(
     res: Response,
     data: T[],
-    options: DiployPaginationOptions
+    options: Zonvo AIPaginationOptions
   ): Response {
     const totalPages = Math.ceil(options.total / options.limit);
-    const response: DiployApiResponse<T[]> = {
+    const response: Zonvo AIApiResponse<T[]> = {
       success: true,
       data,
       meta: {

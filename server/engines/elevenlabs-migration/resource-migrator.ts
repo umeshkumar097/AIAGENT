@@ -1,6 +1,6 @@
 /**
  * @fileoverview ElevenLabs Migration Engine - Resource Migrator
- * @copyright Diploy - 2024-2025. All rights reserved.
+ * @copyright Zonvo AI - 2024-2025. All rights reserved.
  * @license See LICENSE.md for license information
  * 
  * Handles the actual migration of agents and phone numbers

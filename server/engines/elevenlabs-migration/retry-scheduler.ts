@@ -1,6 +1,6 @@
 /**
  * @fileoverview ElevenLabs Migration Engine - Retry Scheduler
- * @copyright Diploy - 2024-2025. All rights reserved.
+ * @copyright Zonvo AI - 2024-2025. All rights reserved.
  * @license See LICENSE.md for license information
  * 
  * Manages retry queue for campaigns that couldn't run due to capacity limits.

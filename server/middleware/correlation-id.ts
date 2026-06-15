@@ -1,6 +1,6 @@
 /**
  * @fileoverview Correlation ID Middleware
- * @copyright Diploy - AgentLabs
+ * @copyright Zonvo AI - Zonvo AI
  * @license Envato Regular/Extended License
  * 
  * Generates unique correlation IDs for request tracing across distributed systems.

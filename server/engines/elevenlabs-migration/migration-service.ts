@@ -1,6 +1,6 @@
 /**
  * @fileoverview ElevenLabs Migration Engine - Migration Service
- * @copyright Diploy - 2024-2025. All rights reserved.
+ * @copyright Zonvo AI - 2024-2025. All rights reserved.
  * @license See LICENSE.md for license information
  * 
  * Main orchestrator for migrating user resources between ElevenLabs API keys.

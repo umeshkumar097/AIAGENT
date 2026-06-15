@@ -1,9 +1,9 @@
 /**
  * ============================================================
- * © 2025 Diploy — a brand of Bisht Technologies Private Limited
+ * © 2025 Zonvo AI — a brand of Bisht Technologies Private Limited
  * Original Author: BTPL Engineering Team
- * Website: https://diploy.in
- * Contact: cs@diploy.in
+ * Website: https://zonvo.tech
+ * Contact: cs@zonvo.tech
  *
  * Distributed under the Envato / CodeCanyon License Agreement.
  * Licensed to the purchaser for use as defined by the
@@ -224,7 +224,7 @@ Sitemap: {{site_url}}/sitemap.xml`,
   {
     key: "seo_canonical_url",
     value: "",
-    description: "Canonical URL base (e.g., https://agentlabs.io)",
+    description: "Canonical URL base (e.g., https://Zonvo AI.io)",
   },
   {
     key: "seo_default_language",

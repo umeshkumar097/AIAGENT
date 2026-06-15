@@ -1,7 +1,7 @@
 'use strict';
 /**
  * ============================================================
- * © 2025 Diploy — a brand of Bisht Technologies Private Limited
+ * © 2025 Zonvo AI — a brand of Bisht Technologies Private Limited
  * Distributed under the Envato / CodeCanyon License Agreement.
  * ============================================================
  */

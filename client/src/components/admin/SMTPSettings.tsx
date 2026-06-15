@@ -1,9 +1,9 @@
 /**
  * ============================================================
- * © 2025 Diploy — a brand of Bisht Technologies Private Limited
+ * © 2025 Zonvo AI — a brand of Bisht Technologies Private Limited
  * Original Author: BTPL Engineering Team
- * Website: https://diploy.in
- * Contact: cs@diploy.in
+ * Website: https://zonvo.tech
+ * Contact: cs@zonvo.tech
  *
  * Distributed under the Envato / CodeCanyon License Agreement.
  * Licensed to the purchaser for use as defined by the
@@ -218,7 +218,7 @@ export default function SMTPSettings() {
             <Input
               value={formData.smtp_from_name}
               onChange={(e) => handleChange("smtp_from_name", e.target.value)}
-              placeholder="AgentLabs"
+              placeholder="Zonvo AI"
               data-testid="input-smtp-from-name"
             />
           </div>

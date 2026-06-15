@@ -1,9 +1,9 @@
 /**
  * ============================================================
- * © 2025 Diploy — a brand of Bisht Technologies Private Limited
+ * © 2025 Zonvo AI — a brand of Bisht Technologies Private Limited
  * Original Author: BTPL Engineering Team
- * Website: https://diploy.in
- * Contact: cs@diploy.in
+ * Website: https://zonvo.tech
+ * Contact: cs@zonvo.tech
  *
  * Distributed under the Envato / CodeCanyon License Agreement.
  * Licensed to the purchaser for use as defined by the
@@ -15,22 +15,22 @@
  * ============================================================
  */
 
-export const DIPLOY_BRAND = {
-  name: 'Diploy',
+export const Zonvo AI_BRAND = {
+  name: 'Zonvo AI',
   company: 'Bisht Technologies Private Limited',
-  website: 'https://diploy.in',
-  email: 'cs@diploy.in',
-  copyright: '© 2025 Diploy',
-  product: 'AgentLabs'
+  website: 'https://zonvo.tech',
+  email: 'cs@zonvo.tech',
+  copyright: '© 2025 Zonvo AI',
+  product: 'Zonvo AI'
 } as const;
 
-export const DIPLOY_VERSION = {
+export const Zonvo AI_VERSION = {
   core: '1.0.0',
   api: 'v1',
   build: process.env.BUILD_NUMBER || 'dev'
 } as const;
 
-export const DIPLOY_HEADERS = {
+export const Zonvo AI_HEADERS = {
   author: 'X-Author',
   version: 'X-Api-Version',
   requestId: 'X-Request-Id'

@@ -1,6 +1,6 @@
 /**
  * @fileoverview ElevenLabs Migration Engine - Phone Number Migrator
- * @copyright Diploy - 2024-2025. All rights reserved.
+ * @copyright Zonvo AI - 2024-2025. All rights reserved.
  * @license See LICENSE.md for license information
  * 
  * Handles migration of phone numbers between ElevenLabs API keys (credentials).

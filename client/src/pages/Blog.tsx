@@ -1,9 +1,9 @@
 /**
  * ============================================================
- * © 2025 Diploy — a brand of Bisht Technologies Private Limited
+ * © 2025 Zonvo AI — a brand of Bisht Technologies Private Limited
  * Original Author: BTPL Engineering Team
- * Website: https://diploy.in
- * Contact: cs@diploy.in
+ * Website: https://zonvo.tech
+ * Contact: cs@zonvo.tech
  *
  * Distributed under the Envato / CodeCanyon License Agreement.
  * Licensed to the purchaser for use as defined by the
@@ -129,7 +129,7 @@ const allArticles: Article[] = [
     id: "7",
     slug: "enterprise-security-compliance",
     title: "Enterprise Security and Compliance in AI Calling",
-    excerpt: "How AgentLabs maintains SOC 2 Type II compliance and enterprise-grade security while delivering powerful AI voice capabilities.",
+    excerpt: "How Zonvo AI maintains SOC 2 Type II compliance and enterprise-grade security while delivering powerful AI voice capabilities.",
     category: "AI Technology",
     categoryColor: "bg-blue-500/90 text-white",
     readTime: "5 min read",

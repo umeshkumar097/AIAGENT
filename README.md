@@ -1,4 +1,4 @@
-# AgentLabs - AI-Powered Bulk Calling Platform
+# Zonvo AI - AI-Powered Bulk Calling Platform
 
 **Version:** 5.4.1  
 **Last Updated:** May 2026  
@@ -26,9 +26,9 @@
 
 ## Product Overview
 
-AgentLabs is a multi-tenant SaaS platform for AI-powered bulk calling, supporting multiple AI engines and telephony providers. The platform enables businesses to automate outbound calls, handle incoming inquiries, gather feedback, qualify leads, and manage comprehensive calling campaigns.
+Zonvo AI is a multi-tenant SaaS platform for AI-powered bulk calling, supporting multiple AI engines and telephony providers. The platform enables businesses to automate outbound calls, handle incoming inquiries, gather feedback, qualify leads, and manage comprehensive calling campaigns.
 
-### What Can You Do With AgentLabs?
+### What Can You Do With Zonvo AI?
 
 - **Automated Calling Campaigns** - Launch bulk outbound calls with AI agents
 - **24/7 Virtual Receptionist** - Handle incoming calls automatically
@@ -143,7 +143,7 @@ Automatic notifications for:
 
 ## AI Engine Options
 
-AgentLabs supports three AI engine configurations to match your needs:
+Zonvo AI supports three AI engine configurations to match your needs:
 
 ### 1. ElevenLabs + Twilio (Default)
 
@@ -179,7 +179,7 @@ AgentLabs supports three AI engine configurations to match your needs:
 
 ## Payment Gateways
 
-AgentLabs supports 5 payment gateways for global coverage:
+Zonvo AI supports 5 payment gateways for global coverage:
 
 | Gateway | Regions | Currencies | Features |
 |---------|---------|------------|----------|
@@ -204,7 +204,7 @@ AgentLabs supports 5 payment gateways for global coverage:
 
 ## Multi-Language Support
 
-AgentLabs supports 11 languages with full interface translation:
+Zonvo AI supports 11 languages with full interface translation:
 
 | Language | Code | RTL Support |
 |----------|------|-------------|
@@ -260,8 +260,8 @@ The interface automatically adjusts for right-to-left (RTL) languages.
 ### 1. Upload Files
 ```bash
 # Upload all files to your server or hosting platform
-unzip AgentLabs-Production-v5.4.1.zip
-cd AgentLabs
+unzip Zonvo AI-Production-v5.4.1.zip
+cd Zonvo AI
 ```
 
 ### 2. Install Dependencies
@@ -706,6 +706,6 @@ Check version via API: `GET /api/system/version`
 
 ---
 
-**Thank you for purchasing AgentLabs!**
+**Thank you for purchasing Zonvo AI!**
 
 If you find this product helpful, please consider leaving a rating on CodeCanyon. Your feedback helps us improve and continue development.

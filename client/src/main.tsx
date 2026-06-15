@@ -1,9 +1,9 @@
 /**
  * ============================================================
- * © 2025 Diploy — a brand of Bisht Technologies Private Limited
+ * © 2025 Zonvo AI — a brand of Bisht Technologies Private Limited
  * Original Author: BTPL Engineering Team
- * Website: https://diploy.in
- * Contact: cs@diploy.in
+ * Website: https://zonvo.tech
+ * Contact: cs@zonvo.tech
  *
  * Distributed under the Envato / CodeCanyon License Agreement.
  * Licensed to the purchaser for use as defined by the
@@ -32,6 +32,6 @@ import './i18n';
 
 // Expose react-i18next globally for plugin bundles
 // This allows plugins to share the host app's i18n instance and translations
-(window as any).__AGENTLABS_REACT_I18NEXT__ = ReactI18next;
+(window as any).__Zonvo AI_REACT_I18NEXT__ = ReactI18next;
 
 createRoot(document.getElementById("root")!).render(<App />);

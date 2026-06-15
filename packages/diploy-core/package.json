@@ -1,19 +1,19 @@
 {
-  "name": "@diploy/core",
+  "name": "@Zonvo AI/core",
   "version": "1.0.0",
-  "description": "Core utilities for AgentLabs - Diploy Technologies",
+  "description": "Core utilities for Zonvo AI - Zonvo AI Technologies",
   "main": "index.ts",
   "types": "index.ts",
-  "author": "BTPL Engineering Team <cs@diploy.in>",
+  "author": "BTPL Engineering Team <cs@zonvo.tech>",
   "license": "SEE LICENSE IN LICENSE.md",
-  "homepage": "https://diploy.in",
+  "homepage": "https://zonvo.tech",
   "repository": {
     "type": "git",
-    "url": "https://diploy.in"
+    "url": "https://zonvo.tech"
   },
   "keywords": [
-    "diploy",
-    "agentlabs",
+    "Zonvo AI",
+    "Zonvo AI",
     "ai-calling",
     "elevenlabs"
   ]

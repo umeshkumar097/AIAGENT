@@ -1,8 +1,8 @@
 -- ============================================================
--- AgentLabs Pre-Upgrade Cleanup Script
+-- Zonvo AI Pre-Upgrade Cleanup Script
 -- 
 -- Run this BEFORE running "drizzle-kit push" when upgrading
--- from older versions of AgentLabs.
+-- from older versions of Zonvo AI.
 --
 -- This script safely removes deprecated schema elements using
 -- IF EXISTS so it is safe to run even if they don't exist.

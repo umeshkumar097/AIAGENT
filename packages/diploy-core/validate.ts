@@ -1,9 +1,9 @@
 /**
  * ============================================================
- * © 2025 Diploy — a brand of Bisht Technologies Private Limited
+ * © 2025 Zonvo AI — a brand of Bisht Technologies Private Limited
  * Original Author: BTPL Engineering Team
- * Website: https://diploy.in
- * Contact: cs@diploy.in
+ * Website: https://zonvo.tech
+ * Contact: cs@zonvo.tech
  *
  * Distributed under the Envato / CodeCanyon License Agreement.
  * Licensed to the purchaser for use as defined by the
@@ -15,12 +15,12 @@
  * ============================================================
  */
 
-import { DiployValidationError } from './errors';
+import { Zonvo AIValidationError } from './errors';
 
-export const diployValidate = {
+export const Zonvo AIValidate = {
   required<T>(value: T | null | undefined, fieldName: string): T {
     if (value === null || value === undefined || value === '') {
-      throw new DiployValidationError(`${fieldName} is required`);
+      throw new Zonvo AIValidationError(`${fieldName} is required`);
     }
     return value;
   },
@@ -28,7 +28,7 @@ export const diployValidate = {
   email(value: string): string {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(value)) {
-      throw new DiployValidationError('Invalid email format');
+      throw new Zonvo AIValidationError('Invalid email format');
     }
     return value.toLowerCase().trim();
   },
@@ -36,35 +36,35 @@ export const diployValidate = {
   phone(value: string): string {
     const cleaned = value.replace(/\D/g, '');
     if (cleaned.length < 10 || cleaned.length > 15) {
-      throw new DiployValidationError('Invalid phone number');
+      throw new Zonvo AIValidationError('Invalid phone number');
     }
     return cleaned.startsWith('+') ? value : `+${cleaned}`;
   },
 
   minLength(value: string, min: number, fieldName: string): string {
     if (value.length < min) {
-      throw new DiployValidationError(`${fieldName} must be at least ${min} characters`);
+      throw new Zonvo AIValidationError(`${fieldName} must be at least ${min} characters`);
     }
     return value;
   },
 
   maxLength(value: string, max: number, fieldName: string): string {
     if (value.length > max) {
-      throw new DiployValidationError(`${fieldName} must be at most ${max} characters`);
+      throw new Zonvo AIValidationError(`${fieldName} must be at most ${max} characters`);
     }
     return value;
   },
 
   positiveNumber(value: number, fieldName: string): number {
     if (typeof value !== 'number' || value <= 0) {
-      throw new DiployValidationError(`${fieldName} must be a positive number`);
+      throw new Zonvo AIValidationError(`${fieldName} must be a positive number`);
     }
     return value;
   },
 
   nonNegativeNumber(value: number, fieldName: string): number {
     if (typeof value !== 'number' || value < 0) {
-      throw new DiployValidationError(`${fieldName} must be a non-negative number`);
+      throw new Zonvo AIValidationError(`${fieldName} must be a non-negative number`);
     }
     return value;
   },
@@ -72,14 +72,14 @@ export const diployValidate = {
   uuid(value: string, fieldName: string = 'ID'): string {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(value)) {
-      throw new DiployValidationError(`Invalid ${fieldName} format`);
+      throw new Zonvo AIValidationError(`Invalid ${fieldName} format`);
     }
     return value;
   },
 
   inArray<T>(value: T, allowed: T[], fieldName: string): T {
     if (!allowed.includes(value)) {
-      throw new DiployValidationError(`${fieldName} must be one of: ${allowed.join(', ')}`);
+      throw new Zonvo AIValidationError(`${fieldName} must be one of: ${allowed.join(', ')}`);
     }
     return value;
   },
@@ -89,14 +89,14 @@ export const diployValidate = {
       new URL(value);
       return value;
     } catch {
-      throw new DiployValidationError('Invalid URL format');
+      throw new Zonvo AIValidationError('Invalid URL format');
     }
   },
 
   dateString(value: string, fieldName: string = 'Date'): Date {
     const date = new Date(value);
     if (isNaN(date.getTime())) {
-      throw new DiployValidationError(`Invalid ${fieldName} format`);
+      throw new Zonvo AIValidationError(`Invalid ${fieldName} format`);
     }
     return date;
   },

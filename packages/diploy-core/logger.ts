@@ -1,9 +1,9 @@
 /**
  * ============================================================
- * © 2025 Diploy — a brand of Bisht Technologies Private Limited
+ * © 2025 Zonvo AI — a brand of Bisht Technologies Private Limited
  * Original Author: BTPL Engineering Team
- * Website: https://diploy.in
- * Contact: cs@diploy.in
+ * Website: https://zonvo.tech
+ * Contact: cs@zonvo.tech
  *
  * Distributed under the Envato / CodeCanyon License Agreement.
  * Licensed to the purchaser for use as defined by the
@@ -35,7 +35,7 @@ function formatMessage(level: LogLevel, message: string, context?: LogContext): 
   return `${prefix} ${message}`;
 }
 
-export const diployLogger = {
+export const Zonvo AILogger = {
   debug(message: string, context?: LogContext): void {
     if (process.env.NODE_ENV === 'development') {
       console.debug(formatMessage('debug', message, context));
@@ -57,13 +57,13 @@ export const diployLogger = {
   service(serviceName: string) {
     return {
       debug: (message: string, context?: LogContext) => 
-        diployLogger.debug(`[${serviceName}] ${message}`, context),
+        Zonvo AILogger.debug(`[${serviceName}] ${message}`, context),
       info: (message: string, context?: LogContext) => 
-        diployLogger.info(`[${serviceName}] ${message}`, context),
+        Zonvo AILogger.info(`[${serviceName}] ${message}`, context),
       warn: (message: string, context?: LogContext) => 
-        diployLogger.warn(`[${serviceName}] ${message}`, context),
+        Zonvo AILogger.warn(`[${serviceName}] ${message}`, context),
       error: (message: string, context?: LogContext) => 
-        diployLogger.error(`[${serviceName}] ${message}`, context),
+        Zonvo AILogger.error(`[${serviceName}] ${message}`, context),
     };
   }
 };

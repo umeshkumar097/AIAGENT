@@ -4,7 +4,7 @@
  * This file contains all countries supported by Twilio for phone number purchasing.
  * Countries are sorted by popularity/usage (US, UK, Canada first) then alphabetically.
  * 
- * @copyright Diploy - CodeCanyon/Envato Distribution
+ * @copyright Zonvo AI - CodeCanyon/Envato Distribution
  * @license See LICENSE.md for full terms
  */
 

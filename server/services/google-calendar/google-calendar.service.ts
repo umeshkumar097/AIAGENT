@@ -90,7 +90,7 @@ function buildEventBody(apt: CalendarAppointment) {
   if (apt.serviceName) descParts.push(`Service: ${apt.serviceName}`);
   descParts.push(`Duration: ${apt.duration} minutes`);
   if (apt.notes) descParts.push(`Notes: ${apt.notes}`);
-  descParts.push(`\nBooked by AI agent via Diploy`);
+  descParts.push(`\nBooked by AI agent via Zonvo AI`);
 
   if (apt.status === "completed") {
     const completedAt = new Date().toLocaleString("en-US", {

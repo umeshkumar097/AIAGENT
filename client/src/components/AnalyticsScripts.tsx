@@ -1,9 +1,9 @@
 /**
  * ============================================================
- * © 2025 Diploy — a brand of Bisht Technologies Private Limited
+ * © 2025 Zonvo AI — a brand of Bisht Technologies Private Limited
  * Original Author: BTPL Engineering Team
- * Website: https://diploy.in
- * Contact: cs@diploy.in
+ * Website: https://zonvo.tech
+ * Contact: cs@zonvo.tech
  *
  * Distributed under the Envato / CodeCanyon License Agreement.
  * Licensed to the purchaser for use as defined by the
@@ -29,13 +29,13 @@ function isInternalPath(path: string): boolean {
 }
 
 // Storage key for persisting hidden script IDs across sessions
-const HIDDEN_SCRIPTS_STORAGE_KEY = 'agentlabs_hidden_analytics_scripts';
+const HIDDEN_SCRIPTS_STORAGE_KEY = 'Zonvo AI_hidden_analytics_scripts';
 
 // Known widget container selectors that scripts may create
 const WIDGET_CONTAINER_SELECTORS = [
   '#vw-container',       // Voice widget container
   '#vw-widget',          // Voice widget element
-  '[id^="agentlabs-"]',  // Any AgentLabs prefixed elements
+  '[id^="Zonvo AI-"]',  // Any Zonvo AI prefixed elements
 ];
 
 // Load hidden script IDs from localStorage (runs synchronously on module load)

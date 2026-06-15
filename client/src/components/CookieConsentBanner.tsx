@@ -1,9 +1,9 @@
 /**
  * ============================================================
- * © 2025 Diploy — a brand of Bisht Technologies Private Limited
+ * © 2025 Zonvo AI — a brand of Bisht Technologies Private Limited
  * Original Author: BTPL Engineering Team
- * Website: https://diploy.in
- * Contact: cs@diploy.in
+ * Website: https://zonvo.tech
+ * Contact: cs@zonvo.tech
  *
  * Distributed under the Envato / CodeCanyon License Agreement.
  * Licensed to the purchaser for use as defined by the
@@ -33,7 +33,7 @@ import { Cookie, Shield, BarChart3, Megaphone, Settings, X } from "lucide-react"
 import { AuthStorage } from "@/lib/auth-storage";
 import { Link } from "wouter";
 
-const CONSENT_STORAGE_KEY = "agentlabs_cookie_consent";
+const CONSENT_STORAGE_KEY = "Zonvo AI_cookie_consent";
 
 interface ConsentPreferences {
   cookieConsent: boolean;

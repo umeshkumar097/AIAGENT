@@ -1,6 +1,6 @@
 /**
  * @fileoverview ElevenLabs Migration Engine - Error Detection
- * @copyright Diploy - 2024-2025. All rights reserved.
+ * @copyright Zonvo AI - 2024-2025. All rights reserved.
  * @license See LICENSE.md for license information
  * 
  * Detects concurrency limit errors from ElevenLabs API responses

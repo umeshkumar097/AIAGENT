@@ -1,9 +1,9 @@
 /**
  * ============================================================
- * © 2025 Diploy — a brand of Bisht Technologies Private Limited
+ * © 2025 Zonvo AI — a brand of Bisht Technologies Private Limited
  * Original Author: BTPL Engineering Team
- * Website: https://diploy.in
- * Contact: cs@diploy.in
+ * Website: https://zonvo.tech
+ * Contact: cs@zonvo.tech
  *
  * Distributed under the Envato / CodeCanyon License Agreement.
  * Licensed to the purchaser for use as defined by the
@@ -43,7 +43,7 @@ export function getFormWebhookSecret(): string {
       if (baseKey) {
         formWebhookSecret = crypto
           .createHmac('sha256', baseKey)
-          .update('agentlabs:form-webhook-secret:v1')
+          .update('Zonvo AI:form-webhook-secret:v1')
           .digest('hex');
         console.log(`📋 [Form Tool] Derived stable webhook secret from server key`);
       } else {

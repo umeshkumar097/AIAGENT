@@ -9,7 +9,7 @@
  * This component:
  * 1. Fetches enabled plugins from /api/plugins/capabilities
  * 2. Dynamically imports each plugin's frontend bundle
- * 3. Plugin bundles call window.__AGENTLABS_PLUGIN_REGISTRY__ to register
+ * 3. Plugin bundles call window.__Zonvo AI_PLUGIN_REGISTRY__ to register
  * ============================================================
  */
 

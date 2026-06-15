@@ -259,7 +259,7 @@ publicPluginRouter.get('/health', async (_req, res) => {
 /**
  * GET /api/plugins/:name/docs
  * Serve a plugin's documentation.html with dynamic app-name substitution.
- * Reads global_settings app_name and replaces all "AgentLabs" occurrences so
+ * Reads global_settings app_name and replaces all "Zonvo AI" occurrences so
  * white-label installations see their configured brand name.
  */
 publicPluginRouter.get('/:name/docs', async (req, res) => {
@@ -276,8 +276,8 @@ publicPluginRouter.get('/:name/docs', async (req, res) => {
     }
     const appName = escapeHtml(await getAppName());
     let html = fs.readFileSync(docPath, 'utf8');
-    // Replace template placeholder first; also catch any legacy "AgentLabs" literals
-    html = html.replace(/\{\{app_name\}\}/g, appName).replace(/AgentLabs/g, appName);
+    // Replace template placeholder first; also catch any legacy "Zonvo AI" literals
+    html = html.replace(/\{\{app_name\}\}/g, appName).replace(/Zonvo AI/g, appName);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(html);
   } catch (error: any) {
