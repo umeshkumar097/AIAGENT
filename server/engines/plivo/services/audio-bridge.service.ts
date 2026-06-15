@@ -952,6 +952,25 @@ IMPORTANT FUNCTION CALLING REQUIREMENTS:
 
       // Convert mulaw 8kHz to PCM16 24kHz for OpenAI
       const pcmBuffer = this.mulawToPcm16(mulawBuffer);
+      
+      // NOISE GATE LOGIC: Calculate RMS volume
+      let sumSquares = 0;
+      const samples = pcmBuffer.length / 2;
+      for (let i = 0; i < pcmBuffer.length; i += 2) {
+        const sample = pcmBuffer.readInt16LE(i);
+        sumSquares += sample * sample;
+      }
+      const rms = Math.sqrt(sumSquares / samples);
+      
+      // Threshold for background noise. Int16 goes up to 32767. 
+      // 500 is roughly 1.5% amplitude.
+      const NOISE_THRESHOLD = 500;
+      
+      if (rms < NOISE_THRESHOLD) {
+        // Fill with silence so OpenAI's VAD doesn't trigger on background noise
+        pcmBuffer.fill(0);
+      }
+
       const pcmBase64 = pcmBuffer.toString('base64');
 
       // Send to OpenAI Realtime API
