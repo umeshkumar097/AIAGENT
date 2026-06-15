@@ -186,11 +186,16 @@ function SessionTimeoutWrapper({ children }: { children: React.ReactNode }) {
 
 
 function PublicRouter() {
+  // Direct app.zonvo.tech users to the login page instead of the landing page
+  const isAppDomain = window.location.hostname === 'app.zonvo.tech';
+
   return (
     <>
       <ScrollToTop />
       <Switch>
-        <Route path="/" component={LandingPage} />
+        <Route path="/">
+          {isAppDomain ? <Redirect to="/login" /> : <LandingPage />}
+        </Route>
         <Route path="/login" component={LoginPage} />
         <Route path="/register" component={LoginPage} />
         <Route path="/team/login" component={TeamMemberLogin} />
@@ -205,7 +210,9 @@ function PublicRouter() {
         <Route path="/privacy" component={PrivacyPolicy} />
         <Route path="/terms" component={TermsOfService} />
         <Route path="/cookies" component={CookiePolicy} />
-        <Route component={LandingPage} />
+        <Route>
+          {isAppDomain ? <Redirect to="/login" /> : <LandingPage />}
+        </Route>
       </Switch>
     </>
   );
