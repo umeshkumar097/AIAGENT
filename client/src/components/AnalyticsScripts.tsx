@@ -29,7 +29,7 @@ function isInternalPath(path: string): boolean {
 }
 
 // Storage key for persisting hidden script IDs across sessions
-const HIDDEN_SCRIPTS_STORAGE_KEY = 'Zonvo AI_hidden_analytics_scripts';
+const HIDDEN_SCRIPTS_STORAGE_KEY = 'ZonvoAI_hidden_analytics_scripts';
 
 // Known widget container selectors that scripts may create
 const WIDGET_CONTAINER_SELECTORS = [

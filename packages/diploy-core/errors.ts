@@ -23,7 +23,7 @@ export class Zonvo AIError extends Error {
   constructor(
     message: string,
     statusCode: number = 500,
-    code: string = 'Zonvo AI_ERROR',
+    code: string = 'ZonvoAI_ERROR',
     details?: Record<string, unknown>
   ) {
     super(message);

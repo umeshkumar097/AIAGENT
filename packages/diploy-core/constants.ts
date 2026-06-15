@@ -15,7 +15,7 @@
  * ============================================================
  */
 
-export const Zonvo AI_BRAND = {
+export const ZonvoAI_BRAND = {
   name: 'Zonvo AI',
   company: 'Bisht Technologies Private Limited',
   website: 'https://zonvo.tech',
@@ -24,13 +24,13 @@ export const Zonvo AI_BRAND = {
   product: 'Zonvo AI'
 } as const;
 
-export const Zonvo AI_VERSION = {
+export const ZonvoAI_VERSION = {
   core: '1.0.0',
   api: 'v1',
   build: process.env.BUILD_NUMBER || 'dev'
 } as const;
 
-export const Zonvo AI_HEADERS = {
+export const ZonvoAI_HEADERS = {
   author: 'X-Author',
   version: 'X-Api-Version',
   requestId: 'X-Request-Id'

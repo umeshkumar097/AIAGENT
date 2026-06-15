@@ -32,6 +32,6 @@ import './i18n';
 
 // Expose react-i18next globally for plugin bundles
 // This allows plugins to share the host app's i18n instance and translations
-(window as any).__Zonvo AI_REACT_I18NEXT__ = ReactI18next;
+(window as any).__ZonvoAI_REACT_I18NEXT__ = ReactI18next;
 
 createRoot(document.getElementById("root")!).render(<App />);

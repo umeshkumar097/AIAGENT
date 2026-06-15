@@ -33,7 +33,7 @@ import { Cookie, Shield, BarChart3, Megaphone, Settings, X } from "lucide-react"
 import { AuthStorage } from "@/lib/auth-storage";
 import { Link } from "wouter";
 
-const CONSENT_STORAGE_KEY = "Zonvo AI_cookie_consent";
+const CONSENT_STORAGE_KEY = "ZonvoAI_cookie_consent";
 
 interface ConsentPreferences {
   cookieConsent: boolean;
