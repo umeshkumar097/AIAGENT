@@ -207,5 +207,5 @@ function useToast() {
 export { useToast, toast }
 
 if (typeof window !== 'undefined') {
-  (window as any).__ZonvoAI_TOAST__ = toast;
+  (window as any).__AgentLabs_TOAST__ = toast;
 }
