@@ -203,19 +203,19 @@ export function usePluginRegistry(): PluginRegistryAPI {
 
 declare global {
   interface Window {
-    __AgentLabs_PLUGIN_REGISTRY__?: PluginRegistryAPI;
+    __AGENTLABS_PLUGIN_REGISTRY__?: PluginRegistryAPI;
   }
 }
 
 export function exposePluginRegistry(api: PluginRegistryAPI) {
   if (typeof window !== 'undefined') {
-    window.__AgentLabs_PLUGIN_REGISTRY__ = api;
+    window.__AGENTLABS_PLUGIN_REGISTRY__ = api;
   }
 }
 
 export function getGlobalPluginRegistry(): PluginRegistryAPI | undefined {
   if (typeof window !== 'undefined') {
-    return window.__AgentLabs_PLUGIN_REGISTRY__;
+    return window.__AGENTLABS_PLUGIN_REGISTRY__;
   }
   return undefined;
 }
