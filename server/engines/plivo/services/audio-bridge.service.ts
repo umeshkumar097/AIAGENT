@@ -338,6 +338,7 @@ IMPORTANT FUNCTION CALLING REQUIREMENTS:
       session: {
         type: 'realtime',
         instructions: enhancedInstructions,
+        temperature: Math.max(0.6, Math.min(1.2, agentConfig.temperature ?? 0.6)), // OpenAI Realtime requires 0.6 to 1.2
         audio: {
           input: {
             format: { type: 'audio/pcm', rate: 24000 },
