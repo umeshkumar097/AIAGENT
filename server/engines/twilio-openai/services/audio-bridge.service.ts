@@ -239,7 +239,7 @@ BACKGROUND NOISE HANDLING:
 
     const enhancedInstructions = agentConfig.systemPrompt + functionCallingRequirements;
 
-    const sessionConfig = {
+    const sessionConfig: any = {
       type: 'session.update',
       session: {
         type: 'realtime',
@@ -260,6 +260,10 @@ BACKGROUND NOISE HANDLING:
         tool_choice: tools.length > 0 ? 'auto' : 'none',
       },
     };
+
+    if (process.env.AZURE_OPENAI_ENDPOINT) {
+      delete sessionConfig.session.temperature;
+    }
 
     console.log(`[TwilioOpenAI Bridge] Configuring session with ${tools.length} tools`);
     if (tools.length > 0) {

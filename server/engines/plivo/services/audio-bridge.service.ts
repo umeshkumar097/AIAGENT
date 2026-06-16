@@ -342,7 +342,7 @@ IMPORTANT FUNCTION CALLING REQUIREMENTS:
 
     const enhancedInstructions = agentConfig.systemPrompt + functionCallingRequirements;
 
-    const sessionConfig = {
+    const sessionConfig: any = {
       type: 'session.update',
       session: {
         type: 'realtime',
@@ -363,6 +363,10 @@ IMPORTANT FUNCTION CALLING REQUIREMENTS:
         tool_choice: tools.length > 0 ? 'auto' : 'none',
       },
     };
+
+    if (process.env.AZURE_OPENAI_ENDPOINT) {
+      delete sessionConfig.session.temperature;
+    }
 
     logger.info(`Configuring session with ${tools.length} tools`, undefined, 'AudioBridge');
     openaiWs.send(JSON.stringify(sessionConfig));
