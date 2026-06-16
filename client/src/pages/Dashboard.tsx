@@ -467,17 +467,8 @@ export default function Dashboard() {
         </div>
         
         {/* Globe Section */}
-        <div className="lg:col-span-1">
-          <Card className="h-full min-h-[400px] border-brand/20 dark:border-brand/20 shadow-sm flex flex-col items-center justify-center relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-brand/5 to-transparent z-0"></div>
-            <div className="relative z-10 w-full h-full flex flex-col items-center p-6">
-              <h3 className="text-lg font-semibold w-full text-center mb-2">Live Global Activity</h3>
-              <p className="text-xs text-muted-foreground text-center mb-6">Real-time AI calls across regions</p>
-              <div className="flex-1 w-full relative min-h-[300px]">
-                <DashboardGlobe />
-              </div>
-            </div>
-          </Card>
+        <div className="lg:col-span-1 h-full min-h-[340px]">
+          <DashboardGlobe />
         </div>
       </div>
 
