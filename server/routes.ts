@@ -1518,27 +1518,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Format the phone number (add + if missing)
       const formattedPhone = phone.startsWith('+') ? phone : `+${phone}`;
 
-      // Get agent details
+      const { agents, phoneNumbers, plivoPhoneNumbers, elevenLabsPhoneNumbers, incomingConnections } = await import("@shared/schema");
+      const { eq, and } = await import("drizzle-orm");
+      
       const agent = await db.query.agents.findFirst({
-        where: eq(agents.id, agent_id),
+        where: eq(agents.id, agent_id)
       });
 
       if (!agent) {
         return res.status(404).json({ error: "Agent not found" });
       }
 
-      // Import schema
-      const { phoneNumbers, plivoPhoneNumbers } = await import("../shared/schema");
-      
       const dynamicData = name ? { name } : undefined;
-      let callResponse;
 
+      // Check which engine the agent uses and trigger appropriate call
+      let callResponse;
       if (agent.telephonyProvider === 'plivo' || agent.engine === 'plivo') {
-        // Handle Plivo Agent
-        const plivoPhone = await db.query.plivoPhoneNumbers.findFirst({
-          where: eq(plivoPhoneNumbers.userId, agent.userId)
+        // Find Plivo phone number mapped to this agent, fallback to first user number
+        let plivoPhone = await db.query.plivoPhoneNumbers.findFirst({
+          where: and(
+            eq(plivoPhoneNumbers.userId, agent.userId!),
+            eq(plivoPhoneNumbers.assignedAgentId, agent.id)
+          )
         });
-        
+
+        if (!plivoPhone) {
+          plivoPhone = await db.query.plivoPhoneNumbers.findFirst({
+            where: eq(plivoPhoneNumbers.userId, agent.userId!)
+          });
+        }
+
         if (!plivoPhone) {
           return res.status(400).json({ error: "No Plivo phone number configured for this user" });
         }
@@ -1562,9 +1571,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
       } else if (agent.telephonyProvider === 'twilio_openai' || agent.engine === 'openai') {
         // Handle Twilio + OpenAI Agent
-        const phoneNumber = await db.query.phoneNumbers.findFirst({
-          where: eq(phoneNumbers.userId, agent.userId)
+        let phoneNumber = null;
+
+        const incomingConnection = await db.query.incomingConnections.findFirst({
+          where: and(
+            eq(incomingConnections.userId, agent.userId!),
+            eq(incomingConnections.agentId, agent.id)
+          )
         });
+
+        if (incomingConnection) {
+          phoneNumber = await db.query.phoneNumbers.findFirst({
+            where: eq(phoneNumbers.id, incomingConnection.phoneNumberId)
+          });
+        }
+
+        if (!phoneNumber) {
+          phoneNumber = await db.query.phoneNumbers.findFirst({
+            where: eq(phoneNumbers.userId, agent.userId!)
+          });
+        }
         
         if (!phoneNumber) {
           return res.status(400).json({ error: "No phone number configured for this user" });
