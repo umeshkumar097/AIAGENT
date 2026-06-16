@@ -16,7 +16,6 @@
  */
 import { useState, useMemo } from "react";
 import { useTranslation } from 'react-i18next';
-import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -213,7 +212,6 @@ function EstimatedCost({ model }: { model: string }) {
 }
 
 export default function Agents() {
-  const [, setLocation] = useLocation();
   const { t } = useTranslation();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'agents' | 'templates' | 'voices'>('agents');
