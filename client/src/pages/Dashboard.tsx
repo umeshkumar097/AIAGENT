@@ -66,6 +66,7 @@ import {
   Pie,
   Cell
 } from "recharts";
+import DashboardGlobe from "@/components/DashboardGlobe";
 
 interface CallTypeStat {
   count: number;
@@ -269,7 +270,9 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Cards Row - with colored backgrounds like the image */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-4 md:space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Total Calls - Tinted cyan/blue like "Views" in image */}
         <Card className="bg-gradient-to-br from-cyan-50 to-sky-50 dark:from-cyan-950/30 dark:to-sky-950/30 border-cyan-100 dark:border-cyan-900/50" data-testid="card-total-calls">
           <CardContent className="pt-5 pb-4">
@@ -458,8 +461,23 @@ export default function Dashboard() {
                 <span className="text-2xl font-bold tracking-tight">{dashboard?.templatesCount || 0}</span>
               </div>
             </div>
-          </CardContent>
         </Card>
+          </div>
+        </div>
+        
+        {/* Globe Section */}
+        <div className="lg:col-span-1">
+          <Card className="h-full min-h-[400px] border-brand/20 dark:border-brand/20 shadow-sm flex flex-col items-center justify-center relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-brand/5 to-transparent z-0"></div>
+            <div className="relative z-10 w-full h-full flex flex-col items-center p-6">
+              <h3 className="text-lg font-semibold w-full text-center mb-2">Live Global Activity</h3>
+              <p className="text-xs text-muted-foreground text-center mb-6">Real-time AI calls across regions</p>
+              <div className="flex-1 w-full relative min-h-[300px]">
+                <DashboardGlobe />
+              </div>
+            </div>
+          </Card>
+        </div>
       </div>
 
       {/* Charts Row */}

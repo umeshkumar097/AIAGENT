@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useRef, useState, useEffect } from "react";
 import { Link } from "wouter";
 import { AuthStorage } from "@/lib/auth-storage";
+import { DemoCallingWidget } from "@/components/landing/DemoCallingWidget";
 import { useTranslation } from 'react-i18next';
 const heroCardSales = "/images/hero-card-sales.png";
 const heroCardSupport = "/images/hero-card-support.png";
@@ -189,69 +190,80 @@ export function HeroSection() {
         }}
         aria-hidden="true"
       />
-      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <motion.div
-          variants={shouldReduceMotion ? undefined : containerVariants}
-          initial={shouldReduceMotion ? { opacity: 1 } : "hidden"}
-          animate={shouldReduceMotion ? { opacity: 1 } : (isInView ? "visible" : "hidden")}
-          className="space-y-7"
-        >
-          <motion.div variants={itemVariants} className="flex justify-center">
-            <span className="text-sm font-semibold text-primary tracking-widest uppercase">
-              {t('landing.hero.badge')}
-            </span>
-          </motion.div>
-
-          <motion.h1
-            variants={itemVariants}
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] text-foreground"
-            data-testid="hero-headline"
-          >
-            {t('landing.hero.headline')}
-            <br />
-            <TypingWord words={rotatingWords} reduceMotion={shouldReduceMotion} />
-          </motion.h1>
-
-          <motion.p
-            variants={itemVariants}
-            className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed"
-            data-testid="hero-subheadline"
-          >
-            {t('landing.hero.subheadline')}
-          </motion.p>
-
-          <motion.div 
-            variants={itemVariants}
-            className="flex flex-wrap justify-center gap-3 pt-2"
-          >
-            <StatsBadge value="5X" label={t('landing.hero.statsProductivity')} />
-            <StatsBadge value="100X" label={t('landing.hero.statsScalability')} />
-          </motion.div>
-
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center">
           <motion.div
-            variants={itemVariants}
-            className="flex justify-center pt-4"
+            variants={shouldReduceMotion ? undefined : containerVariants}
+            initial={shouldReduceMotion ? { opacity: 1 } : "hidden"}
+            animate={shouldReduceMotion ? { opacity: 1 } : (isInView ? "visible" : "hidden")}
+            className="space-y-7 text-left"
           >
-            <Link href={getDashboardLink()}>
-              <Button
-                size="lg"
-                className="rounded-full shadow-lg"
-                data-testid="button-hero-get-started"
-              >
-                {t('landing.hero.getStarted')}
-              </Button>
-            </Link>
-          </motion.div>
+            <motion.div variants={itemVariants} className="flex justify-start">
+              <span className="text-sm font-semibold text-primary tracking-widest uppercase">
+                {t('landing.hero.badge')}
+              </span>
+            </motion.div>
 
-          <motion.div
-            variants={itemVariants}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 pt-2"
-            data-testid="hero-trust-badges"
-          >
+            <motion.h1
+              variants={itemVariants}
+              className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-[1.1] text-foreground"
+              data-testid="hero-headline"
+            >
+              {t('landing.hero.headline')}
+              <br />
+              <TypingWord words={rotatingWords} reduceMotion={shouldReduceMotion} />
+            </motion.h1>
+
+            <motion.p
+              variants={itemVariants}
+              className="text-base md:text-lg text-muted-foreground max-w-2xl leading-relaxed"
+              data-testid="hero-subheadline"
+            >
+              {t('landing.hero.subheadline')}
+            </motion.p>
+
+            <motion.div 
+              variants={itemVariants}
+              className="flex flex-wrap justify-start gap-3 pt-2"
+            >
+              <StatsBadge value="5X" label={t('landing.hero.statsProductivity')} />
+              <StatsBadge value="100X" label={t('landing.hero.statsScalability')} />
+            </motion.div>
+
+            <motion.div
+              variants={itemVariants}
+              className="flex justify-start pt-4"
+            >
+              <Link href={getDashboardLink()}>
+                <Button
+                  size="lg"
+                  className="rounded-full shadow-lg bg-brand hover:bg-brand/90"
+                  data-testid="button-hero-get-started"
+                >
+                  {t('landing.hero.getStarted')}
+                </Button>
+              </Link>
+            </motion.div>
+
+            <motion.div
+              variants={itemVariants}
+              className="flex flex-col sm:flex-row items-start sm:items-center justify-start gap-4 sm:gap-8 pt-2"
+              data-testid="hero-trust-badges"
+            >
             <TrustBadge text={t('landing.hero.freeTrial')} />
             <TrustBadge text={t('landing.hero.freeCredit')} />
+            </motion.div>
           </motion.div>
-        </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="flex justify-center lg:justify-end"
+          >
+            <DemoCallingWidget />
+          </motion.div>
+        </div>
       </div>
 
       <motion.div

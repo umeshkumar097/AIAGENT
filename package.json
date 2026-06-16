@@ -1,5 +1,5 @@
 {
-  "name": "Zonvo AI",
+  "name": "zonvo-ai",
   "version": "5.4.1",
   "type": "module",
   "license": "MIT",
@@ -14,7 +14,6 @@
     "db:seed": "tsx server/seed-all.ts"
   },
   "dependencies": {
-    "@Zonvo AI/core": "file:packages/Zonvo AI-core",
     "@elevenlabs/elevenlabs-js": "^2.25.1",
     "@eslint/js": "^9.39.1",
     "@hookform/resolvers": "^3.10.0",
@@ -69,6 +68,7 @@
     "@typescript-eslint/eslint-plugin": "^8.48.0",
     "@typescript-eslint/parser": "^8.48.0",
     "@xyflow/react": "^12.9.3",
+    "@zonvo-ai/core": "file:packages/Zonvo AI-core",
     "adm-zip": "^0.5.16",
     "archiver": "^7.0.1",
     "autoprefixer": "^10.4.22",
@@ -79,6 +79,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "cobe": "^2.0.1",
     "compression": "^1.8.1",
     "connect-pg-simple": "^10.0.0",
     "cookie-parser": "^1.4.7",
