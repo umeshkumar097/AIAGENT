@@ -43,6 +43,7 @@ import Billing from "@/pages/Billing";
 import PaymentResult from "@/pages/PaymentResult";
 import KnowledgeBase from "@/pages/KnowledgeBase";
 import Agents from "@/pages/Agents";
+import AgentBuilder from "@/pages/AgentBuilder";
 import Voices from "@/pages/Voices";
 import PhoneNumbers from "@/pages/PhoneNumbers";
 import AllContacts from "@/pages/AllContacts";
@@ -335,6 +336,7 @@ function UserRouter() {
                   <Redirect to="/app/billing?tab=plans" />
                 </Route>
                 <Route path="/app/knowledge-base" component={KnowledgeBase} />
+                <Route path="/app/agents/:id" component={AgentBuilder} />
                 <Route path="/app/agents" component={Agents} />
                 <Route path="/app/conversations" component={PluginConversationsPage} />
                 <Route path="/app/prompt-templates" component={PromptTemplates} />
@@ -426,6 +428,7 @@ function TeamMemberRouter() {
                   <Redirect to="/app/billing?tab=plans" />
                 </Route>
                 <Route path="/app/knowledge-base" component={KnowledgeBase} />
+                <Route path="/app/agents/:id" component={AgentBuilder} />
                 <Route path="/app/agents" component={Agents} />
                 <Route path="/app/conversations" component={PluginConversationsPage} />
                 <Route path="/app/prompt-templates" component={PromptTemplates} />

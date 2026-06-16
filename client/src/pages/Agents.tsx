@@ -691,6 +691,10 @@ export default function Agents() {
   };
 
   const handleEdit = (agent: Agent) => {
+    setLocation(`/app/agents/${agent.id}`);
+  };
+
+  const handleEditOld = (agent: Agent) => {
     setEditingAgent(agent);
     setFormData({
       type: agent.type || "incoming",
@@ -849,8 +853,7 @@ export default function Agents() {
               {t('agents.guidedWizard', 'Guided Wizard')}
             </Button>
             <Button 
-              onClick={() => setCreateDialogOpen(true)} 
-              disabled={createDialogOpen} 
+              onClick={() => setLocation('/app/agents/new')} 
               className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg"
               data-testid="button-create-agent"
             >
