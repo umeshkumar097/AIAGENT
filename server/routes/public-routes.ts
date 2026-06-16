@@ -19,7 +19,7 @@
 import { Router, Request, Response } from 'express';
 import { RouteContext, AuthRequest } from './common';
 import { sql, eq } from 'drizzle-orm';
-import { users, calls, campaigns, twilioCountries, elevenLabsKeys } from '@shared/schema';
+import { users, calls, campaigns, twilioCountries, elevenLabsCredentials } from '@shared/schema';
 import bcrypt from 'bcrypt';
 import fs from 'fs';
 import path from 'path';
@@ -940,7 +940,7 @@ ${allUrls.map(u => {
 
   router.post("/api/public/demo-voice", async (req: Request, res: Response) => {
     try {
-      const keys = await db.select().from(elevenLabsKeys).where(eq(elevenLabsKeys.isActive, true)).limit(1);
+      const keys = await db.select().from(elevenLabsCredentials).where(eq(elevenLabsCredentials.isActive, true)).limit(1);
       if (!keys || keys.length === 0) {
         return res.status(500).json({ error: "No active ElevenLabs keys configured" });
       }
