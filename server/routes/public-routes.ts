@@ -19,11 +19,12 @@
 import { Router, Request, Response } from 'express';
 import { RouteContext, AuthRequest } from './common';
 import { sql, eq } from 'drizzle-orm';
-import { users, calls, campaigns, twilioCountries } from '@shared/schema';
+import { users, calls, campaigns, twilioCountries, elevenLabsKeys } from '@shared/schema';
 import bcrypt from 'bcrypt';
 import fs from 'fs';
 import path from 'path';
 import { runAllSeedsForInstaller } from '../seed-all';
+import { ElevenLabsService } from '../services/elevenlabs';
 
 /**
  * Creates public routes for unauthenticated endpoints.
@@ -930,6 +931,34 @@ ${allUrls.map(u => {
     } catch (error) {
       console.error('Error fetching public analytics scripts:', error);
       res.status(500).json({ error: 'Failed to fetch analytics scripts' });
+    }
+  });
+
+  // ============================================
+  // PUBLIC DEMO VOICE
+  // ============================================
+
+  router.post("/api/public/demo-voice", async (req: Request, res: Response) => {
+    try {
+      const keys = await db.select().from(elevenLabsKeys).where(eq(elevenLabsKeys.isActive, true)).limit(1);
+      if (!keys || keys.length === 0) {
+        return res.status(500).json({ error: "No active ElevenLabs keys configured" });
+      }
+
+      const previewService = new ElevenLabsService(keys[0].apiKey);
+      const audioBuffer = await previewService.generateVoicePreview({
+        voiceId: req.body.voiceId || "pNInz6obpgDQGcFmaJgB", // Default: Adam
+        text: req.body.text || "Hello! I am the Zonvo AI assistant. I can handle inbound and outbound calls autonomously.",
+        modelId: "eleven_multilingual_v2"
+      });
+
+      res.setHeader('Content-Type', 'audio/mpeg');
+      res.setHeader('Content-Length', audioBuffer.length);
+      res.setHeader('Cache-Control', 'no-cache');
+      res.send(audioBuffer);
+    } catch (error) {
+      console.error("Demo voice error:", error);
+      res.status(500).json({ error: "Failed to generate demo voice" });
     }
   });
 
