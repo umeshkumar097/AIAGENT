@@ -113,15 +113,24 @@ export class TwilioOpenAIAudioBridge {
       // Build WebSocket URL with model
       let actualModel = agentConfig.model as string;
 
-      const wsUrl = `${this.OPENAI_REALTIME_URL}?model=${actualModel}`;
+      let wsUrl = `${this.OPENAI_REALTIME_URL}?model=${actualModel}`;
+      let headers: Record<string, string> = {
+        'Authorization': `Bearer ${apiKey}`,
+        'OpenAI-Beta': 'realtime=v1',
+      };
 
-      console.log(`[TwilioOpenAI Bridge] Connecting to OpenAI: ${agentConfig.model}`);
+      if (process.env.AZURE_OPENAI_ENDPOINT && process.env.AZURE_OPENAI_API_KEY && process.env.AZURE_OPENAI_DEPLOYMENT) {
+        const azureEndpoint = process.env.AZURE_OPENAI_ENDPOINT.replace('https://', 'wss://').replace(/\/$/, '');
+        wsUrl = `${azureEndpoint}/openai/realtime?api-version=2024-10-01-preview&deployment=${process.env.AZURE_OPENAI_DEPLOYMENT}`;
+        headers = {
+          'api-key': process.env.AZURE_OPENAI_API_KEY
+        };
+        logger.info(`Connecting to Azure OpenAI Realtime: ${process.env.AZURE_OPENAI_DEPLOYMENT}`, undefined, 'TwilioAudioBridge');
+      } else {
+        logger.info(`Connecting to OpenAI Realtime: ${agentConfig.model}`, undefined, 'TwilioAudioBridge');
+      }
 
-      const ws = new WebSocket(wsUrl, {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-        },
-      });
+      const ws = new WebSocket(wsUrl, { headers });
 
       session.openaiWs = ws;
 
