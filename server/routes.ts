@@ -1527,29 +1527,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Agent not found" });
       }
 
-      // Get phone number for the agent
-      const phoneNumber = await db.query.phoneNumbers.findFirst({
-        where: eq(phoneNumbers.userId, agent.userId)
-      });
-
-      if (!phoneNumber) {
-        return res.status(400).json({ error: "No phone number configured for this user" });
-      }
-
-      // Import service and trigger call
-      const { OutboundCallService } = await import("./services/outbound-call-service");
-      const callService = new OutboundCallService();
+      // Import schema
+      const { phoneNumbers, plivoPhoneNumbers } = await import("../shared/schema");
       
       const dynamicData = name ? { name } : undefined;
+      let callResponse;
 
-      const callResult = await callService.initiateCall({
-        agentId: agent.id,
-        agentPhoneNumberId: phoneNumber.id,
-        toNumber: formattedPhone,
-        dynamicData
-      });
+      if (agent.telephonyProvider === 'plivo' || agent.engine === 'plivo') {
+        // Handle Plivo Agent
+        const plivoPhone = await db.query.plivoPhoneNumbers.findFirst({
+          where: eq(plivoPhoneNumbers.userId, agent.userId)
+        });
+        
+        if (!plivoPhone) {
+          return res.status(400).json({ error: "No Plivo phone number configured for this user" });
+        }
 
-      res.json({ success: true, message: "Call triggered successfully", callResult });
+        const { PlivoCallService } = await import("./engines/plivo/services/plivo-call.service");
+        const { callUuid, plivoCall } = await PlivoCallService.initiateCall({
+          fromNumber: plivoPhone.phoneNumber,
+          toNumber: formattedPhone,
+          userId: agent.userId!,
+          agentId: agent.id,
+          plivoPhoneNumberId: plivoPhone.id,
+          dynamicData
+        });
+        callResponse = { success: true, callId: callUuid, provider: 'plivo' };
+        
+      } else if (agent.telephonyProvider === 'twilio_openai' || agent.engine === 'openai') {
+        // Handle Twilio + OpenAI Agent
+        const phoneNumber = await db.query.phoneNumbers.findFirst({
+          where: eq(phoneNumbers.userId, agent.userId)
+        });
+        
+        if (!phoneNumber) {
+          return res.status(400).json({ error: "No phone number configured for this user" });
+        }
+
+        const { TwilioOpenAICallService } = await import("./engines/twilio-openai/services/twilio-openai-call.service");
+        const callResult = await TwilioOpenAICallService.initiateCall({
+          userId: agent.userId!,
+          agentId: agent.id,
+          toNumber: formattedPhone,
+          fromNumberId: phoneNumber.id,
+          metadata: { source: 'webhook_trigger' }
+        });
+        
+        if (!callResult.success) {
+          return res.status(500).json({ error: "Failed to initiate call", details: callResult.error });
+        }
+        callResponse = { success: true, callId: callResult.callId, provider: 'twilio_openai' };
+
+      } else {
+        // Default: ElevenLabs
+        const phoneNumber = await db.query.phoneNumbers.findFirst({
+          where: eq(phoneNumbers.userId, agent.userId)
+        });
+
+        if (!phoneNumber) {
+          return res.status(400).json({ error: "No phone number configured for this user" });
+        }
+
+        const { OutboundCallService } = await import("./services/outbound-call-service");
+        const callService = new OutboundCallService();
+        
+        const callResult = await callService.initiateCall({
+          agentId: agent.id,
+          agentPhoneNumberId: phoneNumber.id,
+          toNumber: formattedPhone,
+          dynamicData
+        });
+        callResponse = { success: true, callId: callResult.conversationId, provider: 'elevenlabs' };
+      }
+
+      res.json({ success: true, message: "Call triggered successfully", callResponse });
     } catch (error: any) {
       console.error("External Trigger Call Error:", error);
       res.status(500).json({ error: "Failed to trigger call", details: error.message });
