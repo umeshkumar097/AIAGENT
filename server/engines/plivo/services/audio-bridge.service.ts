@@ -222,11 +222,11 @@ export class AudioBridgeService {
 
       if (process.env.AZURE_OPENAI_ENDPOINT && process.env.AZURE_OPENAI_API_KEY && process.env.AZURE_OPENAI_DEPLOYMENT) {
         const azureEndpoint = process.env.AZURE_OPENAI_ENDPOINT.replace('https://', 'wss://').replace(/\/$/, '');
-        wsUrl = `${azureEndpoint}/openai/realtime?api-version=2024-10-01-preview&deployment=${process.env.AZURE_OPENAI_DEPLOYMENT}`;
+        wsUrl = `${azureEndpoint}/openai/v1/realtime?model=${process.env.AZURE_OPENAI_DEPLOYMENT}`;
         headers = {
           'api-key': process.env.AZURE_OPENAI_API_KEY
         };
-        logger.info(`Connecting to Azure OpenAI Realtime: ${process.env.AZURE_OPENAI_DEPLOYMENT}`, undefined, 'AudioBridge');
+        logger.info(`Connecting to Azure OpenAI Realtime (GA): ${process.env.AZURE_OPENAI_DEPLOYMENT}`, undefined, 'AudioBridge');
       } else {
         logger.info(`Connecting to OpenAI Realtime: ${agentConfig.model}`, undefined, 'AudioBridge');
       }
