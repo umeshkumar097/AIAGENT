@@ -212,12 +212,7 @@ export class AudioBridgeService {
       const { agentConfig, callUuid } = session;
 
       // Build WebSocket URL with model
-      // Map internal or deprecated aliases to valid OpenAI Realtime models
       let actualModel = agentConfig.model as string;
-      if (actualModel === 'gpt-realtime-1.5' || actualModel === 'gpt-realtime-2' || actualModel === 'gpt-realtime' || actualModel === 'gpt-4o-realtime-preview' || actualModel === 'gpt-realtime-mini' || actualModel === 'gpt-4o-mini-realtime-preview') {
-        // Fallback to mini model for all default connections to avoid Tier restriction errors
-        actualModel = 'gpt-4o-mini-realtime-preview-2024-12-17';
-      }
 
       const wsUrl = `${this.OPENAI_REALTIME_URL}?model=${actualModel}`;
 
