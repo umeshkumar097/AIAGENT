@@ -1502,9 +1502,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const token = authHeader.replace("Bearer ", "");
-      const expectedToken = process.env.PABBLY_WEBHOOK_SECRET || "agt_sk_VCTNyRJoii0PyY6VI0IR577ztfSwKat5vzCkvk-Rrzo";
+      const expectedToken = process.env.PABBLY_WEBHOOK_SECRET || "agl_sk_VCTNyRJoii0PyY6Vl0IR577ztfSwKat5vzCkvk-Rrzo";
       
       if (token !== expectedToken) {
+        console.error("Token mismatch. Received:", token);
         return res.status(401).json({ error: "Invalid or expired token" });
       }
 
