@@ -11,10 +11,12 @@ export default function DashboardGlobe() {
     
     if (!canvasRef.current) return;
     
+    let width = canvasRef.current.offsetWidth || 300;
+    
     const globe = createGlobe(canvasRef.current, {
       devicePixelRatio: 2,
-      width: 800,
-      height: 800,
+      width: width * 2,
+      height: width * 2,
       phi: 0,
       theta: 0.3,
       dark: 1,
@@ -36,24 +38,33 @@ export default function DashboardGlobe() {
           phi += 0.005;
         }
         state.phi = phi + pointerInteractionMovement.current;
+        state.width = width * 2;
+        state.height = width * 2;
       },
     });
 
+    const handleResize = () => {
+      if (canvasRef.current) {
+        width = canvasRef.current.offsetWidth || 300;
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+
     return () => {
       globe.destroy();
+      window.removeEventListener('resize', handleResize);
     };
   }, []);
 
   return (
-    <div className="w-full h-full min-h-[300px] flex items-center justify-center relative overflow-hidden bg-transparent">
+    <div className="w-full aspect-square max-w-[400px] flex items-center justify-center relative mx-auto overflow-hidden bg-transparent">
       <canvas
         ref={canvasRef}
+        className="w-full h-full"
         style={{
-          width: 400,
-          height: 400,
-          maxWidth: "100%",
-          aspectRatio: 1,
           cursor: "grab",
+          contain: "layout paint size",
         }}
         onPointerDown={(e) => {
           pointerInteracting.current = e.clientX;
