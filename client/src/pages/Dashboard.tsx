@@ -461,6 +461,7 @@ export default function Dashboard() {
                 <span className="text-2xl font-bold tracking-tight">{dashboard?.templatesCount || 0}</span>
               </div>
             </div>
+          </CardContent>
         </Card>
           </div>
         </div>
