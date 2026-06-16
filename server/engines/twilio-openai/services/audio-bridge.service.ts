@@ -338,13 +338,24 @@ BACKGROUND NOISE HANDLING:
 
     console.log(`[TwilioOpenAI Bridge] Sending first message for ${callSid}: "${text.substring(0, 50)}..."`);
 
-    // Use response.create with instructions to speak the exact greeting
-    // This is the official way to have the agent say a specific first message
+    // Use conversation.item.create with a user message to prompt the AI to say the greeting
+    // This is more reliable across different Realtime API models (like Azure's) than overriding response instructions
     openaiWs.send(JSON.stringify({
-      type: 'response.create',
-      response: {
-        instructions: `Say exactly this greeting to start the conversation, do not add anything else: "${text}"`,
-      },
+      type: 'conversation.item.create',
+      item: {
+        type: 'message',
+        role: 'user',
+        content: [
+          {
+            type: 'input_text',
+            text: `Please start the conversation by saying EXACTLY the following greeting word-for-word, and then wait for me to respond: "${text}"`
+          }
+        ]
+      }
+    }));
+
+    openaiWs.send(JSON.stringify({
+      type: 'response.create'
     }));
   }
 

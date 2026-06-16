@@ -467,14 +467,24 @@ IMPORTANT FUNCTION CALLING REQUIREMENTS:
 
     logger.info(`Sending first message for ${callUuid}: "${text.substring(0, 50)}..."`, undefined, 'AudioBridge');
 
-    // Use response.create with instructions to speak the exact greeting
-    // This is the official way to have the agent say a specific first message
-    // After speaking this greeting, the agent MUST wait for user input before responding again
+    // Use conversation.item.create with a user message to prompt the AI to say the greeting
+    // This is more reliable across different Realtime API models (like Azure's) than overriding response instructions
     openaiWs.send(JSON.stringify({
-      type: 'response.create',
-      response: {
-        instructions: `IMPORTANT: Say ONLY the following greeting message word-for-word, then STOP and WAIT for the user to respond. Do NOT add any follow-up questions or additional content. Just say this exact message and wait: "${text}"`,
-      },
+      type: 'conversation.item.create',
+      item: {
+        type: 'message',
+        role: 'user',
+        content: [
+          {
+            type: 'input_text',
+            text: `Please start the conversation by saying EXACTLY the following greeting word-for-word, and then wait for me to respond: "${text}"`
+          }
+        ]
+      }
+    }));
+
+    openaiWs.send(JSON.stringify({
+      type: 'response.create'
     }));
   }
 
