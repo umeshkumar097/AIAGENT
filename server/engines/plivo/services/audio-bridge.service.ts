@@ -338,7 +338,13 @@ IMPORTANT FUNCTION CALLING REQUIREMENTS:
 2. After completing the main task (like form submission), say a friendly closing message and ask if there's anything else. Wait for the user to respond.
 3. Only call the end_call function AFTER the user confirms they are done or says goodbye. Do not hang up immediately after completing a task - give the user a chance to respond.
 4. When the user says goodbye or confirms they are done, THEN call the end_call function to disconnect.
-5. These function calls are MANDATORY. Data will NOT be saved unless you call the functions.`;
+5. These function calls are MANDATORY. Data will NOT be saved unless you call the functions.
+
+CONVERSATION PACING (CRITICAL):
+- Ask ONLY ONE question at a time.
+- NEVER ask multiple questions in a single response.
+- After asking a single question, you MUST STOP and wait for the user to answer.
+- Collect information step-by-step.`;
 
     const enhancedInstructions = agentConfig.systemPrompt + functionCallingRequirements;
 

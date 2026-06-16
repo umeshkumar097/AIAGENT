@@ -1552,6 +1552,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ error: "No Plivo phone number configured for this user" });
         }
 
+        let processedSystemPrompt = agent.systemPrompt || "You are an AI assistant.";
+        let processedFirstMessage = agent.firstMessage || undefined;
+        
+        if (name) {
+          const nameRegex = /{{\s*name\s*}}|{\s*name\s*}/gi;
+          processedSystemPrompt = processedSystemPrompt.replace(nameRegex, name);
+          if (processedFirstMessage) {
+            processedFirstMessage = processedFirstMessage.replace(nameRegex, name);
+          }
+        }
+
         const { PlivoCallService } = await import("./engines/plivo/services/plivo-call.service");
         const { callUuid, plivoCall } = await PlivoCallService.initiateCall({
           fromNumber: plivoPhone.phoneNumber,
@@ -1562,8 +1573,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           agentConfig: {
             voice: agent.openaiVoice || "alloy",
             model: (agent.config as any)?.openaiModel || "gpt-realtime-1.5",
-            systemPrompt: agent.systemPrompt || "You are an AI assistant.",
-            firstMessage: agent.firstMessage || undefined,
+            systemPrompt: processedSystemPrompt,
+            firstMessage: processedFirstMessage,
             tools: []
           }
         });
