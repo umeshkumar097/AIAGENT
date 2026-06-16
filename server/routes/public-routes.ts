@@ -501,7 +501,7 @@ export function createPublicRoutes(ctx: RouteContext): Router {
 
         const stripeCurrencySetting = await storage.getGlobalSetting('stripe_currency');
         const stripeCurrencyLockedSetting = await storage.getGlobalSetting('stripe_currency_locked');
-        const stripeCurrency = (stripeCurrencySetting?.value as string) || 'USD';
+        const stripeCurrency = (stripeCurrencySetting?.value as string) || 'INR';
         const stripeCurrencyLocked = toBool(stripeCurrencyLockedSetting?.value);
 
         result.stripeCurrency = stripeCurrency.toUpperCase();

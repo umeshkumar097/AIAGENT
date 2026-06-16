@@ -137,6 +137,7 @@ export function getSupportedCurrencies(): Array<{ code: string; symbol: string; 
     { code: 'PHP', symbol: '₱', name: 'Philippine Peso' },
     { code: 'TWD', symbol: 'NT$', name: 'Taiwan Dollar' },
     { code: 'KRW', symbol: '₩', name: 'South Korean Won' },
+    { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
   ];
 }
 
@@ -144,7 +145,7 @@ export async function getStripeCurrency(): Promise<StripeCurrencyConfig> {
   const currency = await getSetting('stripe_currency');
   const locked = await getSetting('stripe_currency_locked');
   
-  const currencyCode = currency || 'USD';
+  const currencyCode = currency || 'INR';
   const currencyLocked = locked === true || locked === 'true';
   
   return {

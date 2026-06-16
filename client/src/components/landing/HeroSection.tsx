@@ -58,14 +58,14 @@ const TypingWord = ({ words, reduceMotion }: { words: string[]; reduceMotion: bo
 
   return (
     <span className="inline-block min-w-[200px] text-left">
-      <span className="text-brand">
+      <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-amber-500 to-emerald-600 font-extrabold">
         {displayText}
       </span>
       {!reduceMotion && (
         <motion.span
           animate={{ opacity: [1, 0] }}
           transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse" }}
-          className="inline-block w-[3px] h-[0.9em] bg-brand ml-1 align-middle"
+          className="inline-block w-[3px] h-[0.9em] bg-orange-500 ml-1 align-middle"
         />
       )}
     </span>
@@ -179,14 +179,14 @@ export function HeroSection() {
       <div
         className="pointer-events-none absolute inset-x-0 bottom-0 h-[60%] dark:hidden"
         style={{
-          background: 'linear-gradient(to bottom, transparent 0%, rgba(56,189,248,0.08) 30%, rgba(59,130,246,0.13) 55%, rgba(99,102,241,0.18) 80%, rgba(79,70,229,0.22) 100%)',
+          background: 'linear-gradient(to bottom, transparent 0%, rgba(255,153,51,0.06) 30%, rgba(255,204,102,0.1) 55%, rgba(19,136,8,0.12) 80%, rgba(19,136,8,0.15) 100%)',
         }}
         aria-hidden="true"
       />
       <div
         className="pointer-events-none absolute inset-x-0 bottom-0 h-[60%] hidden dark:block"
         style={{
-          background: 'linear-gradient(to bottom, transparent 0%, rgba(20,184,166,0.06) 30%, rgba(59,130,246,0.10) 55%, rgba(99,102,241,0.14) 80%, rgba(79,70,229,0.18) 100%)',
+          background: 'linear-gradient(to bottom, transparent 0%, rgba(255,153,51,0.08) 30%, rgba(255,204,102,0.1) 55%, rgba(19,136,8,0.15) 80%, rgba(19,136,8,0.18) 100%)',
         }}
         aria-hidden="true"
       />

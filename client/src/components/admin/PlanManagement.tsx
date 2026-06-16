@@ -738,11 +738,11 @@ export default function PlanManagement() {
     return pluginCapabilities?.data?.capabilities?.['rest-api'] ?? false;
   }, [pluginCapabilities]);
   
-  // Get the Stripe currency (defaults to USD if not set)
-  const stripeCurrency = adminSettings?.stripe_currency || "USD";
+  // Get the Stripe currency (defaults to INR if not set)
+  const stripeCurrency = adminSettings?.stripe_currency || "INR";
   
   // Get currencies for other gateways
-  const paypalCurrency = paymentGateway?.paypalCurrency?.toUpperCase() || "USD";
+  const paypalCurrency = paymentGateway?.paypalCurrency?.toUpperCase() || "INR";
   const paystackCurrency = paymentGateway?.paystackDefaultCurrency?.toUpperCase() || "NGN";
   const mercadopagoCurrency = paymentGateway?.mercadopagoCurrency?.toUpperCase() || "BRL";
   

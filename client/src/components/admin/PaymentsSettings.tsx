@@ -132,7 +132,7 @@ export default function PaymentsSettings() {
     stripe_secret_key: "",
     stripe_publishable_key: "",
     stripe_webhook_secret: "",
-    stripe_currency: "USD",
+    stripe_currency: "INR",
     stripe_mode: "test"
   });
   
@@ -168,7 +168,7 @@ export default function PaymentsSettings() {
     paypal_client_secret: "",
     paypal_webhook_id: "",
     paypal_mode: "sandbox",
-    paypal_currency: "USD",
+    paypal_currency: "INR",
   });
   const [paypalEnabled, setPaypalEnabled] = useState(false);
   const [hasPaypalChanges, setHasPaypalChanges] = useState(false);
@@ -211,7 +211,7 @@ export default function PaymentsSettings() {
         stripe_secret_key: "",
         stripe_publishable_key: settings.stripe_publishable_key || "",
         stripe_webhook_secret: "",
-        stripe_currency: settings.stripe_currency || "USD",
+        stripe_currency: settings.stripe_currency || "INR",
         stripe_mode: settings.stripe_mode || "test"
       });
       setRazorpayFormData({
@@ -245,7 +245,7 @@ export default function PaymentsSettings() {
         paypal_client_secret: "",
         paypal_webhook_id: settings.paypal_webhook_id || "",
         paypal_mode: settings.paypal_mode || "sandbox",
-        paypal_currency: settings.paypal_currency || "USD",
+        paypal_currency: settings.paypal_currency || "INR",
       });
       setPaypalEnabled(settings.paypal_configured && toBool(settings.paypal_enabled));
       

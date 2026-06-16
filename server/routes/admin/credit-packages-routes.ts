@@ -28,7 +28,7 @@ async function getDefaultCurrency(): Promise<string> {
     return currencyConfig.currency;
   } catch (error) {
     console.error('Error getting default currency:', error);
-    return 'USD';
+    return 'INR';
   }
 }
 

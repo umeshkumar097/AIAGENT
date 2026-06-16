@@ -363,7 +363,7 @@ export default function Dashboard() {
       </div>
 
       {/* Secondary Stats Row - Appointments, Forms, Knowledge Base, Webhooks, Templates */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {/* Appointments Booked Card */}
         <Card 
           className="bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-950/30 dark:to-rose-950/30 border-pink-100 dark:border-pink-900/50 cursor-pointer hover-elevate" 
@@ -372,11 +372,11 @@ export default function Dashboard() {
         >
           <CardContent className="pt-5 pb-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center">
+              <div className="h-10 w-10 shrink-0 rounded-lg bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center">
                 <Calendar className="h-5 w-5 text-white" />
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">{t('dashboard.appointmentsBooked')}</p>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-muted-foreground leading-tight mb-1">{t('dashboard.appointmentsBooked')}</p>
                 <span className="text-2xl font-bold tracking-tight">{dashboard?.appointmentsBooked || 0}</span>
               </div>
             </div>
@@ -391,11 +391,11 @@ export default function Dashboard() {
         >
           <CardContent className="pt-5 pb-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
+              <div className="h-10 w-10 shrink-0 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
                 <FileText className="h-5 w-5 text-white" />
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">{t('dashboard.formsSubmitted')}</p>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-muted-foreground leading-tight mb-1">{t('dashboard.formsSubmitted')}</p>
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-bold tracking-tight">{dashboard?.formsSubmitted || 0}</span>
                   <span className="text-xs text-muted-foreground">
@@ -415,11 +415,11 @@ export default function Dashboard() {
         >
           <CardContent className="pt-5 pb-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+              <div className="h-10 w-10 shrink-0 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
                 <BookOpen className="h-5 w-5 text-white" />
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">{t('dashboard.knowledgeBase')}</p>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-muted-foreground leading-tight mb-1">{t('dashboard.knowledgeBase')}</p>
                 <span className="text-2xl font-bold tracking-tight">{dashboard?.knowledgeBaseCount || 0}</span>
               </div>
             </div>
@@ -434,11 +434,11 @@ export default function Dashboard() {
         >
           <CardContent className="pt-5 pb-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-brand to-brand/90 flex items-center justify-center">
+              <div className="h-10 w-10 shrink-0 rounded-lg bg-gradient-to-br from-brand to-brand/90 flex items-center justify-center">
                 <Webhook className="h-5 w-5 text-white" />
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">{t('dashboard.webhooks')}</p>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-muted-foreground leading-tight mb-1">{t('dashboard.webhooks')}</p>
                 <span className="text-2xl font-bold tracking-tight">{dashboard?.webhooksCount || 0}</span>
               </div>
             </div>
@@ -453,11 +453,11 @@ export default function Dashboard() {
         >
           <CardContent className="pt-5 pb-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+              <div className="h-10 w-10 shrink-0 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
                 <FileText className="h-5 w-5 text-white" />
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">{t('dashboard.templates')}</p>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-muted-foreground leading-tight mb-1">{t('dashboard.templates')}</p>
                 <span className="text-2xl font-bold tracking-tight">{dashboard?.templatesCount || 0}</span>
               </div>
             </div>
