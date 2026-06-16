@@ -110,7 +110,16 @@ export class TwilioOpenAIAudioBridge {
     return new Promise((resolve, reject) => {
       const { agentConfig, callSid } = session;
 
-      const wsUrl = `${this.OPENAI_REALTIME_URL}?model=${agentConfig.model}`;
+      // Build WebSocket URL with model
+      // Map internal or deprecated aliases to valid OpenAI Realtime models
+      let actualModel = agentConfig.model as string;
+      if (actualModel === 'gpt-realtime-1.5' || actualModel === 'gpt-realtime-2' || actualModel === 'gpt-realtime' || actualModel === 'gpt-4o-realtime-preview') {
+        actualModel = 'gpt-4o-realtime-preview-2024-12-17';
+      } else if (actualModel === 'gpt-realtime-mini' || actualModel === 'gpt-4o-mini-realtime-preview') {
+        actualModel = 'gpt-4o-mini-realtime-preview-2024-12-17';
+      }
+
+      const wsUrl = `${this.OPENAI_REALTIME_URL}?model=${actualModel}`;
 
       console.log(`[TwilioOpenAI Bridge] Connecting to OpenAI: ${agentConfig.model}`);
 

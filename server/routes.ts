@@ -1561,7 +1561,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           plivoPhoneNumberId: plivoPhone.id,
           agentConfig: {
             voice: agent.voiceId || "alloy",
-            model: "gpt-4o-realtime-preview",
+            model: "gpt-4o-mini-realtime-preview",
             systemPrompt: agent.systemPrompt || "You are an AI assistant.",
             firstMessage: agent.firstMessage || undefined,
             tools: []
