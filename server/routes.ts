@@ -1493,6 +1493,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Play audio tool webhook - called by ElevenLabs when play_audio node executes
   app.post("/api/elevenlabs/tools/play-audio/:agentId", handlePlayAudioToolWebhook);
 
+  // Pabbly External Webhook for triggering calls
+  app.post("/api/external/trigger-call", async (req: Request, res: Response) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Invalid or expired token" });
+      }
+      
+      const token = authHeader.replace("Bearer ", "");
+      const expectedToken = process.env.PABBLY_WEBHOOK_SECRET || "agt_sk_VCTNyRJoii0PyY6VI0IR577ztfSwKat5vzCkvk-Rrzo";
+      
+      if (token !== expectedToken) {
+        return res.status(401).json({ error: "Invalid or expired token" });
+      }
+
+      const { agent_id, phone, name } = req.body;
+      
+      if (!agent_id || !phone) {
+        return res.status(400).json({ error: "agent_id and phone are required" });
+      }
+
+      // Format the phone number (add + if missing)
+      const formattedPhone = phone.startsWith('+') ? phone : `+${phone}`;
+
+      // Get agent details
+      const agent = await db.query.agents.findFirst({
+        where: eq(agents.id, agent_id),
+      });
+
+      if (!agent) {
+        return res.status(404).json({ error: "Agent not found" });
+      }
+
+      // Get phone number for the agent
+      const phoneNumber = await db.query.phoneNumbers.findFirst({
+        where: eq(phoneNumbers.userId, agent.userId)
+      });
+
+      if (!phoneNumber) {
+        return res.status(400).json({ error: "No phone number configured for this user" });
+      }
+
+      // Import service and trigger call
+      const { OutboundCallService } = await import("./services/outbound-call-service");
+      const callService = new OutboundCallService();
+      
+      const dynamicData = name ? { name } : undefined;
+
+      const callResult = await callService.initiateCall({
+        agentId: agent.id,
+        agentPhoneNumberId: phoneNumber.id,
+        toNumber: formattedPhone,
+        dynamicData
+      });
+
+      res.json({ success: true, message: "Call triggered successfully", callResult });
+    } catch (error: any) {
+      console.error("External Trigger Call Error:", error);
+      res.status(500).json({ error: "Failed to trigger call", details: error.message });
+    }
+  });
+
   // Stripe routes
   app.use("/api/stripe", stripeRouter);
 
