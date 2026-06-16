@@ -26,7 +26,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DataPagination, usePagination } from "@/components/ui/data-pagination";
-import { Plus, Search, Trash2, Edit, Bot, Upload, Sparkles, GitBranch, CheckCircle2, XCircle, Mic, Brain, Settings2, Wrench, Check, FileText, History, Info } from "lucide-react";
+import { Plus, Search, Trash2, Edit, Bot, Upload, Sparkles, GitBranch, CheckCircle2, XCircle, Mic, Brain, Settings2, Wrench, Check, FileText, History, Info, Copy } from "lucide-react";
 import { AuthStorage } from "@/lib/auth-storage";
 import PromptTemplatesLibrary from "@/components/PromptTemplatesLibrary";
 import Voices from "@/pages/Voices";
@@ -1059,15 +1059,32 @@ export default function Agents() {
                         <h3 className="font-semibold truncate" data-testid="text-agent-name">
                           {agent.name}
                         </h3>
-                        <Badge 
-                          variant="outline"
-                          className={`mt-1 text-xs ${isIncoming 
-                            ? 'border-emerald-500/50 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10' 
-                            : 'border-violet-500/50 text-violet-700 dark:text-violet-300 bg-violet-500/10'}`}
-                          data-testid={`badge-agent-type-${agent.type}`}
-                        >
-                          {isIncoming ? t('agents.type.incoming') : t('agents.type.flow')}
-                        </Badge>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge 
+                            variant="outline"
+                            className={`text-xs ${isIncoming 
+                              ? 'border-emerald-500/50 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10' 
+                              : 'border-violet-500/50 text-violet-700 dark:text-violet-300 bg-violet-500/10'}`}
+                            data-testid={`badge-agent-type-${agent.type}`}
+                          >
+                            {isIncoming ? t('agents.type.incoming') : t('agents.type.flow')}
+                          </Badge>
+                          <div 
+                            className="flex items-center gap-1.5 text-[11px] text-muted-foreground bg-muted/30 px-2 py-0.5 rounded border border-border/50 hover:bg-muted/50 cursor-pointer transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigator.clipboard.writeText(agent.id);
+                              toast({
+                                title: "Copied!",
+                                description: "Agent ID copied to clipboard",
+                              });
+                            }}
+                            title="Click to copy Agent ID"
+                          >
+                            <span className="font-mono">{agent.id.substring(0, 8)}...</span>
+                            <Copy className="h-3 w-3" />
+                          </div>
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
