@@ -1,30 +1,12 @@
-/**
- * ============================================================
- * © 2025 Zonvo AI — a brand of Bisht Technologies Private Limited
- * Original Author: BTPL Engineering Team
- * Website: https://zonvo.tech
- * Contact: cs@zonvo.tech
- *
- * Distributed under the Envato / CodeCanyon License Agreement.
- * Licensed to the purchaser for use as defined by the
- * Envato Market (CodeCanyon) Regular or Extended License.
- *
- * You are NOT permitted to redistribute, resell, sublicense,
- * or share this source code, in whole or in part.
- * Respect the author's rights and Envato licensing terms.
- * ============================================================
- */
-import { useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
-import { Check, Loader2, Star } from "lucide-react";
+import { useState, useMemo } from "react";
+import { motion } from "framer-motion";
+import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 
+// Define our types
 interface Plan {
   id: string;
   name: string;
@@ -32,14 +14,6 @@ interface Plan {
   description: string;
   monthlyPrice: string;
   yearlyPrice: string | null;
-  razorpayMonthlyPrice: string | null;
-  razorpayYearlyPrice: string | null;
-  paypalMonthlyPrice: string | null;
-  paypalYearlyPrice: string | null;
-  paystackMonthlyPrice: string | null;
-  paystackYearlyPrice: string | null;
-  mercadopagoMonthlyPrice: string | null;
-  mercadopagoYearlyPrice: string | null;
   maxAgents: number;
   maxCampaigns: number;
   maxContactsPerCampaign: number;
@@ -53,530 +27,297 @@ interface Plan {
   features: any;
   sipEnabled?: boolean;
   restApiEnabled?: boolean;
+  // Dynamic gateways
+  razorpayMonthlyPrice: string | null;
+  paypalMonthlyPrice: string | null;
+  paystackMonthlyPrice: string | null;
+  mercadopagoMonthlyPrice: string | null;
 }
 
-interface PluginCapabilities {
-  success: boolean;
-  data: {
-    capabilities: Record<string, boolean>;
-    sipEngine: boolean;
-    restApi: boolean;
-  };
-}
-
-interface PaymentGatewayConfig {
-  stripeEnabled: boolean;
-  razorpayEnabled: boolean;
-  paypalEnabled: boolean;
-  paystackEnabled: boolean;
-  mercadopagoEnabled: boolean;
-  stripeCurrency?: string;
-  stripeCurrencySymbol?: string;
-  paypalCurrency?: string;
-  paypalCurrencySymbol?: string;
-  paystackCurrency?: string;
-  paystackCurrencySymbol?: string;
-  paystackCurrencies?: string[];
-  paystackDefaultCurrency?: string;
-  mercadopagoCurrency?: string;
-  mercadopagoCurrencySymbol?: string;
-  mercadopagoCurrencies?: string[];
-}
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.1,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 30 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.6,
-      ease: [0.25, 0.4, 0.25, 1],
-    },
-  },
-};
-
-// Currency symbol lookup
 const currencySymbols: Record<string, string> = {
-  'USD': '$', 'EUR': '€', 'GBP': '£', 'CAD': 'C$', 'AUD': 'A$',
-  'JPY': '¥', 'INR': '₹', 'BRL': 'R$', 'MXN': '$', 'CHF': 'CHF',
-  'NGN': '₦', 'GHS': '₵', 'ZAR': 'R', 'KES': 'KSh',
-  'ARS': '$', 'CLP': '$', 'COP': '$', 'PEN': 'S/', 'UYU': '$'
+  'USD': '$', 'INR': '₹', 'EUR': '€', 'GBP': '£'
 };
-
-interface CurrencyOption {
-  code: string;
-  symbol: string;
-  gateway: string;
-}
 
 export function PricingSection() {
   const [, setLocation] = useLocation();
-  const [isYearly, setIsYearly] = useState(false);
-  const [selectedCurrency, setSelectedCurrency] = useState<string>("INR");
-  const shouldReduceMotion = useReducedMotion();
   const { t } = useTranslation();
+  
+  // Hardcode INR symbol for now as per user preference (previous fix was INR)
+  const currencySymbol = "₹";
 
-  const { data: plans, isLoading: plansLoading } = useQuery<Plan[]>({
+  const { data: plans } = useQuery<Plan[]>({
     queryKey: ["/api/plans"],
   });
 
-  const { data: gatewayConfig } = useQuery<PaymentGatewayConfig>({
-    queryKey: ["/api/settings/payment-gateway"],
-  });
-
-  const { data: pluginCapabilities } = useQuery<PluginCapabilities>({
-    queryKey: ["/api/plugins/capabilities"],
-  });
-
-  const sipPluginEnabled = pluginCapabilities?.data?.capabilities?.['sip-engine'] ?? false;
-  const restApiPluginEnabled = pluginCapabilities?.data?.capabilities?.['rest-api'] ?? false;
-
-  const handleNavigate = () => {
-    setLocation("/login");
-  };
-
-  // Sort all plans: free first, then by monthly price ascending
-  const sortedPlans = [...(plans || [])].sort((a, b) => {
-    if (a.name === 'free') return -1;
-    if (b.name === 'free') return 1;
-    const priceA = parseFloat(a.monthlyPrice || '0');
-    const priceB = parseFloat(b.monthlyPrice || '0');
-    return priceA - priceB;
-  });
-
-  const hasPaidPricing = (getter: (p: Plan) => string | null | undefined) =>
-    sortedPlans.some(p => {
-      const v = getter(p);
-      return v != null && parseFloat(v) > 0;
+  const sortedPlans = useMemo(() => {
+    return [...(plans || [])].sort((a, b) => {
+      if (a.name === 'free') return -1;
+      if (b.name === 'free') return 1;
+      return parseFloat(a.monthlyPrice || '0') - parseFloat(b.monthlyPrice || '0');
     });
-  const hasStripePricing = hasPaidPricing(p => p.monthlyPrice) || hasPaidPricing(p => p.yearlyPrice);
-  const hasRazorpayPricing = hasPaidPricing(p => p.razorpayMonthlyPrice) || hasPaidPricing(p => p.razorpayYearlyPrice);
-  const hasPaypalPricing = hasPaidPricing(p => p.paypalMonthlyPrice) || hasPaidPricing(p => p.paypalYearlyPrice);
-  const hasPaystackPricing = hasPaidPricing(p => p.paystackMonthlyPrice) || hasPaidPricing(p => p.paystackYearlyPrice);
-  const hasMercadopagoPricing = hasPaidPricing(p => p.mercadopagoMonthlyPrice) || hasPaidPricing(p => p.mercadopagoYearlyPrice);
+  }, [plans]);
 
-  const allGatewayEntries: CurrencyOption[] = [];
-  if (gatewayConfig?.stripeEnabled && gatewayConfig.stripeCurrency) {
-    allGatewayEntries.push({
-      code: gatewayConfig.stripeCurrency.toUpperCase(),
-      symbol: gatewayConfig.stripeCurrencySymbol || currencySymbols[gatewayConfig.stripeCurrency.toUpperCase()] || '$',
-      gateway: 'stripe'
-    });
-  }
-  if (gatewayConfig?.razorpayEnabled) {
-    allGatewayEntries.push({ code: 'INR', symbol: '₹', gateway: 'razorpay' });
-  }
-  if (gatewayConfig?.paypalEnabled && gatewayConfig.paypalCurrency) {
-    allGatewayEntries.push({
-      code: gatewayConfig.paypalCurrency.toUpperCase(),
-      symbol: gatewayConfig.paypalCurrencySymbol || currencySymbols[gatewayConfig.paypalCurrency.toUpperCase()] || '$',
-      gateway: 'paypal'
-    });
-  }
-  if (gatewayConfig?.paystackEnabled) {
-    const paystackCurrency = gatewayConfig.paystackCurrency?.toUpperCase() || gatewayConfig.paystackDefaultCurrency || 'NGN';
-    allGatewayEntries.push({
-      code: paystackCurrency,
-      symbol: gatewayConfig.paystackCurrencySymbol || currencySymbols[paystackCurrency] || '₦',
-      gateway: 'paystack'
-    });
-  }
-  if (gatewayConfig?.mercadopagoEnabled && gatewayConfig.mercadopagoCurrency) {
-    const mercadopagoCurrency = gatewayConfig.mercadopagoCurrency.toUpperCase();
-    allGatewayEntries.push({
-      code: mercadopagoCurrency,
-      symbol: gatewayConfig.mercadopagoCurrencySymbol || currencySymbols[mercadopagoCurrency] || 'R$',
-      gateway: 'mercadopago'
-    });
-  }
+  // Volume Pricing State
+  const maxMins = sortedPlans.length > 0 ? Math.max(...sortedPlans.map(p => p.includedCredits)) * 1.5 : 10000;
+  const minMins = 0;
+  const [sliderValue, setSliderValue] = useState(2000); // Default middle
 
-  const gwHasPricing: Record<string, boolean> = {
-    stripe: hasStripePricing,
-    razorpay: hasRazorpayPricing,
-    paypal: hasPaypalPricing,
-    paystack: hasPaystackPricing,
-    mercadopago: hasMercadopagoPricing,
-  };
-
-  const currencyOptions: CurrencyOption[] = [];
-  for (const entry of allGatewayEntries) {
-    const existingIdx = currencyOptions.findIndex(c => c.code === entry.code);
-    if (existingIdx === -1) {
-      const otherGwSharesCurrency = allGatewayEntries.some(
-        e => e.code === entry.code && e.gateway !== entry.gateway
-      );
-      if (gwHasPricing[entry.gateway] || otherGwSharesCurrency) {
-        currencyOptions.push(entry);
-      }
-    } else if (gwHasPricing[entry.gateway] && !gwHasPricing[currencyOptions[existingIdx].gateway]) {
-      currencyOptions[existingIdx] = entry;
-    }
-  }
-
-  if (currencyOptions.length === 0) {
-    currencyOptions.push({ code: 'USD', symbol: '$', gateway: 'stripe' });
-  }
-
-  const validCurrency = currencyOptions.find(c => c.code === selectedCurrency);
-  const effectiveCurrency = validCurrency ? selectedCurrency : (currencyOptions[0]?.code || "INR");
-  const currencySymbol = validCurrency?.symbol || currencyOptions.find(c => c.code === effectiveCurrency)?.symbol || '$';
-
-  const showCurrencySelector = currencyOptions.length > 1;
-
-  const getGatewayPrice = (plan: Plan, gw: string, yearly: boolean): string | null => {
-    switch (gw) {
-      case 'razorpay': return yearly ? plan.razorpayYearlyPrice : plan.razorpayMonthlyPrice;
-      case 'paypal': return yearly ? plan.paypalYearlyPrice : plan.paypalMonthlyPrice;
-      case 'paystack': return yearly ? plan.paystackYearlyPrice : plan.paystackMonthlyPrice;
-      case 'mercadopago': return yearly ? plan.mercadopagoYearlyPrice : plan.mercadopagoMonthlyPrice;
-      case 'stripe': default: return yearly ? plan.yearlyPrice : plan.monthlyPrice;
-    }
-  };
+  // Recommend best plan based on minutes
+  const recommendedPlan = useMemo(() => {
+    if (!sortedPlans || sortedPlans.length === 0) return null;
+    // Find the cheapest plan that covers the sliderValue
+    const capablePlans = sortedPlans.filter(p => p.includedCredits >= sliderValue);
+    if (capablePlans.length > 0) return capablePlans[0];
+    return sortedPlans[sortedPlans.length - 1]; // Return max plan if exceeds all
+  }, [sortedPlans, sliderValue]);
 
   const getPrice = (plan: Plan): string => {
-    const currencyOption = currencyOptions.find(c => c.code === effectiveCurrency);
-    const primaryGateway = currencyOption?.gateway || 'stripe';
-
-    let price = getGatewayPrice(plan, primaryGateway, isYearly);
-
+    // For simplicity, prioritize monthly price of default gateway or fallback
+    let price = plan.razorpayMonthlyPrice || plan.monthlyPrice;
     if (!price || parseFloat(price) === 0) {
-      const alternates = allGatewayEntries.filter(
-        e => e.code === effectiveCurrency && e.gateway !== primaryGateway
-      );
-      for (const alt of alternates) {
-        const altPrice = getGatewayPrice(plan, alt.gateway, isYearly);
-        if (altPrice && parseFloat(altPrice) > 0) {
-          price = altPrice;
-          break;
-        }
-      }
+      price = plan.paypalMonthlyPrice || plan.stripeMonthlyPrice || plan.monthlyPrice || "0";
     }
-
-    if ((!price || parseFloat(price) === 0) && primaryGateway !== 'stripe') {
-      const stripeCurrency = gatewayConfig?.stripeCurrency?.toUpperCase();
-      if (stripeCurrency === effectiveCurrency) {
-        const defaultPrice = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
-        if (defaultPrice && parseFloat(defaultPrice) > 0) {
-          price = defaultPrice;
-        }
-      }
-    }
-
-    return price ? parseFloat(price).toLocaleString() : '0';
+    return parseFloat(price).toLocaleString();
   };
 
+  const handleBookDemo = () => setLocation('/contact');
+  const handleSignUp = () => setLocation('/login');
+
   return (
-    <section
-      id="pricing"
-      className="py-12 sm:py-16 md:py-24 lg:py-32"
-      data-testid="pricing-section"
-    >
+    <section className="py-24 bg-white" id="pricing">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center space-y-3 sm:space-y-4 mb-8 sm:mb-10 md:mb-12"
-        >
-          <h2 
-            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white"
-            data-testid="pricing-headline"
-          >
-            {t('landing.pricing.title')} <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-400">{t('landing.pricing.titleHighlight')}</span> {t('landing.pricing.titleEnd')}
+        
+        {/* Header */}
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <p className="text-sm font-bold text-orange-500 uppercase tracking-widest mb-2">Volume Pricing</p>
+          <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight mb-4">
+            Volume pricing that scales.
           </h2>
-          <p 
-            className="text-sm sm:text-base md:text-lg text-zinc-400"
-            data-testid="pricing-subheadline"
-          >
-            {t('landing.pricing.description')}
+          <p className="text-lg text-gray-600">
+            Estimate monthly cost at your usage. We always recommend the plan with the lowest total cost for your minutes.
           </p>
-        </motion.div>
-
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-12">
-          <div className="flex items-center gap-3 bg-muted/50 rounded-full px-4 py-2">
-            <span className={`text-sm font-medium transition-colors ${!isYearly ? 'text-white' : 'text-zinc-400'}`}>
-              {t('landing.pricing.monthly')}
-            </span>
-            <Switch
-              checked={isYearly}
-              onCheckedChange={setIsYearly}
-              data-testid="switch-billing-period"
-            />
-            <span className={`text-sm font-medium transition-colors ${isYearly ? 'text-white' : 'text-zinc-400'}`}>
-              {t('landing.pricing.yearly')}
-            </span>
-            {isYearly && (
-              <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                {t('landing.pricing.save20')}
-              </Badge>
-            )}
-          </div>
-
-          {showCurrencySelector && (
-            <div className="flex items-center gap-2 bg-muted/50 rounded-full px-4 py-2 flex-wrap justify-center">
-              {currencyOptions.map((option) => (
-                <button
-                  key={option.code}
-                  onClick={() => setSelectedCurrency(option.code)}
-                  className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
-                    effectiveCurrency === option.code 
-                      ? 'bg-amber-500 text-white shadow-sm' 
-                      : 'text-zinc-400 hover:text-white'
-                  }`}
-                  data-testid={`button-currency-${option.code.toLowerCase()}`}
-                >
-                  {option.symbol} {option.code}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
 
-        {plansLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        ) : (
-          <motion.div
-            variants={shouldReduceMotion ? {} : containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className={`grid grid-cols-1 ${sortedPlans.length === 2 ? 'md:grid-cols-2' : sortedPlans.length >= 3 ? 'md:grid-cols-2 lg:grid-cols-3' : 'md:grid-cols-1'} gap-4 sm:gap-6 md:gap-8 max-w-6xl mx-auto`}
-            data-testid="pricing-grid"
-          >
-            {sortedPlans.map((plan, index) => {
-              const isFree = plan.name === 'free';
-              // First paid plan (index 1 if free exists, or index 0 if no free plan) is highlighted
-              const isHighlighted = !isFree && (sortedPlans[0]?.name === 'free' ? index === 1 : index === 0);
-              const price = getPrice(plan);
-              const maxWidgets = (plan as any).maxWidgets ?? 1;
-              
-              return (
-                <motion.div
-                  key={plan.id}
-                  variants={shouldReduceMotion ? {} : itemVariants}
-                  data-testid={`pricing-card-${index}`}
-                >
-                  <Card
-                    className={`p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl hover-elevate transition-all h-full ${
-                      isHighlighted
-                        ? "relative border-2 border-amber-500/50 dark:border-amber-400/50 bg-gradient-to-br from-amber-50/50 to-orange-50/30 dark:from-amber-900/20 dark:to-orange-900/10 shadow-xl shadow-amber-500/20"
-                        : ""
-                    }`}
-                  >
-                    {isHighlighted && (
-                      <Badge 
-                        className="absolute -top-3 right-6 bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg"
-                        data-testid="popular-badge"
-                      >
-                        {t('landing.pricing.popular')}
-                      </Badge>
-                    )}
-                    <div className="space-y-6">
-                      <div>
-                        <h3 
-                          className="text-2xl sm:text-3xl font-bold"
-                          data-testid={`plan-name-${index}`}
-                        >
-                          {plan.displayName}
-                        </h3>
-                        <p 
-                          className="text-sm sm:text-base text-muted-foreground mt-2"
-                          data-testid={`plan-description-${index}`}
-                        >
-                          {plan.description}
-                        </p>
-                      </div>
-                      <div 
-                        className="text-3xl sm:text-4xl md:text-5xl font-bold"
-                        data-testid={`plan-price-${index}`}
-                      >
-                        {parseFloat(price) === 0 ? (
-                          <span>{t('landing.pricing.free')}</span>
-                        ) : (
-                          <>
-                            {currencySymbol}{price}
-                            <span className="text-xl font-normal text-muted-foreground">
-                              {isYearly ? t('landing.pricing.perYear') : t('landing.pricing.perMonth')}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                      <div 
-                        className="space-y-3"
-                        data-testid={`plan-features-${index}`}
-                      >
-                        {plan.maxAgents >= 999 || plan.maxAgents === -1 ? (
-                          <div className="flex items-center gap-2">
-                            <Check className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                            <span className="text-sm font-medium">Unlimited AI Agents</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <Check className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                            <span className="text-sm">{plan.maxAgents} AI Agent{plan.maxAgents > 1 ? "s" : ""}</span>
-                          </div>
-                        )}
+        {/* Dynamic Calculator Box */}
+        <div className="bg-white rounded-3xl border border-orange-100 shadow-xl shadow-orange-500/5 p-6 md:p-10 mb-20">
+          <div className="flex flex-col lg:flex-row gap-12">
+            
+            {/* Slider Area */}
+            <div className="flex-1 space-y-8">
+              <div>
+                <p className="text-sm font-bold text-orange-500 tracking-wider mb-4 uppercase">Usage</p>
+                <h3 className="text-4xl font-bold text-gray-900 mb-6">
+                  {sliderValue.toLocaleString()} mins <span className="text-xl text-gray-500 font-medium">/ month</span>
+                </h3>
+                
+                <input 
+                  type="range" 
+                  min={minMins} 
+                  max={maxMins} 
+                  step={100}
+                  value={sliderValue}
+                  onChange={(e) => setSliderValue(parseInt(e.target.value))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                />
+                <div className="flex justify-between text-xs font-medium text-gray-400 mt-2">
+                  <span>{minMins} mins</span>
+                  <span>{maxMins.toLocaleString()} mins+</span>
+                </div>
+              </div>
 
-                        {plan.maxCampaigns >= 999 || plan.maxCampaigns === -1 ? (
-                          <div className="flex items-center gap-2">
-                            <Check className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                            <span className="text-sm font-medium">Unlimited Campaigns</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <Check className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                            <span className="text-sm">{plan.maxCampaigns} Campaign{plan.maxCampaigns > 1 ? "s" : ""}</span>
-                          </div>
-                        )}
+              <div className="bg-orange-50 rounded-xl p-5 border border-orange-100">
+                <p className="text-gray-700 text-sm">
+                  {recommendedPlan 
+                    ? <><span className="font-semibold text-gray-900">{recommendedPlan.displayName}</span> is the lowest-cost plan at this usage. Includes first {recommendedPlan.includedCredits.toLocaleString()} mins.</>
+                    : "Adjust slider to see recommended plans."}
+                </p>
+              </div>
 
-                        {plan.maxContactsPerCampaign >= 9999 || plan.maxContactsPerCampaign === -1 ? (
-                          <div className="flex items-center gap-2">
-                            <Check className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                            <span className="text-sm font-medium">Unlimited Contacts</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <Check className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                            <span className="text-sm">Max {plan.maxContactsPerCampaign} contacts</span>
-                          </div>
-                        )}
-
-                        {plan.canPurchaseNumbers ? (
-                          <div className="flex items-center gap-2">
-                            <Check className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                            <span className="text-sm">Own phone numbers</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <Check className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                            <span className="text-sm">System-assigned phone number</span>
-                          </div>
-                        )}
-
-                        {plan.canChooseLlm && (
-                          <div className="flex items-center gap-2">
-                            <Check className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                            <span className="text-sm">Choose your LLM</span>
-                          </div>
-                        )}
-
-                        {plan.maxFlows !== undefined && plan.maxFlows > 0 && (
-                          <div className="flex items-center gap-2">
-                            <Check className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                            <span className={`text-sm ${plan.maxFlows >= 999 ? "font-medium" : ""}`}>
-                              {plan.maxFlows >= 999 ? "Unlimited Flow Automations" : `${plan.maxFlows} Flow Automation${plan.maxFlows !== 1 ? "s" : ""}`}
-                            </span>
-                          </div>
-                        )}
-
-                        {plan.maxKnowledgeBases !== undefined && plan.maxKnowledgeBases > 0 && (
-                          <div className="flex items-center gap-2">
-                            <Check className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                            <span className={`text-sm ${plan.maxKnowledgeBases >= 999 ? "font-medium" : ""}`}>
-                              {plan.maxKnowledgeBases >= 999 ? "Unlimited Knowledge Bases" : `${plan.maxKnowledgeBases} Knowledge Base${plan.maxKnowledgeBases !== 1 ? "s" : ""}`}
-                            </span>
-                          </div>
-                        )}
-
-                        {plan.maxWebhooks !== undefined && plan.maxWebhooks > 0 && (
-                          <div className="flex items-center gap-2">
-                            <Check className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                            <span className={`text-sm ${plan.maxWebhooks >= 999 ? "font-medium" : ""}`}>
-                              {plan.maxWebhooks >= 999 ? "Unlimited Webhooks" : `${plan.maxWebhooks} Webhook${plan.maxWebhooks !== 1 ? "s" : ""}`}
-                            </span>
-                          </div>
-                        )}
-
-                        {plan.maxPhoneNumbers !== undefined && plan.maxPhoneNumbers > 0 && (
-                          <div className="flex items-center gap-2">
-                            <Check className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                            <span className={`text-sm ${plan.maxPhoneNumbers >= 999 ? "font-medium" : ""}`}>
-                              {plan.maxPhoneNumbers >= 999 ? "Unlimited Phone Numbers" : `${plan.maxPhoneNumbers} Phone Number${plan.maxPhoneNumbers !== 1 ? "s" : ""}`}
-                            </span>
-                          </div>
-                        )}
-
-                        {maxWidgets > 0 && (
-                          <div className="flex items-center gap-2">
-                            <Check className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                            <span className={`text-sm ${maxWidgets >= 999 ? "font-medium" : ""}`}>
-                              {maxWidgets >= 999 ? "Unlimited Website Widgets" : `${maxWidgets} Website Widget${maxWidgets !== 1 ? "s" : ""}`}
-                            </span>
-                          </div>
-                        )}
-
-                        {plan.includedCredits > 0 && (
-                          <div className="flex items-center gap-2">
-                            <Star className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                            <span className="text-sm font-medium">{plan.includedCredits} Included Credits</span>
-                          </div>
-                        )}
-
-                        {!isFree && (
-                          <div className="flex items-center gap-2">
-                            <Check className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                            <span className="text-sm">Priority support</span>
-                          </div>
-                        )}
-
-                        {sipPluginEnabled && plan.sipEnabled && !isFree && (
-                          <div className="flex items-center gap-2">
-                            <Check className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                            <span className="text-sm">SIP Trunk Access</span>
-                          </div>
-                        )}
-
-                        {restApiPluginEnabled && plan.restApiEnabled && !isFree && (
-                          <div className="flex items-center gap-2">
-                            <Check className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                            <span className="text-sm">REST API Access</span>
-                          </div>
-                        )}
-                      </div>
-                      <Button
-                        variant={isHighlighted ? "default" : "outline"}
-                        size="lg"
-                        className={`w-full h-14 text-lg ${
-                          isHighlighted
-                            ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-lg shadow-amber-500/30"
-                            : "border-amber-300 dark:border-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/20"
-                        }`}
-                        onClick={handleNavigate}
-                        data-testid={`button-plan-${index}`}
-                      >
-                        {isHighlighted ? t('landing.pricing.startFreeTrial') : t('landing.pricing.getStarted')}
-                      </Button>
+              {/* Tiers display */}
+              <div>
+                <p className="text-xs font-bold text-gray-400 tracking-wider mb-3 uppercase">Rate Tiers</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {sortedPlans.slice(-4).map(plan => (
+                    <div 
+                      key={plan.id} 
+                      className={`p-3 rounded-xl border text-center transition-all ${recommendedPlan?.id === plan.id ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-100'}`}
+                    >
+                      <p className="font-semibold text-gray-900 text-sm mb-1">{plan.displayName}</p>
+                      <p className="text-xs text-gray-500">{plan.includedCredits.toLocaleString()} mins</p>
                     </div>
-                  </Card>
-                </motion.div>
-              );
-            })}
-          </motion.div>
-        )}
-        
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.5 }}
-          className="text-center text-zinc-400 mt-8"
-        >
-          {t('landing.pricing.guarantee')}
-        </motion.p>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Price Estimate Card */}
+            <div className="lg:w-96 bg-gray-50 rounded-2xl border border-gray-200 p-8 flex flex-col justify-between">
+              <div>
+                <p className="text-xs font-bold text-orange-500 tracking-wider mb-2 uppercase">Estimated Monthly Cost</p>
+                <div className="mb-6">
+                  <span className="text-5xl font-extrabold text-gray-900">{currencySymbol}{recommendedPlan ? getPrice(recommendedPlan) : '0'}</span>
+                  <span className="text-gray-500 font-medium ml-1">/month</span>
+                </div>
+                
+                <div className="space-y-3 text-sm border-t border-gray-200 pt-6">
+                  <div className="flex justify-between text-gray-600">
+                    <span>Base plan</span>
+                    <span className="font-medium text-gray-900">{currencySymbol}{recommendedPlan ? getPrice(recommendedPlan) : '0'}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600">
+                    <span>Included minutes</span>
+                    <span className="font-medium text-gray-900">{recommendedPlan?.includedCredits.toLocaleString() || 0} mins</span>
+                  </div>
+                </div>
+              </div>
+
+              <Button onClick={handleSignUp} className="w-full mt-8 bg-gray-900 hover:bg-gray-800 text-white rounded-xl h-12 text-base font-semibold shadow-sm">
+                Start with {recommendedPlan?.displayName || 'Plan'}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Feature Comparison Matrix */}
+        <div className="mb-20 overflow-x-auto">
+          <div className="min-w-[800px]">
+            {/* Headers */}
+            <div className="grid grid-cols-5 border-b-2 border-gray-100 sticky top-0 bg-white z-10">
+              <div className="col-span-1 py-4 px-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Capability</div>
+              {sortedPlans.slice(-4).map(plan => (
+                <div key={`header-${plan.id}`} className={`col-span-1 py-4 px-4 text-center font-bold uppercase tracking-wide text-sm ${recommendedPlan?.id === plan.id ? 'text-orange-500 border-b-2 border-orange-500' : 'text-gray-500'}`}>
+                  {plan.displayName}
+                </div>
+              ))}
+            </div>
+
+            {/* Section: Limits & Capacity */}
+            <div className="bg-gray-50/50 py-3 px-4 font-bold text-gray-900 text-sm uppercase tracking-wider mt-4 rounded-t-lg">Limits & Capacity</div>
+            
+            <div className="grid grid-cols-5 border-b border-gray-100 hover:bg-gray-50 transition-colors">
+              <div className="col-span-1 py-4 px-4 text-sm font-medium text-gray-700">AI Agents</div>
+              {sortedPlans.slice(-4).map(plan => (
+                <div key={`agents-${plan.id}`} className={`col-span-1 py-4 px-4 text-center text-sm ${recommendedPlan?.id === plan.id ? 'bg-orange-50/30 font-semibold text-gray-900' : 'text-gray-600'}`}>{plan.maxAgents}</div>
+              ))}
+            </div>
+            
+            <div className="grid grid-cols-5 border-b border-gray-100 hover:bg-gray-50 transition-colors">
+              <div className="col-span-1 py-4 px-4 text-sm font-medium text-gray-700">Concurrent Calls</div>
+              {sortedPlans.slice(-4).map(plan => (
+                <div key={`calls-${plan.id}`} className={`col-span-1 py-4 px-4 text-center text-sm ${recommendedPlan?.id === plan.id ? 'bg-orange-50/30 font-semibold text-gray-900' : 'text-gray-600'}`}>Custom</div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-5 border-b border-gray-100 hover:bg-gray-50 transition-colors">
+              <div className="col-span-1 py-4 px-4 text-sm font-medium text-gray-700">Knowledge Bases</div>
+              {sortedPlans.slice(-4).map(plan => (
+                <div key={`kb-${plan.id}`} className={`col-span-1 py-4 px-4 text-center text-sm ${recommendedPlan?.id === plan.id ? 'bg-orange-50/30 font-semibold text-gray-900' : 'text-gray-600'}`}>{plan.maxKnowledgeBases}</div>
+              ))}
+            </div>
+
+            {/* Section: Voice & Language */}
+            <div className="bg-gray-50/50 py-3 px-4 font-bold text-gray-900 text-sm uppercase tracking-wider mt-4 rounded-t-lg">Voice & Language</div>
+            
+            <div className="grid grid-cols-5 border-b border-gray-100 hover:bg-gray-50 transition-colors">
+              <div className="col-span-1 py-4 px-4 text-sm font-medium text-gray-700">Custom Voice Cloning</div>
+              {sortedPlans.slice(-4).map((plan, i) => (
+                <div key={`voice-${plan.id}`} className={`col-span-1 py-4 px-4 flex justify-center text-sm ${recommendedPlan?.id === plan.id ? 'bg-orange-50/30' : ''}`}>
+                  {i > 0 ? <Check className="w-5 h-5 text-emerald-500" /> : <span className="text-gray-400">—</span>}
+                </div>
+              ))}
+            </div>
+
+            {/* Section: Calls & Workflows */}
+            <div className="bg-gray-50/50 py-3 px-4 font-bold text-gray-900 text-sm uppercase tracking-wider mt-4 rounded-t-lg">Calls & Workflows</div>
+            
+            <div className="grid grid-cols-5 border-b border-gray-100 hover:bg-gray-50 transition-colors">
+              <div className="col-span-1 py-4 px-4 text-sm font-medium text-gray-700">Post-call summary & sentiment</div>
+              {sortedPlans.slice(-4).map(plan => (
+                <div key={`summary-${plan.id}`} className={`col-span-1 py-4 px-4 flex justify-center text-sm ${recommendedPlan?.id === plan.id ? 'bg-orange-50/30' : ''}`}>
+                  <Check className="w-5 h-5 text-emerald-500" />
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-5 border-b border-gray-100 hover:bg-gray-50 transition-colors">
+              <div className="col-span-1 py-4 px-4 text-sm font-medium text-gray-700">Webhook notifications</div>
+              {sortedPlans.slice(-4).map((plan, i) => (
+                <div key={`webhooks-${plan.id}`} className={`col-span-1 py-4 px-4 flex justify-center text-sm ${recommendedPlan?.id === plan.id ? 'bg-orange-50/30' : ''}`}>
+                  {plan.maxWebhooks > 0 ? <Check className="w-5 h-5 text-emerald-500" /> : <span className="text-gray-400">—</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Total Cost Estimates Use Cases */}
+        <div>
+          <h3 className="text-3xl font-extrabold text-gray-900 mb-4 text-center lg:text-left">Total cost estimates</h3>
+          <p className="text-gray-600 mb-10 text-center lg:text-left">Platform combined with telecom estimates for common deployment scenarios.</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white border border-gray-200 rounded-2xl p-8 hover:shadow-lg transition-shadow">
+              <h4 className="font-bold text-gray-900 text-lg mb-1">Local Business — 1,000 calls/mo</h4>
+              <p className="text-xs font-mono text-gray-400 mb-6 uppercase">Plan: Starter</p>
+              
+              <div className="space-y-4 text-sm mb-6">
+                <div className="flex justify-between border-b border-gray-100 pb-2">
+                  <span className="text-gray-600">Platform fee</span>
+                  <span className="font-medium">{currencySymbol}2,500</span>
+                </div>
+                <div className="flex justify-between border-b border-gray-100 pb-2">
+                  <span className="text-gray-600">Telecom usage</span>
+                  <span className="font-medium">{currencySymbol}500</span>
+                </div>
+              </div>
+              <div className="flex justify-between items-center bg-gray-50 rounded-xl p-4">
+                <span className="font-bold text-gray-900">Total / month</span>
+                <span className="font-extrabold text-xl text-gray-900">~{currencySymbol}3,000</span>
+              </div>
+            </div>
+
+            <div className="bg-white border border-gray-200 rounded-2xl p-8 hover:shadow-lg transition-shadow">
+              <h4 className="font-bold text-gray-900 text-lg mb-1">EdTech Telesales — 5,000 calls/mo</h4>
+              <p className="text-xs font-mono text-gray-400 mb-6 uppercase">Plan: Growth</p>
+              
+              <div className="space-y-4 text-sm mb-6">
+                <div className="flex justify-between border-b border-gray-100 pb-2">
+                  <span className="text-gray-600">Platform fee</span>
+                  <span className="font-medium">{currencySymbol}8,500</span>
+                </div>
+                <div className="flex justify-between border-b border-gray-100 pb-2">
+                  <span className="text-gray-600">Telecom usage</span>
+                  <span className="font-medium">{currencySymbol}2,500</span>
+                </div>
+              </div>
+              <div className="flex justify-between items-center bg-gray-50 rounded-xl p-4">
+                <span className="font-bold text-gray-900">Total / month</span>
+                <span className="font-extrabold text-xl text-gray-900">~{currencySymbol}11,000</span>
+              </div>
+            </div>
+
+            <div className="bg-white border border-gray-200 rounded-2xl p-8 hover:shadow-lg transition-shadow">
+              <h4 className="font-bold text-gray-900 text-lg mb-1">Enterprise Contact Center</h4>
+              <p className="text-xs font-mono text-gray-400 mb-6 uppercase">Plan: Enterprise</p>
+              
+              <div className="space-y-4 text-sm mb-6">
+                <div className="flex justify-between border-b border-gray-100 pb-2">
+                  <span className="text-gray-600">Platform fee</span>
+                  <span className="font-medium">Custom</span>
+                </div>
+                <div className="flex justify-between border-b border-gray-100 pb-2">
+                  <span className="text-gray-600">Telecom usage</span>
+                  <span className="font-medium">Wholesale rates</span>
+                </div>
+              </div>
+              <div className="flex justify-between items-center bg-gray-50 rounded-xl p-4">
+                <span className="font-bold text-gray-900">Total / month</span>
+                <span className="font-extrabold text-xl text-gray-900">Custom Quote</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </section>
   );

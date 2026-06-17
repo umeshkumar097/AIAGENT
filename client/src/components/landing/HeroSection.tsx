@@ -74,11 +74,11 @@ const TypingWord = ({ words, reduceMotion }: { words: string[]; reduceMotion: bo
 
 const StatsBadge = ({ value, label }: { value: string; label: string }) => (
   <div 
-    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-border bg-card dark:bg-card"
+    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-md shadow-lg"
     data-testid={`stats-badge-${label.toLowerCase()}`}
   >
-    <span className="text-lg font-bold text-foreground">{value}</span>
-    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
+    <span className="text-lg font-bold text-white">{value}</span>
+    <span className="text-xs font-medium text-slate-300 uppercase tracking-wider">{label}</span>
   </div>
 );
 
@@ -176,20 +176,8 @@ export function HeroSection() {
       className="relative flex flex-col items-center overflow-hidden bg-background pt-32 pb-16 md:pt-40 md:pb-24"
       data-testid="hero-section"
     >
-      <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[60%] dark:hidden"
-        style={{
-          background: 'linear-gradient(to bottom, transparent 0%, rgba(255,153,51,0.06) 30%, rgba(255,204,102,0.1) 55%, rgba(19,136,8,0.12) 80%, rgba(19,136,8,0.15) 100%)',
-        }}
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[60%] hidden dark:block"
-        style={{
-          background: 'linear-gradient(to bottom, transparent 0%, rgba(255,153,51,0.08) 30%, rgba(255,204,102,0.1) 55%, rgba(19,136,8,0.15) 80%, rgba(19,136,8,0.18) 100%)',
-        }}
-        aria-hidden="true"
-      />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-orange-500/20 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute top-1/4 right-0 w-[400px] h-[400px] bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none" />
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center">
           <motion.div
@@ -206,7 +194,7 @@ export function HeroSection() {
 
             <motion.h1
               variants={itemVariants}
-              className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-[1.1] text-foreground"
+              className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tighter leading-[1.05] text-white"
               data-testid="hero-headline"
             >
               {t('landing.hero.headline')}
@@ -216,7 +204,7 @@ export function HeroSection() {
 
             <motion.p
               variants={itemVariants}
-              className="text-base md:text-lg text-muted-foreground max-w-2xl leading-relaxed"
+              className="text-lg md:text-xl text-slate-300 max-w-2xl leading-relaxed"
               data-testid="hero-subheadline"
             >
               {t('landing.hero.subheadline')}
@@ -237,7 +225,7 @@ export function HeroSection() {
               <Link href={getDashboardLink()}>
                 <Button
                   size="lg"
-                  className="rounded-full shadow-lg bg-brand hover:bg-brand/90"
+                  className="rounded-full shadow-orange-500/20 shadow-xl bg-orange-500 hover:bg-orange-600 text-white border-0 font-semibold px-8"
                   data-testid="button-hero-get-started"
                 >
                   {t('landing.hero.getStarted')}
@@ -279,7 +267,7 @@ export function HeroSection() {
               initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
               animate={shouldReduceMotion ? { opacity: 1 } : (isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 })}
               transition={shouldReduceMotion ? undefined : { delay: 1 + index * 0.1, duration: 0.5 }}
-              className="relative overflow-hidden rounded-md aspect-[3/4] flex flex-col justify-end p-4"
+              className="relative overflow-hidden rounded-2xl aspect-[3/4] flex flex-col justify-end p-5 border border-white/10 group hover:border-orange-500/50 transition-all duration-300"
               data-testid={`card-usecase-${card.title.toLowerCase().replace(/\s+/g, "-")}`}
             >
               <img

@@ -131,14 +131,11 @@ export function ContactSection() {
   return (
     <section
       id="contact"
-      className="py-12 sm:py-16 md:py-24 lg:py-32 relative overflow-hidden"
-      style={{
-        background: "linear-gradient(135deg, #f5f0e8 0%, #f8f4ed 25%, #faf6f0 50%, #fdf5eb 75%, #fef8f0 100%)",
-      }}
+      className="py-12 sm:py-16 md:py-24 lg:py-32 relative overflow-hidden bg-background"
       data-testid="section-contact"
     >
-      <div className="absolute top-0 left-1/4 w-72 h-72 bg-amber-200/30 rounded-full mix-blend-multiply filter blur-3xl" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-orange-100/40 rounded-full mix-blend-multiply filter blur-3xl" />
+      <div className="absolute top-0 left-1/4 w-72 h-72 bg-amber-500/10 rounded-full mix-blend-multiply filter blur-3xl dark:mix-blend-normal" />
+      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-orange-500/10 rounded-full mix-blend-multiply filter blur-3xl dark:mix-blend-normal" />
       <div className="absolute top-1/2 right-0 w-64 h-64 bg-amber-100/50 rounded-full mix-blend-multiply filter blur-3xl" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">

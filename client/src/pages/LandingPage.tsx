@@ -14,7 +14,6 @@ import { UseCasesSection } from "@/components/landing/UseCasesSection";
 import { FeaturesShowcase } from "@/components/landing/FeaturesShowcase";
 import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
 import { IntegrationsGrid } from "@/components/landing/IntegrationsGrid";
-import { PricingSection } from "@/components/landing/PricingSection";
 import { ContactSection } from "@/components/landing/ContactSection";
 import { CTASection } from "@/components/landing/CTASection";
 import { Footer } from "@/components/landing/Footer";
@@ -96,10 +95,6 @@ export default function LandingPage() {
 
         <section id="integrations">
           <IntegrationsGrid />
-        </section>
-
-        <section id="pricing">
-          <PricingSection />
         </section>
 
         <section id="contact">
