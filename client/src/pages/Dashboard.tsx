@@ -67,6 +67,9 @@ import {
   Cell
 } from "recharts";
 import DashboardGlobe from "@/components/DashboardGlobe";
+import { StatCards, formatDuration } from "@/components/dashboard/StatCards";
+import { CallActivityChart } from "@/components/dashboard/CallActivityChart";
+import { LeadDistributionChart } from "@/components/dashboard/LeadDistributionChart";
 
 interface CallTypeStat {
   count: number;
@@ -141,7 +144,6 @@ function getGreeting(t: (key: string) => string): string {
 export default function Dashboard() {
   const { t } = useTranslation();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [chartView, setChartView] = useState<'all' | 'incoming' | 'outgoing'>('all');
   const [, setLocation] = useLocation();
 
   const { data: dashboard, isLoading } = useQuery<DashboardData>({
@@ -182,13 +184,6 @@ export default function Dashboard() {
   const campaignContactsCount = contacts.filter(c => c.source === 'campaign').length;
   const callContactsCount = contacts.filter(c => c.source === 'call').length;
 
-  const formatDuration = (seconds: number | null) => {
-    if (!seconds) return "0:00";
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
   const weeklyChartData = (dashboard?.weeklyCallsChart || []).map(day => ({
     name: new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' }),
     Incoming: day.incoming,
@@ -220,17 +215,6 @@ export default function Dashboard() {
       </div>
     );
   }
-
-  const TrendBadge = ({ trend }: { trend: number }) => {
-    if (trend === 0) return <span className="text-muted-foreground/60 text-xs ml-1">--</span>;
-    const isPositive = trend > 0;
-    return (
-      <span className={`inline-flex items-center gap-0.5 text-xs font-medium ml-2 ${isPositive ? 'text-emerald-600' : 'text-red-500'}`}>
-        {isPositive ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-        {Math.abs(trend)}%
-      </span>
-    );
-  };
 
   const greeting = getGreeting(t);
   const userName = dashboard?.userName || 'User';
@@ -269,386 +253,28 @@ export default function Dashboard() {
         </DropdownMenu>
       </div>
 
-      {/* Stats Cards Row - with colored backgrounds like the image */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-4 md:space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* Total Calls - Tinted cyan/blue like "Views" in image */}
-        <Card className="bg-gradient-to-br from-cyan-50 to-sky-50 dark:from-cyan-950/30 dark:to-sky-950/30 border-cyan-100 dark:border-cyan-900/50" data-testid="card-total-calls">
-          <CardContent className="pt-5 pb-4">
-            <p className="text-sm font-medium text-muted-foreground mb-1">{t('dashboard.totalCalls')}</p>
-            <div className="flex items-baseline">
-              <span className="text-3xl font-bold tracking-tight">{dashboard?.totalCalls || 0}</span>
-              <TrendBadge trend={dashboard?.weeklyTrend || 0} />
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">{t('dashboard.allTime')}</p>
-          </CardContent>
-        </Card>
-
-        {/* Incoming Calls - Tinted green */}
-        <Card className="bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30 border-emerald-100 dark:border-emerald-900/50" data-testid="card-incoming-calls">
-          <CardContent className="pt-5 pb-4">
-            <p className="text-sm font-medium text-muted-foreground mb-1">{t('dashboard.incomingCalls')}</p>
-            <div className="flex items-baseline">
-              <span className="text-3xl font-bold tracking-tight">{dashboard?.callTypeStats?.incoming?.count || 0}</span>
-              <TrendBadge trend={dashboard?.callTypeStats?.incoming?.trend || 0} />
-            </div>
-            <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-              <span>{dashboard?.callTypeStats?.incoming?.successRate || 0}% {t('dashboard.success')}</span>
-              <span>{t('dashboard.avg')} {formatDuration(dashboard?.callTypeStats?.incoming?.avgDuration || 0)}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Outgoing Calls - Blue/indigo tint */}
-        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-100 dark:border-blue-900/50" data-testid="card-outgoing-calls">
-          <CardContent className="pt-5 pb-4">
-            <p className="text-sm font-medium text-muted-foreground mb-1">{t('dashboard.outgoingCalls')}</p>
-            <div className="flex items-baseline">
-              <span className="text-3xl font-bold tracking-tight">{dashboard?.callTypeStats?.outgoing?.count || 0}</span>
-              <TrendBadge trend={dashboard?.callTypeStats?.outgoing?.trend || 0} />
-            </div>
-            <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-              <span>{dashboard?.callTypeStats?.outgoing?.successRate || 0}% {t('dashboard.success')}</span>
-              <span>{t('dashboard.avg')} {formatDuration(dashboard?.callTypeStats?.outgoing?.avgDuration || 0)}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Contacts Card - Teal tint */}
-        <Card 
-          className="bg-gradient-to-br from-brand/5 to-brand/5 dark:from-brand/10 dark:to-brand/10 border-brand/20 dark:border-brand/20 cursor-pointer hover-elevate" 
-          data-testid="card-contacts"
-          onClick={() => setLocation('/app/contacts')}
-        >
-          <CardContent className="pt-5 pb-4">
-            <p className="text-sm font-medium text-muted-foreground mb-1">{t('dashboard.contacts')}</p>
-            <div className="flex items-baseline">
-              <span className="text-3xl font-bold tracking-tight">{contactsCount}</span>
-              <span className="text-xs text-muted-foreground ml-2">{t('common.total')}</span>
-            </div>
-            <div className="flex items-center gap-3 mt-2 text-xs">
-              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-500">
-                <Users className="h-3 w-3" />
-                {campaignContactsCount} {t('dashboard.campaigns')}
-              </span>
-              <span className="flex items-center gap-1 text-violet-600 dark:text-violet-500">
-                <Phone className="h-3 w-3" />
-                {callContactsCount} {t('calls.title').toLowerCase()}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Campaigns Card - Purple/violet tint */}
-        <Card className="bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 border-violet-100 dark:border-violet-900/50" data-testid="card-campaigns">
-          <CardContent className="pt-5 pb-4">
-            <p className="text-sm font-medium text-muted-foreground mb-1">{t('dashboard.campaignsCard')}</p>
-            <div className="flex items-baseline">
-              <span className="text-3xl font-bold tracking-tight">{dashboard?.callTypeStats?.campaign?.count || 0}</span>
-              <span className="text-xs text-muted-foreground ml-2">{t('common.total')}</span>
-            </div>
-            <div className="flex items-center gap-3 mt-2 text-xs">
-              <span className="flex items-center gap-1 text-amber-600 dark:text-amber-500">
-                <Target className="h-3 w-3" />
-                {dashboard?.callTypeStats?.campaign?.active || 0} {t('common.active').toLowerCase()}
-              </span>
-              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-500">
-                <CheckCircle2 className="h-3 w-3" />
-                {dashboard?.callTypeStats?.campaign?.successRate || 0}%
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Secondary Stats Row - Appointments, Forms, Knowledge Base, Webhooks, Templates */}
-      <div className="flex flex-wrap gap-4">
-        {/* Appointments Booked Card */}
-        <Card 
-          className="flex-1 min-w-[200px] bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-950/30 dark:to-rose-950/30 border-pink-100 dark:border-pink-900/50 cursor-pointer hover-elevate" 
-          data-testid="card-appointments"
-          onClick={() => setLocation('/app/flows/appointments')}
-        >
-          <CardContent className="pt-5 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 shrink-0 rounded-lg bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center">
-                <Calendar className="h-5 w-5 text-white" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-muted-foreground leading-tight mb-1">{t('dashboard.appointmentsBooked')}</p>
-                <span className="text-2xl font-bold tracking-tight">{dashboard?.appointmentsBooked || 0}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Forms Submitted Card */}
-        <Card 
-          className="flex-1 min-w-[200px] bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 border-indigo-100 dark:border-indigo-900/50 cursor-pointer hover-elevate" 
-          data-testid="card-forms-submitted"
-          onClick={() => setLocation('/app/flows/forms')}
-        >
-          <CardContent className="pt-5 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 shrink-0 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-white" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-muted-foreground leading-tight mb-1">{t('dashboard.formsSubmitted')}</p>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold tracking-tight">{dashboard?.formsSubmitted || 0}</span>
-                  <span className="text-xs text-muted-foreground">
-                    ({dashboard?.formsCount || 0} {t('forms.totalForms').toLowerCase()})
-                  </span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Knowledge Base Card */}
-        <Card 
-          className="flex-1 min-w-[200px] bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-amber-100 dark:border-amber-900/50 cursor-pointer hover-elevate" 
-          data-testid="card-knowledge-base"
-          onClick={() => setLocation('/app/knowledge-base')}
-        >
-          <CardContent className="pt-5 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 shrink-0 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
-                <BookOpen className="h-5 w-5 text-white" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-muted-foreground leading-tight mb-1">{t('dashboard.knowledgeBase')}</p>
-                <span className="text-2xl font-bold tracking-tight">{dashboard?.knowledgeBaseCount || 0}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Webhooks Card */}
-        <Card 
-          className="flex-1 min-w-[200px] bg-gradient-to-br from-brand/5 to-brand/5 dark:from-brand/10 dark:to-brand/10 border-brand/10 cursor-pointer hover-elevate" 
-          data-testid="card-webhooks"
-          onClick={() => setLocation('/app/flows/webhooks')}
-        >
-          <CardContent className="pt-5 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 shrink-0 rounded-lg bg-gradient-to-br from-brand to-brand/90 flex items-center justify-center">
-                <Webhook className="h-5 w-5 text-white" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-muted-foreground leading-tight mb-1">{t('dashboard.webhooks')}</p>
-                <span className="text-2xl font-bold tracking-tight">{dashboard?.webhooksCount || 0}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Templates Card */}
-        <Card 
-          className="flex-1 min-w-[200px] bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-green-100 dark:border-green-900/50 cursor-pointer hover-elevate" 
-          data-testid="card-templates"
-          onClick={() => setLocation('/app/prompt-templates')}
-        >
-          <CardContent className="pt-5 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 shrink-0 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-white" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-muted-foreground leading-tight mb-1">{t('dashboard.templates')}</p>
-                <span className="text-2xl font-bold tracking-tight">{dashboard?.templatesCount || 0}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-          </div>
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+        <div className="xl:col-span-3">
+          <StatCards 
+            dashboard={dashboard} 
+            contactsCount={contactsCount} 
+            campaignContactsCount={campaignContactsCount} 
+            callContactsCount={callContactsCount} 
+            t={t} 
+          />
         </div>
-        
-        {/* Globe Section */}
-        <div className="lg:col-span-1 h-full min-h-[340px]">
+        <div className="xl:col-span-1 h-full min-h-[340px]">
           <DashboardGlobe />
         </div>
       </div>
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Weekly Calls Chart - Now with tabs like image */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-semibold">{t('dashboard.callActivity')}</CardTitle>
-              {/* Tab-style navigation like the image */}
-              <div className="flex items-center border-b border-transparent">
-                <button
-                  onClick={() => setChartView('all')}
-                  className={`px-3 py-1.5 text-sm font-medium border-b-2 transition-colors ${
-                    chartView === 'all' 
-                      ? 'border-primary text-foreground' 
-                      : 'border-transparent text-muted-foreground hover:text-foreground'
-                  }`}
-                  data-testid="tab-all-calls"
-                >
-                  {t('dashboard.allCalls')}
-                </button>
-                <button
-                  onClick={() => setChartView('incoming')}
-                  className={`px-3 py-1.5 text-sm font-medium border-b-2 transition-colors ${
-                    chartView === 'incoming' 
-                      ? 'border-emerald-500 text-foreground' 
-                      : 'border-transparent text-muted-foreground hover:text-foreground'
-                  }`}
-                  data-testid="tab-incoming-calls"
-                >
-                  {t('dashboard.incoming')}
-                </button>
-                <button
-                  onClick={() => setChartView('outgoing')}
-                  className={`px-3 py-1.5 text-sm font-medium border-b-2 transition-colors ${
-                    chartView === 'outgoing' 
-                      ? 'border-blue-500 text-foreground' 
-                      : 'border-transparent text-muted-foreground hover:text-foreground'
-                  }`}
-                  data-testid="tab-outgoing-calls"
-                >
-                  {t('dashboard.outgoing')}
-                </button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {weeklyChartData.length > 0 ? (
-              <div className="h-[280px]" data-testid="chart-weekly-calls">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={weeklyChartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorIncoming" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                      </linearGradient>
-                      <linearGradient id="colorOutgoing" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <XAxis 
-                      dataKey="name" 
-                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} 
-                      tickLine={false} 
-                      axisLine={false} 
-                    />
-                    <YAxis 
-                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} 
-                      tickLine={false} 
-                      axisLine={false}
-                      width={35}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-                      }} 
-                    />
-                    {(chartView === 'all' || chartView === 'incoming') && (
-                      <Area 
-                        type="monotone" 
-                        dataKey="Incoming" 
-                        stroke="#10b981" 
-                        strokeWidth={2}
-                        fillOpacity={1} 
-                        fill="url(#colorIncoming)" 
-                      />
-                    )}
-                    {(chartView === 'all' || chartView === 'outgoing') && (
-                      <Area 
-                        type="monotone" 
-                        dataKey="Outgoing" 
-                        stroke="#3b82f6" 
-                        strokeWidth={2}
-                        fillOpacity={1} 
-                        fill="url(#colorOutgoing)" 
-                      />
-                    )}
-                    {chartView === 'all' && (
-                      <Legend 
-                        wrapperStyle={{ fontSize: 11, paddingTop: 10 }}
-                        iconType="circle"
-                        iconSize={8}
-                      />
-                    )}
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <div className="h-[280px] flex items-center justify-center text-muted-foreground">
-                <div className="text-center">
-                  <Phone className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                  <p className="text-sm">{t('dashboard.noCallData')}</p>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Lead Distribution Chart */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold">{t('dashboard.leadDistribution')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {leadData.length > 0 ? (
-              <div className="h-[280px]" data-testid="chart-lead-distribution">
-                <ResponsiveContainer width="100%" height="70%">
-                  <PieChart>
-                    <Pie
-                      data={leadData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={75}
-                      paddingAngle={3}
-                      dataKey="value"
-                    >
-                      {leadData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(value: number) => [`${value} (${((value / totalLeads) * 100).toFixed(0)}%)`, '']}
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
-                        fontSize: '12px'
-                      }} 
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="flex justify-center gap-4 mt-2">
-                  {leadData.map((item, index) => (
-                    <div key={index} className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                      <span className="text-xs text-muted-foreground">{item.name}</span>
-                      <span className="text-xs font-medium">{item.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="h-[280px] flex flex-col items-center justify-center text-muted-foreground gap-2">
-                <Users className="h-8 w-8 opacity-40" />
-                <p className="text-sm">{t('dashboard.noLeadData')}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <CallActivityChart weeklyChartData={weeklyChartData} t={t} />
+        <LeadDistributionChart leadData={leadData} totalLeads={totalLeads} t={t} />
       </div>
 
-      {/* Sentiment Analysis Row */}
+      {/*       {/* Sentiment Analysis Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Sentiment Distribution Pie Chart */}
         <Card>
