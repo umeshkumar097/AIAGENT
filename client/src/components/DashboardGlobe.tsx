@@ -24,9 +24,9 @@ export default function DashboardGlobe() {
       diffuse: 1.2,
       mapSamples: 16000,
       mapBrightness: 6,
-      baseColor: [0.05, 0.05, 0.05], // Very dark base
+      baseColor: [1, 1, 1], // Base white (inverted by dark mode)
       markerColor: [1, 0.5, 0], // Saffron/Orange markers
-      glowColor: [0.1, 0.3, 0.2], // Subtle green glow
+      glowColor: [1.2, 1.2, 1.2], // Standard glow
       markers: [
         // India
         { location: [20.5937, 78.9629], size: 0.1 },

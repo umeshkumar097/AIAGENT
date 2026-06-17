@@ -363,10 +363,10 @@ export default function Dashboard() {
       </div>
 
       {/* Secondary Stats Row - Appointments, Forms, Knowledge Base, Webhooks, Templates */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="flex flex-wrap gap-4">
         {/* Appointments Booked Card */}
         <Card 
-          className="bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-950/30 dark:to-rose-950/30 border-pink-100 dark:border-pink-900/50 cursor-pointer hover-elevate" 
+          className="flex-1 min-w-[200px] bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-950/30 dark:to-rose-950/30 border-pink-100 dark:border-pink-900/50 cursor-pointer hover-elevate" 
           data-testid="card-appointments"
           onClick={() => setLocation('/app/flows/appointments')}
         >
@@ -385,7 +385,7 @@ export default function Dashboard() {
 
         {/* Forms Submitted Card */}
         <Card 
-          className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 border-indigo-100 dark:border-indigo-900/50 cursor-pointer hover-elevate" 
+          className="flex-1 min-w-[200px] bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 border-indigo-100 dark:border-indigo-900/50 cursor-pointer hover-elevate" 
           data-testid="card-forms-submitted"
           onClick={() => setLocation('/app/flows/forms')}
         >
@@ -409,7 +409,7 @@ export default function Dashboard() {
 
         {/* Knowledge Base Card */}
         <Card 
-          className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-amber-100 dark:border-amber-900/50 cursor-pointer hover-elevate" 
+          className="flex-1 min-w-[200px] bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-amber-100 dark:border-amber-900/50 cursor-pointer hover-elevate" 
           data-testid="card-knowledge-base"
           onClick={() => setLocation('/app/knowledge-base')}
         >
@@ -428,7 +428,7 @@ export default function Dashboard() {
 
         {/* Webhooks Card */}
         <Card 
-          className="bg-gradient-to-br from-brand/5 to-brand/5 dark:from-brand/10 dark:to-brand/10 border-brand/10 cursor-pointer hover-elevate" 
+          className="flex-1 min-w-[200px] bg-gradient-to-br from-brand/5 to-brand/5 dark:from-brand/10 dark:to-brand/10 border-brand/10 cursor-pointer hover-elevate" 
           data-testid="card-webhooks"
           onClick={() => setLocation('/app/flows/webhooks')}
         >
@@ -447,7 +447,7 @@ export default function Dashboard() {
 
         {/* Templates Card */}
         <Card 
-          className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-green-100 dark:border-green-900/50 cursor-pointer hover-elevate" 
+          className="flex-1 min-w-[200px] bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-green-100 dark:border-green-900/50 cursor-pointer hover-elevate" 
           data-testid="card-templates"
           onClick={() => setLocation('/app/prompt-templates')}
         >
