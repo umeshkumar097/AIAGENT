@@ -98,6 +98,7 @@ import { createRAGKnowledgeRoutes } from "./routes/rag-knowledge-routes";
 import { createNotificationRoutes } from "./routes/notification-routes";
 import { createUserWebhookRoutes } from "./routes/user-webhook-routes";
 import { createTemplateRoutes } from "./routes/template-routes";
+import helpAgentRouter from "./routes/helpAgent";
 import { createSubscriptionRoutes } from "./routes/subscription-routes";
 import crmRoutes from "./routes/crm-routes";
 import { widgetRoutes, publicWidgetRoutes } from "./modules/widget";
@@ -222,6 +223,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register template routes (prompt templates)
   const templateRoutes = createTemplateRoutes(routeContext);
   app.use(templateRoutes);
+
+  // Register dashboard Help Agent route
+  app.use('/api/help-agent', helpAgentRouter);
 
   // Register subscription routes (plans, credits, billing)
   const subscriptionRoutes = createSubscriptionRoutes(routeContext);

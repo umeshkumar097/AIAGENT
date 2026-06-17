@@ -186,6 +186,7 @@ function SessionTimeoutWrapper({ children }: { children: React.ReactNode }) {
 
 
 import { PublicVoiceWidget } from "@/components/landing/PublicVoiceWidget";
+import { HelpChatWidget } from "@/components/dashboard/HelpChatWidget";
 
 function PublicRouter() {
   // Direct app.zonvo.tech users to the login page instead of the landing page
@@ -234,6 +235,7 @@ function AdminRouter() {
         <DemoModeBanner />
         <div className="flex flex-1 overflow-hidden">
           <AppSidebar />
+          <HelpChatWidget />
           <div className="flex flex-col flex-1 overflow-hidden">
             <header className="flex items-center justify-between h-14 px-4 md:px-6 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="flex items-center gap-3">
@@ -289,6 +291,7 @@ function UserRouter() {
     <SidebarProvider style={style as React.CSSProperties}>
       <div className="flex h-screen w-full">
         <AppSidebar />
+        <HelpChatWidget />
         <div className="flex flex-col flex-1 overflow-hidden">
           <header className="flex items-center justify-between h-14 px-4 md:px-6 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="flex items-center gap-3">
