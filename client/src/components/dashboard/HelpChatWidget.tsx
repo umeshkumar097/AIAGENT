@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { useBranding } from "@/components/BrandingProvider";
 import ReactMarkdown from 'react-markdown';
+import { AuthStorage } from "@/lib/auth-storage";
 
 type Message = {
   role: "user" | "assistant" | "system";
@@ -43,7 +44,10 @@ export function HelpChatWidget() {
     try {
       const response = await fetch("/api/help-agent/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${AuthStorage.getToken()}` 
+        },
         body: JSON.stringify({ messages: newMessages.map(m => ({ role: m.role, content: m.content })) }),
       });
 
