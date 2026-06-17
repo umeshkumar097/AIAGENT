@@ -267,21 +267,15 @@ export function HeroSection() {
               initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
               animate={shouldReduceMotion ? { opacity: 1 } : (isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 })}
               transition={shouldReduceMotion ? undefined : { delay: 1 + index * 0.1, duration: 0.5 }}
-              className="relative overflow-hidden rounded-2xl aspect-[3/4] flex flex-col justify-end p-5 border border-white/10 group hover:border-orange-500/50 transition-all duration-300"
+              className="relative overflow-hidden rounded-2xl flex flex-col p-6 border border-white/10 bg-white/5 backdrop-blur-md group hover:border-orange-500/50 transition-all duration-300"
               data-testid={`card-usecase-${card.title.toLowerCase().replace(/\s+/g, "-")}`}
             >
-              <img
-                src={card.image}
-                alt={card.title}
-                loading="lazy"
-                decoding="async"
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-              <card.icon className="absolute top-4 right-4 h-8 w-8 text-white/30" />
-              <div className="relative z-10">
-                <p className="text-white/80 text-xs font-medium">{card.label}</p>
-                <p className="text-white text-sm sm:text-base font-bold leading-tight">{card.title}</p>
+              <div className="mb-4">
+                <card.icon className="h-8 w-8 text-orange-500" />
+              </div>
+              <div>
+                <p className="text-slate-400 text-xs font-medium mb-1">{card.label}</p>
+                <p className="text-white text-base sm:text-lg font-bold leading-tight">{card.title}</p>
               </div>
             </motion.div>
           ))}
