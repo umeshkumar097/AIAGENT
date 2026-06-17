@@ -1773,7 +1773,7 @@ export const paymentTransactions = pgTable("payment_transactions", {
   
   // Amount & Currency
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  currency: text("currency").notNull().default("USD"),
+  currency: text("currency").notNull().default("INR"),
   
   // Related Records
   planId: varchar("plan_id").references(() => plans.id, { onDelete: "set null" }),
@@ -1816,7 +1816,7 @@ export const refunds = pgTable("refunds", {
   
   // Refund Details
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  currency: text("currency").notNull().default("USD"),
+  currency: text("currency").notNull().default("INR"),
   
   // Gateway Information
   gateway: text("gateway").notNull(), // Same as original transaction
@@ -1889,7 +1889,7 @@ export const invoices = pgTable("invoices", {
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
   tax: decimal("tax", { precision: 10, scale: 2 }).default("0.00"),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
-  currency: text("currency").notNull().default("USD"),
+  currency: text("currency").notNull().default("INR"),
   
   // Gateway & Payment Info
   gateway: text("gateway").notNull(),

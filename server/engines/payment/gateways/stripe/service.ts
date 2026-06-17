@@ -109,7 +109,7 @@ export async function getStripeCurrency(): Promise<StripeCurrencyConfig> {
   const currency = await getSetting(GLOBAL_SETTINGS_KEYS.STRIPE_CURRENCY);
   const locked = await getSetting(GLOBAL_SETTINGS_KEYS.STRIPE_CURRENCY_LOCKED);
   
-  const currencyCode = currency || 'USD';
+  const currencyCode = currency || "INR";
   const currencyLocked = locked === true || locked === 'true';
   
   return {

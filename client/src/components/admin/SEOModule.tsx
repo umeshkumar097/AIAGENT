@@ -1083,7 +1083,7 @@ Disallow: /api/`}
                         <Input
                           value={formData.structuredDataProduct?.priceCurrency || ""}
                           onChange={(e) => handleProductChange("priceCurrency", e.target.value)}
-                          placeholder="USD"
+                          placeholder="INR"
                           data-testid="input-product-currency"
                         />
                       </div>

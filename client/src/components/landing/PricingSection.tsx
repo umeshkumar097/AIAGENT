@@ -123,7 +123,7 @@ interface CurrencyOption {
 export function PricingSection() {
   const [, setLocation] = useLocation();
   const [isYearly, setIsYearly] = useState(false);
-  const [selectedCurrency, setSelectedCurrency] = useState<string>('USD');
+  const [selectedCurrency, setSelectedCurrency] = useState<string>("INR");
   const shouldReduceMotion = useReducedMotion();
   const { t } = useTranslation();
 
@@ -229,7 +229,7 @@ export function PricingSection() {
   }
 
   const validCurrency = currencyOptions.find(c => c.code === selectedCurrency);
-  const effectiveCurrency = validCurrency ? selectedCurrency : (currencyOptions[0]?.code || 'USD');
+  const effectiveCurrency = validCurrency ? selectedCurrency : (currencyOptions[0]?.code || "INR");
   const currencySymbol = validCurrency?.symbol || currencyOptions.find(c => c.code === effectiveCurrency)?.symbol || '$';
 
   const showCurrencySelector = currencyOptions.length > 1;

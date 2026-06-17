@@ -973,7 +973,7 @@ export class TwilioService {
         return {
           purchasePrice: '1.00',
           monthlyPrice: '1.15',
-          priceUnit: (pricingData.priceUnit as string)?.toUpperCase() || 'USD'
+          priceUnit: (pricingData.priceUnit as string)?.toUpperCase() || "INR"
         };
       }
 
@@ -986,7 +986,7 @@ export class TwilioService {
       return {
         purchasePrice: monthlyPrice, // First month charged on purchase
         monthlyPrice: monthlyPrice,
-        priceUnit: (pricingData.priceUnit as string)?.toUpperCase() || 'USD'
+        priceUnit: (pricingData.priceUnit as string)?.toUpperCase() || "INR"
       };
     } catch (error: any) {
       console.error('❌ [Pricing] Failed to fetch pricing from Twilio:', error.message);

@@ -466,7 +466,7 @@ export default function PaymentsSettings() {
       toast({ 
         title: enabled ? "Stripe Enabled" : "Stripe Disabled",
         description: enabled 
-          ? "Users can now pay with USD via Stripe"
+          ? "Users can now pay with INR via Stripe"
           : "Stripe payments are now disabled"
       });
     } catch (error: any) {
@@ -2222,7 +2222,7 @@ export default function PaymentsSettings() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">Select your Paystack currency (African markets + USD)</p>
+                  <p className="text-xs text-muted-foreground">Select your Paystack currency (African markets + INR)</p>
                 </div>
 
                 <div className="space-y-2 p-4 bg-muted/50 rounded-lg border">

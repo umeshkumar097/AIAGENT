@@ -244,7 +244,7 @@ export default function Billing() {
     }
     
     if (paymentGateway.paypalEnabled) {
-      const curr = (paymentGateway.paypalCurrency || 'USD').toUpperCase();
+      const curr = (paymentGateway.paypalCurrency || "INR").toUpperCase();
       currencyMap.set(curr, [...(currencyMap.get(curr) || []), 'paypal']);
     }
     

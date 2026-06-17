@@ -18,7 +18,7 @@
 export const Zonvo AIFormat = {
   currency(
     amount: number,
-    currency: string = 'USD',
+    currency: string = "INR",
     locale: string = 'en-US'
   ): string {
     return new Intl.NumberFormat(locale, {

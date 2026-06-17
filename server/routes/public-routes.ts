@@ -379,7 +379,7 @@ export function createPublicRoutes(ctx: RouteContext): Router {
         low_credits_threshold: typeof lowCreditsThreshold?.value === 'number' ? lowCreditsThreshold.value : 50,
         credits_per_minute: typeof creditsPerMinute?.value === 'number' ? creditsPerMinute.value : 1,
         otp_expiry_minutes: typeof otpExpiryMinutes?.value === 'number' ? otpExpiryMinutes.value : 5,
-        currency_default: (currencyDefault?.value as string) || 'USD',
+        currency_default: (currencyDefault?.value as string) || "INR",
         currency_symbol: (currencySymbol?.value as string) || '$',
       });
     } catch (error) {
@@ -389,7 +389,7 @@ export function createPublicRoutes(ctx: RouteContext): Router {
         low_credits_threshold: 50,
         credits_per_minute: 1,
         otp_expiry_minutes: 5,
-        currency_default: 'USD',
+        "currency_default": "INR",
         currency_symbol: '$',
       });
     }
@@ -519,7 +519,7 @@ export function createPublicRoutes(ctx: RouteContext): Router {
         result.paypalClientId = dbPaypalClientId?.value || null;
         const paypalCurrencySetting = await storage.getGlobalSetting('paypal_currency');
         const paypalModeSetting = await storage.getGlobalSetting('paypal_mode');
-        const paypalCurrency = (paypalCurrencySetting?.value as string) || 'USD';
+        const paypalCurrency = (paypalCurrencySetting?.value as string) || "INR";
         result.paypalCurrency = paypalCurrency.toUpperCase();
         result.paypalCurrencySymbol = currencySymbols[paypalCurrency.toUpperCase()] || '$';
         result.paypalMode = (paypalModeSetting?.value as string) || 'sandbox';
@@ -876,7 +876,7 @@ ${allUrls.map(u => {
           brand: productData.brand || null,
           sku: productData.sku || null,
           price: productData.price || null,
-          priceCurrency: productData.priceCurrency || 'USD',
+          priceCurrency: productData.priceCurrency || "INR",
           availability: productData.availability || 'InStock',
           url: productData.url || null,
           ratingValue: productData.ratingValue || null,

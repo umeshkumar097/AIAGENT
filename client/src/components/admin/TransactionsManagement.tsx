@@ -157,7 +157,7 @@ export default function TransactionsManagement() {
     );
   });
 
-  const formatCurrency = (amount: number | string, currency: string = "USD") => {
+  const formatCurrency = (amount: number | string, currency: string = "INR") => {
     const num = typeof amount === "string" ? parseFloat(amount) : amount;
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -1046,7 +1046,7 @@ function InvoicesTab() {
   const [exportType, setExportType] = useState<"all" | "invoices" | "refunds">("all");
   const { toast } = useToast();
 
-  const formatCurrency = (amount: number | string, currency: string = "USD") => {
+  const formatCurrency = (amount: number | string, currency: string = "INR") => {
     const num = typeof amount === "string" ? parseFloat(amount) : amount;
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -1324,7 +1324,7 @@ function RefundsTab() {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const formatCurrency = (amount: number | string, currency: string = "USD") => {
+  const formatCurrency = (amount: number | string, currency: string = "INR") => {
     const num = typeof amount === "string" ? parseFloat(amount) : amount;
     return new Intl.NumberFormat("en-US", {
       style: "currency",

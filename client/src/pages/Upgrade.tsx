@@ -251,7 +251,7 @@ export function UpgradePlansContent() {
     }
     
     if (paymentGateway.paypalEnabled) {
-      const curr = (paymentGateway.paypalCurrency || 'USD').toUpperCase();
+      const curr = (paymentGateway.paypalCurrency || "INR").toUpperCase();
       currencyMap.set(curr, [...(currencyMap.get(curr) || []), 'paypal']);
     }
     
@@ -351,7 +351,7 @@ export function UpgradePlansContent() {
     if (paymentGateway) {
       if (availableCurrencies.length > 0) {
         const defaultCurrencyOption = availableCurrencies[0];
-        const currencyCode = defaultCurrencyOption?.code || 'USD';
+        const currencyCode = defaultCurrencyOption?.code || "INR";
         setSelectedCurrency(currencyCode);
         
         const gateways = defaultCurrencyOption?.gateways || [];
@@ -656,8 +656,7 @@ export function UpgradePlansContent() {
   };
 
   const effectiveCurrency = selectedCurrency ||
-    availableCurrencies[0]?.code ||
-    'USD';
+    availableCurrencies[0]?.code || "INR";
   const displaySymbol = currencySymbols[effectiveCurrency] || paymentGateway?.stripeCurrencySymbol || "$";
 
   return (

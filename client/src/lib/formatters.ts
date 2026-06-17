@@ -52,7 +52,7 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
  */
 export function formatCurrency(
   amount: string | number,
-  currency: string = 'USD',
+  currency: string = "INR",
   locale: string = 'en-US'
 ): string {
   const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;

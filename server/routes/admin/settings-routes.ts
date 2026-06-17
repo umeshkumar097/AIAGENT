@@ -173,7 +173,7 @@ export function registerSettingsRoutes(router: Router) {
         const defaults: Record<string, any> = {
           'default_tts_model': 'eleven_turbo_v2', 'default_llm_free': null, 'pro_plan_bonus_credits': 0,
           'credit_price_per_minute': 0.1, 'phone_number_monthly_credits': 50, 'min_credit_purchase': 10,
-          'system_phone_pool_size': 5, 'llm_margin_percentage': 15, 'stripe_currency': 'USD',
+          'system_phone_pool_size': 5, 'llm_margin_percentage': 15, '"stripe_currency": "INR",
           'stripe_currency_locked': false, 'stripe_mode': 'test', 'auto_restart_enabled': false,
           'auto_restart_ram_percent': 75, 'auto_restart_cpu_percent': 85,
         };

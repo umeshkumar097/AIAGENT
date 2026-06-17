@@ -107,7 +107,7 @@ export async function getPayPalCurrency(): Promise<PayPalCurrencyConfig> {
   const currency = await getSetting(GLOBAL_SETTINGS_KEYS.PAYPAL_CURRENCY);
   const locked = await getSetting('paypal_currency_locked');
   
-  const currencyCode = currency || 'USD';
+  const currencyCode = currency || "INR";
   const currencyLocked = locked === true || locked === 'true';
   
   return {
