@@ -14,7 +14,7 @@ export default function PricingPage() {
   const seoDescription = "Transparent volume pricing for AI calling operations. Scale infinitely with no hidden fees.";
 
   return (
-    <div className="min-h-screen bg-[#050B14] text-slate-50 flex flex-col font-sans selection:bg-primary/30">
+    <div className="min-h-screen bg-[#050505] text-white flex flex-col font-sans selection:bg-[#27D3C9]/30">
       <SEOHead
         title={seoTitle}
         description={seoDescription}

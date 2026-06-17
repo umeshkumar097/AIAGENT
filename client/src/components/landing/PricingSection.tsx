@@ -1,12 +1,23 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Check, X } from "lucide-react";
+import { 
+  Check, X, Zap, Phone, BrainCircuit, 
+  Activity, BookOpen, Webhook, Headphones, 
+  Server, Shield, PhoneCall, ChevronDown
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
+import { useSeoSettings } from "@/hooks/useSeoSettings";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { AuthStorage } from "@/lib/auth-storage";
 
-// Define our types
 interface Plan {
   id: string;
   name: string;
@@ -27,23 +38,36 @@ interface Plan {
   features: any;
   sipEnabled?: boolean;
   restApiEnabled?: boolean;
-  // Dynamic gateways
-  razorpayMonthlyPrice: string | null;
-  paypalMonthlyPrice: string | null;
-  paystackMonthlyPrice: string | null;
-  mercadopagoMonthlyPrice: string | null;
 }
 
-const currencySymbols: Record<string, string> = {
-  'USD': '$', 'INR': '₹', 'EUR': '€', 'GBP': '£'
-};
+const DEFAULT_FAQS = [
+  {
+    question: "How do credits work?",
+    answer: "Credits are directly mapped to your call minutes. 1 credit equals 1 minute of call time (or 60 seconds). For example, a 62-second call will consume 2 credits as billing is rounded up to the nearest minute."
+  },
+  {
+    question: "Can I buy extra credits?",
+    answer: "Yes, once you exceed your plan's included credits, you can seamlessly purchase extra credits on a pay-as-you-go basis directly from your billing dashboard without interrupting your service."
+  },
+  {
+    question: "Can I upgrade my plan anytime?",
+    answer: "Absolutely. You can upgrade to a higher tier at any time. The remaining balance on your current plan will be prorated and automatically applied to your new plan."
+  },
+  {
+    question: "Do unused credits rollover to the next month?",
+    answer: "Included monthly credits reset at the beginning of each billing cycle and do not rollover. However, any 'Add-on' credits you purchase manually will never expire."
+  },
+  {
+    question: "How are calls billed?",
+    answer: "Calls are billed in one-minute increments. The timer starts exactly when the call connects and ends the moment either party hangs up."
+  }
+];
 
-export function PricingSection() {
+export default function PricingSection() {
   const [, setLocation] = useLocation();
   const { t } = useTranslation();
-  
-  // Hardcode INR symbol for now as per user preference (previous fix was INR)
-  const currencySymbol = "₹";
+  const { data: seoSettings } = useSeoSettings();
+  const isAuthenticated = AuthStorage.isAuthenticated();
 
   const { data: plans } = useQuery<Plan[]>({
     queryKey: ["/api/plans"],
@@ -57,270 +81,376 @@ export function PricingSection() {
     });
   }, [plans]);
 
-  // Volume Pricing State
-  const maxMins = sortedPlans.length > 0 ? Math.max(...sortedPlans.map(p => p.includedCredits)) * 1.5 : 10000;
-  const minMins = 0;
-  const [sliderValue, setSliderValue] = useState(2000); // Default middle
+  // Fallback to default FAQs if db is empty
+  const faqs = (seoSettings?.structuredDataFaq && seoSettings.structuredDataFaq.length > 0)
+    ? seoSettings.structuredDataFaq
+    : DEFAULT_FAQS;
 
-  // Recommend best plan based on minutes
+  const [sliderValue, setSliderValue] = useState(2000);
+  const maxMins = sortedPlans.length > 0 ? Math.max(...sortedPlans.map(p => p.includedCredits)) * 1.5 : 10000;
+  
   const recommendedPlan = useMemo(() => {
     if (!sortedPlans || sortedPlans.length === 0) return null;
-    // Find the cheapest plan that covers the sliderValue
     const capablePlans = sortedPlans.filter(p => p.includedCredits >= sliderValue);
     if (capablePlans.length > 0) return capablePlans[0];
-    return sortedPlans[sortedPlans.length - 1]; // Return max plan if exceeds all
+    return sortedPlans[sortedPlans.length - 1]; 
   }, [sortedPlans, sliderValue]);
 
-  const getPrice = (plan: Plan): string => {
-    // For simplicity, prioritize monthly price of default gateway or fallback
-    let price = plan.razorpayMonthlyPrice || plan.monthlyPrice;
-    if (!price || parseFloat(price) === 0) {
-      price = plan.paypalMonthlyPrice || plan.stripeMonthlyPrice || plan.monthlyPrice || "0";
-    }
-    return parseFloat(price).toLocaleString();
-  };
-
-  const handleBookDemo = () => setLocation('/contact');
-  const handleSignUp = () => setLocation('/login');
+  const currencySymbol = "₹";
 
   return (
-    <section className="py-24 bg-white" id="pricing">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="bg-[#050505] text-white overflow-hidden py-10" id="pricing">
+      
+      {/* Glow Effects */}
+      <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[80vw] h-[50vh] bg-[#27D3C9]/10 blur-[150px] rounded-[100%] pointer-events-none" />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
-        {/* Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <p className="text-sm font-bold text-orange-500 uppercase tracking-widest mb-2">Volume Pricing</p>
-          <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight mb-4">
-            Volume pricing that scales.
-          </h2>
-          <p className="text-lg text-gray-600">
-            Estimate monthly cost at your usage. We always recommend the plan with the lowest total cost for your minutes.
-          </p>
+        {/* SECTION 1: Headline */}
+        <div className="text-center max-w-3xl mx-auto mb-20">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#27D3C9]/30 bg-[#27D3C9]/10 text-[#27D3C9] text-sm font-semibold mb-6">
+              <Zap className="w-4 h-4" />
+              Simple, Transparent Pricing
+            </div>
+            <h2 className="text-5xl md:text-7xl font-extrabold tracking-tighter mb-6 text-white">
+              Choose the perfect plan for your <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#27D3C9] to-blue-500">AI calling business.</span>
+            </h2>
+            <p className="text-lg md:text-xl text-slate-400">
+              Scale infinitely with no hidden fees. Start for free and upgrade as you grow.
+            </p>
+          </motion.div>
         </div>
 
-        {/* Dynamic Calculator Box */}
-        <div className="bg-white rounded-3xl border border-orange-100 shadow-xl shadow-orange-500/5 p-6 md:p-10 mb-20">
-          <div className="flex flex-col lg:flex-row gap-12">
+        {/* SECTION 2: Pricing Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-24 justify-center">
+          {sortedPlans.map((plan, index) => {
+            const isPopular = index === 1 || plan.name.toLowerCase().includes('pro');
             
-            {/* Slider Area */}
-            <div className="flex-1 space-y-8">
-              <div>
-                <p className="text-sm font-bold text-orange-500 tracking-wider mb-4 uppercase">Usage</p>
-                <h3 className="text-4xl font-bold text-gray-900 mb-6">
-                  {sliderValue.toLocaleString()} mins <span className="text-xl text-gray-500 font-medium">/ month</span>
-                </h3>
+            return (
+              <motion.div
+                key={plan.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className={`relative flex flex-col rounded-3xl p-8 backdrop-blur-xl transition-all duration-300
+                  ${isPopular 
+                    ? 'border-2 border-[#27D3C9] bg-gradient-to-b from-[#27D3C9]/10 to-white/5 shadow-2xl shadow-[#27D3C9]/20' 
+                    : 'border border-white/10 bg-white/5 hover:border-white/20'
+                  }`}
+              >
+                {isPopular && (
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#27D3C9] text-black text-xs font-bold uppercase tracking-widest rounded-full">
+                    Most Popular
+                  </div>
+                )}
+                
+                <div className="mb-6">
+                  <h3 className="text-2xl font-bold text-white mb-2">{plan.displayName}</h3>
+                  <p className="text-sm text-slate-400 min-h-[40px]">{plan.description}</p>
+                </div>
+                
+                <div className="mb-8">
+                  <div className="flex items-end gap-1">
+                    <span className="text-4xl font-extrabold text-white">
+                      {currencySymbol}{parseFloat(plan.monthlyPrice).toLocaleString()}
+                    </span>
+                    <span className="text-slate-400 mb-1">/mo</span>
+                  </div>
+                  <div className="text-sm text-[#27D3C9] font-medium mt-2">
+                    Includes {plan.includedCredits.toLocaleString()} Credits
+                  </div>
+                </div>
+
+                <div className="space-y-4 mb-8 flex-1">
+                  <div className="flex items-center gap-3">
+                    <BrainCircuit className="w-5 h-5 text-[#27D3C9]" />
+                    <span className="text-sm text-slate-300"><b>{plan.maxAgents}</b> AI Agents</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Activity className="w-5 h-5 text-[#27D3C9]" />
+                    <span className="text-sm text-slate-300"><b>{plan.maxCampaigns}</b> Campaigns</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Phone className="w-5 h-5 text-[#27D3C9]" />
+                    <span className="text-sm text-slate-300"><b>{plan.maxPhoneNumbers}</b> Phone Numbers</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Server className="w-5 h-5 text-[#27D3C9]" />
+                    <span className="text-sm text-slate-300"><b>{plan.maxFlows}</b> Flow Automations</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <BookOpen className="w-5 h-5 text-[#27D3C9]" />
+                    <span className="text-sm text-slate-300"><b>{plan.maxKnowledgeBases}</b> Knowledge Bases</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Webhook className="w-5 h-5 text-[#27D3C9]" />
+                    <span className="text-sm text-slate-300"><b>{plan.maxWebhooks}</b> Webhooks</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    {plan.restApiEnabled ? (
+                      <Check className="w-5 h-5 text-green-500" />
+                    ) : (
+                      <X className="w-5 h-5 text-red-500/50" />
+                    )}
+                    <span className={`text-sm ${plan.restApiEnabled ? 'text-slate-300' : 'text-slate-500 line-through'}`}>REST API Access</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    {plan.sipEnabled ? (
+                      <Check className="w-5 h-5 text-green-500" />
+                    ) : (
+                      <X className="w-5 h-5 text-red-500/50" />
+                    )}
+                    <span className={`text-sm ${plan.sipEnabled ? 'text-slate-300' : 'text-slate-500 line-through'}`}>SIP Trunking</span>
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={() => setLocation(isAuthenticated ? '/app' : '/login')}
+                  className={`w-full h-12 rounded-xl font-bold text-base transition-all
+                    ${isPopular 
+                      ? 'bg-[#27D3C9] hover:bg-[#20b5ad] text-black shadow-lg shadow-[#27D3C9]/25' 
+                      : 'bg-white/10 hover:bg-white/20 text-white'
+                    }`}
+                >
+                  Get Started
+                </Button>
+              </motion.div>
+            )
+          })}
+        </div>
+
+        {/* SECTION 3: Credit Usage Calculator */}
+        <div className="mb-24">
+          <div className="text-center mb-12">
+            <h3 className="text-3xl font-bold text-white mb-4">Calculate Your Usage</h3>
+            <p className="text-slate-400">Estimate your required credits based on monthly call minutes.</p>
+          </div>
+          
+          <div className="max-w-4xl mx-auto bg-white/5 border border-white/10 rounded-3xl p-8 md:p-12 backdrop-blur-md">
+            <div className="flex flex-col md:flex-row items-center gap-12">
+              <div className="flex-1 w-full">
+                <div className="flex justify-between items-end mb-6">
+                  <div>
+                    <div className="text-sm text-[#27D3C9] font-bold tracking-widest uppercase mb-1">Expected Usage</div>
+                    <div className="text-4xl font-extrabold text-white">
+                      {sliderValue.toLocaleString()} <span className="text-xl text-slate-400 font-medium">mins/mo</span>
+                    </div>
+                  </div>
+                </div>
                 
                 <input 
                   type="range" 
-                  min={minMins} 
+                  min={0} 
                   max={maxMins} 
                   step={100}
                   value={sliderValue}
                   onChange={(e) => setSliderValue(parseInt(e.target.value))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                  className="w-full h-3 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#27D3C9]"
                 />
-                <div className="flex justify-between text-xs font-medium text-gray-400 mt-2">
-                  <span>{minMins} mins</span>
+                
+                <div className="flex justify-between text-xs font-medium text-slate-500 mt-4">
+                  <span>0 mins</span>
                   <span>{maxMins.toLocaleString()} mins+</span>
                 </div>
               </div>
 
-              <div className="bg-orange-50 rounded-xl p-5 border border-orange-100">
-                <p className="text-gray-700 text-sm">
-                  {recommendedPlan 
-                    ? <><span className="font-semibold text-gray-900">{recommendedPlan.displayName}</span> is the lowest-cost plan at this usage. Includes first {recommendedPlan.includedCredits.toLocaleString()} mins.</>
-                    : "Adjust slider to see recommended plans."}
-                </p>
-              </div>
-
-              {/* Tiers display */}
-              <div>
-                <p className="text-xs font-bold text-gray-400 tracking-wider mb-3 uppercase">Rate Tiers</p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {sortedPlans.slice(-4).map(plan => (
-                    <div 
-                      key={plan.id} 
-                      className={`p-3 rounded-xl border text-center transition-all ${recommendedPlan?.id === plan.id ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-100'}`}
-                    >
-                      <p className="font-semibold text-gray-900 text-sm mb-1">{plan.displayName}</p>
-                      <p className="text-xs text-gray-500">{plan.includedCredits.toLocaleString()} mins</p>
+              <div className="w-full md:w-[350px] bg-black/40 border border-white/10 rounded-2xl p-6 text-center shadow-inner">
+                <div className="text-sm text-slate-400 mb-2">Credits Required</div>
+                <div className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#27D3C9] to-blue-400 mb-6">
+                  {sliderValue.toLocaleString()}
+                </div>
+                
+                <div className="border-t border-white/10 pt-6">
+                  <div className="text-sm text-slate-400 mb-2">Recommended Plan</div>
+                  <div className="text-xl font-bold text-white">
+                    {recommendedPlan ? recommendedPlan.displayName : 'Select Usage'}
+                  </div>
+                  {recommendedPlan && (
+                    <div className="text-sm text-[#27D3C9] mt-1">
+                      Covers first {recommendedPlan.includedCredits.toLocaleString()} mins
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* Price Estimate Card */}
-            <div className="lg:w-96 bg-gray-50 rounded-2xl border border-gray-200 p-8 flex flex-col justify-between">
-              <div>
-                <p className="text-xs font-bold text-orange-500 tracking-wider mb-2 uppercase">Estimated Monthly Cost</p>
-                <div className="mb-6">
-                  <span className="text-5xl font-extrabold text-gray-900">{currencySymbol}{recommendedPlan ? getPrice(recommendedPlan) : '0'}</span>
-                  <span className="text-gray-500 font-medium ml-1">/month</span>
-                </div>
-                
-                <div className="space-y-3 text-sm border-t border-gray-200 pt-6">
-                  <div className="flex justify-between text-gray-600">
-                    <span>Base plan</span>
-                    <span className="font-medium text-gray-900">{currencySymbol}{recommendedPlan ? getPrice(recommendedPlan) : '0'}</span>
-                  </div>
-                  <div className="flex justify-between text-gray-600">
-                    <span>Included minutes</span>
-                    <span className="font-medium text-gray-900">{recommendedPlan?.includedCredits.toLocaleString() || 0} mins</span>
-                  </div>
-                </div>
+        {/* SECTION 5: Credit-Based Calling Explanation */}
+        <div className="mb-24 max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <h3 className="text-3xl font-bold text-white mb-4">How Credits Work</h3>
+            <p className="text-slate-400">1 Credit equals exactly 60 seconds (1 minute) of call time. Billing is rounded up to the nearest minute.</p>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center flex flex-col items-center justify-center gap-3">
+              <PhoneCall className="w-8 h-8 text-slate-400" />
+              <div className="text-xl font-bold text-white">30 sec call</div>
+              <div className="inline-flex items-center gap-1 px-3 py-1 bg-white/10 rounded-full text-sm font-medium text-[#27D3C9]">
+                1 Credit
               </div>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center flex flex-col items-center justify-center gap-3">
+              <PhoneCall className="w-8 h-8 text-slate-400" />
+              <div className="text-xl font-bold text-white">60 sec call</div>
+              <div className="inline-flex items-center gap-1 px-3 py-1 bg-white/10 rounded-full text-sm font-medium text-[#27D3C9]">
+                1 Credit
+              </div>
+            </div>
+            <div className="bg-white/5 border border-[#27D3C9]/30 shadow-lg shadow-[#27D3C9]/10 rounded-2xl p-6 text-center flex flex-col items-center justify-center gap-3 relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-b from-[#27D3C9]/10 to-transparent pointer-events-none" />
+              <PhoneCall className="w-8 h-8 text-[#27D3C9]" />
+              <div className="text-xl font-bold text-white">62 sec call</div>
+              <div className="inline-flex items-center gap-1 px-3 py-1 bg-[#27D3C9]/20 rounded-full text-sm font-bold text-[#27D3C9]">
+                2 Credits
+              </div>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center flex flex-col items-center justify-center gap-3">
+              <PhoneCall className="w-8 h-8 text-slate-400" />
+              <div className="text-xl font-bold text-white">5 min call</div>
+              <div className="inline-flex items-center gap-1 px-3 py-1 bg-white/10 rounded-full text-sm font-medium text-[#27D3C9]">
+                5 Credits
+              </div>
+            </div>
+          </div>
+        </div>
 
-              <Button onClick={handleSignUp} className="w-full mt-8 bg-gray-900 hover:bg-gray-800 text-white rounded-xl h-12 text-base font-semibold shadow-sm">
-                Start with {recommendedPlan?.displayName || 'Plan'}
+        {/* SECTION 4: Feature Comparison Table */}
+        <div className="mb-24 overflow-x-auto">
+          <div className="text-center mb-12">
+            <h3 className="text-3xl font-bold text-white mb-4">Compare Features</h3>
+          </div>
+          <div className="min-w-[800px] border border-white/10 rounded-2xl overflow-hidden bg-white/5 backdrop-blur-sm">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr>
+                  <th className="p-4 border-b border-white/10 bg-black/40 text-slate-400 font-medium">Features</th>
+                  {sortedPlans.map(plan => (
+                    <th key={plan.id} className="p-4 border-b border-white/10 bg-black/40 font-bold text-white text-center">
+                      {plan.displayName}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="text-sm">
+                <tr>
+                  <td className="p-4 border-b border-white/5 font-medium text-slate-300">AI Agents Limit</td>
+                  {sortedPlans.map(plan => <td key={plan.id} className="p-4 border-b border-white/5 text-center text-slate-400">{plan.maxAgents}</td>)}
+                </tr>
+                <tr>
+                  <td className="p-4 border-b border-white/5 font-medium text-slate-300">Campaigns Limit</td>
+                  {sortedPlans.map(plan => <td key={plan.id} className="p-4 border-b border-white/5 text-center text-slate-400">{plan.maxCampaigns}</td>)}
+                </tr>
+                <tr>
+                  <td className="p-4 border-b border-white/5 font-medium text-slate-300">Contacts per Campaign</td>
+                  {sortedPlans.map(plan => <td key={plan.id} className="p-4 border-b border-white/5 text-center text-slate-400">{plan.maxContactsPerCampaign}</td>)}
+                </tr>
+                <tr>
+                  <td className="p-4 border-b border-white/5 font-medium text-slate-300">Phone Numbers</td>
+                  {sortedPlans.map(plan => <td key={plan.id} className="p-4 border-b border-white/5 text-center text-slate-400">{plan.maxPhoneNumbers}</td>)}
+                </tr>
+                <tr>
+                  <td className="p-4 border-b border-white/5 font-medium text-slate-300">Flow Automations</td>
+                  {sortedPlans.map(plan => <td key={plan.id} className="p-4 border-b border-white/5 text-center text-slate-400">{plan.maxFlows}</td>)}
+                </tr>
+                <tr>
+                  <td className="p-4 border-b border-white/5 font-medium text-slate-300">Knowledge Bases</td>
+                  {sortedPlans.map(plan => <td key={plan.id} className="p-4 border-b border-white/5 text-center text-slate-400">{plan.maxKnowledgeBases}</td>)}
+                </tr>
+                <tr>
+                  <td className="p-4 border-b border-white/5 font-medium text-slate-300">REST API</td>
+                  {sortedPlans.map(plan => (
+                    <td key={plan.id} className="p-4 border-b border-white/5 text-center">
+                      {plan.restApiEnabled ? <Check className="w-4 h-4 mx-auto text-[#27D3C9]" /> : <X className="w-4 h-4 mx-auto text-slate-600" />}
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <td className="p-4 border-b border-white/5 font-medium text-slate-300">SIP Trunk Access</td>
+                  {sortedPlans.map(plan => (
+                    <td key={plan.id} className="p-4 border-b border-white/5 text-center">
+                      {plan.sipEnabled ? <Check className="w-4 h-4 mx-auto text-[#27D3C9]" /> : <X className="w-4 h-4 mx-auto text-slate-600" />}
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <td className="p-4 font-medium text-slate-300">Priority Support</td>
+                  {sortedPlans.map(plan => (
+                    <td key={plan.id} className="p-4 text-center text-slate-400">
+                      {plan.name.toLowerCase().includes('enterprise') || plan.name.toLowerCase().includes('scale') ? '24/7 Priority' : 'Standard'}
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* SECTION 6: Enterprise */}
+        <div className="mb-24">
+          <div className="relative rounded-3xl bg-gradient-to-r from-blue-900/20 via-[#27D3C9]/10 to-transparent border border-[#27D3C9]/20 p-8 md:p-12 overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 backdrop-blur-md">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#27D3C9]/10 rounded-full blur-3xl pointer-events-none" />
+            
+            <div className="flex-1 relative z-10">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-bold uppercase tracking-wider mb-4">
+                <Shield className="w-3 h-3" /> Enterprise
+              </div>
+              <h3 className="text-3xl md:text-4xl font-bold text-white mb-4">Need unlimited scale?</h3>
+              <p className="text-slate-400 max-w-2xl mb-6">
+                Get dedicated infrastructure, unlimited agents, priority engineering support, and custom integrations tailored to your specific workflow.
+              </p>
+              <div className="flex flex-wrap gap-4 text-sm font-medium text-slate-300">
+                <div className="flex items-center gap-2"><Check className="w-4 h-4 text-[#27D3C9]" /> Unlimited Agents</div>
+                <div className="flex items-center gap-2"><Check className="w-4 h-4 text-[#27D3C9]" /> Dedicated Servers</div>
+                <div className="flex items-center gap-2"><Check className="w-4 h-4 text-[#27D3C9]" /> White-Label Options</div>
+              </div>
+            </div>
+            
+            <div className="relative z-10">
+              <Button 
+                size="lg" 
+                onClick={() => setLocation('/contact')}
+                className="rounded-full bg-white text-black hover:bg-slate-200 font-bold px-8 shadow-xl shadow-white/10"
+              >
+                Talk to Sales
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Feature Comparison Matrix */}
-        <div className="mb-20 overflow-x-auto">
-          <div className="min-w-[800px]">
-            {/* Headers */}
-            <div className="grid grid-cols-5 border-b-2 border-gray-100 sticky top-0 bg-white z-10">
-              <div className="col-span-1 py-4 px-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Capability</div>
-              {sortedPlans.slice(-4).map(plan => (
-                <div key={`header-${plan.id}`} className={`col-span-1 py-4 px-4 text-center font-bold uppercase tracking-wide text-sm ${recommendedPlan?.id === plan.id ? 'text-orange-500 border-b-2 border-orange-500' : 'text-gray-500'}`}>
-                  {plan.displayName}
-                </div>
-              ))}
-            </div>
-
-            {/* Section: Limits & Capacity */}
-            <div className="bg-gray-50/50 py-3 px-4 font-bold text-gray-900 text-sm uppercase tracking-wider mt-4 rounded-t-lg">Limits & Capacity</div>
-            
-            <div className="grid grid-cols-5 border-b border-gray-100 hover:bg-gray-50 transition-colors">
-              <div className="col-span-1 py-4 px-4 text-sm font-medium text-gray-700">AI Agents</div>
-              {sortedPlans.slice(-4).map(plan => (
-                <div key={`agents-${plan.id}`} className={`col-span-1 py-4 px-4 text-center text-sm ${recommendedPlan?.id === plan.id ? 'bg-orange-50/30 font-semibold text-gray-900' : 'text-gray-600'}`}>{plan.maxAgents}</div>
-              ))}
-            </div>
-            
-            <div className="grid grid-cols-5 border-b border-gray-100 hover:bg-gray-50 transition-colors">
-              <div className="col-span-1 py-4 px-4 text-sm font-medium text-gray-700">Concurrent Calls</div>
-              {sortedPlans.slice(-4).map(plan => (
-                <div key={`calls-${plan.id}`} className={`col-span-1 py-4 px-4 text-center text-sm ${recommendedPlan?.id === plan.id ? 'bg-orange-50/30 font-semibold text-gray-900' : 'text-gray-600'}`}>Custom</div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-5 border-b border-gray-100 hover:bg-gray-50 transition-colors">
-              <div className="col-span-1 py-4 px-4 text-sm font-medium text-gray-700">Knowledge Bases</div>
-              {sortedPlans.slice(-4).map(plan => (
-                <div key={`kb-${plan.id}`} className={`col-span-1 py-4 px-4 text-center text-sm ${recommendedPlan?.id === plan.id ? 'bg-orange-50/30 font-semibold text-gray-900' : 'text-gray-600'}`}>{plan.maxKnowledgeBases}</div>
-              ))}
-            </div>
-
-            {/* Section: Voice & Language */}
-            <div className="bg-gray-50/50 py-3 px-4 font-bold text-gray-900 text-sm uppercase tracking-wider mt-4 rounded-t-lg">Voice & Language</div>
-            
-            <div className="grid grid-cols-5 border-b border-gray-100 hover:bg-gray-50 transition-colors">
-              <div className="col-span-1 py-4 px-4 text-sm font-medium text-gray-700">Custom Voice Cloning</div>
-              {sortedPlans.slice(-4).map((plan, i) => (
-                <div key={`voice-${plan.id}`} className={`col-span-1 py-4 px-4 flex justify-center text-sm ${recommendedPlan?.id === plan.id ? 'bg-orange-50/30' : ''}`}>
-                  {i > 0 ? <Check className="w-5 h-5 text-emerald-500" /> : <span className="text-gray-400">—</span>}
-                </div>
-              ))}
-            </div>
-
-            {/* Section: Calls & Workflows */}
-            <div className="bg-gray-50/50 py-3 px-4 font-bold text-gray-900 text-sm uppercase tracking-wider mt-4 rounded-t-lg">Calls & Workflows</div>
-            
-            <div className="grid grid-cols-5 border-b border-gray-100 hover:bg-gray-50 transition-colors">
-              <div className="col-span-1 py-4 px-4 text-sm font-medium text-gray-700">Post-call summary & sentiment</div>
-              {sortedPlans.slice(-4).map(plan => (
-                <div key={`summary-${plan.id}`} className={`col-span-1 py-4 px-4 flex justify-center text-sm ${recommendedPlan?.id === plan.id ? 'bg-orange-50/30' : ''}`}>
-                  <Check className="w-5 h-5 text-emerald-500" />
-                </div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-5 border-b border-gray-100 hover:bg-gray-50 transition-colors">
-              <div className="col-span-1 py-4 px-4 text-sm font-medium text-gray-700">Webhook notifications</div>
-              {sortedPlans.slice(-4).map((plan, i) => (
-                <div key={`webhooks-${plan.id}`} className={`col-span-1 py-4 px-4 flex justify-center text-sm ${recommendedPlan?.id === plan.id ? 'bg-orange-50/30' : ''}`}>
-                  {plan.maxWebhooks > 0 ? <Check className="w-5 h-5 text-emerald-500" /> : <span className="text-gray-400">—</span>}
-                </div>
-              ))}
-            </div>
+        {/* SECTION 7: FAQ */}
+        <div className="max-w-3xl mx-auto mb-10">
+          <div className="text-center mb-10">
+            <h3 className="text-3xl font-bold text-white mb-4">Frequently Asked Questions</h3>
           </div>
-        </div>
-
-        {/* Total Cost Estimates Use Cases */}
-        <div>
-          <h3 className="text-3xl font-extrabold text-gray-900 mb-4 text-center lg:text-left">Total cost estimates</h3>
-          <p className="text-gray-600 mb-10 text-center lg:text-left">Platform combined with telecom estimates for common deployment scenarios.</p>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white border border-gray-200 rounded-2xl p-8 hover:shadow-lg transition-shadow">
-              <h4 className="font-bold text-gray-900 text-lg mb-1">Local Business — 1,000 calls/mo</h4>
-              <p className="text-xs font-mono text-gray-400 mb-6 uppercase">Plan: Starter</p>
-              
-              <div className="space-y-4 text-sm mb-6">
-                <div className="flex justify-between border-b border-gray-100 pb-2">
-                  <span className="text-gray-600">Platform fee</span>
-                  <span className="font-medium">{currencySymbol}2,500</span>
-                </div>
-                <div className="flex justify-between border-b border-gray-100 pb-2">
-                  <span className="text-gray-600">Telecom usage</span>
-                  <span className="font-medium">{currencySymbol}500</span>
-                </div>
-              </div>
-              <div className="flex justify-between items-center bg-gray-50 rounded-xl p-4">
-                <span className="font-bold text-gray-900">Total / month</span>
-                <span className="font-extrabold text-xl text-gray-900">~{currencySymbol}3,000</span>
-              </div>
-            </div>
-
-            <div className="bg-white border border-gray-200 rounded-2xl p-8 hover:shadow-lg transition-shadow">
-              <h4 className="font-bold text-gray-900 text-lg mb-1">EdTech Telesales — 5,000 calls/mo</h4>
-              <p className="text-xs font-mono text-gray-400 mb-6 uppercase">Plan: Growth</p>
-              
-              <div className="space-y-4 text-sm mb-6">
-                <div className="flex justify-between border-b border-gray-100 pb-2">
-                  <span className="text-gray-600">Platform fee</span>
-                  <span className="font-medium">{currencySymbol}8,500</span>
-                </div>
-                <div className="flex justify-between border-b border-gray-100 pb-2">
-                  <span className="text-gray-600">Telecom usage</span>
-                  <span className="font-medium">{currencySymbol}2,500</span>
-                </div>
-              </div>
-              <div className="flex justify-between items-center bg-gray-50 rounded-xl p-4">
-                <span className="font-bold text-gray-900">Total / month</span>
-                <span className="font-extrabold text-xl text-gray-900">~{currencySymbol}11,000</span>
-              </div>
-            </div>
-
-            <div className="bg-white border border-gray-200 rounded-2xl p-8 hover:shadow-lg transition-shadow">
-              <h4 className="font-bold text-gray-900 text-lg mb-1">Enterprise Contact Center</h4>
-              <p className="text-xs font-mono text-gray-400 mb-6 uppercase">Plan: Enterprise</p>
-              
-              <div className="space-y-4 text-sm mb-6">
-                <div className="flex justify-between border-b border-gray-100 pb-2">
-                  <span className="text-gray-600">Platform fee</span>
-                  <span className="font-medium">Custom</span>
-                </div>
-                <div className="flex justify-between border-b border-gray-100 pb-2">
-                  <span className="text-gray-600">Telecom usage</span>
-                  <span className="font-medium">Wholesale rates</span>
-                </div>
-              </div>
-              <div className="flex justify-between items-center bg-gray-50 rounded-xl p-4">
-                <span className="font-bold text-gray-900">Total / month</span>
-                <span className="font-extrabold text-xl text-gray-900">Custom Quote</span>
-              </div>
-            </div>
-          </div>
+          <Accordion type="single" collapsible className="w-full space-y-4">
+            {faqs.map((faq, index) => (
+              <AccordionItem 
+                key={index} 
+                value={`item-${index}`}
+                className="border border-white/10 bg-white/5 rounded-2xl px-6 data-[state=open]:bg-white/10 transition-colors"
+              >
+                <AccordionTrigger className="text-left font-semibold text-white hover:no-underline py-5 [&[data-state=open]>svg]:text-[#27D3C9]">
+                  {faq.question}
+                </AccordionTrigger>
+                <AccordionContent className="text-slate-400 leading-relaxed pb-5">
+                  {faq.answer}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
         </div>
 
       </div>
     </section>
   );
 }
-
-export default PricingSection;
