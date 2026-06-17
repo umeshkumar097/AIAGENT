@@ -17,6 +17,7 @@ import { IntegrationsGrid } from "@/components/landing/IntegrationsGrid";
 import { ContactSection } from "@/components/landing/ContactSection";
 import { CTASection } from "@/components/landing/CTASection";
 import { Footer } from "@/components/landing/Footer";
+import { ChatbotWidget } from "@/components/landing/ChatbotWidget";
 import { useBranding } from "@/components/BrandingProvider";
 import { useSeoSettings } from "@/hooks/useSeoSettings";
 
@@ -105,6 +106,7 @@ export default function LandingPage() {
       </main>
 
       <Footer />
+      <ChatbotWidget />
     </div>
   );
 }
