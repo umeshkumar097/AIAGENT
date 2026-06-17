@@ -46,27 +46,33 @@ export class ElevenLabsBridgeService {
     return out;
   }
 
-  // ── PCM16 at any rate → mulaw 8kHz (detect rate, downsample, encode) ──────
+  // ── PCM16 at any rate → mulaw 8kHz (proper box-filter resampling) ──────────
   /**
-   * Converts PCM16 LE buffer at srcRate to mulaw 8kHz.
-   * srcRate must be a multiple of 8000 (e.g. 16000 or 24000).
+   * Converts PCM16 LE buffer at srcRate Hz → mulaw 8kHz.
+   * Works for ANY srcRate including non-integer ratios (e.g. 44100→8000 = 5.5125×).
+   * Uses box-filter averaging: for each output sample, averages all input samples
+   * in the corresponding time window. This provides anti-aliasing.
    */
   private static pcm16ToMulaw8k(pcmBuf: Buffer, srcRate: number): Buffer {
-    const step = srcRate / 8000; // e.g. 2 for 16kHz, 3 for 24kHz
-    const inputSamples = pcmBuf.length / 2;
-    const outputLength = Math.floor(inputSamples / step);
+    const inputSamples = Math.floor(pcmBuf.length / 2);
+    const outputLength = Math.floor(inputSamples * 8000 / srcRate);
+    const ratio = srcRate / 8000; // e.g. 44100/8000 = 5.5125
     const out = Buffer.alloc(outputLength);
 
     for (let i = 0; i < outputLength; i++) {
-      // Average `step` consecutive samples
+      const startPos = Math.floor(i * ratio);
+      const endPos = Math.min(Math.floor((i + 1) * ratio) + 1, inputSamples);
+
       let sum = 0;
-      for (let j = 0; j < step; j++) {
-        const offset = (i * step + j) * 2;
-        if (offset + 1 < pcmBuf.length) {
-          sum += pcmBuf.readInt16LE(offset);
+      let count = 0;
+      for (let j = startPos; j < endPos; j++) {
+        const byteOffset = j * 2;
+        if (byteOffset + 1 < pcmBuf.length) {
+          sum += pcmBuf.readInt16LE(byteOffset);
+          count++;
         }
       }
-      const avg = Math.round(sum / step);
+      const avg = count > 0 ? Math.round(sum / count) : 0;
       out[i] = ElevenLabsBridgeService.linearToMulaw(Math.max(-32768, Math.min(32767, avg)));
     }
     return out;
