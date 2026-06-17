@@ -1629,37 +1629,7 @@ export default function Agents() {
                           </div>
                         </div>
                       )}
-                      {/* ElevenLabs SIP - Orange theme */}
-                      {(isElevenLabsSipAllowed || formData.telephonyProvider === "elevenlabs-sip") && (
-                        <div
-                          className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                            formData.telephonyProvider === "elevenlabs-sip"
-                              ? "border-orange-500 bg-orange-500/10 dark:bg-orange-500/20"
-                              : "border-border hover:border-orange-400/50 hover:bg-orange-500/5"
-                          }`}
-                          onClick={() => setFormData({ 
-                            ...formData, 
-                            telephonyProvider: "elevenlabs-sip",
-                            llmModel: availableLLMModels.length > 0 ? availableLLMModels[0].modelId : "gpt-4o-mini"
-                          })}
-                          data-testid="flow-provider-elevenlabs-sip"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-medium text-orange-700 dark:text-orange-300">ElevenLabs SIP</span>
-                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-orange-300 text-orange-600 dark:border-orange-600 dark:text-orange-400">Plugin</Badge>
-                              </div>
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                Your own SIP trunk
-                              </p>
-                            </div>
-                            {formData.telephonyProvider === "elevenlabs-sip" && (
-                              <Check className="h-4 w-4 text-orange-600" />
-                            )}
-                          </div>
-                        </div>
-                      )}
+
                       {/* OpenAI SIP - Pink theme */}
                       {(isOpenAISipAllowed || formData.telephonyProvider === "openai-sip") && (
                         <div
@@ -2115,37 +2085,6 @@ export default function Agents() {
                         </div>
                         {formData.telephonyProvider === "plivo" && (
                           <Check className="h-4 w-4 text-emerald-600" />
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  {/* ElevenLabs SIP - Orange theme */}
-                  {(isElevenLabsSipAllowed || formData.telephonyProvider === "elevenlabs-sip") && (
-                    <div
-                      className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                        formData.telephonyProvider === "elevenlabs-sip"
-                          ? "border-orange-500 bg-orange-500/10 dark:bg-orange-500/20"
-                          : "border-border hover:border-orange-400/50 hover:bg-orange-500/5"
-                      }`}
-                      onClick={() => setFormData({ 
-                        ...formData, 
-                        telephonyProvider: "elevenlabs-sip",
-                        llmModel: availableLLMModels.length > 0 ? availableLLMModels[0].modelId : "gpt-4o-mini"
-                      })}
-                      data-testid="provider-elevenlabs-sip"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-medium text-orange-700 dark:text-orange-300">ElevenLabs SIP</span>
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-orange-300 text-orange-600 dark:border-orange-600 dark:text-orange-400">Plugin</Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            Your own SIP trunk
-                          </p>
-                        </div>
-                        {formData.telephonyProvider === "elevenlabs-sip" && (
-                          <Check className="h-4 w-4 text-orange-600" />
                         )}
                       </div>
                     </div>
