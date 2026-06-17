@@ -1,99 +1,105 @@
 import React, { useEffect, useRef, useState } from "react";
-import createGlobe from "cobe";
+import Globe from "react-globe.gl";
 
 export default function DashboardGlobe() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({ width: 320, height: 320 });
+  const [countries, setCountries] = useState({ features: [] });
+  const globeRef = useRef<any>();
 
+  // Fetch GeoJSON for world map boundaries
   useEffect(() => {
-    let phi = 0;
-    let globe: any = null;
-
-    if (!canvasRef.current || !containerRef.current) return;
-
-    const onResize = () => {
-      if (globe) {
-        globe.destroy();
-      }
-      
-      const width = containerRef.current!.clientWidth;
-      
-      globe = createGlobe(canvasRef.current!, {
-        devicePixelRatio: 2,
-        width: width * 2,
-        height: width * 2,
-        phi: 0,
-        theta: 0.3,
-        dark: 1, // Dark mode inversion
-        diffuse: 1.2,
-        mapSamples: 16000,
-        mapBrightness: 6,
-        baseColor: [1, 1, 1], // Inverts to dark grey/black
-        markerColor: [1, 0.5, 0], // Saffron/Orange
-        glowColor: [1, 1, 1], // Inverts to subtle glow
-        markers: [
-          { location: [20.5937, 78.9629], size: 0.1 },
-          { location: [37.0902, -95.7129], size: 0.05 },
-          { location: [55.3781, -3.4360], size: 0.05 },
-          { location: [23.4241, 53.8478], size: 0.05 },
-        ],
-        onRender: (state) => {
-          state.phi = phi;
-          phi += 0.005;
-        },
-      });
-    };
-
-    // Initial render
-    onResize();
-
-    // Handle resize
-    window.addEventListener('resize', onResize);
-
-    return () => {
-      window.removeEventListener('resize', onResize);
-      if (globe) {
-        globe.destroy();
-      }
-    };
+    fetch("https://raw.githubusercontent.com/vasturiano/react-globe.gl/master/example/datasets/ne_110m_admin_0_countries.geojson")
+      .then((res) => res.json())
+      .then((data) => setCountries(data))
+      .catch((err) => console.error("Failed to load map data", err));
   }, []);
+
+  // Handle dynamic resizing
+  useEffect(() => {
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        setDimensions({
+          width: containerRef.current.clientWidth,
+          height: containerRef.current.clientHeight,
+        });
+      }
+    };
+    
+    updateDimensions();
+    window.addEventListener("resize", updateDimensions);
+    return () => window.removeEventListener("resize", updateDimensions);
+  }, []);
+
+  // Auto-rotate the globe slowly
+  useEffect(() => {
+    if (globeRef.current) {
+      const controls = globeRef.current.controls();
+      controls.autoRotate = true;
+      controls.autoRotateSpeed = 0.5;
+      controls.enableZoom = false; // Prevent zooming to keep layout clean
+    }
+  }, [globeRef.current]);
+
+  const markersData = [
+    { lat: 20.5937, lng: 78.9629, label: "India", color: "#f97316" }, // Orange-500
+    { lat: 37.0902, lng: -95.7129, label: "US", color: "#f97316" },
+    { lat: 55.3781, lng: -3.4360, label: "UK", color: "#f97316" },
+    { lat: 23.4241, lng: 53.8478, label: "UAE", color: "#f97316" },
+  ];
 
   return (
     <div className="border-border bg-surface relative overflow-hidden rounded-xl border w-full flex flex-col h-full min-h-[340px]">
-      <div className="absolute top-4 left-5 z-10">
+      <div className="absolute top-4 left-5 z-10 pointer-events-none">
         <h3 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">Global Reach</h3>
         <p className="text-muted-foreground mt-0.5 text-[10px]">Active regions</p>
       </div>
       
-      <div className="absolute top-4 right-5 z-10 flex items-center gap-1.5">
+      <div className="absolute top-4 right-5 z-10 flex items-center gap-1.5 pointer-events-none">
         <div className="bg-primary h-1.5 w-1.5 animate-pulse rounded-full shadow-[0_0_8px_rgba(255,153,51,0.8)]"></div>
         <span className="text-muted-foreground text-[9px] font-medium">LIVE</span>
       </div>
       
-      <div className="flex-1 w-full flex items-center justify-center p-6 relative overflow-hidden">
+      <div className="flex-1 w-full flex items-center justify-center p-4 relative overflow-hidden">
         {/* Subtle glow background behind the globe */}
         <div className="pointer-events-none absolute inset-0 select-none flex items-center justify-center" aria-hidden="true">
           <div 
             className="w-[80%] h-[80%] rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20 blur-3xl" 
-            style={{ background: "radial-gradient(circle, rgba(255, 153, 51, 0.5) 0%, transparent 70%)" }}
+            style={{ background: "radial-gradient(circle, rgba(255, 153, 51, 0.4) 0%, transparent 70%)" }}
           ></div>
         </div>
         
-        {/* Container for the Globe */}
+        {/* Container for the Globe.gl */}
         <div 
           ref={containerRef} 
-          className="relative w-full max-w-[320px] aspect-square flex items-center justify-center mix-blend-screen"
+          className="relative w-full aspect-square flex items-center justify-center"
+          style={{ maxWidth: '320px', maxHeight: '320px' }}
         >
-          <canvas
-            ref={canvasRef}
-            style={{
-              width: "100%",
-              height: "100%",
-              contain: "layout paint size",
-              opacity: 1,
-              transition: "opacity 1s ease",
-            }}
-          />
+          {dimensions.width > 0 && (
+            <Globe
+              ref={globeRef}
+              width={dimensions.width}
+              height={dimensions.height}
+              backgroundColor="rgba(0,0,0,0)" // Transparent background
+              globeImageUrl="//unpkg.com/three-globe/example/img/earth-dark.jpg" // High quality dark map texture
+              bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png" // Topography bump map
+              polygonsData={countries.features}
+              polygonAltitude={0.01}
+              polygonCapColor={() => "rgba(255, 255, 255, 0.05)"} // Very subtle borders
+              polygonSideColor={() => "rgba(255, 255, 255, 0.01)"}
+              polygonStrokeColor={() => "rgba(255, 255, 255, 0.1)"}
+              labelsData={markersData}
+              labelLat={(d: any) => d.lat}
+              labelLng={(d: any) => d.lng}
+              labelText={(d: any) => d.label}
+              labelSize={1.5}
+              labelDotRadius={0.8}
+              labelColor={(d: any) => d.color}
+              labelResolution={2}
+              atmosphereColor="rgba(255, 153, 51, 0.4)" // Match brand orange subtle glow
+              atmosphereAltitude={0.15}
+            />
+          )}
         </div>
       </div>
     </div>
