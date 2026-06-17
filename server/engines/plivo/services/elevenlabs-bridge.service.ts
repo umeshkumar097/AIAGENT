@@ -31,6 +31,11 @@ export class ElevenLabsBridgeService {
           start: {
             streamSid: streamSid || callUuid,
             callSid: callUuid,
+            mediaFormat: {
+              encoding: "audio/x-mulaw",
+              sampleRate: 8000,
+              channels: 1
+            },
             customParameters: {
               plivoCallUuid: callUuid
             }
@@ -49,6 +54,8 @@ export class ElevenLabsBridgeService {
             const plivoMediaEvent = {
               event: 'playAudio',
               media: {
+                contentType: 'audio/x-mulaw',
+                sampleRate: 8000,
                 payload: message.media.payload
               }
             };
