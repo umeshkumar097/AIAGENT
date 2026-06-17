@@ -882,7 +882,7 @@ export function createPlivoApiRoutes(): Router {
         .where(
           and(
             eq(agents.userId, req.userId!),
-            eq(agents.telephonyProvider, 'plivo'),
+            inArray(agents.telephonyProvider, ['plivo', 'twilio']),
             eq(agents.type, 'incoming'),
             eq(agents.isActive, true)
           )
@@ -969,7 +969,7 @@ export function createPlivoApiRoutes(): Router {
     try {
       const { phoneNumberId, agentId } = req.body;
       const { plivoPhoneNumbers, agents } = await import('@shared/schema');
-      const { and } = await import('drizzle-orm');
+      const { and, inArray } = await import('drizzle-orm');
 
       if (!phoneNumberId || !agentId) {
         return res.status(400).json({ error: 'Phone number ID and agent ID are required' });
@@ -1003,7 +1003,7 @@ export function createPlivoApiRoutes(): Router {
           and(
             eq(agents.id, agentId),
             eq(agents.userId, req.userId!),
-            eq(agents.telephonyProvider, 'plivo')
+            inArray(agents.telephonyProvider, ['plivo', 'twilio'])
           )
         )
         .limit(1);
@@ -1035,7 +1035,13 @@ export function createPlivoApiRoutes(): Router {
         console.log(`[Plivo API] Webhooks configured for incoming calls on ${phoneNumber.phoneNumber}`);
       } catch (webhookError: any) {
         console.error(`[Plivo API] Failed to configure webhooks:`, webhookError.message);
-        // Continue anyway - agent is assigned, but webhooks may need manual config
+        
+        // If it's a localhost error, we should inform the user
+        if (baseUrl.includes('localhost')) {
+          return res.status(400).json({ error: 'Webhook configuration failed. Plivo requires a public URL. If testing locally, please use ngrok and set DEV_DOMAIN.' });
+        }
+        
+        return res.status(400).json({ error: `Webhook configuration failed: ${webhookError.message}` });
       }
 
       res.json({

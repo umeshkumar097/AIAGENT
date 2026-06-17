@@ -18,6 +18,7 @@ import { PlivoCallService } from '../services/plivo-call.service';
 import { OpenAIPoolService } from '../services/openai-pool.service';
 import { OpenAIAgentFactory } from '../services/openai-agent-factory';
 import { CallInsightsService } from '../../../services/call-insights.service';
+import { ElevenLabsBridgeService } from '../services/elevenlabs-bridge.service';
 import { db } from '../../../db';
 import { plivoCalls, agents, users, flowExecutions } from '@shared/schema';
 import { eq } from 'drizzle-orm';
@@ -103,14 +104,20 @@ function handlePlivoStreamConnection(ws: WebSocket, callUuid: string): void {
           await initializeSession(callUuid, ws, streamSid);
           sessionInitialized = true;
           // Mark the Plivo stream as ready AFTER session is initialized
-          // This triggers the first message to be sent to OpenAI
-          AudioBridgeService.markStreamReady(callUuid);
+          // This triggers the first message to be sent to OpenAI (only if it's not ElevenLabs)
+          if (!(ws as any).isElevenLabs) {
+            AudioBridgeService.markStreamReady(callUuid);
+          }
         }
       } else if (message.event === 'media') {
-        // Forward audio to OpenAI via audio bridge
+        // Forward audio to either OpenAI or ElevenLabs via audio bridge
         // Only process if session is initialized (fixes race condition)
         if (sessionInitialized && message.media?.payload) {
-          await AudioBridgeService.handlePlivoAudio(callUuid, message.media.payload);
+          if ((ws as any).isElevenLabs) {
+            await ElevenLabsBridgeService.handlePlivoAudio(callUuid, ws, message.media.payload);
+          } else {
+            await AudioBridgeService.handlePlivoAudio(callUuid, message.media.payload);
+          }
         }
       } else if (message.event === 'stop') {
         logger.info(`Stream stopped for ${callUuid}`, undefined, 'PlivoStream');
@@ -124,8 +131,16 @@ function handlePlivoStreamConnection(ws: WebSocket, callUuid: string): void {
     logger.info(`Connection closed for ${callUuid}`, undefined, 'PlivoStream');
     
     try {
-      const result = await AudioBridgeService.endSession(callUuid);
-      logger.info(`Session ended: duration ${result.duration}s, transcript length: ${result.transcript?.length || 0}`, undefined, 'PlivoStream');
+      let result = { duration: 0, transcript: '' };
+      
+      if ((ws as any).isElevenLabs) {
+        await ElevenLabsBridgeService.endSession(ws);
+        // ElevenLabs transcript syncing might happen via webhook or separately
+        logger.info(`ElevenLabs session ended`, undefined, 'PlivoStream');
+      } else {
+        result = await AudioBridgeService.endSession(callUuid);
+        logger.info(`Session ended: duration ${result.duration}s, transcript length: ${result.transcript?.length || 0}`, undefined, 'PlivoStream');
+      }
       
       // Get call to update transcript and trigger credit deduction
       const call = await PlivoCallService.getCallByUuid(callUuid);
@@ -288,6 +303,27 @@ async function initializeSession(
     if (!call) {
       logger.error(`Call not found: ${callUuid}`, undefined, 'PlivoStream');
       return;
+    }
+
+    // Check if it's an ElevenLabs agent
+    if (call.agentId) {
+      const [agent] = await db
+        .select({ elevenLabsAgentId: agents.elevenLabsAgentId })
+        .from(agents)
+        .where(eq(agents.id, call.agentId))
+        .limit(1);
+
+      if (agent && agent.elevenLabsAgentId) {
+        logger.info(`[PlivoStream] Agent ${call.agentId} is ElevenLabs, routing to ElevenLabsBridge`, undefined, 'PlivoStream');
+        await ElevenLabsBridgeService.initializeSession(
+          callUuid,
+          plivoWs,
+          streamSid,
+          call.agentId,
+          agent.elevenLabsAgentId
+        );
+        return; // Don't proceed with OpenAI initialization
+      }
     }
 
     // Get OpenAI API key - use the one already reserved for this call

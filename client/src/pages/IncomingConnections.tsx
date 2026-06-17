@@ -219,7 +219,7 @@ export default function IncomingConnectionsPage() {
 
   // Calculate enabled engines for tab columns
   const enabledEngineCount = useMemo(() => {
-    let count = 1; // Twilio + ElevenLabs is always enabled
+    let count = 1; // Plivo + ElevenLabs is always enabled
     if (plivoEnabled) count++;
     if (twilioOpenaiEnabled) count++;
     return count;
@@ -481,7 +481,7 @@ export default function IncomingConnectionsPage() {
 
         {/* Engine Summary Cards */}
         <div className={`mt-6 grid grid-cols-1 gap-4 ${enabledEngineCount === 1 ? 'md:grid-cols-1' : enabledEngineCount === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
-          {/* Twilio + ElevenLabs Summary - Always shown */}
+          {/* Plivo + ElevenLabs Summary - Always shown */}
           <div 
             className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
               activeTab === 'twilio-elevenlabs' 
@@ -495,7 +495,7 @@ export default function IncomingConnectionsPage() {
               <SiTwilio className="h-4 w-4 text-red-500" />
               <span className="font-medium text-sm">+</span>
               <ElevenLabsIcon className="h-4 w-4 text-violet-600" />
-              <span className="font-semibold text-sm">Twilio + ElevenLabs</span>
+              <span className="font-semibold text-sm">Plivo + ElevenLabs</span>
             </div>
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span><strong className="text-violet-600">{connections.length}</strong> active</span>
@@ -562,7 +562,7 @@ export default function IncomingConnectionsPage() {
           <TabsTrigger value="twilio-elevenlabs" className="flex items-center gap-2" data-testid="tab-twilio-elevenlabs">
             <SiTwilio className="h-3.5 w-3.5 text-red-500" />
             <ElevenLabsIcon className="h-3.5 w-3.5 text-violet-600" />
-            <span className="hidden sm:inline">Twilio + ElevenLabs</span>
+            <span className="hidden sm:inline">Plivo + ElevenLabs</span>
           </TabsTrigger>
           {plivoEnabled && (
             <TabsTrigger value="plivo-openai" className="flex items-center gap-2" data-testid="tab-plivo-openai">
@@ -580,7 +580,7 @@ export default function IncomingConnectionsPage() {
           )}
         </TabsList>
 
-        {/* Twilio + ElevenLabs Content */}
+        {/* Plivo + ElevenLabs Content */}
         <TabsContent value="twilio-elevenlabs">
           <Card>
             <CardContent className="pt-6">
@@ -800,7 +800,7 @@ export default function IncomingConnectionsPage() {
         </TabsContent>)}
       </Tabs>
 
-      {/* Twilio + ElevenLabs Create Dialog */}
+      {/* Plivo + ElevenLabs Create Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent data-testid="dialog-create-connection">
           <DialogHeader>
@@ -918,7 +918,7 @@ export default function IncomingConnectionsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Twilio + ElevenLabs Delete Dialog */}
+      {/* Plivo + ElevenLabs Delete Dialog */}
       <AlertDialog open={!!deleteConnection} onOpenChange={() => setDeleteConnection(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -942,35 +942,38 @@ export default function IncomingConnectionsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Plivo Create Connection Dialog */}
+      {/* Plivo Create Dialog */}
       <Dialog open={plivoCreateDialogOpen} onOpenChange={setPlivoCreateDialogOpen}>
         <DialogContent data-testid="dialog-create-plivo-connection">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Phone className="h-5 w-5 text-green-600" />
-              <SiOpenai className="h-5 w-5 text-emerald-600" />
-              Create Plivo + OpenAI Connection
+              <Phone className="h-5 w-5 text-emerald-600" />
+              Create Plivo Connection
             </DialogTitle>
             <DialogDescription>
-              Connect a Plivo phone number to an OpenAI-powered agent for incoming calls.
+              Connect a Plivo phone number to an OpenAI or ElevenLabs agent for incoming calls.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="plivo-agent">OpenAI Agent <span className="text-destructive">*</span></Label>
+              <Label htmlFor="plivo-agent">Agent <span className="text-destructive">*</span></Label>
               <Select value={selectedPlivoAgentId} onValueChange={setSelectedPlivoAgentId}>
                 <SelectTrigger id="plivo-agent" data-testid="select-plivo-agent">
                   <SelectValue placeholder="Select an OpenAI agent" />
                 </SelectTrigger>
                 <SelectContent>
                   {plivoAvailableAgents.length === 0 ? (
-                    <div className="p-2 text-sm text-muted-foreground">No OpenAI agents available.</div>
+                    <div className="p-2 text-sm text-muted-foreground">No Plivo agents available.</div>
                   ) : (
                     plivoAvailableAgents.map((agent) => (
                       <SelectItem key={agent.id} value={agent.id}>
                         <div className="flex items-center gap-2">
-                          <SiOpenai className="h-3 w-3 text-emerald-600" />
+                          {agent.telephonyProvider === 'twilio' ? (
+                            <ElevenLabsIcon className="h-3 w-3 text-violet-600" />
+                          ) : (
+                            <SiOpenai className="h-3 w-3 text-emerald-600" />
+                          )}
                           <span>{agent.name}</span>
                         </div>
                       </SelectItem>
