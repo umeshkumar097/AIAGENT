@@ -19,26 +19,21 @@ export default function DashboardGlobe() {
       width: width,
       height: height,
       phi: 0,
-      theta: 0.3, // Slightly tilted
-      dark: 1, // Render in dark mode
+      theta: 0.3,
+      dark: 0, // Turn off dark inversion for reliable colors
       diffuse: 1.2,
       mapSamples: 16000,
       mapBrightness: 6,
-      baseColor: [1, 1, 1], // Base white (inverted by dark mode)
+      baseColor: [0.1, 0.1, 0.1], // Dark ocean
       markerColor: [1, 0.5, 0], // Saffron/Orange markers
-      glowColor: [1.2, 1.2, 1.2], // Standard glow
+      glowColor: [0.15, 0.15, 0.15], // Subtle dark glow
       markers: [
-        // India
         { location: [20.5937, 78.9629], size: 0.1 },
-        // US
         { location: [37.0902, -95.7129], size: 0.05 },
-        // UK
         { location: [55.3781, -3.4360], size: 0.05 },
-        // UAE
         { location: [23.4241, 53.8478], size: 0.05 },
       ],
       onRender: (state) => {
-        // Automatically rotate
         state.phi = phi;
         phi += 0.005;
       },
