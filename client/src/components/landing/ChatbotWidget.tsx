@@ -7,7 +7,7 @@ export function ChatbotWidget() {
     const d = document;
     const s = 'script';
     const o = 'vw';
-    const f = 'http://zonvo.tech/widget/embed.js';
+    const f = 'https://zonvo.tech/widget/embed.js';
     
     w[o] = w[o] || function() { (w[o].q = w[o].q || []).push(arguments) };
     
