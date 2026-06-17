@@ -76,7 +76,6 @@ import {
 // Plivo + OpenAI Realtime Engine
 import { createPlivoApiRoutes, setupPlivoWebhooks, setupPlivoStream } from "./engines/plivo";
 // Plivo-ElevenLabs SIP Trunk Engine (ISOLATED from Twilio+ElevenLabs)
-import { initPlivoElevenLabsEngine, initPlivoElevenLabsStream } from "./engines/plivo-elevenlabs";
 // Twilio + OpenAI Realtime Engine (ISOLATED from Twilio+ElevenLabs and Plivo+OpenAI)
 import { twilioOpenaiWebhookRoutes, setupTwilioOpenAIStreamHandler, twilioOpenaiIncomingConnectionsRoutes } from "./engines/twilio-openai";
 // KYC Engine
@@ -261,7 +260,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Initialize Plivo-ElevenLabs SIP Trunk Engine (ISOLATED from Twilio+ElevenLabs)
   // This provides Plivo SIP trunk to ElevenLabs connection for Indian phone numbers
-  initPlivoElevenLabsEngine(app);
+
   console.log('✅ Plivo-ElevenLabs SIP Trunk Engine initialized');
 
   // Initialize Twilio + OpenAI Realtime Engine (ISOLATED from Twilio+ElevenLabs and Plivo+OpenAI)
@@ -1777,7 +1776,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     '/api/twilio-openai/stream',
     '/api/webhooks/twilio/stream',
     '/api/plivo/stream',
-    '/api/plivo-elevenlabs/stream',
   ];
   for (const streamPath of streamPaths) {
     app.get(`${streamPath}*`, (req, res) => {
@@ -2922,7 +2920,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupPlivoStream(httpServer);
 
   // Setup Plivo-ElevenLabs WebSocket stream (ISOLATED from Plivo+OpenAI)
-  initPlivoElevenLabsStream(httpServer);
+
 
   // Setup Twilio-OpenAI WebSocket stream for Media Streams audio bridging
   setupTwilioOpenAIStreamHandler(httpServer);
