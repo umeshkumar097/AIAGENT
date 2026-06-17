@@ -73,15 +73,36 @@ export class ElevenLabsBridgeService {
   }
 
   // ── Detect ElevenLabs output sample rate from first audio packet ───────────
-  private static detectSampleRate(base64Audio: string): number {
-    // Heuristic: packet size relative to expected 20ms chunk
-    // mulaw 8kHz  → 20ms = 160 bytes  → base64 ~216 chars
-    // PCM16 16kHz → 20ms = 640 bytes  → base64 ~856 chars
-    // PCM16 24kHz → 20ms = 960 bytes  → base64 ~1280 chars
+  /**
+   * Calculate actual sample rate from packet size.
+   * ElevenLabs sends ~20ms audio chunks.
+   * PCM16 bytes = sampleRate × 0.02 × 2
+   * mulaw bytes = sampleRate × 0.02 × 1
+   * Returns 0 if mulaw, otherwise returns PCM16 sample rate.
+   */
+  private static detectSampleRate(base64Audio: string, callUuid: string): number {
     const bytes = Math.floor(base64Audio.length * 3 / 4);
-    if (bytes <= 250)  return 0;      // mulaw 8kHz - no conversion needed
-    if (bytes <= 800)  return 16000;  // PCM16 16kHz
-    return 24000;                     // PCM16 24kHz
+
+    // mulaw 8kHz max practical chunk = 320 bytes (40ms)
+    if (bytes <= 320) {
+      logger.info(`[ElevenLabsBridge] Audio packet: ${bytes} bytes → mulaw_8kHz (direct forward) for call ${callUuid}`);
+      return 0; // mulaw - forward directly
+    }
+
+    // PCM16: bytes = sampleRate × chunkDuration × 2
+    // Assume 20ms chunks: sampleRate = bytes / 0.02 / 2 = bytes × 25
+    const estimatedRate = bytes * 25;
+
+    // Round to nearest standard rate
+    let srcRate: number;
+    if (estimatedRate <= 12000)       srcRate = 8000;
+    else if (estimatedRate <= 20000)  srcRate = 16000;
+    else if (estimatedRate <= 28000)  srcRate = 24000;
+    else if (estimatedRate <= 38000)  srcRate = 32000;
+    else                              srcRate = 44100;
+
+    logger.info(`[ElevenLabsBridge] Audio packet: ${bytes} bytes → estimated ${estimatedRate}Hz → using PCM16_${srcRate}Hz for call ${callUuid}`);
+    return srcRate;
   }
 
   /**
@@ -133,7 +154,7 @@ export class ElevenLabsBridgeService {
 
             // Auto-detect sample rate on first packet
             if (detectedSampleRate === null) {
-              detectedSampleRate = ElevenLabsBridgeService.detectSampleRate(b64);
+              detectedSampleRate = ElevenLabsBridgeService.detectSampleRate(b64, callUuid);
               logger.info(`[ElevenLabsBridge] Detected output: ${detectedSampleRate === 0 ? 'mulaw_8kHz (direct)' : `PCM16_${detectedSampleRate}Hz (will convert)`}`);
             }
 
