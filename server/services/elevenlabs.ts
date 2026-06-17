@@ -1126,6 +1126,8 @@ IMPORTANT: Do NOT ask the caller for their phone number - you already have it fr
     ttsModel?: string;
     suggestedAudioTags?: boolean;
     toolErrorHandlingMode?: "default" | "relaxed" | "strict";
+    customGuardrails?: string[];
+    dynamicVariableSanitize?: boolean;
     workflow: {
       nodes: Record<string, any>;
       edges: Record<string, any>;

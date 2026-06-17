@@ -35,7 +35,7 @@ function formatMessage(level: LogLevel, message: string, context?: LogContext): 
   return `${prefix} ${message}`;
 }
 
-export const Zonvo AILogger = {
+export const ZonvoAILogger = {
   debug(message: string, context?: LogContext): void {
     if (process.env.NODE_ENV === 'development') {
       console.debug(formatMessage('debug', message, context));
@@ -57,13 +57,13 @@ export const Zonvo AILogger = {
   service(serviceName: string) {
     return {
       debug: (message: string, context?: LogContext) => 
-        Zonvo AILogger.debug(`[${serviceName}] ${message}`, context),
+        ZonvoAILogger.debug(`[${serviceName}] ${message}`, context),
       info: (message: string, context?: LogContext) => 
-        Zonvo AILogger.info(`[${serviceName}] ${message}`, context),
+        ZonvoAILogger.info(`[${serviceName}] ${message}`, context),
       warn: (message: string, context?: LogContext) => 
-        Zonvo AILogger.warn(`[${serviceName}] ${message}`, context),
+        ZonvoAILogger.warn(`[${serviceName}] ${message}`, context),
       error: (message: string, context?: LogContext) => 
-        Zonvo AILogger.error(`[${serviceName}] ${message}`, context),
+        ZonvoAILogger.error(`[${serviceName}] ${message}`, context),
     };
   }
 };

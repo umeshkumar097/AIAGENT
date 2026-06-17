@@ -15,12 +15,12 @@
  * ============================================================
  */
 
-import { Zonvo AIValidationError } from './errors';
+import { ZonvoAIValidationError } from './errors';
 
-export const Zonvo AIValidate = {
+export const ZonvoAIValidate = {
   required<T>(value: T | null | undefined, fieldName: string): T {
     if (value === null || value === undefined || value === '') {
-      throw new Zonvo AIValidationError(`${fieldName} is required`);
+      throw new ZonvoAIValidationError(`${fieldName} is required`);
     }
     return value;
   },
@@ -28,7 +28,7 @@ export const Zonvo AIValidate = {
   email(value: string): string {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(value)) {
-      throw new Zonvo AIValidationError('Invalid email format');
+      throw new ZonvoAIValidationError('Invalid email format');
     }
     return value.toLowerCase().trim();
   },
@@ -36,35 +36,35 @@ export const Zonvo AIValidate = {
   phone(value: string): string {
     const cleaned = value.replace(/\D/g, '');
     if (cleaned.length < 10 || cleaned.length > 15) {
-      throw new Zonvo AIValidationError('Invalid phone number');
+      throw new ZonvoAIValidationError('Invalid phone number');
     }
     return cleaned.startsWith('+') ? value : `+${cleaned}`;
   },
 
   minLength(value: string, min: number, fieldName: string): string {
     if (value.length < min) {
-      throw new Zonvo AIValidationError(`${fieldName} must be at least ${min} characters`);
+      throw new ZonvoAIValidationError(`${fieldName} must be at least ${min} characters`);
     }
     return value;
   },
 
   maxLength(value: string, max: number, fieldName: string): string {
     if (value.length > max) {
-      throw new Zonvo AIValidationError(`${fieldName} must be at most ${max} characters`);
+      throw new ZonvoAIValidationError(`${fieldName} must be at most ${max} characters`);
     }
     return value;
   },
 
   positiveNumber(value: number, fieldName: string): number {
     if (typeof value !== 'number' || value <= 0) {
-      throw new Zonvo AIValidationError(`${fieldName} must be a positive number`);
+      throw new ZonvoAIValidationError(`${fieldName} must be a positive number`);
     }
     return value;
   },
 
   nonNegativeNumber(value: number, fieldName: string): number {
     if (typeof value !== 'number' || value < 0) {
-      throw new Zonvo AIValidationError(`${fieldName} must be a non-negative number`);
+      throw new ZonvoAIValidationError(`${fieldName} must be a non-negative number`);
     }
     return value;
   },
@@ -72,14 +72,14 @@ export const Zonvo AIValidate = {
   uuid(value: string, fieldName: string = 'ID'): string {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(value)) {
-      throw new Zonvo AIValidationError(`Invalid ${fieldName} format`);
+      throw new ZonvoAIValidationError(`Invalid ${fieldName} format`);
     }
     return value;
   },
 
   inArray<T>(value: T, allowed: T[], fieldName: string): T {
     if (!allowed.includes(value)) {
-      throw new Zonvo AIValidationError(`${fieldName} must be one of: ${allowed.join(', ')}`);
+      throw new ZonvoAIValidationError(`${fieldName} must be one of: ${allowed.join(', ')}`);
     }
     return value;
   },
@@ -89,14 +89,14 @@ export const Zonvo AIValidate = {
       new URL(value);
       return value;
     } catch {
-      throw new Zonvo AIValidationError('Invalid URL format');
+      throw new ZonvoAIValidationError('Invalid URL format');
     }
   },
 
   dateString(value: string, fieldName: string = 'Date'): Date {
     const date = new Date(value);
     if (isNaN(date.getTime())) {
-      throw new Zonvo AIValidationError(`Invalid ${fieldName} format`);
+      throw new ZonvoAIValidationError(`Invalid ${fieldName} format`);
     }
     return date;
   },

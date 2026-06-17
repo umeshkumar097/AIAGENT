@@ -1487,7 +1487,7 @@ async function placeFlowTestCall({
         // Use pre-compiled flow data if available, otherwise compile at runtime
         const validatedVoice = OpenAIAgentFactory.validateVoice(agent.openaiVoice || 'sage');
         const validatedModel = OpenAIAgentFactory.validateModel(
-          (agent.config as any)?.openaiModel || agent.openaiModel || 'gpt-realtime-1.5',
+          (agent.config as any)?.llmModel || agent.llmModel || 'gpt-realtime-1.5',
           'pro'
         );
 

@@ -17,7 +17,7 @@
 
 import type { Response } from 'express';
 
-export interface Zonvo AIApiResponse<T = unknown> {
+export interface ZonvoAIApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -30,15 +30,15 @@ export interface Zonvo AIApiResponse<T = unknown> {
   };
 }
 
-export interface Zonvo AIPaginationOptions {
+export interface ZonvoAIPaginationOptions {
   page: number;
   limit: number;
   total: number;
 }
 
-export const Zonvo AIResponse = {
+export const ZonvoAIResponse = {
   success<T>(res: Response, data: T, statusCode: number = 200): Response {
-    const response: Zonvo AIApiResponse<T> = {
+    const response: ZonvoAIApiResponse<T> = {
       success: true,
       data
     };
@@ -46,7 +46,7 @@ export const Zonvo AIResponse = {
   },
 
   created<T>(res: Response, data: T): Response {
-    return Zonvo AIResponse.success(res, data, 201);
+    return ZonvoAIResponse.success(res, data, 201);
   },
 
   noContent(res: Response): Response {
@@ -59,7 +59,7 @@ export const Zonvo AIResponse = {
     statusCode: number = 500,
     code?: string
   ): Response {
-    const response: Zonvo AIApiResponse = {
+    const response: ZonvoAIApiResponse = {
       success: false,
       error: message,
       code
@@ -68,7 +68,7 @@ export const Zonvo AIResponse = {
   },
 
   validationError(res: Response, message: string, details?: Record<string, unknown>): Response {
-    const response: Zonvo AIApiResponse = {
+    const response: ZonvoAIApiResponse = {
       success: false,
       error: message,
       code: 'VALIDATION_ERROR',
@@ -78,24 +78,24 @@ export const Zonvo AIResponse = {
   },
 
   unauthorized(res: Response, message: string = 'Authentication required'): Response {
-    return Zonvo AIResponse.error(res, message, 401, 'UNAUTHORIZED');
+    return ZonvoAIResponse.error(res, message, 401, 'UNAUTHORIZED');
   },
 
   forbidden(res: Response, message: string = 'Access denied'): Response {
-    return Zonvo AIResponse.error(res, message, 403, 'FORBIDDEN');
+    return ZonvoAIResponse.error(res, message, 403, 'FORBIDDEN');
   },
 
   notFound(res: Response, resource: string = 'Resource'): Response {
-    return Zonvo AIResponse.error(res, `${resource} not found`, 404, 'NOT_FOUND');
+    return ZonvoAIResponse.error(res, `${resource} not found`, 404, 'NOT_FOUND');
   },
 
   paginated<T>(
     res: Response,
     data: T[],
-    options: Zonvo AIPaginationOptions
+    options: ZonvoAIPaginationOptions
   ): Response {
     const totalPages = Math.ceil(options.total / options.limit);
-    const response: Zonvo AIApiResponse<T[]> = {
+    const response: ZonvoAIApiResponse<T[]> = {
       success: true,
       data,
       meta: {

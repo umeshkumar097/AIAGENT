@@ -882,7 +882,7 @@ export function createPlivoApiRoutes(): Router {
         .where(
           and(
             eq(agents.userId, req.userId!),
-            inArray(agents.telephonyProvider, ['plivo', 'twilio']),
+            inArray(agents.telephonyProvider, ['plivo', 'twilio', 'elevenlabs-sip', 'elevenlabs']),
             eq(agents.type, 'incoming'),
             eq(agents.isActive, true)
           )
@@ -1003,7 +1003,7 @@ export function createPlivoApiRoutes(): Router {
           and(
             eq(agents.id, agentId),
             eq(agents.userId, req.userId!),
-            inArray(agents.telephonyProvider, ['plivo', 'twilio'])
+            inArray(agents.telephonyProvider, ['plivo', 'twilio', 'elevenlabs-sip', 'elevenlabs'])
           )
         )
         .limit(1);

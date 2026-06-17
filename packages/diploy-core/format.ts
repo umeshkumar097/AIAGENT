@@ -15,7 +15,7 @@
  * ============================================================
  */
 
-export const Zonvo AIFormat = {
+export const ZonvoAIFormat = {
   currency(
     amount: number,
     currency: string = "INR",
@@ -140,6 +140,6 @@ export const Zonvo AIFormat = {
   },
 
   titleCase(str: string): string {
-    return str.split(' ').map(word => Zonvo AIFormat.capitalize(word)).join(' ');
+    return str.split(' ').map(word => ZonvoAIFormat.capitalize(word)).join(' ');
   }
 };

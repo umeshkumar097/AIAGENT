@@ -432,7 +432,7 @@ export class CampaignExecutor {
             last_updated_at_unix: Math.floor(Date.now() / 1000),
             total_calls_scheduled: campaignContacts.length,
             total_calls_dispatched: 0,
-            status: 'running' as const,
+            status: 'running' as any,
           }
         };
       }
@@ -578,7 +578,7 @@ export class CampaignExecutor {
             last_updated_at_unix: Math.floor(Date.now() / 1000),
             total_calls_scheduled: campaignContacts.length,
             total_calls_dispatched: 0,
-            status: 'running' as const,
+            status: 'running' as any,
           }
         };
       }

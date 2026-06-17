@@ -1629,6 +1629,36 @@ export default function Agents() {
                           </div>
                         </div>
                       )}
+                      {/* ElevenLabs + Plivo - Orange/Green theme */}
+                      {(isPlivoEnabled && voiceEngineSettings?.elevenlabs_engine_enabled !== false) && (
+                        <div
+                          className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                            formData.telephonyProvider === "elevenlabs"
+                              ? "border-amber-500 bg-amber-500/10 dark:bg-amber-500/20"
+                              : "border-border hover:border-amber-400/50 hover:bg-amber-500/5"
+                          }`}
+                          onClick={() => setFormData({ 
+                            ...formData, 
+                            telephonyProvider: "elevenlabs",
+                            llmModel: availableLLMModels.length > 0 ? availableLLMModels[0].modelId : "gpt-4o-mini"
+                          })}
+                          data-testid="flow-provider-elevenlabs-plivo"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-medium text-amber-700 dark:text-amber-300">ElevenLabs + Plivo</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                Ultra-realistic voices, India numbers
+                              </p>
+                            </div>
+                            {formData.telephonyProvider === "elevenlabs" && (
+                              <Check className="h-4 w-4 text-amber-600" />
+                            )}
+                          </div>
+                        </div>
+                      )}
                       {/* ElevenLabs SIP - Orange theme */}
                       {(isElevenLabsSipAllowed || formData.telephonyProvider === "elevenlabs-sip") && (
                         <div
@@ -2119,6 +2149,36 @@ export default function Agents() {
                       </div>
                     </div>
                   )}
+                  {/* ElevenLabs + Plivo - Orange/Green theme */}
+                  {(isPlivoEnabled && voiceEngineSettings?.elevenlabs_engine_enabled !== false) && (
+                    <div
+                      className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                        formData.telephonyProvider === "elevenlabs"
+                          ? "border-amber-500 bg-amber-500/10 dark:bg-amber-500/20"
+                          : "border-border hover:border-amber-400/50 hover:bg-amber-500/5"
+                      }`}
+                      onClick={() => setFormData({ 
+                        ...formData, 
+                        telephonyProvider: "elevenlabs",
+                        llmModel: availableLLMModels.length > 0 ? availableLLMModels[0].modelId : "gpt-4o-mini"
+                      })}
+                      data-testid="provider-elevenlabs-plivo"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-medium text-amber-700 dark:text-amber-300">ElevenLabs + Plivo</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Ultra-realistic voices, India numbers
+                          </p>
+                        </div>
+                        {formData.telephonyProvider === "elevenlabs" && (
+                          <Check className="h-4 w-4 text-amber-600" />
+                        )}
+                      </div>
+                    </div>
+                  )}
                   {/* ElevenLabs SIP - Orange theme */}
                   {(isElevenLabsSipAllowed || formData.telephonyProvider === "elevenlabs-sip") && (
                     <div
@@ -2272,7 +2332,7 @@ export default function Agents() {
                   <SelectContent>
                     {SUPPORTED_LANGUAGES
                       .filter((lang) => {
-                        const isElevenLabs = formData.telephonyProvider === "twilio" || formData.telephonyProvider === "elevenlabs-sip";
+                        const isElevenLabs = formData.telephonyProvider === "twilio" || formData.telephonyProvider === "elevenlabs-sip" || formData.telephonyProvider === "elevenlabs";
                         const providerType = isElevenLabs ? "elevenlabs" : "openai";
                         return isProviderSupported(lang.value, providerType);
                       })

@@ -15,7 +15,7 @@
  * ============================================================
  */
 
-export class Zonvo AIError extends Error {
+export class ZonvoAIError extends Error {
   public readonly statusCode: number;
   public readonly code: string;
   public readonly details?: Record<string, unknown>;
@@ -27,7 +27,7 @@ export class Zonvo AIError extends Error {
     details?: Record<string, unknown>
   ) {
     super(message);
-    this.name = 'Zonvo AIError';
+    this.name = 'ZonvoAIError';
     this.statusCode = statusCode;
     this.code = code;
     this.details = details;
@@ -35,44 +35,44 @@ export class Zonvo AIError extends Error {
   }
 }
 
-export class Zonvo AIValidationError extends Zonvo AIError {
+export class ZonvoAIValidationError extends ZonvoAIError {
   constructor(message: string, details?: Record<string, unknown>) {
     super(message, 400, 'VALIDATION_ERROR', details);
-    this.name = 'Zonvo AIValidationError';
+    this.name = 'ZonvoAIValidationError';
   }
 }
 
-export class Zonvo AIAuthError extends Zonvo AIError {
+export class ZonvoAIAuthError extends ZonvoAIError {
   constructor(message: string = 'Authentication required') {
     super(message, 401, 'AUTH_ERROR');
-    this.name = 'Zonvo AIAuthError';
+    this.name = 'ZonvoAIAuthError';
   }
 }
 
-export class Zonvo AIForbiddenError extends Zonvo AIError {
+export class ZonvoAIForbiddenError extends ZonvoAIError {
   constructor(message: string = 'Access denied') {
     super(message, 403, 'FORBIDDEN_ERROR');
-    this.name = 'Zonvo AIForbiddenError';
+    this.name = 'ZonvoAIForbiddenError';
   }
 }
 
-export class Zonvo AINotFoundError extends Zonvo AIError {
+export class ZonvoAINotFoundError extends ZonvoAIError {
   constructor(resource: string = 'Resource') {
     super(`${resource} not found`, 404, 'NOT_FOUND_ERROR');
-    this.name = 'Zonvo AINotFoundError';
+    this.name = 'ZonvoAINotFoundError';
   }
 }
 
-export class Zonvo AIRateLimitError extends Zonvo AIError {
+export class ZonvoAIRateLimitError extends ZonvoAIError {
   constructor(message: string = 'Too many requests') {
     super(message, 429, 'RATE_LIMIT_ERROR');
-    this.name = 'Zonvo AIRateLimitError';
+    this.name = 'ZonvoAIRateLimitError';
   }
 }
 
-export class Zonvo AIExternalServiceError extends Zonvo AIError {
+export class ZonvoAIExternalServiceError extends ZonvoAIError {
   constructor(service: string, message: string) {
     super(`${service}: ${message}`, 502, 'EXTERNAL_SERVICE_ERROR', { service });
-    this.name = 'Zonvo AIExternalServiceError';
+    this.name = 'ZonvoAIExternalServiceError';
   }
 }

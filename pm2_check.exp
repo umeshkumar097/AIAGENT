@@ -1,0 +1,10 @@
+#!/usr/bin/expect -f
+set timeout 60
+spawn ssh -o StrictHostKeyChecking=no aiclex@135.235.218.93 "pm2 info all | grep 'script path' || pm2 list"
+expect {
+    "password:" {
+        send "Umesh@2003##\r"
+        exp_continue
+    }
+    eof
+}

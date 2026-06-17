@@ -576,19 +576,24 @@ export function setupPlivoWebhooks(app: Express, baseUrl: string): void {
         return;
       }
 
-      // Reserve an OpenAI slot
-      const tier = OpenAIPoolService.getModelTierForUser(user.planType);
-      const openaiCredential = await OpenAIPoolService.reserveSlot(tier);
+      let openaiCredentialId: string | undefined = undefined;
+      
+      // Only reserve an OpenAI slot if it's NOT an ElevenLabs agent
+      if (!agent.elevenLabsAgentId && agent.telephonyProvider !== 'elevenlabs-sip' && agent.telephonyProvider !== 'elevenlabs') {
+        const tier = OpenAIPoolService.getModelTierForUser(user.planType);
+        const openaiCredential = await OpenAIPoolService.reserveSlot(tier);
 
-      if (!openaiCredential) {
-        logger.error('No OpenAI capacity available', undefined, 'PlivoWebhook');
-        res.set('Content-Type', 'text/xml');
-        res.send(`<?xml version="1.0" encoding="UTF-8"?>
+        if (!openaiCredential) {
+          logger.error('No OpenAI capacity available', undefined, 'PlivoWebhook');
+          res.set('Content-Type', 'text/xml');
+          res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Speak>We are experiencing high demand. Please try again later.</Speak>
   <Hangup/>
 </Response>`);
-        return;
+          return;
+        }
+        openaiCredentialId = openaiCredential.id;
       }
 
       // Create incoming call record
@@ -601,12 +606,14 @@ export function setupPlivoWebhooks(app: Express, baseUrl: string): void {
           agentId: agent.id,
           plivoPhoneNumberId: phoneNumber.id,
           userId: agent.userId,
-          openaiCredentialId: openaiCredential.id,
+          openaiCredentialId: openaiCredentialId,
           plivoCredentialId: phoneNumber.plivoCredentialId || undefined,
         });
       } catch (createError: any) {
         // Release the slot if call record creation fails
-        await OpenAIPoolService.releaseSlot(openaiCredential.id);
+        if (openaiCredentialId) {
+          await OpenAIPoolService.releaseSlot(openaiCredentialId);
+        }
         throw createError;
       }
 

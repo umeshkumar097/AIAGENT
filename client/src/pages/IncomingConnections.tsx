@@ -495,7 +495,7 @@ export default function IncomingConnectionsPage() {
               <SiTwilio className="h-4 w-4 text-red-500" />
               <span className="font-medium text-sm">+</span>
               <ElevenLabsIcon className="h-4 w-4 text-violet-600" />
-              <span className="font-semibold text-sm">Plivo + ElevenLabs</span>
+              <span className="font-semibold text-sm">Twilio + ElevenLabs</span>
             </div>
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span><strong className="text-violet-600">{connections.length}</strong> active</span>
@@ -517,9 +517,7 @@ export default function IncomingConnectionsPage() {
             >
               <div className="flex items-center gap-2 mb-2">
                 <Phone className="h-4 w-4 text-green-600" />
-                <span className="font-medium text-sm">+</span>
-                <SiOpenai className="h-4 w-4 text-emerald-600" />
-                <span className="font-semibold text-sm">Plivo + OpenAI</span>
+                <span className="font-semibold text-sm">Plivo Voice AI</span>
               </div>
               <div className="flex items-center gap-4 text-xs text-muted-foreground">
                 <span><strong className="text-emerald-600">{plivoStats.totalConnections}</strong> active</span>
@@ -562,13 +560,12 @@ export default function IncomingConnectionsPage() {
           <TabsTrigger value="twilio-elevenlabs" className="flex items-center gap-2" data-testid="tab-twilio-elevenlabs">
             <SiTwilio className="h-3.5 w-3.5 text-red-500" />
             <ElevenLabsIcon className="h-3.5 w-3.5 text-violet-600" />
-            <span className="hidden sm:inline">Plivo + ElevenLabs</span>
+            <span className="hidden sm:inline">Twilio + ElevenLabs</span>
           </TabsTrigger>
           {plivoEnabled && (
             <TabsTrigger value="plivo-openai" className="flex items-center gap-2" data-testid="tab-plivo-openai">
               <Phone className="h-3.5 w-3.5 text-green-600" />
-              <SiOpenai className="h-3.5 w-3.5 text-emerald-600" />
-              <span className="hidden sm:inline">Plivo + OpenAI</span>
+              <span className="hidden sm:inline">Plivo Voice AI</span>
             </TabsTrigger>
           )}
           {twilioOpenaiEnabled && (

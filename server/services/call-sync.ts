@@ -346,7 +346,7 @@ export class CallSyncService {
         // 5. Classification & Sentiment
         if (!callRecord.classification && elevenLabsData.analysis) {
           // Re-use logic for classification if needed
-          const analysisObj = elevenLabsData.analysis;
+          const analysisObj = elevenLabsData.analysis as any;
           if (analysisObj.sentiment) {
             updates.sentiment = analysisObj.sentiment;
             updatedFields.push('sentiment');
