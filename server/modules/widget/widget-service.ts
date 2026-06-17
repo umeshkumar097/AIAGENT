@@ -57,6 +57,12 @@ export class WidgetService {
       return true;
     }
     const normalizedDomain = requestDomain.toLowerCase().replace(/^www\./, '');
+    
+    // Always allow the host platform and localhost for testing/previews
+    if (normalizedDomain === 'zonvo.tech' || normalizedDomain === 'localhost' || normalizedDomain.includes('127.0.0.1')) {
+      return true;
+    }
+
     return widget.allowedDomains.some(allowed => {
       const normalizedAllowed = allowed.toLowerCase().replace(/^www\./, '');
       if (normalizedAllowed.startsWith('*.')) {
