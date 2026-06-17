@@ -185,12 +185,15 @@ function SessionTimeoutWrapper({ children }: { children: React.ReactNode }) {
 }
 
 
+import { PublicVoiceWidget } from "@/components/landing/PublicVoiceWidget";
+
 function PublicRouter() {
   // Direct app.zonvo.tech users to the login page instead of the landing page
   const isAppDomain = window.location.hostname === 'app.zonvo.tech';
 
   return (
     <>
+      <PublicVoiceWidget />
       <ScrollToTop />
       <Switch>
         <Route path="/">
