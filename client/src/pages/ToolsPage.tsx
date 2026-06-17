@@ -8,6 +8,9 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
+import { IntegrationCard } from "@/components/dashboard/IntegrationCard";
+import { MessageSquare, Calendar as CalendarIcon, Workflow, Database, Cable } from "lucide-react";
+import { SiSalesforce, SiZapier, SiZoho, SiGooglesheets } from "react-icons/si";
 
 interface ToolCard {
   id: string;
@@ -105,27 +108,23 @@ const allTools: ToolCard[] = [
     url: "/app/settings?tab=messaging",
     pluginRequired: "messaging",
   },
-  {
-    id: "google-sheets",
-    title: "Google Sheets",
-    description: "Push appointment and form data to Google Sheets in real time.",
-    icon: TableProperties,
-    iconColor: "text-green-600 dark:text-green-400",
-    iconBg: "bg-green-500/10 dark:bg-green-500/20",
-    url: "/app/tools",
-  },
 ];
 
-function GoogleSheetsCardActions() {
-  const { toast } = useToast();
-  const [connecting, setConnecting] = useState(false);
 
-  const { data: status, isLoading } = useQuery<{ connected: boolean; email?: string }>({
+
+export default function ToolsPage() {
+  const [, setLocation] = useLocation();
+  const { isPluginEnabled, isLoading } = usePluginStatus();
+  const { toast } = useToast();
+
+  const [connecting, setConnecting] = useState<string | null>(null);
+
+  const { data: googleStatus } = useQuery<{ connected: boolean; email?: string }>({
     queryKey: ["/api/integrations/google/status"],
     retry: false,
   });
 
-  const disconnectMutation = useMutation({
+  const disconnectGoogleMutation = useMutation({
     mutationFn: () => apiRequest("DELETE", "/api/integrations/google/disconnect"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/integrations/google/status"] });
@@ -136,9 +135,8 @@ function GoogleSheetsCardActions() {
     },
   });
 
-  const handleConnect = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setConnecting(true);
+  const handleConnectGoogle = async () => {
+    setConnecting("google-sheets");
     try {
       const res = await apiRequest("GET", "/api/integrations/google/auth");
       const body = await res.json();
@@ -149,69 +147,17 @@ function GoogleSheetsCardActions() {
         ? "Google OAuth credentials are not configured. Please add them in Admin > Settings."
         : errData?.error || undefined;
       toast({ title: "Google connection failed", description, variant: "destructive" });
-      setConnecting(false);
+      setConnecting(null);
     }
   };
 
-  const handleDisconnect = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    disconnectMutation.mutate();
+  const handleConnectPlaceholder = (name: string) => {
+    setConnecting(name);
+    setTimeout(() => {
+      toast({ title: `${name} Integration`, description: "This integration is coming soon in a future update." });
+      setConnecting(null);
+    }, 1000);
   };
-
-  if (isLoading) {
-    return <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />;
-  }
-
-  if (status?.connected) {
-    return (
-      <div className="flex items-center gap-2 flex-wrap">
-        <Badge variant="default" className="text-xs" data-testid="badge-google-sheets-status">
-          Connected
-        </Badge>
-        {status.email && (
-          <span className="text-xs text-green-600 dark:text-green-400 truncate max-w-[160px]" data-testid="text-google-sheets-email">
-            {status.email}
-          </span>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 px-2 text-xs text-muted-foreground"
-          onClick={handleDisconnect}
-          disabled={disconnectMutation.isPending}
-          data-testid="button-disconnect-google"
-        >
-          <Unlink className="w-3 h-3 mr-1" />
-          Disconnect
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex items-center gap-2 flex-wrap">
-      <Badge variant="outline" className="text-xs text-muted-foreground" data-testid="badge-google-sheets-status">
-        Not connected
-      </Badge>
-      <Button
-        size="sm"
-        variant="outline"
-        className="h-7 text-xs"
-        onClick={handleConnect}
-        disabled={connecting}
-        data-testid="button-connect-google"
-      >
-        <ExternalLink className="w-3 h-3 mr-1" />
-        {connecting ? "Redirecting..." : "Connect"}
-      </Button>
-    </div>
-  );
-}
-
-export default function ToolsPage() {
-  const [, setLocation] = useLocation();
-  const { isPluginEnabled, isLoading } = usePluginStatus();
-  const { toast } = useToast();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -245,60 +191,150 @@ export default function ToolsPage() {
   });
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight" data-testid="text-tools-title">Tools</h1>
-        <p className="text-muted-foreground mt-1" data-testid="text-tools-description">
-          Access and configure your platform tools and integrations.
-        </p>
+    <div className="p-6 max-w-5xl mx-auto space-y-12 pb-24">
+      {/* Platform Tools Section */}
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight" data-testid="text-tools-title">Tools</h1>
+          <p className="text-muted-foreground mt-1" data-testid="text-tools-description">
+            Access and configure your platform tools and widgets.
+          </p>
+        </div>
+
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Card key={i} className="animate-pulse">
+                <CardContent className="p-5">
+                  <div className="flex items-start gap-4">
+                    <div className="w-11 h-11 rounded-md bg-muted" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-muted rounded w-24" />
+                      <div className="h-3 bg-muted rounded w-full" />
+                      <div className="h-3 bg-muted rounded w-3/4" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {visibleTools.map((tool) => (
+              <Card
+                key={tool.id}
+                className="cursor-pointer hover-elevate active-elevate-2 transition-colors"
+                onClick={() => setLocation(tool.url)}
+                data-testid={`card-tool-${tool.id}`}
+              >
+                <CardContent className="p-5">
+                  <div className="flex items-start gap-4">
+                    <div className={`w-11 h-11 rounded-md ${tool.iconBg} flex items-center justify-center shrink-0`}>
+                      <tool.icon className={`w-5 h-5 ${tool.iconColor}`} />
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <h3 className="font-semibold text-sm text-foreground">{tool.title}</h3>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{tool.description}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
 
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-5">
-                <div className="flex items-start gap-4">
-                  <div className="w-11 h-11 rounded-md bg-muted" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-muted rounded w-24" />
-                    <div className="h-3 bg-muted rounded w-full" />
-                    <div className="h-3 bg-muted rounded w-3/4" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+      {/* External Integrations Section */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight">Integrations</h2>
+            <p className="text-muted-foreground text-sm mt-1">
+              Connect and manage external tools that power your agents.
+            </p>
+          </div>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {visibleTools.map((tool) => (
-            <Card
-              key={tool.id}
-              className="cursor-pointer hover-elevate active-elevate-2 transition-colors"
-              onClick={() => setLocation(tool.url)}
-              data-testid={`card-tool-${tool.id}`}
-            >
-              <CardContent className="p-5">
-                <div className="flex items-start gap-4">
-                  <div className={`w-11 h-11 rounded-md ${tool.iconBg} flex items-center justify-center shrink-0`}>
-                    <tool.icon className={`w-5 h-5 ${tool.iconColor}`} />
-                  </div>
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <h3 className="font-semibold text-sm text-foreground">{tool.title}</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{tool.description}</p>
-                    {tool.id === "google-sheets" && (
-                      <div className="pt-1">
-                        <GoogleSheetsCardActions />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <IntegrationCard 
+            id="google-sheets"
+            title="Google Sheets"
+            category="Data & Spreadsheets"
+            description="Push appointment, contacts and form data to Google Sheets in real time."
+            icon={<SiGooglesheets className="w-6 h-6 text-green-600 dark:text-green-400" />}
+            iconBg="bg-green-500/10 dark:bg-green-500/20"
+            isConnected={!!googleStatus?.connected}
+            isConnecting={connecting === "google-sheets"}
+            onConnect={googleStatus?.connected ? () => disconnectGoogleMutation.mutate() : handleConnectGoogle}
+          />
+          <IntegrationCard 
+            id="gohighlevel"
+            title="GoHighLevel"
+            category="CRM & Marketing Automation"
+            description="Manage CRM contacts, sync calendars, and automate appointments with GHL."
+            icon={<Database className="w-6 h-6 text-blue-600 dark:text-blue-400" />}
+            iconBg="bg-blue-500/10 dark:bg-blue-500/20"
+            isConnected={false}
+            isConnecting={connecting === "GoHighLevel"}
+            onConnect={() => handleConnectPlaceholder("GoHighLevel")}
+          />
+          <IntegrationCard 
+            id="salesforce"
+            title="Salesforce"
+            category="CRM"
+            description="Sync contacts, deals, and appointments with your Salesforce org via OAuth."
+            icon={<SiSalesforce className="w-6 h-6 text-sky-500 dark:text-sky-400" />}
+            iconBg="bg-sky-500/10 dark:bg-sky-500/20"
+            isConnected={false}
+            isConnecting={connecting === "Salesforce"}
+            onConnect={() => handleConnectPlaceholder("Salesforce")}
+          />
+          <IntegrationCard 
+            id="calcom"
+            title="Cal.com"
+            category="Scheduling & Booking"
+            description="Sync booking pages and let agents handle appointment scheduling directly."
+            icon={<CalendarIcon className="w-6 h-6 text-zinc-800 dark:text-zinc-200" />}
+            iconBg="bg-zinc-500/10 dark:bg-zinc-500/20"
+            isConnected={false}
+            isConnecting={connecting === "Cal.com"}
+            onConnect={() => handleConnectPlaceholder("Cal.com")}
+          />
+          <IntegrationCard 
+            id="zapier"
+            title="Zapier"
+            category="Automation"
+            description="Connect your AI agents to 5000+ apps through Zapier webhooks and triggers."
+            icon={<SiZapier className="w-6 h-6 text-orange-500 dark:text-orange-400" />}
+            iconBg="bg-orange-500/10 dark:bg-orange-500/20"
+            isConnected={false}
+            isConnecting={connecting === "Zapier"}
+            onConnect={() => handleConnectPlaceholder("Zapier")}
+          />
+          <IntegrationCard 
+            id="pabbly"
+            title="Pabbly Connect"
+            category="Automation"
+            description="Create custom workflows and automate tasks without any coding."
+            icon={<Cable className="w-6 h-6 text-emerald-500 dark:text-emerald-400" />}
+            iconBg="bg-emerald-500/10 dark:bg-emerald-500/20"
+            isConnected={false}
+            isConnecting={connecting === "Pabbly Connect"}
+            onConnect={() => handleConnectPlaceholder("Pabbly Connect")}
+          />
+          <IntegrationCard 
+            id="zoho"
+            title="Zoho CRM"
+            category="CRM"
+            description="Sync your leads and contacts with Zoho CRM for better pipeline management."
+            icon={<SiZoho className="w-6 h-6 text-red-500 dark:text-red-400" />}
+            iconBg="bg-red-500/10 dark:bg-red-500/20"
+            isConnected={false}
+            isConnecting={connecting === "Zoho CRM"}
+            onConnect={() => handleConnectPlaceholder("Zoho CRM")}
+          />
         </div>
-      )}
+      </div>
     </div>
   );
 }
