@@ -1,84 +1,63 @@
-import React, { useEffect, useRef } from "react";
-import createGlobe from "cobe";
+import React from "react";
 
 export default function DashboardGlobe() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    let phi = 0;
-    
-    if (!canvasRef.current) return;
-    
-    // Cobe uses a fixed width/height but scales based on CSS.
-    // For crisp rendering on high-DPI displays, we double the internal resolution.
-    const width = 640;
-    const height = 640;
-
-    const globe = createGlobe(canvasRef.current, {
-      devicePixelRatio: 2,
-      width: width,
-      height: height,
-      phi: 0,
-      theta: 0.3,
-      dark: 0, // Turn off dark inversion for reliable colors
-      diffuse: 1.2,
-      mapSamples: 16000,
-      mapBrightness: 6,
-      baseColor: [0.1, 0.1, 0.1], // Dark ocean
-      markerColor: [1, 0.5, 0], // Saffron/Orange markers
-      glowColor: [0.15, 0.15, 0.15], // Subtle dark glow
-      markers: [
-        { location: [20.5937, 78.9629], size: 0.1 },
-        { location: [37.0902, -95.7129], size: 0.05 },
-        { location: [55.3781, -3.4360], size: 0.05 },
-        { location: [23.4241, 53.8478], size: 0.05 },
-      ],
-      onRender: (state) => {
-        state.phi = phi;
-        phi += 0.005;
-      },
-    });
-
-    return () => {
-      globe.destroy();
-    };
-  }, []);
+  const activeRegions = [
+    { top: "45%", left: "70%", delay: "0s", name: "India" },
+    { top: "35%", left: "20%", delay: "0.5s", name: "US" },
+    { top: "25%", left: "45%", delay: "1s", name: "UK" },
+    { top: "48%", left: "62%", delay: "1.5s", name: "UAE" },
+  ];
 
   return (
-    <div className="border-border bg-surface relative overflow-hidden rounded-xl border w-full" style={{ height: "340px" }}>
+    <div className="border-border bg-surface relative overflow-hidden rounded-xl border w-full flex flex-col h-full min-h-[340px]">
       <div className="absolute top-4 left-5 z-10">
         <h3 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">Global Reach</h3>
         <p className="text-muted-foreground mt-0.5 text-[10px]">Active regions</p>
       </div>
       
       <div className="absolute top-4 right-5 z-10 flex items-center gap-1.5">
-        <div className="bg-primary h-1.5 w-1.5 animate-pulse rounded-full"></div>
+        <div className="bg-primary h-1.5 w-1.5 animate-pulse rounded-full shadow-[0_0_8px_rgba(255,153,51,0.8)]"></div>
         <span className="text-muted-foreground text-[9px] font-medium">LIVE</span>
       </div>
       
-      <div className="flex h-full items-center justify-center">
-        <div className="relative overflow-hidden h-[320px] w-[320px]">
-          {/* Subtle glow background */}
-          <div className="pointer-events-none absolute inset-0 select-none flex items-center justify-center" aria-hidden="true">
-            <div 
-              className="w-[90%] h-[90%] rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" 
-              style={{ background: "radial-gradient(circle, rgba(255, 153, 51, 0.08) 0%, transparent 55%)" }}
-            ></div>
-          </div>
+      <div className="flex-1 w-full flex items-center justify-center p-6 relative">
+        {/* Subtle glow background */}
+        <div className="pointer-events-none absolute inset-0 select-none flex items-center justify-center" aria-hidden="true">
+          <div 
+            className="w-[80%] h-[80%] rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20 dark:opacity-10 blur-3xl" 
+            style={{ background: "radial-gradient(circle, rgba(255, 153, 51, 0.8) 0%, transparent 70%)" }}
+          ></div>
+        </div>
+        
+        {/* SVG World Map */}
+        <div className="relative w-full max-w-[400px] aspect-[2/1] opacity-60 dark:opacity-40 flex items-center justify-center mt-4">
+          <svg viewBox="0 0 1008 650" fill="currentColor" className="w-full h-full text-foreground/80 drop-shadow-md" preserveAspectRatio="xMidYMid meet">
+            <path d="M259.4,324.7c-0.2,0.6-0.5,1.2-0.7,1.8c-0.4,1-0.8,1.9-1.2,2.8c-0.5,1-0.9,2-1.3,2.9c-0.5,1-1,1.9-1.5,2.9 c-0.6,1-1.1,1.9-1.7,2.8c-0.6,0.9-1.2,1.8-1.8,2.7c-0.6,0.9-1.2,1.7-1.9,2.5c-0.6,0.8-1.3,1.6-1.9,2.4c-0.7,0.8-1.4,1.5-2.1,2.2 c-0.7,0.7-1.4,1.4-2.1,2c-0.7,0.7-1.5,1.3-2.2,1.9c-0.7,0.6-1.5,1.2-2.3,1.7c-0.8,0.5-1.6,1-2.4,1.5c-0.8,0.5-1.6,0.9-2.5,1.3 c-0.8,0.4-1.7,0.8-2.6,1.2c-0.9,0.3-1.8,0.6-2.7,0.9c-0.9,0.3-1.8,0.5-2.8,0.7c-1,0.2-2,0.3-3,0.4c-1,0.1-2.1,0.2-3.1,0.2 c-1.1,0-2.2-0.1-3.3-0.2c-1.1-0.1-2.2-0.3-3.3-0.6c-1.1-0.3-2.2-0.6-3.3-1c-1.1-0.4-2.1-0.9-3.2-1.4c-1-0.5-2-1.1-3-1.8 c-1-0.7-1.9-1.4-2.8-2.2c-0.9-0.8-1.7-1.7-2.5-2.6c-0.8-0.9-1.5-1.9-2.1-2.9c-0.6-1-1.2-2-1.7-3.1c-0.5-1.1-0.9-2.2-1.3-3.3 c-0.3-1.1-0.6-2.3-0.8-3.5c-0.2-1.2-0.3-2.4-0.3-3.7c0-1.2,0.1-2.5,0.3-3.8c0.2-1.3,0.5-2.6,0.9-3.9c0.4-1.3,0.9-2.6,1.5-3.8 c0.6-1.2,1.3-2.4,2.1-3.5c0.8-1.1,1.7-2.1,2.7-3.1c1-1,2.1-1.9,3.3-2.7c1.2-0.8,2.4-1.5,3.7-2.1c1.3-0.6,2.7-1.1,4.2-1.5 c1.5-0.4,3.1-0.7,4.7-0.9c1.6-0.2,3.3-0.3,5-0.3c1.8,0,3.6,0.1,5.5,0.4c1.8,0.3,3.7,0.7,5.6,1.2c1.9,0.5,3.8,1.2,5.7,2 c1.9,0.8,3.7,1.7,5.5,2.7c1.7,1,3.4,2.1,5.1,3.3C256.4,319.4,258,322,259.4,324.7z M342.3,191.7c-0.5,1.2-1.1,2.4-1.7,3.5 c-0.6,1.1-1.3,2.2-2,3.2c-0.7,1-1.5,1.9-2.3,2.8c-0.8,0.9-1.7,1.7-2.6,2.4c-0.9,0.7-1.9,1.3-2.8,1.9c-1,0.5-2,1-3.1,1.4 c-1.1,0.4-2.2,0.7-3.3,0.9c-1.1,0.2-2.3,0.3-3.5,0.3c-1.2,0-2.4-0.1-3.6-0.3c-1.2-0.2-2.4-0.6-3.6-1c-1.2-0.5-2.4-1-3.5-1.7 c-1.1-0.7-2.2-1.5-3.2-2.4c-1-0.9-1.9-1.9-2.8-3c-0.8-1.1-1.6-2.3-2.2-3.6c-0.6-1.3-1.1-2.7-1.5-4.2c-0.4-1.5-0.6-3.1-0.7-4.7 c-0.1-1.6,0-3.3,0.2-5c0.2-1.7,0.6-3.4,1.1-5c0.5-1.7,1.1-3.3,1.9-4.8c0.8-1.5,1.7-3,2.7-4.4c1-1.4,2.2-2.7,3.5-3.8 c1.3-1.1,2.7-2.1,4.3-3c1.5-0.9,3.2-1.6,4.9-2.2c1.8-0.6,3.6-1,5.6-1.2c2-0.3,4.1-0.4,6.3-0.3c2.2,0.1,4.4,0.4,6.7,0.9 c2.3,0.5,4.6,1.2,6.9,2.1C338.5,183.3,340.5,187.3,342.3,191.7z M418.1,273.4c-0.5,1-1,2.1-1.6,3.1c-0.6,1-1.2,2-1.9,2.9 c-0.7,0.9-1.4,1.8-2.2,2.6c-0.8,0.8-1.6,1.5-2.5,2.2c-0.9,0.7-1.8,1.3-2.8,1.8c-1,0.5-2,1-3.1,1.4c-1.1,0.4-2.2,0.7-3.3,0.9 c-1.1,0.2-2.3,0.3-3.5,0.3c-1.2,0-2.4-0.1-3.6-0.3c-1.2-0.2-2.4-0.6-3.6-1c-1.2-0.5-2.4-1-3.5-1.7c-1.1-0.7-2.2-1.5-3.2-2.4 c-1-0.9-1.9-1.9-2.8-3c-0.8-1.1-1.6-2.3-2.2-3.6c-0.6-1.3-1.1-2.7-1.5-4.2c-0.4-1.5-0.6-3.1-0.7-4.7c-0.1-1.6,0-3.3,0.2-5 c0.2-1.7,0.6-3.4,1.1-5c0.5-1.7,1.1-3.3,1.9-4.8c0.8-1.5,1.7-3,2.7-4.4c1-1.4,2.2-2.7,3.5-3.8c1.3-1.1,2.7-2.1,4.3-3 c1.5-0.9,3.2-1.6,4.9-2.2c1.8-0.6,3.6-1,5.6-1.2c2-0.3,4.1-0.4,6.3-0.3c2.2,0.1,4.4,0.4,6.7,0.9c2.3,0.5,4.6,1.2,6.9,2.1 C414.4,265,416.3,269,418.1,273.4z M528.2,357.7c-0.4,0.9-0.9,1.9-1.4,2.8c-0.5,0.9-1.1,1.8-1.7,2.6c-0.6,0.8-1.3,1.6-2,2.4 c-0.7,0.8-1.5,1.5-2.3,2.1c-0.8,0.7-1.7,1.2-2.6,1.7c-0.9,0.5-1.9,0.9-2.9,1.3c-1,0.3-2.1,0.6-3.2,0.8c-1.1,0.2-2.2,0.3-3.4,0.3 c-1.2,0-2.4-0.1-3.6-0.3c-1.2-0.2-2.4-0.5-3.6-0.9c-1.2-0.4-2.4-0.9-3.5-1.5c-1.1-0.6-2.2-1.3-3.2-2.1c-1-0.8-1.9-1.7-2.8-2.7 c-0.8-1-1.6-2.1-2.3-3.2c-0.6-1.1-1.2-2.4-1.6-3.7c-0.4-1.3-0.7-2.7-0.9-4.1c-0.2-1.4-0.2-2.9-0.1-4.4c0.1-1.5,0.3-3,0.7-4.6 c0.4-1.5,0.9-3.1,1.5-4.6c0.6-1.5,1.4-2.9,2.3-4.3c0.9-1.4,1.9-2.7,3.1-3.9c1.2-1.2,2.5-2.3,3.9-3.3c1.4-1,2.9-1.8,4.5-2.5 c1.6-0.7,3.3-1.3,5.1-1.7c1.8-0.4,3.7-0.7,5.6-0.8c2-0.1,4-0.1,6.1,0c2.1,0.1,4.2,0.4,6.4,0.8c2.2,0.4,4.4,1,6.6,1.8 C524.5,349.5,526.4,353.4,528.2,357.7z M654,196c-0.5,1-1,2-1.6,2.9c-0.6,0.9-1.2,1.8-1.9,2.6c-0.7,0.8-1.4,1.6-2.2,2.3 c-0.8,0.7-1.6,1.4-2.5,2c-0.9,0.6-1.8,1.1-2.8,1.6c-1,0.4-2,0.8-3.1,1.1c-1.1,0.3-2.2,0.5-3.3,0.6c-1.1,0.1-2.3,0.2-3.5,0.1 c-1.2,0-2.4-0.1-3.6-0.3c-1.2-0.2-2.4-0.6-3.6-1c-1.2-0.5-2.4-1-3.5-1.7c-1.1-0.7-2.2-1.5-3.2-2.4c-1-0.9-1.9-1.9-2.8-3 c-0.8-1.1-1.6-2.3-2.2-3.6c-0.6-1.3-1.1-2.7-1.5-4.2c-0.4-1.5-0.6-3.1-0.7-4.7c-0.1-1.6,0-3.3,0.2-5c0.2-1.7,0.6-3.4,1.1-5 c0.5-1.7,1.1-3.3,1.9-4.8c0.8-1.5,1.7-3,2.7-4.4c1-1.4,2.2-2.7,3.5-3.8c1.3-1.1,2.7-2.1,4.3-3c1.5-0.9,3.2-1.6,4.9-2.2 c1.8-0.6,3.6-1,5.6-1.2c2-0.3,4.1-0.4,6.3-0.3c2.2,0.1,4.4,0.4,6.7,0.9c2.3,0.5,4.6,1.2,6.9,2.1C650.3,187.6,652.2,191.6,654,196z M810.2,467c-0.4,0.9-0.9,1.8-1.4,2.7c-0.5,0.9-1.1,1.7-1.7,2.5c-0.6,0.8-1.3,1.5-2,2.2c-0.7,0.7-1.5,1.4-2.3,2 c-0.8,0.6-1.7,1.1-2.6,1.6c-0.9,0.5-1.9,0.9-2.9,1.2c-1,0.3-2.1,0.6-3.2,0.8c-1.1,0.2-2.2,0.3-3.4,0.3c-1.2,0-2.4-0.1-3.6-0.3 c-1.2-0.2-2.4-0.5-3.6-0.9c-1.2-0.4-2.4-0.9-3.5-1.5c-1.1-0.6-2.2-1.3-3.2-2.1c-1-0.8-1.9-1.7-2.8-2.7c-0.8-1-1.6-2.1-2.3-3.2 c-0.6-1.1-1.2-2.4-1.6-3.7c-0.4-1.3-0.7-2.7-0.9-4.1c-0.2-1.4-0.2-2.9-0.1-4.4c0.1-1.5,0.3-3,0.7-4.6c0.4-1.5,0.9-3.1,1.5-4.6 c0.6-1.5,1.4-2.9,2.3-4.3c0.9-1.4,1.9-2.7,3.1-3.9c1.2-1.2,2.5-2.3,3.9-3.3c1.4-1,2.9-1.8,4.5-2.5c1.6-0.7,3.3-1.3,5.1-1.7 c1.8-0.4,3.7-0.7,5.6-0.8c2-0.1,4-0.1,6.1,0c2.1,0.1,4.2,0.4,6.4,0.8c2.2,0.4,4.4,1,6.6,1.8C806.5,458.8,808.4,462.7,810.2,467z" />
+          </svg>
           
-          <div style={{ position: "relative", width: "100%", height: "100%" }}>
-            <div className="scene-container" style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <canvas
-                ref={canvasRef}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  contain: "layout paint size",
-                  cursor: "grab",
-                }}
-              />
+          {/* Animated pinging markers on the map */}
+          {activeRegions.map((region, idx) => (
+            <div 
+              key={idx} 
+              className="absolute"
+              style={{ top: region.top, left: region.left }}
+              title={region.name}
+            >
+              <div className="relative flex items-center justify-center group cursor-pointer">
+                <div 
+                  className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-primary rounded-full absolute z-10 shadow-[0_0_8px_rgba(255,153,51,0.8)]"
+                ></div>
+                <div 
+                  className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-primary rounded-full absolute z-0 animate-ping opacity-75"
+                  style={{ animationDuration: '2.5s', animationDelay: region.delay }}
+                ></div>
+                {/* Tooltip on hover */}
+                <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity -top-6 whitespace-nowrap bg-background/90 backdrop-blur border border-border px-2 py-0.5 rounded text-[10px] font-medium z-20 pointer-events-none">
+                  {region.name}
+                </div>
+              </div>
             </div>
-          </div>
+          ))}
         </div>
       </div>
     </div>
