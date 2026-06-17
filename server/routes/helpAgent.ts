@@ -14,10 +14,10 @@ router.post("/chat", authenticateToken, async (req: Request, res: Response) => {
   }
 
   try {
-    const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
-    const apiKey = process.env.AZURE_OPENAI_API_KEY;
-    const deployment = process.env.AZURE_OPENAI_DEPLOYMENT_NAME || "gpt-5.1";
-    const apiVersion = process.env.AZURE_OPENAI_API_VERSION || "2024-02-15-preview";
+    const endpoint = process.env.HELP_AGENT_AZURE_OPENAI_ENDPOINT;
+    const apiKey = process.env.HELP_AGENT_AZURE_OPENAI_API_KEY;
+    const deployment = process.env.HELP_AGENT_AZURE_OPENAI_DEPLOYMENT_NAME || "gpt-5.1";
+    const apiVersion = process.env.HELP_AGENT_AZURE_OPENAI_API_VERSION || "2024-02-15-preview";
 
     if (!endpoint || !apiKey) {
       console.error("Missing Azure OpenAI credentials");
