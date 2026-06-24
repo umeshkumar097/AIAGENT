@@ -173,7 +173,7 @@ export function HeroSection() {
   return (
     <section
       ref={sectionRef}
-      className="relative flex flex-col items-center overflow-hidden bg-background pt-32 pb-16 md:pt-40 md:pb-24"
+      className="relative flex flex-col items-center overflow-hidden bg-[#06060c] pt-32 pb-16 md:pt-40 md:pb-24"
       data-testid="hero-section"
     >
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-orange-500/20 blur-[120px] rounded-full pointer-events-none" />

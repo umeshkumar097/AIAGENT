@@ -15,7 +15,7 @@
  * ============================================================
  */
 import { motion, useReducedMotion } from "framer-motion";
-import { Mail, Clock, Users, Send, Shield, CheckCircle, Loader2, MessageSquare, Headphones } from "lucide-react";
+import { Mail, Clock, Users, Send, Shield, CheckCircle, Loader2, MessageSquare, Phone } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -171,7 +171,7 @@ export function ContactSection() {
 
             <div className="space-y-6">
               <motion.a
-                href={`mailto:support@${branding.app_name.toLowerCase().replace(/\s+/g, '')}.com`}
+                href="mailto:info@aiclex.in"
                 className="flex items-center gap-4 group"
                 whileHover={shouldReduceMotion ? {} : { x: 5 }}
                 data-testid="link-contact-email"
@@ -182,7 +182,24 @@ export function ContactSection() {
                 <div>
                   <p className="text-sm text-muted-foreground">{t('landing.contact.emailLabel')}</p>
                   <p className="text-lg font-semibold group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                    support@{branding.app_name.toLowerCase().replace(/\s+/g, '')}.com
+                    info@aiclex.in
+                  </p>
+                </div>
+              </motion.a>
+
+              <motion.a
+                href="tel:+918449488090"
+                className="flex items-center gap-4 group"
+                whileHover={shouldReduceMotion ? {} : { x: 5 }}
+                data-testid="link-contact-phone"
+              >
+                <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform shadow-lg shadow-emerald-500/30">
+                  <Phone className="h-7 w-7 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Call karein</p>
+                  <p className="text-lg font-semibold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                    +91 84494 88090
                   </p>
                 </div>
               </motion.a>

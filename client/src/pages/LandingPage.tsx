@@ -46,7 +46,7 @@ export default function LandingPage() {
   const seoCanonicalUrl = seoSettings?.canonicalBaseUrl || undefined;
 
   return (
-    <div className="min-h-screen bg-background" data-testid="landing-page">
+    <div className="min-h-screen bg-[#06060c] dark" data-testid="landing-page">
       <SEOHead
         title={seoTitle}
         description={seoDescription}
