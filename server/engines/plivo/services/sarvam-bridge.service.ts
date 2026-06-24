@@ -128,6 +128,34 @@ export class SarvamBridgeService {
     }
   }
 
+  // ── Gender detection from voice name ────────────────────────────────────
+  private static getGenderFromVoice(voice: string): 'female' | 'male' {
+    const femaleVoices = ['priya', 'meera', 'kavya', 'anushka', 'manisha', 'vidya', 'maya'];
+    return femaleVoices.includes((voice || '').toLowerCase()) ? 'female' : 'male';
+  }
+
+  // ── Build natural system prompt wrapper ──────────────────────────────────
+  private static buildWrapper(systemPrompt: string, voice: string): string {
+    const gender = SarvamBridgeService.getGenderFromVoice(voice);
+    const genderHindi = gender === 'female' ? 'female (aurat)' : 'male (mard)';
+    const selfRef = gender === 'female'
+      ? 'Main ek female assistant hoon — "main karti hoon", "mujhe lagta hai" etc. use karo.'
+      : 'Main ek male assistant hoon — "main karta hoon", "mujhe lagta hai" etc. use karo.';
+    return `PHONE CALL RULES (MUST FOLLOW):
+- Tum REAL phone call pe ho — bilkul natural bolo.
+- SIRF 1-2 short sentences, max 25 words per turn.
+- EK hi sawaal ek baar mein poochho.
+- GENDER: ${selfRef}
+- HINDI STYLE: Aam boli (spoken Hindi/Hinglish) use karo. Sarkari/formal Hindi BILKUL mat use karo.
+  ❌ Avoid: avsyak, sampark, vibhinn, prashn, uttam, prarambh, sthiti, krpaya, abhivyakti
+  ✅ Use: zaroor, contact, alag, sawaal, theek, shuru, situation, please, feeling
+- Numbers, dates, English brand names English mein bol sakte ho.
+- Script padhne ki tarah mat bolo — real conversation ki tarah bolo.
+
+Your role:
+${systemPrompt}`;
+  }
+
   // ── GPT-4o-mini streaming → sentence-level TTS dispatch ──────────────────
   // Streams GPT response and fires TTS for each sentence as it completes.
   // This cuts latency by 50-70% — caller hears first sentence immediately.
@@ -141,8 +169,7 @@ export class SarvamBridgeService {
     language: string,
     voice: string
   ): Promise<string> {
-    // Natural conversation wrapper — prevents scripted/verbatim system prompt reading
-    const naturalWrapper = `IMPORTANT PHONE CALL RULES:\n- Tum ek REAL phone call pe ho — bilkul natural baat karo.\n- EK baar mein sirf 1-2 chhoti sentences bolo, max 30 words.\n- Ek hi sawaal poochho ek baar mein.\n- Script ki tarah mat parho — natural raho.\n- Pehle user ki baat ka jawab do, phir aage badho.\n\nYour role:\n${systemPrompt}`;
+    const naturalWrapper = SarvamBridgeService.buildWrapper(systemPrompt, voice);
     const messages = [{ role: 'system' as const, content: naturalWrapper }, ...history];
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -207,13 +234,14 @@ export class SarvamBridgeService {
     return fullReply.trim() || 'Kuch samajh nahi aaya, kripya dobara bolein.';
   }
 
-  // ── Kept for first-message use (non-streaming) ─────────────────────────────
+  // ── Non-streaming GPT call ────────────────────────────────────────────────
   private static async callGPT(
     openaiApiKey: string,
     systemPrompt: string,
-    history: { role: 'user' | 'assistant'; content: string }[]
+    history: { role: 'user' | 'assistant'; content: string }[],
+    voice = 'priya'
   ): Promise<string> {
-    const naturalWrapper = `IMPORTANT PHONE CALL RULES:\n- Tum ek REAL phone call pe ho — bilkul natural baat karo.\n- EK baar mein sirf 1-2 chhoti sentences bolo, max 30 words.\n- Ek hi sawaal poochho ek baar mein.\n- Script ki tarah mat parho — natural raho.\n\nYour role:\n${systemPrompt}`;
+    const naturalWrapper = SarvamBridgeService.buildWrapper(systemPrompt, voice);
     const messages = [{ role: 'system' as const, content: naturalWrapper }, ...history];
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -222,7 +250,7 @@ export class SarvamBridgeService {
     });
     if (!response.ok) throw new Error(`OpenAI ${response.status}: ${await response.text()}`);
     const data = await response.json() as any;
-    return data.choices?.[0]?.message?.content?.trim() || 'Kuch samajh nahi aaya, kripya dobara bolein.';
+    return data.choices?.[0]?.message?.content?.trim() || 'Kuch samajh nahi aaya, dobara bolein.';
   }
 
   // ── Play text via Sarvam TTS REST API → Plivo ─────────────────────────────
@@ -345,16 +373,55 @@ export class SarvamBridgeService {
     (plivoWs as any).sarvamCallStartTime   = Date.now();
 
     try {
-      // ── Fire first message TTS IMMEDIATELY (no need to wait for STT WS) ────
-      // STT connection takes 2-4s — don't block greeting on it.
-      if (agentConfig.firstMessage) {
-        const msg = agentConfig.firstMessage;
-        chatHistory.push({ role: 'assistant', content: msg });
-        transcriptLines.push(`Agent: ${msg}`);
-        logger.info(`[SarvamBridge] 🚀 Firing first message TTS immediately (parallel to STT connect)`);
-        SarvamBridgeService.speakViaTTS(callUuid, plivoWs, msg, sarvamApiKey, language, voice)
-          .catch((e: Error) => logger.error(`[SarvamBridge] First msg TTS error: ${e.message}`));
-      }
+      // ── Fire first message IMMEDIATELY — sentence-by-sentence TTS ────────────
+      // Split long firstMessage into sentences and TTS each one separately.
+      // This makes the FIRST sentence play in ~1.5s instead of waiting 5s for full text.
+      const fireFirstMessage = async () => {
+        let fullMsg: string;
+
+        if (agentConfig.firstMessage) {
+          fullMsg = agentConfig.firstMessage;
+          logger.info(`[SarvamBridge] 🚀 firstMessage configured (${fullMsg.length} chars), splitting into sentences for ${callUuid}`);
+        } else {
+          // No firstMessage — use streamGPTAndSpeak for sentence-level TTS
+          logger.info(`[SarvamBridge] 🚀 No firstMessage — streaming GPT greeting for ${callUuid}`);
+          try {
+            const gptReply = await SarvamBridgeService.streamGPTAndSpeak(
+              callUuid, plivoWs, agentConfig.openaiApiKey,
+              agentConfig.systemPrompt, [], sarvamApiKey, language, voice
+            );
+            chatHistory.push({ role: 'assistant', content: gptReply });
+            transcriptLines.push(`Agent: ${gptReply}`);
+          } catch (e: any) {
+            const fallback = 'Namaste! Main aapki kaise madad kar sakta hoon?';
+            logger.warn(`[SarvamBridge] GPT greeting failed: ${e.message}`);
+            chatHistory.push({ role: 'assistant', content: fallback });
+            transcriptLines.push(`Agent: ${fallback}`);
+            await SarvamBridgeService.speakViaTTS(callUuid, plivoWs, fallback, sarvamApiKey, language, voice).catch(() => {});
+          }
+          return;
+        }
+
+        // Split by sentence boundaries and TTS each sentence in order
+        const sentences = fullMsg
+          .split(/(?<=[।.!?\n])\s+/)
+          .map(s => s.trim())
+          .filter(s => s.length > 0);
+
+        const allSentences = sentences.length > 0 ? sentences : [fullMsg];
+        chatHistory.push({ role: 'assistant', content: fullMsg });
+        transcriptLines.push(`Agent: ${fullMsg}`);
+
+        for (const sentence of allSentences) {
+          if (plivoWs.readyState !== WebSocket.OPEN) break;
+          logger.info(`[SarvamBridge] TTS sentence: "${sentence.substring(0, 40)}..." for ${callUuid}`);
+          await SarvamBridgeService.speakViaTTS(callUuid, plivoWs, sentence, sarvamApiKey, language, voice)
+            .catch((e: Error) => logger.error(`[SarvamBridge] Sentence TTS error: ${e.message}`));
+        }
+      };
+      fireFirstMessage(); // fire-and-forget — STT connects in parallel
+
+
 
       const sttUrl = `${SARVAM_STT_URL}?language-code=${language}&model=saaras:v3&mode=transcribe&sample_rate=8000&input_audio_codec=pcm_s16le`;
       const sttWs = new WebSocket(sttUrl, {
