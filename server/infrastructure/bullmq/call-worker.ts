@@ -176,6 +176,71 @@ async function initiateCall(data: CampaignCallJob): Promise<CallResult> {
         success = true;
         break;
       }
+
+      case 'elevenlabs-sip': {
+        // ElevenLabs SIP: call via ElevenLabs API directly (no Plivo WebSocket bridge)
+        const { sipPhoneNumbers } = await import('../../../shared/schema');
+        const { importPlugin } = await import('../../utils/plugin-import');
+
+        if (!agent.sipPhoneNumberId) {
+          throw new Error('Agent has no SIP phone number configured for elevenlabs-sip');
+        }
+
+        const [sipPhone] = await db.select()
+          .from(sipPhoneNumbers)
+          .where(eq(sipPhoneNumbers.id, agent.sipPhoneNumberId))
+          .limit(1);
+
+        if (!sipPhone || !sipPhone.externalElevenLabsPhoneId) {
+          throw new Error('SIP phone number not found or not provisioned with ElevenLabs');
+        }
+
+        if (!agent.elevenLabsAgentId) {
+          throw new Error('Agent does not have an ElevenLabs agent ID');
+        }
+
+        const contactInfo = {
+          firstName: contact.firstName,
+          lastName: contact.lastName,
+          phone: contact.phone,
+          email: contact.email,
+          customFields: contact.customFields as Record<string, any> || null,
+        };
+
+        // Build dynamic variables for ElevenLabs
+        const dynamicVars: Record<string, string> = {
+          contact_phone: phone,
+          contact_name: [contact.firstName, contact.lastName].filter(Boolean).join(' ') || '',
+          contact_first_name: contact.firstName || '',
+          contact_last_name: contact.lastName || '',
+          contact_email: contact.email || '',
+        };
+
+        const sipClientData: Record<string, unknown> = {
+          source: 'campaign',
+          campaignId,
+          contactId,
+          dynamic_variables: dynamicVars,
+        };
+
+        const { ElevenLabsSipService } = await importPlugin('plugins/sip-engine/services/elevenlabs-sip.service.ts');
+
+        const result = await ElevenLabsSipService.makeOutboundCall(
+          userId,
+          sipPhone as any,
+          phone,
+          agentId,
+          sipClientData
+        );
+
+        success = result.success;
+        errorMessage = result.error;
+
+        if (result.success) {
+          console.log(`[CallWorker] ElevenLabs SIP call initiated: ${result.conversationId}`);
+        }
+        break;
+      }
       
       default:
         throw new Error(`Unknown engine: ${engine}`);

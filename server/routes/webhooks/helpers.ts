@@ -549,20 +549,27 @@ export async function fireWebhook(webhookId: string, callId: string, attempt: nu
 
 export async function deductCallCreditsForElevenLabs(callId: string, duration: number): Promise<CreditDeductionResult> {
   try {
-    const [creditPriceSetting] = await db
+    // ElevenLabs uses its own higher credit rate to offset higher API costs
+    const [elCreditSetting] = await db
+      .select()
+      .from(globalSettings)
+      .where(eq(globalSettings.key, 'elevenlabs_credit_price_per_minute'))
+      .limit(1);
+    const [baseCreditSetting] = await db
       .select()
       .from(globalSettings)
       .where(eq(globalSettings.key, 'credit_price_per_minute'))
       .limit(1);
     
-    let creditPricePerMinute = 1;
-    if (creditPriceSetting?.value) {
-      const parsed = Number(creditPriceSetting.value);
-      if (Number.isFinite(parsed) && parsed >= 0) {
-        creditPricePerMinute = parsed;
-      } else {
-        console.warn(`⚠️ [Credit Deduction] Invalid credit_price_per_minute setting: ${creditPriceSetting.value}. Using default: 1`);
-      }
+    let creditPricePerMinute = 2; // ElevenLabs default: 2 credits/min
+    const elParsed = Number(elCreditSetting?.value);
+    const baseParsed = Number(baseCreditSetting?.value);
+    if (Number.isFinite(elParsed) && elParsed > 0) {
+      creditPricePerMinute = elParsed;
+    } else if (Number.isFinite(baseParsed) && baseParsed > 0) {
+      creditPricePerMinute = baseParsed;
+    } else {
+      console.warn(`⚠️ [Credit Deduction] Invalid elevenlabs_credit_price_per_minute. Using default: 2`);
     }
     
     const minutes = Math.ceil(duration / 60);
@@ -634,19 +641,24 @@ export async function deductCallCreditsForSip(
   engine: 'elevenlabs-sip' | 'openai-sip'
 ): Promise<CreditDeductionResult> {
   try {
+    // For ElevenLabs SIP use higher rate; for OpenAI SIP use base rate
+    const settingKey = engine === 'elevenlabs-sip' 
+      ? 'elevenlabs_credit_price_per_minute' 
+      : 'credit_price_per_minute';
+    
     const [creditPriceSetting] = await db
       .select()
       .from(globalSettings)
-      .where(eq(globalSettings.key, 'credit_price_per_minute'))
+      .where(eq(globalSettings.key, settingKey))
       .limit(1);
     
-    let creditPricePerMinute = 1;
+    let creditPricePerMinute = engine === 'elevenlabs-sip' ? 2 : 1;
     if (creditPriceSetting?.value) {
       const parsed = Number(creditPriceSetting.value);
       if (Number.isFinite(parsed) && parsed >= 0) {
         creditPricePerMinute = parsed;
       } else {
-        console.warn(`⚠️ [SIP Credit Deduction] Invalid credit_price_per_minute setting: ${creditPriceSetting.value}. Using default: 1`);
+        console.warn(`⚠️ [SIP Credit Deduction] Invalid ${settingKey}: ${creditPriceSetting.value}. Using default: ${creditPricePerMinute}`);
       }
     }
     

@@ -11,6 +11,7 @@ interface CapabilitiesResponse {
     maxConcurrentSipCalls: number;
     restApi: boolean;
     teamManagement: boolean;
+    voiceProvider: 'openai' | 'elevenlabs' | 'both';
   };
 }
 
@@ -35,6 +36,10 @@ export function usePluginStatus(pluginName?: string) {
   const isRestApiPluginEnabled = data?.data?.restApi ?? false;
   const isTeamManagementPluginEnabled = data?.data?.teamManagement ?? false;
   const pluginBundles = data?.data?.pluginBundles ?? {};
+  
+  // Voice provider controls which AI/telephony engines are shown in agent creation
+  // 'openai' = Normal plan (OpenAI + Twilio), 'elevenlabs' = Indian Voice (ElevenLabs + Plivo), 'both' = all engines
+  const voiceProvider: 'openai' | 'elevenlabs' | 'both' = data?.data?.voiceProvider ?? 'both';
 
   if (pluginName) {
     return {
@@ -54,6 +59,7 @@ export function usePluginStatus(pluginName?: string) {
     isTeamManagementPluginEnabled,
     pluginBundles,
     isPluginEnabled,
+    voiceProvider,
     isLoading,
     error,
     hasError: !!error,

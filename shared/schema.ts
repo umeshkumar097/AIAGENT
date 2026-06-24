@@ -515,7 +515,13 @@ export const plans = pgTable("plans", {
   canPurchaseNumbers: boolean("can_purchase_numbers").notNull().default(false),
   useSystemPool: boolean("use_system_pool").notNull().default(true), // Free plan uses system pool
   features: jsonb("features"), // Additional feature flags
-  
+
+  // Voice Engine - Controls which AI/telephony providers are shown to the user
+  // 'openai'      → Normal plan: OpenAI voices + Twilio only
+  // 'elevenlabs'  → Indian Voice plan: ElevenLabs voices + Plivo only
+  // 'both'        → All engines visible (admin / premium plans)
+  voiceProvider: text("voice_provider").notNull().default('openai'),
+
   // SIP Engine Plugin - Plan-level access control
   sipEnabled: boolean("sip_enabled").notNull().default(false),
   maxConcurrentSipCalls: integer("max_concurrent_sip_calls").notNull().default(1),

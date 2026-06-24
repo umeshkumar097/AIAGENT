@@ -198,6 +198,22 @@ const openaiVoices = [
   { value: "marin", label: "Marin", description: "Fresh and lively" },
 ];
 
+// Sarvam AI Bulbul v3 voices
+const sarvamVoices = [
+  { value: 'priya',    label: 'Priya',    lang: 'Hindi',   gender: 'Female', description: 'Natural & Conversational' },
+  { value: 'meera',    label: 'Meera',    lang: 'Hindi',   gender: 'Female', description: 'Warm & Expressive' },
+  { value: 'anushka',  label: 'Anushka',  lang: 'Hindi',   gender: 'Female', description: 'Cheerful & Friendly' },
+  { value: 'maya',     label: 'Maya',     lang: 'Hindi',   gender: 'Female', description: 'Professional & Clear' },
+  { value: 'maitreyi', label: 'Maitreyi', lang: 'Hindi',   gender: 'Female', description: 'Deep & Mature' },
+  { value: 'kalpana',  label: 'Kalpana',  lang: 'Tamil',   gender: 'Female', description: 'Tamil Native Speaker' },
+  { value: 'pavithra', label: 'Pavithra', lang: 'Telugu',  gender: 'Female', description: 'Telugu Native Speaker' },
+  { value: 'vinaya',   label: 'Vinaya',   lang: 'Kannada', gender: 'Female', description: 'Kannada Native Speaker' },
+  { value: 'arvind',   label: 'Arvind',   lang: 'Hindi',   gender: 'Male',   description: 'Clear & Authoritative' },
+  { value: 'aarav',    label: 'Aarav',    lang: 'Hindi',   gender: 'Male',   description: 'Modern & Dynamic' },
+  { value: 'neel',     label: 'Neel',     lang: 'Hindi',   gender: 'Male',   description: 'Professional Male Voice' },
+  { value: 'amol',     label: 'Amol',     lang: 'Marathi', gender: 'Male',   description: 'Marathi Native Speaker' },
+];
+
 interface AgentCreationWizardProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -222,15 +238,33 @@ export function AgentCreationWizard({ open, onOpenChange, onSuccess }: AgentCrea
   const [templatesOpen, setTemplatesOpen] = useState(false);
 
   // Fetch voice engine setting to check if Plivo+OpenAI or Twilio+OpenAI is enabled
-  const { data: voiceEngineSettings } = useQuery<{ plivo_openai_engine_enabled: boolean; twilio_openai_engine_enabled: boolean; default_tts_model?: string }>({
+  const { data: voiceEngineSettings } = useQuery<{ plivo_openai_engine_enabled: boolean; twilio_openai_engine_enabled: boolean; default_tts_model?: string; sarvam_engine_enabled?: boolean }>({
     queryKey: ["/api/settings/voice-engine"],
     staleTime: 60000, // Cache for 1 minute
   });
 
   // Check if SIP plugin is enabled and which engines are allowed
-  const { isSipPluginEnabled, sipEnginesAllowed } = usePluginStatus();
+  const { isSipPluginEnabled, sipEnginesAllowed, voiceProvider } = usePluginStatus();
   const isElevenLabsSipAllowed = isSipPluginEnabled && sipEnginesAllowed.includes("elevenlabs-sip");
   const isOpenAISipAllowed = isSipPluginEnabled && sipEnginesAllowed.includes("openai-sip");
+
+  // Plan-level filtering based on voiceProvider from user's plan
+  // 'openai'      → Normal plan: only OpenAI engines visible
+  // 'elevenlabs'  → Indian Voice plan: only ElevenLabs engines visible
+  // 'both'        → Admin/premium: all engines visible
+  const planAllowsElevenLabs = voiceProvider === 'elevenlabs' || voiceProvider === 'both';
+  const planAllowsOpenAI     = voiceProvider === 'openai'     || voiceProvider === 'both';
+
+  // Computed visibility per card (plan filter × engine availability)
+  const showElevenLabsTwilio = planAllowsElevenLabs;                              // violet card
+  const showTwilioOpenAI     = planAllowsOpenAI && (voiceEngineSettings?.twilio_openai_engine_enabled ?? false);         // blue card
+  const showPlivoOpenAI      = planAllowsOpenAI && (voiceEngineSettings?.plivo_openai_engine_enabled ?? false);                // green card
+  const showElevenLabsSip    = planAllowsElevenLabs && isElevenLabsSipAllowed;    // orange card
+  const showOpenAISip        = planAllowsOpenAI && isOpenAISipAllowed;            // pink card
+  // Sarvam is an independent Indian voice provider — works on any plan when Plivo is enabled
+  const showSarvamPlivo      = (voiceEngineSettings?.plivo_openai_engine_enabled ?? false);  // saffron card
+
+  const hasAlternateEngines = showElevenLabsTwilio || showTwilioOpenAI || showPlivoOpenAI || showElevenLabsSip || showOpenAISip || showSarvamPlivo;
 
   // Fetch SIP phone numbers when SIP plugin is enabled
   const { data: sipPhoneNumbersResponse, isLoading: isSipNumbersLoading } = useQuery<{ success: boolean; data: SipPhoneNumber[] }>({
@@ -242,7 +276,7 @@ export function AgentCreationWizard({ open, onOpenChange, onSuccess }: AgentCrea
   const isPlivoEnabled = voiceEngineSettings?.plivo_openai_engine_enabled ?? false;
   const isTwilioOpenaiEnabled = voiceEngineSettings?.twilio_openai_engine_enabled ?? false;
   const isV3TtsModel = (voiceEngineSettings?.default_tts_model || '').includes('v3');
-  const hasAlternateEngines = isPlivoEnabled || isTwilioOpenaiEnabled || isElevenLabsSipAllowed || isOpenAISipAllowed;
+
 
   const [formData, setFormData] = useState({
     useCase: "",
@@ -258,7 +292,7 @@ export function AgentCreationWizard({ open, onOpenChange, onSuccess }: AgentCrea
     voiceSpeed: 1.0,
     turnTimeout: 1.5,
     // Telephony provider selection
-    telephonyProvider: "twilio" as "twilio" | "plivo" | "twilio_openai" | "elevenlabs-sip" | "openai-sip",
+    telephonyProvider: "twilio" as "twilio" | "plivo" | "twilio_openai" | "elevenlabs-sip" | "openai-sip" | "sarvam-plivo",
     openaiVoice: "alloy",
     // SIP phone number selection (for SIP engines)
     sipPhoneNumberId: "",
@@ -279,9 +313,12 @@ export function AgentCreationWizard({ open, onOpenChange, onSuccess }: AgentCrea
       case "basics":
         // Voice validation depends on telephony provider
         const isOpenAIProvider = formData.telephonyProvider === "plivo" || formData.telephonyProvider === "twilio_openai" || formData.telephonyProvider === "openai-sip";
-        const hasValidVoice = isOpenAIProvider
-          ? !!formData.openaiVoice 
-          : !!formData.elevenLabsVoiceId;
+        const isSarvamProvider = formData.telephonyProvider === "sarvam-plivo";
+        const hasValidVoice = isSarvamProvider
+          ? true  // Sarvam uses default voice 'priya', no selection needed
+          : isOpenAIProvider
+            ? !!formData.openaiVoice 
+            : !!formData.elevenLabsVoiceId;
         // SIP engines require a phone number selection
         const isSipEngine = formData.telephonyProvider === "elevenlabs-sip" || formData.telephonyProvider === "openai-sip";
         const hasSipPhoneNumber = !isSipEngine || !!formData.sipPhoneNumberId;
@@ -304,10 +341,11 @@ export function AgentCreationWizard({ open, onOpenChange, onSuccess }: AgentCrea
     const missing: string[] = [];
     if (!formData.name) missing.push(t('wizard.hint.enterName', { defaultValue: 'enter an agent name' }));
     const isOpenAIProvider = formData.telephonyProvider === "plivo" || formData.telephonyProvider === "twilio_openai" || formData.telephonyProvider === "openai-sip";
+    const isSarvamProvider  = formData.telephonyProvider === "sarvam-plivo";
     const isSipEngine = formData.telephonyProvider === "elevenlabs-sip" || formData.telephonyProvider === "openai-sip";
-    if (isOpenAIProvider && !formData.openaiVoice) {
+    if (!isSarvamProvider && isOpenAIProvider && !formData.openaiVoice) {
       missing.push(t('wizard.hint.selectVoice', { defaultValue: 'select a voice' }));
-    } else if (!isOpenAIProvider && !formData.elevenLabsVoiceId) {
+    } else if (!isSarvamProvider && !isOpenAIProvider && !formData.elevenLabsVoiceId) {
       missing.push(t('wizard.hint.selectVoice', { defaultValue: 'select a voice' }));
     }
     if (isSipEngine && !formData.sipPhoneNumberId) {
@@ -372,7 +410,8 @@ export function AgentCreationWizard({ open, onOpenChange, onSuccess }: AgentCrea
   const createMutation = useMutation({
     mutationFn: async () => {
       const isSipEngine = formData.telephonyProvider === "elevenlabs-sip" || formData.telephonyProvider === "openai-sip";
-      const isOpenAIVoice = formData.telephonyProvider === "plivo" || formData.telephonyProvider === "twilio_openai" || formData.telephonyProvider === "openai-sip";
+      const isSarvamProvider = formData.telephonyProvider === "sarvam-plivo";
+      const isOpenAIVoice = !isSarvamProvider && (formData.telephonyProvider === "plivo" || formData.telephonyProvider === "twilio_openai" || formData.telephonyProvider === "openai-sip");
       const isElevenLabsVoice = formData.telephonyProvider === "twilio" || formData.telephonyProvider === "elevenlabs-sip";
       
       const payload = {
@@ -392,7 +431,8 @@ export function AgentCreationWizard({ open, onOpenChange, onSuccess }: AgentCrea
         temperature: 0.5,
         // Telephony provider configuration
         telephonyProvider: formData.telephonyProvider,
-        openaiVoice: isOpenAIVoice ? formData.openaiVoice : undefined,
+        // For Sarvam: openaiVoice stores the Sarvam voice name (default 'priya')
+        openaiVoice: isOpenAIVoice ? formData.openaiVoice : isSarvamProvider ? 'priya' : undefined,
         // SIP configuration
         sipPhoneNumberId: isSipEngine ? formData.sipPhoneNumberId : undefined,
       };
@@ -530,7 +570,8 @@ export function AgentCreationWizard({ open, onOpenChange, onSuccess }: AgentCrea
                 <div className="space-y-2">
                   <Label>Telephony Provider</Label>
                   <div className={`grid gap-3 ${isPlivoEnabled && isTwilioOpenaiEnabled ? 'grid-cols-3' : 'grid-cols-2'}`}>
-                    {/* ElevenLabs + Twilio - Purple theme */}
+                    {/* ElevenLabs + Twilio - Purple theme (Indian Voice / Both plans) */}
+                    {showElevenLabsTwilio && (
                     <div
                       className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
                         formData.telephonyProvider === "twilio"
@@ -554,8 +595,10 @@ export function AgentCreationWizard({ open, onOpenChange, onSuccess }: AgentCrea
                         )}
                       </div>
                     </div>
-                    {/* OpenAI + Twilio - Teal/Blue theme */}
-                    {isTwilioOpenaiEnabled && (
+                    )}
+
+                    {/* OpenAI + Twilio - Teal/Blue theme (Normal / Both plans) */}
+                    {showTwilioOpenAI && (
                       <div
                         className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
                           formData.telephonyProvider === "twilio_openai"
@@ -580,8 +623,8 @@ export function AgentCreationWizard({ open, onOpenChange, onSuccess }: AgentCrea
                         </div>
                       </div>
                     )}
-                    {/* OpenAI + Plivo - Green theme */}
-                    {isPlivoEnabled && (
+                    {/* OpenAI + Plivo - Green theme (Normal / Both plans) */}
+                    {showPlivoOpenAI && (
                       <div
                         className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
                           formData.telephonyProvider === "plivo"
@@ -606,8 +649,36 @@ export function AgentCreationWizard({ open, onOpenChange, onSuccess }: AgentCrea
                         </div>
                       </div>
                     )}
-                    {/* ElevenLabs SIP - Orange theme */}
-                    {isElevenLabsSipAllowed && (
+                    {/* Sarvam + Plivo - Saffron theme (Indian Voice via Plivo) */}
+                    {showSarvamPlivo && (
+                      <div
+                        className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                          formData.telephonyProvider === "sarvam-plivo"
+                            ? "border-amber-500 bg-amber-500/10 dark:bg-amber-500/20"
+                            : "border-border hover:border-amber-400/50 hover:bg-amber-500/5"
+                        }`}
+                        onClick={() => setFormData(prev => ({ ...prev, telephonyProvider: "sarvam-plivo", sipPhoneNumberId: "" }))}
+                        data-testid="provider-sarvam-plivo"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm">🇮🇳</span>
+                              <span className="font-medium text-amber-700 dark:text-amber-300">Sarvam + Plivo</span>
+                              <span className="text-[10px] font-medium px-1.5 py-0 h-4 border border-amber-300 text-amber-600 dark:border-amber-600 dark:text-amber-400 rounded-full">Indian</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              Hindi/Hinglish native, 11 Indian languages
+                            </p>
+                          </div>
+                          {formData.telephonyProvider === "sarvam-plivo" && (
+                            <Check className="h-4 w-4 text-amber-600" />
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {/* ElevenLabs SIP - Orange theme (Indian Voice / Both plans) */}
+                    {showElevenLabsSip && (
                       <div
                         className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
                           formData.telephonyProvider === "elevenlabs-sip"
@@ -633,8 +704,8 @@ export function AgentCreationWizard({ open, onOpenChange, onSuccess }: AgentCrea
                         </div>
                       </div>
                     )}
-                    {/* OpenAI SIP - Pink theme */}
-                    {isOpenAISipAllowed && (
+                    {/* OpenAI SIP - Pink theme (Normal / Both plans) */}
+                    {showOpenAISip && (
                       <div
                         className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
                           formData.telephonyProvider === "openai-sip"
@@ -721,7 +792,7 @@ export function AgentCreationWizard({ open, onOpenChange, onSuccess }: AgentCrea
               <div className="grid grid-cols-1 lg:[grid-template-columns:repeat(2,minmax(0,1fr))] gap-4">
                 <div className="space-y-2 relative min-w-0">
                   <Label>Voice <span className="text-destructive">*</span></Label>
-                  {(formData.telephonyProvider === "plivo" || formData.telephonyProvider === "twilio_openai" || formData.telephonyProvider === "openai-sip") ? (
+                  {(formData.telephonyProvider === "plivo" || formData.telephonyProvider === "twilio_openai" || formData.telephonyProvider === "openai-sip" || (formData.telephonyProvider === "twilio" && planAllowsOpenAI && !planAllowsElevenLabs)) ? (
                     // OpenAI Voice Selector for Plivo, Twilio+OpenAI, or OpenAI SIP
                     <div className="flex gap-2 min-w-0">
                       <div className="flex-1 min-w-0">
@@ -749,6 +820,35 @@ export function AgentCreationWizard({ open, onOpenChange, onSuccess }: AgentCrea
                         voiceName={openaiVoices.find(v => v.value === formData.openaiVoice)?.label}
                         speed={formData.voiceSpeed}
                       />
+                    </div>
+                  ) : formData.telephonyProvider === "sarvam-plivo" ? (
+                    // Sarvam AI Voice Selector
+                    <div className="space-y-2">
+                      <Select
+                        value={formData.openaiVoice || 'priya'}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, openaiVoice: value }))}
+                      >
+                        <SelectTrigger data-testid="select-sarvam-voice" className="w-full">
+                          <SelectValue placeholder="Select Sarvam voice" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {sarvamVoices.map((voice) => (
+                            <SelectItem key={voice.value} value={voice.value}>
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{voice.label}</span>
+                                  {voice.value === 'priya' && <span className="text-[10px] text-amber-600 border border-amber-300 rounded-full px-1">default</span>}
+                                  <span className="text-xs text-muted-foreground">{voice.gender} · {voice.lang}</span>
+                                </div>
+                                <span className="text-xs text-muted-foreground">{voice.description}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                        🇮🇳 Sarvam AI Bulbul v3 — Hindi, Tamil, Telugu, Kannada, Marathi
+                      </p>
                     </div>
                   ) : (
                     // ElevenLabs Voice Selector for Twilio or ElevenLabs SIP

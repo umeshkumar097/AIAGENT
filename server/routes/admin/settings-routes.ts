@@ -31,6 +31,7 @@ export function registerSettingsRoutes(router: Router) {
     try {
       const settingKeys = [
         'default_llm_free', 'default_tts_model', 'pro_plan_bonus_credits', 'credit_price_per_minute',
+        'elevenlabs_credit_price_per_minute', 'sarvam_api_key',
         'phone_number_monthly_credits', 'min_credit_purchase', 'system_phone_pool_size', 'llm_margin_percentage',
         'twilio_account_sid', 'twilio_auth_token', 'plivo_auth_id', 'plivo_auth_token',
         'elevenlabs_api_key', 'openai_api_key',
@@ -172,7 +173,8 @@ export function registerSettingsRoutes(router: Router) {
       if (!setting) {
         const defaults: Record<string, any> = {
           'default_tts_model': 'eleven_turbo_v2', 'default_llm_free': null, 'pro_plan_bonus_credits': 0,
-          'credit_price_per_minute': 0.1, 'phone_number_monthly_credits': 50, 'min_credit_purchase': 10,
+          'credit_price_per_minute': 1, 'elevenlabs_credit_price_per_minute': 2,
+          'phone_number_monthly_credits': 50, 'min_credit_purchase': 10,
           'system_phone_pool_size': 5, 'llm_margin_percentage': 15, 'stripe_currency': 'INR',
           'stripe_currency_locked': false, 'stripe_mode': 'test', 'auto_restart_enabled': false,
           'auto_restart_ram_percent': 75, 'auto_restart_cpu_percent': 85,

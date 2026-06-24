@@ -34,6 +34,8 @@ interface Settings {
   default_llm_free: string;
   pro_plan_bonus_credits: number;
   credit_price_per_minute: number;
+  elevenlabs_credit_price_per_minute: number;
+  sarvam_api_key: string;
   min_credit_purchase: number;
   twilio_account_sid: string;
   twilio_auth_token: string;
@@ -873,6 +875,44 @@ export default function GlobalSettings({ onSwitchTab }: GlobalSettingsProps) {
                 {t("admin.settings.pricing.creditPriceHint")}
               </p>
             </div>
+
+            {/* ElevenLabs separate per-minute rate */}
+            <div>
+              <div className="flex items-center gap-1">
+                <Label>🟠 ElevenLabs Credits / Minute (Indian Voice)</Label>
+              </div>
+              <Input
+                type="number"
+                step="0.1"
+                min="0.1"
+                value={formData.elevenlabs_credit_price_per_minute ?? 2}
+                onChange={(e) => handleChange("elevenlabs_credit_price_per_minute", parseFloat(e.target.value) || 2)}
+                data-testid="input-elevenlabs-credit-price"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Indian Voice (ElevenLabs) calls ke liye alag rate. ElevenLabs API zyada costly hai — OpenAI rate se zyada rakhein.
+                Default: <strong>2 credits/min</strong>.
+              </p>
+            </div>
+
+            {/* Sarvam AI API Key */}
+            <div>
+              <div className="flex items-center gap-1">
+                <Label>🇮🇳 Sarvam AI API Key (Indian Voice)</Label>
+              </div>
+              <Input
+                type="password"
+                placeholder="sk_..."
+                value={formData.sarvam_api_key || ''}
+                onChange={(e) => handleChange('sarvam_api_key', e.target.value)}
+                data-testid="input-sarvam-api-key"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Sarvam AI (Bulbul TTS + Saaras STT) ke liye API key. Indian languages ke liye ElevenLabs se sasti.
+                <a href="https://app.sarvam.ai" target="_blank" rel="noreferrer" className="ml-1 text-primary underline">Sarvam Console</a>
+              </p>
+            </div>
+
             <div>
               <div className="flex items-center">
                 <Label>{t("admin.settings.pricing.minPurchase")}</Label>

@@ -105,7 +105,7 @@ interface Agent {
   endConversationEnabled: boolean | null;
   appointmentBookingEnabled: boolean | null;
   expressiveMode: boolean | null;
-  telephonyProvider: 'twilio' | 'plivo' | 'twilio_openai' | 'elevenlabs-sip' | 'openai-sip' | null;
+  telephonyProvider: 'twilio' | 'plivo' | 'twilio_openai' | 'elevenlabs-sip' | 'openai-sip' | 'sarvam-plivo' | 'elevenlabs' | null;
   openaiVoice: string | null;
   createdAt: string;
 }
@@ -122,6 +122,22 @@ const openaiVoices = [
   { value: "verse", label: "Verse", description: "Poetic and articulate" },
   { value: "cedar", label: "Cedar", description: "Deep and grounded" },
   { value: "marin", label: "Marin", description: "Fresh and lively" },
+];
+
+// Sarvam AI Bulbul v3 voices
+const sarvamVoices = [
+  { value: 'priya',    label: 'Priya',    lang: 'Hindi',   gender: 'Female', description: 'Natural & Conversational' },
+  { value: 'meera',    label: 'Meera',    lang: 'Hindi',   gender: 'Female', description: 'Warm & Expressive' },
+  { value: 'anushka',  label: 'Anushka',  lang: 'Hindi',   gender: 'Female', description: 'Cheerful & Friendly' },
+  { value: 'maya',     label: 'Maya',     lang: 'Hindi',   gender: 'Female', description: 'Professional & Clear' },
+  { value: 'maitreyi', label: 'Maitreyi', lang: 'Hindi',   gender: 'Female', description: 'Deep & Mature' },
+  { value: 'kalpana',  label: 'Kalpana',  lang: 'Tamil',   gender: 'Female', description: 'Tamil Native Speaker' },
+  { value: 'pavithra', label: 'Pavithra', lang: 'Telugu',  gender: 'Female', description: 'Telugu Native Speaker' },
+  { value: 'vinaya',   label: 'Vinaya',   lang: 'Kannada', gender: 'Female', description: 'Kannada Native Speaker' },
+  { value: 'arvind',   label: 'Arvind',   lang: 'Hindi',   gender: 'Male',   description: 'Clear & Authoritative' },
+  { value: 'aarav',    label: 'Aarav',    lang: 'Hindi',   gender: 'Male',   description: 'Modern & Dynamic' },
+  { value: 'neel',     label: 'Neel',     lang: 'Hindi',   gender: 'Male',   description: 'Professional Male Voice' },
+  { value: 'amol',     label: 'Amol',     lang: 'Marathi', gender: 'Male',   description: 'Marathi Native Speaker' },
 ];
 
 interface Voice {
@@ -309,13 +325,14 @@ export default function Agents() {
   });
 
   // Fetch voice engine settings to check if Plivo+OpenAI or Twilio+OpenAI is enabled
-  const { data: voiceEngineSettings } = useQuery<{ plivo_openai_engine_enabled: boolean; twilio_openai_engine_enabled: boolean; default_tts_model?: string }>({
+  const { data: voiceEngineSettings } = useQuery<{ plivo_openai_engine_enabled: boolean; twilio_openai_engine_enabled: boolean; default_tts_model?: string; sarvam_engine_enabled?: boolean }>({
     queryKey: ["/api/settings/voice-engine"],
     staleTime: 60000,
   });
 
   const isPlivoEnabled = voiceEngineSettings?.plivo_openai_engine_enabled ?? false;
   const isTwilioOpenaiEnabled = voiceEngineSettings?.twilio_openai_engine_enabled ?? false;
+  const isSarvamEnabled = voiceEngineSettings?.sarvam_engine_enabled ?? false;
   const isV3TtsModel = (voiceEngineSettings?.default_tts_model || '').includes('v3');
 
   // Check if SIP plugin is enabled and which engines are allowed
@@ -330,7 +347,7 @@ export default function Agents() {
   });
   const sipPhoneNumbers = sipPhoneNumbersResponse?.data || [];
 
-  const hasAlternateEngines = isPlivoEnabled || isTwilioOpenaiEnabled || isElevenLabsSipAllowed || isOpenAISipAllowed;
+  const hasAlternateEngines = isPlivoEnabled || isTwilioOpenaiEnabled || isElevenLabsSipAllowed || isOpenAISipAllowed || isSarvamEnabled;
 
   const { data: emailTemplatesResponse } = useQuery<{ success: boolean; data: Array<{ id: string; name: string }> }>({
     queryKey: ["/api/messaging/email-templates"],
@@ -1659,7 +1676,38 @@ export default function Agents() {
                           </div>
                         </div>
                       )}
-                      {/* ElevenLabs SIP - Orange theme */}
+                      {/* Sarvam + Plivo - Indian Voice */}
+                      {(isSarvamEnabled || formData.telephonyProvider === "sarvam-plivo") && (
+                        <div
+                          className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                            formData.telephonyProvider === "sarvam-plivo"
+                              ? "border-amber-500 bg-amber-500/10 dark:bg-amber-500/20"
+                              : "border-border hover:border-amber-400/50 hover:bg-amber-500/5"
+                          }`}
+                          onClick={() => setFormData({ 
+                            ...formData, 
+                            telephonyProvider: "sarvam-plivo",
+                            llmModel: availableLLMModels.length > 0 ? availableLLMModels[0].modelId : "gpt-4o-mini"
+                          })}
+                          data-testid="flow-provider-sarvam-plivo"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-sm">🇮🇳</span>
+                                <span className="font-medium text-amber-700 dark:text-amber-300">Sarvam + Plivo</span>
+                                <span className="text-[10px] font-medium px-1.5 py-0.5 border border-amber-300 text-amber-600 dark:border-amber-600 dark:text-amber-400 rounded-full">Indian</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                Hindi / 11 Indian languages
+                              </p>
+                            </div>
+                            {formData.telephonyProvider === "sarvam-plivo" && (
+                              <Check className="h-4 w-4 text-amber-600" />
+                            )}
+                          </div>
+                        </div>
+                      )}
                       {(isElevenLabsSipAllowed || formData.telephonyProvider === "elevenlabs-sip") && (
                         <div
                           className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
@@ -1754,6 +1802,35 @@ export default function Agents() {
                         ))}
                       </SelectContent>
                     </Select>
+                  ) : formData.telephonyProvider === "sarvam-plivo" ? (
+                    // Sarvam AI Voice Selector
+                    <div className="space-y-1.5">
+                      <Select
+                        value={formData.openaiVoice || 'priya'}
+                        onValueChange={(value) => setFormData({ ...formData, openaiVoice: value })}
+                      >
+                        <SelectTrigger id="flow-voice" data-testid="select-sarvam-voice">
+                          <SelectValue placeholder="Select Sarvam voice" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {sarvamVoices.map((voice) => (
+                            <SelectItem key={voice.value} value={voice.value}>
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-medium">{voice.label}</span>
+                                  {voice.value === 'priya' && <span className="text-[10px] text-amber-600 border border-amber-300 rounded-full px-1">default</span>}
+                                  <span className="text-xs text-muted-foreground">{voice.gender} · {voice.lang}</span>
+                                </div>
+                                <span className="text-xs text-muted-foreground">{voice.description}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                        🇮🇳 Sarvam Bulbul v3 — Hindi, Tamil, Telugu, Kannada, Marathi
+                      </p>
+                    </div>
                   ) : (
                     <div className="flex gap-2">
                       <div className="flex-1">
@@ -2179,6 +2256,38 @@ export default function Agents() {
                       </div>
                     </div>
                   )}
+                  {/* Sarvam + Plivo - Indian Voice (Incoming Agent) */}
+                  {(isSarvamEnabled || formData.telephonyProvider === "sarvam-plivo") && (
+                    <div
+                      className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                        formData.telephonyProvider === "sarvam-plivo"
+                          ? "border-amber-500 bg-amber-500/10 dark:bg-amber-500/20"
+                          : "border-border hover:border-amber-400/50 hover:bg-amber-500/5"
+                      }`}
+                      onClick={() => setFormData({ 
+                        ...formData, 
+                        telephonyProvider: "sarvam-plivo",
+                        llmModel: availableLLMModels.length > 0 ? availableLLMModels[0].modelId : "gpt-4o-mini"
+                      })}
+                      data-testid="incoming-provider-sarvam-plivo"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm">🇮🇳</span>
+                            <span className="font-medium text-amber-700 dark:text-amber-300">Sarvam + Plivo</span>
+                            <span className="text-[10px] font-medium px-1.5 py-0.5 border border-amber-300 text-amber-600 dark:border-amber-600 dark:text-amber-400 rounded-full">Indian</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Hindi / 11 Indian languages
+                          </p>
+                        </div>
+                        {formData.telephonyProvider === "sarvam-plivo" && (
+                          <Check className="h-4 w-4 text-amber-600" />
+                        )}
+                      </div>
+                    </div>
+                  )}
                   {/* ElevenLabs SIP - Orange theme */}
                   {(isElevenLabsSipAllowed || formData.telephonyProvider === "elevenlabs-sip") && (
                     <div
@@ -2283,6 +2392,35 @@ export default function Agents() {
                       speed={formData.voiceSpeed ?? 1.0}
                     />
                   </div>
+                ) : formData.telephonyProvider === "sarvam-plivo" ? (
+                  // Sarvam AI Voice Selector — Indian voices only
+                  <div className="space-y-1.5">
+                    <Select
+                      value={formData.openaiVoice || 'priya'}
+                      onValueChange={(value) => setFormData({ ...formData, openaiVoice: value })}
+                    >
+                      <SelectTrigger data-testid="select-sarvam-voice-incoming">
+                        <SelectValue placeholder="Select Sarvam voice" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sarvamVoices.map((voice) => (
+                          <SelectItem key={voice.value} value={voice.value}>
+                            <div className="flex flex-col">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-medium">{voice.label}</span>
+                                {voice.value === 'priya' && <span className="text-[10px] text-amber-600 border border-amber-300 rounded-full px-1">default</span>}
+                                <span className="text-xs text-muted-foreground">{voice.gender} · {voice.lang}</span>
+                              </div>
+                              <span className="text-xs text-muted-foreground">{voice.description}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      🇮🇳 Sarvam Bulbul v3 — Hindi, Tamil, Telugu, Kannada, Marathi
+                    </p>
+                  </div>
                 ) : (
                   <div className="flex gap-2">
                     <div className="flex-1 min-w-0 overflow-hidden">
@@ -2313,6 +2451,7 @@ export default function Agents() {
                     />
                   </div>
                 )}
+
               </div>
 
               <div className="space-y-2">

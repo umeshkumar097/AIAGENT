@@ -85,6 +85,7 @@ interface Plan {
   sipEnabled: boolean;
   maxConcurrentSipCalls?: number;
   restApiEnabled: boolean;
+  voiceProvider?: 'openai' | 'elevenlabs' | 'both';
   isActive: boolean;
   stripeProductId?: string | null;
   stripeMonthlyPriceId?: string | null;
@@ -704,6 +705,7 @@ export default function PlanManagement() {
     canChooseLlm: false,
     canPurchaseNumbers: false,
     useSystemPool: false,
+    voiceProvider: 'openai' as const,
     sipEnabled: false,
     maxConcurrentSipCalls: 1,
     restApiEnabled: false,
@@ -1477,6 +1479,23 @@ export default function PlanManagement() {
                   data-testid="switch-new-plan-pool"
                 />
               </div>
+
+              {/* Voice Provider - Controls which AI/telephony engine users see */}
+              <div className="space-y-1">
+                <Label>Voice Provider</Label>
+                <p className="text-xs text-muted-foreground">Controls which AI engine &amp; telephony users see when creating agents</p>
+                <select
+                  className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                  value={newPlanForm.voiceProvider ?? 'openai'}
+                  onChange={(e) => updateNewPlanField("voiceProvider", e.target.value)}
+                  data-testid="select-new-plan-voice-provider"
+                >
+                  <option value="openai">🔵 Normal Voice (OpenAI + Twilio — English/American/British)</option>
+                  <option value="elevenlabs">🟠 Indian Voice (ElevenLabs + Plivo — Indian accent)</option>
+                  <option value="both">⚪ Both Engines (Admin / Premium — all options visible)</option>
+                </select>
+              </div>
+
               {sipPluginInstalled && (
                 <div className="flex items-center justify-between">
                   <Label>SIP Trunk Access</Label>
@@ -1827,6 +1846,23 @@ export default function PlanManagement() {
                           onCheckedChange={(checked) => updateField(plan.id, "useSystemPool", checked)}
                         />
                       </div>
+
+                      {/* Voice Provider */}
+                      <div className="space-y-1">
+                        <Label>Voice Provider</Label>
+                        <p className="text-xs text-muted-foreground">Controls AI engine &amp; telephony visible to users</p>
+                        <select
+                          className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                          value={(formData as any).voiceProvider ?? plan.voiceProvider ?? 'openai'}
+                          onChange={(e) => updateField(plan.id, "voiceProvider", e.target.value)}
+                          data-testid={`select-plan-voice-provider-${plan.id}`}
+                        >
+                          <option value="openai">🔵 Normal Voice (OpenAI + Twilio)</option>
+                          <option value="elevenlabs">🟠 Indian Voice (ElevenLabs + Plivo)</option>
+                          <option value="both">⚪ Both Engines (Admin / Premium)</option>
+                        </select>
+                      </div>
+
                       {sipPluginInstalled && (
                         <div className="flex items-center justify-between">
                           <Label>SIP Trunk Access</Label>

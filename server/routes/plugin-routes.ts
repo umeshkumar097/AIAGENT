@@ -103,6 +103,7 @@ userPluginRouter.get('/capabilities', async (req, res) => {
     let userHasSipAccess = false;
     let sipEnginesAllowed: string[] = [];
     let maxConcurrentSipCalls = 0;
+    let voiceProvider: 'openai' | 'elevenlabs' | 'both' = 'openai';
     
     // Get user's plan capabilities if authenticated
     const userId = (req as any).userId;
@@ -112,8 +113,17 @@ userPluginRouter.get('/capabilities', async (req, res) => {
         userHasSipAccess = planCapabilities.sipEnabled;
         sipEnginesAllowed = planCapabilities.sipEnginesAllowed;
         maxConcurrentSipCalls = planCapabilities.maxConcurrentSipCalls;
+        voiceProvider = planCapabilities.voiceProvider;
       } catch (err) {
         console.warn('[Plugin Capabilities] Could not get user plan capabilities:', err);
+      }
+    } else if (userId) {
+      // Even if SIP plugin is not enabled, still fetch voiceProvider
+      try {
+        const planCapabilities = await getUserPlanCapabilities(userId);
+        voiceProvider = planCapabilities.voiceProvider;
+      } catch (err) {
+        console.warn('[Plugin Capabilities] Could not get voice provider:', err);
       }
     }
     
@@ -131,6 +141,7 @@ userPluginRouter.get('/capabilities', async (req, res) => {
         maxConcurrentSipCalls: sipEngineAccess ? maxConcurrentSipCalls : 0,
         restApi: capabilities['rest-api'] ?? false,
         teamManagement: capabilities['team-management'] ?? false,
+        voiceProvider,
       }
     });
   } catch (error: any) {
@@ -146,6 +157,7 @@ userPluginRouter.get('/capabilities', async (req, res) => {
         maxConcurrentSipCalls: 0,
         restApi: false,
         teamManagement: false,
+        voiceProvider: 'openai' as const,
       }
     });
   }

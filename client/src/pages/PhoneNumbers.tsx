@@ -220,9 +220,16 @@ export default function PhoneNumbers() {
   const plivoKycRequired = voiceEngineSettings?.plivo_kyc_required ?? true;
   
   // SIP access - requires plugin enabled AND user's plan has SIP access
-  const { isSipPluginEnabled } = usePluginStatus();
+  const { isSipPluginEnabled, voiceProvider } = usePluginStatus();
   const pluginRegistry = usePluginRegistry();
   const phoneNumbersTabs = pluginRegistry.getPhoneNumbersTabs();
+
+  // Plan-based tab filtering
+  // 'openai'     → Normal plan: Twilio only
+  // 'elevenlabs' → Indian Voice plan: Plivo only  
+  // 'both'       → All tabs
+  const showTwilioTab = voiceProvider !== 'elevenlabs'; // Normal + Both
+  const showPlivoTab  = plivoEnabled && voiceProvider !== 'openai';  // Indian + Both
 
   // User KYC status
   const { data: currentUser } = useQuery<UserWithKyc>({
@@ -635,12 +642,14 @@ export default function PhoneNumbers() {
         </div>
       </div>
 
-      <Tabs defaultValue="owned" className="space-y-6">
+      <Tabs defaultValue={showTwilioTab ? "owned" : "plivo"} className="space-y-6">
         <TabsList>
+          {showTwilioTab && (
           <TabsTrigger value="owned" data-testid="tab-owned-numbers">
             Twilio Numbers ({ownedNumbers.length})
           </TabsTrigger>
-          {plivoEnabled && (
+          )}
+          {showPlivoTab && (
             <TabsTrigger value="plivo" data-testid="tab-plivo-numbers">
               Plivo Numbers ({plivoNumbers.length})
             </TabsTrigger>

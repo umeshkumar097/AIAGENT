@@ -19,8 +19,10 @@ import { OpenAIPoolService } from '../services/openai-pool.service';
 import { OpenAIAgentFactory } from '../services/openai-agent-factory';
 import { CallInsightsService } from '../../../services/call-insights.service';
 import { ElevenLabsBridgeService } from '../services/elevenlabs-bridge.service';
+import { SarvamBridgeService } from '../services/sarvam-bridge.service';
+import { PlivoRecordingService } from '../services/plivo-recording.service';
 import { db } from '../../../db';
-import { plivoCalls, agents, users, flowExecutions } from '@shared/schema';
+import { plivoCalls, agents, users, flowExecutions, plivoCredentials } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { logger } from '../../../utils/logger';
 import type { OpenAIVoice, OpenAIRealtimeModel, AgentTool } from '../types';
@@ -110,10 +112,11 @@ function handlePlivoStreamConnection(ws: WebSocket, callUuid: string): void {
           }
         }
       } else if (message.event === 'media') {
-        // Forward audio to either OpenAI or ElevenLabs via audio bridge
-        // Only process if session is initialized (fixes race condition)
+        // Forward audio to ElevenLabs, Sarvam, or OpenAI bridge
         if (sessionInitialized && message.media?.payload) {
-          if ((ws as any).isElevenLabs) {
+          if ((ws as any).isSarvam) {
+            SarvamBridgeService.handlePlivoAudio(callUuid, ws, message.media.payload);
+          } else if ((ws as any).isElevenLabs) {
             await ElevenLabsBridgeService.handlePlivoAudio(callUuid, ws, message.media.payload);
           } else {
             await AudioBridgeService.handlePlivoAudio(callUuid, message.media.payload);
@@ -133,10 +136,12 @@ function handlePlivoStreamConnection(ws: WebSocket, callUuid: string): void {
     try {
       let result = { duration: 0, transcript: '' };
       
-      if ((ws as any).isElevenLabs) {
-        await ElevenLabsBridgeService.endSession(ws);
-        // ElevenLabs transcript syncing might happen via webhook or separately
-        logger.info(`ElevenLabs session ended`, undefined, 'PlivoStream');
+      if ((ws as any).isSarvam) {
+        result = SarvamBridgeService.endSession(ws);
+        logger.info(`Sarvam session ended: duration ${result.duration}s, transcript lines: ${result.transcript?.split('\n').length || 0}`, undefined, 'PlivoStream');
+      } else if ((ws as any).isElevenLabs) {
+        result = await ElevenLabsBridgeService.endSession(ws);
+        logger.info(`ElevenLabs session ended: duration ${result.duration}s, transcript lines: ${result.transcript?.split('\n').length || 0}`, undefined, 'PlivoStream');
       } else {
         result = await AudioBridgeService.endSession(callUuid);
         logger.info(`Session ended: duration ${result.duration}s, transcript length: ${result.transcript?.length || 0}`, undefined, 'PlivoStream');
@@ -305,25 +310,100 @@ async function initializeSession(
       return;
     }
 
-    // Check if it's an ElevenLabs agent
+    // Check if it's a Sarvam or ElevenLabs agent
     if (call.agentId) {
       const [agent] = await db
-        .select({ elevenLabsAgentId: agents.elevenLabsAgentId })
+        .select({
+          elevenLabsAgentId:  agents.elevenLabsAgentId,
+          telephonyProvider:  agents.telephonyProvider,
+          systemPrompt:       agents.systemPrompt,
+          firstMessage:       agents.firstMessage,
+          language:           agents.language,
+          openaiVoice:        agents.openaiVoice,
+        })
         .from(agents)
         .where(eq(agents.id, call.agentId))
         .limit(1);
 
+      // ── Sarvam + Plivo bridge ──────────────────────────────────────────────
+      if (agent && agent.telephonyProvider === 'sarvam-plivo') {
+        logger.info(`[PlivoStream] Agent ${call.agentId} is Sarvam, routing to SarvamBridge`, undefined, 'PlivoStream');
+
+        // Get OpenAI key for GPT-4o LLM
+        let openaiKey: string | null = null;
+        if (call.openaiCredentialId) {
+          const cred = await OpenAIPoolService.getCredentialById(call.openaiCredentialId);
+          openaiKey = cred?.apiKey || null;
+        }
+        // Fallback: get any available credential from pool
+        if (!openaiKey) {
+          logger.warn(`[PlivoStream] No credential ID for Sarvam call ${callUuid}, trying pool fallback`, undefined, 'PlivoStream');
+          const anyCred = await OpenAIPoolService.getLeastLoadedCredential();
+          openaiKey = anyCred?.apiKey || null;
+        }
+        // Final fallback: env var
+        if (!openaiKey && process.env.OPENAI_API_KEY) {
+          openaiKey = process.env.OPENAI_API_KEY;
+        }
+
+        if (!openaiKey) {
+          logger.error(`[PlivoStream] No OpenAI key available for Sarvam call ${callUuid} — add OpenAI credentials in admin`, undefined, 'PlivoStream');
+          plivoWs.close();
+          return;
+        }
+
+        const callMeta = call.metadata as Record<string, unknown> | null;
+        await SarvamBridgeService.initializeSession(
+          callUuid,
+          plivoWs,
+          streamSid,
+          call.agentId,
+          {
+            systemPrompt: (callMeta?.systemPrompt as string) || agent.systemPrompt || 'Aap ek helpful Indian voice assistant hain.',
+            firstMessage: (callMeta?.firstMessage as string) || agent.firstMessage || undefined,
+            language:     agent.language || 'hi-IN',
+            voice:        agent.openaiVoice || 'priya',
+            openaiApiKey: openaiKey,
+          }
+        );
+
+        // ── Start Plivo recording for Sarvam calls ─────────────────────────
+        if (call.id) {
+          setTimeout(async () => {
+            if (plivoWs.readyState !== WebSocket.OPEN) return;
+            logger.info(`[PlivoStream] Starting recording for Sarvam call ${callUuid}`, undefined, 'PlivoStream');
+            const recResult = await PlivoRecordingService.startRecording({
+              callUuid,
+              callRecordId: call.id,
+            });
+            if (recResult.success) {
+              logger.info(`[PlivoStream] ✓ Recording started for Sarvam call ${callUuid}`, undefined, 'PlivoStream');
+            } else {
+              logger.warn(`[PlivoStream] Recording failed for Sarvam call ${callUuid}: ${recResult.error}`, undefined, 'PlivoStream');
+            }
+          }, 2000);
+        }
+
+        return;
+      }
+
+      // ── ElevenLabs bridge ─────────────────────────────────────────────────
       if (agent && agent.elevenLabsAgentId) {
         logger.info(`[PlivoStream] Agent ${call.agentId} is ElevenLabs, routing to ElevenLabsBridge`, undefined, 'PlivoStream');
+
         await ElevenLabsBridgeService.initializeSession(
           callUuid,
           plivoWs,
           streamSid,
           call.agentId,
-          agent.elevenLabsAgentId
+          agent.elevenLabsAgentId,
+          undefined,  // plivoAuthId
+          undefined,  // plivoAuthToken
+          undefined   // recordingCallbackUrl
         );
-        return; // Don't proceed with OpenAI initialization
+        return;
       }
+
     }
 
     // Get OpenAI API key - use the one already reserved for this call

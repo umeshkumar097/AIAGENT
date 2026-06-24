@@ -748,5 +748,105 @@ export function setupPlivoWebhooks(app: Express, baseUrl: string): void {
     res.send(xml);
   });
 
+
   logger.info('Plivo webhook routes registered', undefined, 'PlivoWebhook');
+
+  // ── WhatsApp Message Webhook (required by Plivo Configure Number form) ──────
+  // Webhook URL: https://zonvo.in/api/plivo/whatsapp/message
+  app.post('/api/plivo/whatsapp/message', async (req: Request, res: Response) => {
+    logger.info(`[WhatsApp] Incoming message: ${JSON.stringify(req.body)}`, undefined, 'PlivoWebhook');
+    res.status(200).send('OK');
+  });
+
+  // ── WhatsApp Calling Answer URL ─────────────────────────────────────────────
+  // Answer URL: https://zonvo.in/api/plivo/whatsapp/answer
+  // When someone calls on WhatsApp, Plivo hits this endpoint.
+  // Routes to the same SarvamBridge audio pipeline as regular voice calls.
+  app.post('/api/plivo/whatsapp/answer', async (req: Request, res: Response) => {
+    try {
+      const { CallUUID, From, To, Direction } = req.body;
+      const normalizedTo   = (To   || '').toString().trim().replace(/^\+/, '');
+      const normalizedFrom = (From || '').toString().trim().replace(/^\+/, '');
+
+      logger.info(`[WhatsApp] Incoming call: ${CallUUID} from ${normalizedFrom} to ${normalizedTo}`, undefined, 'PlivoWebhook');
+
+      const [phoneNumber] = await db
+        .select().from(plivoPhoneNumbers)
+        .where(eq(plivoPhoneNumbers.phoneNumber, normalizedTo)).limit(1);
+
+      if (!phoneNumber?.assignedAgentId) {
+        logger.warn(`[WhatsApp] No agent for ${normalizedTo}`, undefined, 'PlivoWebhook');
+        res.set('Content-Type', 'text/xml');
+        res.send(`<?xml version="1.0" encoding="UTF-8"?><Response><Speak>Sorry, this number is not configured.</Speak><Hangup/></Response>`);
+        return;
+      }
+
+      const [agent] = await db.select().from(agents).where(eq(agents.id, phoneNumber.assignedAgentId)).limit(1);
+      if (!agent) {
+        res.set('Content-Type', 'text/xml');
+        res.send(`<?xml version="1.0" encoding="UTF-8"?><Response><Hangup/></Response>`);
+        return;
+      }
+
+      const [user] = await db.select().from(users).where(eq(users.id, agent.userId)).limit(1);
+      if (!user || user.credits < 1) {
+        res.set('Content-Type', 'text/xml');
+        res.send(`<?xml version="1.0" encoding="UTF-8"?><Response><Speak>Service temporarily unavailable.</Speak><Hangup/></Response>`);
+        return;
+      }
+
+      let openaiCredentialId: string | undefined;
+      const needsOpenAiSlot = agent.telephonyProvider === 'sarvam-plivo' ||
+        (!agent.elevenLabsAgentId && agent.telephonyProvider !== 'elevenlabs-sip' && agent.telephonyProvider !== 'elevenlabs');
+
+      if (needsOpenAiSlot) {
+        const tier = OpenAIPoolService.getModelTierForUser(user.planType);
+        const openaiCredential = await OpenAIPoolService.reserveSlot(tier);
+        if (!openaiCredential) {
+          res.set('Content-Type', 'text/xml');
+          res.send(`<?xml version="1.0" encoding="UTF-8"?><Response><Speak>High demand. Please try again.</Speak><Hangup/></Response>`);
+          return;
+        }
+        openaiCredentialId = openaiCredential.id;
+      }
+
+      let callRecord: any = null;
+      try {
+        callRecord = await PlivoCallService.createIncomingCall({
+          fromNumber: normalizedFrom, toNumber: normalizedTo,
+          plivoCallUuid: CallUUID, agentId: agent.id,
+          plivoPhoneNumberId: phoneNumber.id, userId: agent.userId,
+          openaiCredentialId, plivoCredentialId: phoneNumber.plivoCredentialId || undefined,
+          metadata: { whatsapp_call: true, direction: Direction || 'inbound' },
+        });
+      } catch (ce: any) {
+        if (ce?.cause?.code === '23505' || ce?.code === '23505') {
+          const [existing] = await db.select().from(plivoCalls).where(eq(plivoCalls.plivoCallUuid, CallUUID)).limit(1);
+          callRecord = existing || null;
+          if (openaiCredentialId) await OpenAIPoolService.releaseSlot(openaiCredentialId);
+        } else {
+          if (openaiCredentialId) await OpenAIPoolService.releaseSlot(openaiCredentialId);
+          throw ce;
+        }
+      }
+
+      const streamUrl = getStreamUrl(baseUrl, CallUUID);
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Stream bidirectional="true" keepCallAlive="true" contentType="audio/x-mulaw;rate=8000">
+    ${streamUrl}
+  </Stream>
+</Response>`;
+
+      logger.info(`[WhatsApp] Returning Stream XML for ${CallUUID}, callRecord: ${callRecord?.id}`, undefined, 'PlivoWebhook');
+      res.set('Content-Type', 'text/xml');
+      res.send(xml);
+
+    } catch (error: any) {
+      logger.error('[WhatsApp] Answer error', error, 'PlivoWebhook');
+      res.set('Content-Type', 'text/xml');
+      res.send(`<?xml version="1.0" encoding="UTF-8"?><Response><Hangup/></Response>`);
+    }
+  });
 }
+

@@ -161,11 +161,12 @@ type TwilioOpenaiIncomingConnectionsResponse = {
   stats: Stats;
 };
 
-type EngineTab = 'twilio-elevenlabs' | 'plivo-openai' | 'twilio-openai';
+type EngineTab = 'twilio-elevenlabs' | 'plivo-openai' | 'twilio-openai' | 'sarvam-plivo';
 
 type VoiceEngineSettings = {
   plivo_openai_engine_enabled: boolean;
   twilio_openai_engine_enabled: boolean;
+  sarvam_engine_enabled?: boolean;
 };
 
 export default function IncomingConnectionsPage() {
@@ -180,6 +181,7 @@ export default function IncomingConnectionsPage() {
 
   // Plivo state
   const [plivoCreateDialogOpen, setPlivoCreateDialogOpen] = useState(false);
+  const [isSarvamDialog, setIsSarvamDialog] = useState(false); // track if opened from Sarvam tab
   const [plivoDeleteConnection, setPlivoDeleteConnection] = useState<PlivoConnection | null>(null);
   const [selectedPlivoAgentId, setSelectedPlivoAgentId] = useState("");
   const [selectedPlivoPhoneId, setSelectedPlivoPhoneId] = useState("");
@@ -210,6 +212,8 @@ export default function IncomingConnectionsPage() {
   });
   const plivoEnabled = voiceEngineSettings?.plivo_openai_engine_enabled ?? false;
   const twilioOpenaiEnabled = voiceEngineSettings?.twilio_openai_engine_enabled ?? false;
+  // Sarvam uses its own engine flag (independent of Plivo OpenAI flag)
+  const sarvamEnabled = voiceEngineSettings?.sarvam_engine_enabled ?? false;
 
   // Current user (for plan type detection)
   const { data: currentUser } = useQuery<{ planType: string }>({
@@ -219,11 +223,12 @@ export default function IncomingConnectionsPage() {
 
   // Calculate enabled engines for tab columns
   const enabledEngineCount = useMemo(() => {
-    let count = 1; // Plivo + ElevenLabs is always enabled
+    let count = 1; // Twilio + ElevenLabs always shown
     if (plivoEnabled) count++;
     if (twilioOpenaiEnabled) count++;
+    if (sarvamEnabled) count++;
     return count;
-  }, [plivoEnabled, twilioOpenaiEnabled]);
+  }, [plivoEnabled, twilioOpenaiEnabled, sarvamEnabled]);
 
   // Reset activeTab to always-enabled engine if current tab becomes disabled
   useEffect(() => {
@@ -285,12 +290,21 @@ export default function IncomingConnectionsPage() {
 
   // Plivo mutations
   const plivoConnections = plivoData?.connections || [];
+  // Split connections: Sarvam vs regular Plivo
+  const sarvamConnections = plivoConnections.filter(c => c.agent?.telephonyProvider === 'sarvam-plivo');
+  const plivoOnlyConnections = plivoConnections.filter(c => c.agent?.telephonyProvider !== 'sarvam-plivo');
   const plivoAvailablePhoneNumbers = plivoData?.availablePhoneNumbers || [];
   const plivoAvailableAgents = plivoData?.availableAgents || [];
+  const sarvamAvailableAgents = plivoAvailableAgents.filter(a => a.telephonyProvider === 'sarvam-plivo');
   const plivoStats = {
-    totalConnections: plivoData?.stats?.totalConnections || 0,
+    totalConnections: plivoOnlyConnections.length,
     availableNumbers: plivoData?.stats?.availableNumbers || 0,
-    totalAgents: plivoData?.stats?.totalAgents || 0,
+    totalAgents: plivoAvailableAgents.filter(a => a.telephonyProvider !== 'sarvam-plivo').length,
+  };
+  const sarvamStats = {
+    totalConnections: sarvamConnections.length,
+    availableNumbers: plivoData?.stats?.availableNumbers || 0,
+    totalAgents: sarvamAvailableAgents.length,
   };
 
   const plivoCreateMutation = useMutation({
@@ -304,6 +318,7 @@ export default function IncomingConnectionsPage() {
         description: "Plivo incoming connection has been created successfully.",
       });
       setPlivoCreateDialogOpen(false);
+      setIsSarvamDialog(false);
       setSelectedPlivoAgentId("");
       setSelectedPlivoPhoneId("");
     },
@@ -551,6 +566,29 @@ export default function IncomingConnectionsPage() {
               </div>
             </div>
           )}
+
+          {/* Sarvam AI — Indian Voice Summary */}
+          {sarvamEnabled && (
+            <div 
+              className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                activeTab === 'sarvam-plivo' 
+                  ? 'border-amber-500 bg-amber-500/10 dark:bg-amber-500/20' 
+                  : 'border-border bg-background/50 hover:border-amber-300'
+              }`}
+              onClick={() => setActiveTab('sarvam-plivo')}
+              data-testid="engine-card-sarvam-plivo"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-base">🇮🇳</span>
+                <span className="font-semibold text-sm text-amber-700 dark:text-amber-300">Sarvam AI</span>
+                <span className="text-[10px] font-medium px-1.5 py-0.5 border border-amber-300 text-amber-600 dark:border-amber-600 dark:text-amber-400 rounded-full">Indian</span>
+              </div>
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <span><strong className="text-amber-600">{plivoStats.totalAgents}</strong> agents</span>
+                <span><strong>{plivoStats.availableNumbers}</strong> numbers</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -573,6 +611,12 @@ export default function IncomingConnectionsPage() {
               <SiTwilio className="h-3.5 w-3.5 text-red-500" />
               <SiOpenai className="h-3.5 w-3.5 text-brand" />
               <span className="hidden sm:inline">Twilio + OpenAI</span>
+            </TabsTrigger>
+          )}
+          {sarvamEnabled && (
+            <TabsTrigger value="sarvam-plivo" className="flex items-center gap-2" data-testid="tab-sarvam-plivo">
+              <span className="text-sm">🇮🇳</span>
+              <span className="hidden sm:inline text-amber-700 dark:text-amber-300">Sarvam AI</span>
             </TabsTrigger>
           )}
         </TabsList>
@@ -655,7 +699,7 @@ export default function IncomingConnectionsPage() {
                     <div key={i} className="h-20 bg-muted animate-pulse rounded-lg" />
                   ))}
                 </div>
-              ) : plivoConnections.length === 0 && plivoAvailablePhoneNumbers.length === 0 ? (
+              ) : plivoOnlyConnections.length === 0 && plivoAvailablePhoneNumbers.length === 0 ? (
                 <div className="text-center py-12" data-testid="plivo-empty-state">
                   <Bot className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No Plivo Phone Numbers</h3>
@@ -663,7 +707,7 @@ export default function IncomingConnectionsPage() {
                     Purchase Plivo phone numbers first to set up incoming connections with OpenAI agents.
                   </p>
                 </div>
-              ) : plivoConnections.length === 0 ? (
+              ) : plivoOnlyConnections.length === 0 ? (
                 <div className="text-center py-12" data-testid="plivo-no-connections">
                   <LinkIcon className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No Connections Yet</h3>
@@ -682,7 +726,7 @@ export default function IncomingConnectionsPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {plivoConnections.map((connection) => (
+                  {plivoOnlyConnections.map((connection) => (
                     <div
                       key={connection.phoneNumberId}
                       className="flex items-center justify-between p-4 border rounded-lg hover-elevate bg-card"
@@ -795,6 +839,86 @@ export default function IncomingConnectionsPage() {
             </CardContent>
           </Card>
         </TabsContent>)}
+
+        {/* ── Sarvam AI Tab Content ───────────────────────────────────────── */}
+        {sarvamEnabled && (
+          <TabsContent value="sarvam-plivo">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 p-6 mb-6">
+                  <div className="flex items-start gap-4">
+                    <div className="text-3xl mt-0.5">🇮🇳</div>
+                    <div>
+                      <h3 className="font-semibold text-amber-800 dark:text-amber-200 text-lg mb-1">Sarvam AI — Indian Voice Agent</h3>
+                      <p className="text-sm text-amber-700 dark:text-amber-300 mb-3">
+                        Sarvam AI ke agents Plivo phone numbers use karte hain. <strong>Plivo Voice AI</strong> tab mein connection create karein aur agent ke roop mein ek Sarvam agent (🇮🇳 Sarvam + Plivo provider) select karein.
+                      </p>
+                      <div className="grid grid-cols-2 gap-3 text-sm mb-4">
+                        <div className="bg-white dark:bg-amber-900/30 rounded-lg p-2.5 text-center">
+                          <div className="font-bold text-amber-700 dark:text-amber-300 text-lg">{sarvamStats.totalConnections}</div>
+                          <div className="text-xs text-muted-foreground">Active Connections</div>
+                        </div>
+                        <div className="bg-white dark:bg-amber-900/30 rounded-lg p-2.5 text-center">
+                          <div className="font-bold text-amber-700 dark:text-amber-300 text-lg">{sarvamStats.totalAgents}</div>
+                          <div className="text-xs text-muted-foreground">Available Agents</div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => { setIsSarvamDialog(true); setPlivoCreateDialogOpen(true); }}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors"
+                      >
+                        <Plus className="h-4 w-4" />
+                        New Sarvam Connection
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sarvam Active Connections List */}
+                {sarvamConnections.length > 0 && (
+                  <div className="space-y-3 mt-4">
+                    <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-200 flex items-center gap-2">
+                      <span>🔗</span> Active Connections
+                    </h4>
+                    {sarvamConnections.map((connection) => (
+                      <div
+                        key={connection.phoneNumberId}
+                        className="flex items-center justify-between p-4 border border-amber-200 dark:border-amber-800/50 rounded-lg bg-amber-50/50 dark:bg-amber-950/20"
+                        data-testid={`sarvam-connection-card-${connection.phoneNumberId}`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <Badge variant="secondary" className="font-mono text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                            {connection.phoneNumber}
+                          </Badge>
+                          <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm">🇮🇳</span>
+                              <span className="font-medium">{connection.agent?.name || 'Unknown Agent'}</span>
+                              <Badge className="text-[10px] px-1.5 py-0 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">Sarvam AI</Badge>
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-0.5">
+                              {connection.friendlyName && `${connection.friendlyName} • `}
+                              Country: {connection.country}
+                            </div>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setPlivoDeleteConnection(connection)}
+                          data-testid={`button-delete-sarvam-${connection.phoneNumberId}`}
+                        >
+                          <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Plivo + ElevenLabs Create Dialog */}
@@ -940,15 +1064,20 @@ export default function IncomingConnectionsPage() {
       </AlertDialog>
 
       {/* Plivo Create Dialog */}
-      <Dialog open={plivoCreateDialogOpen} onOpenChange={setPlivoCreateDialogOpen}>
+      <Dialog open={plivoCreateDialogOpen} onOpenChange={(open) => { setPlivoCreateDialogOpen(open); if (!open) setIsSarvamDialog(false); }}>
         <DialogContent data-testid="dialog-create-plivo-connection">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Phone className="h-5 w-5 text-emerald-600" />
-              Create Plivo Connection
+              {isSarvamDialog ? (
+                <><span className="text-lg">🇮🇳</span> Create Sarvam Connection</>
+              ) : (
+                <><Phone className="h-5 w-5 text-emerald-600" /> Create Plivo Connection</>
+              )}
             </DialogTitle>
             <DialogDescription>
-              Connect a Plivo phone number to an OpenAI or ElevenLabs agent for incoming calls.
+              {isSarvamDialog
+                ? 'Connect a Plivo phone number to a Sarvam AI Indian Voice agent.'
+                : 'Connect a Plivo phone number to an OpenAI or ElevenLabs agent for incoming calls.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -960,22 +1089,31 @@ export default function IncomingConnectionsPage() {
                   <SelectValue placeholder="Select an OpenAI agent" />
                 </SelectTrigger>
                 <SelectContent>
-                  {plivoAvailableAgents.length === 0 ? (
-                    <div className="p-2 text-sm text-muted-foreground">No Plivo agents available.</div>
-                  ) : (
-                    plivoAvailableAgents.map((agent) => (
-                      <SelectItem key={agent.id} value={agent.id}>
-                        <div className="flex items-center gap-2">
-                          {agent.telephonyProvider === 'twilio' ? (
-                            <ElevenLabsIcon className="h-3 w-3 text-violet-600" />
-                          ) : (
-                            <SiOpenai className="h-3 w-3 text-emerald-600" />
-                          )}
-                          <span>{agent.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))
-                  )}
+                  {(() => {
+                    const filtered = isSarvamDialog
+                      ? plivoAvailableAgents.filter(a => a.telephonyProvider === 'sarvam-plivo')
+                      : plivoAvailableAgents.filter(a => a.telephonyProvider !== 'sarvam-plivo');
+                    return filtered.length === 0 ? (
+                      <div className="p-2 text-sm text-muted-foreground">
+                        {isSarvamDialog ? 'No Sarvam agents available. Create a Sarvam + Plivo agent first.' : 'No Plivo agents available.'}
+                      </div>
+                    ) : (
+                      filtered.map((agent) => (
+                        <SelectItem key={agent.id} value={agent.id}>
+                          <div className="flex items-center gap-2">
+                            {agent.telephonyProvider === 'sarvam-plivo' ? (
+                              <span className="text-sm">🇮🇳</span>
+                            ) : agent.telephonyProvider === 'twilio' ? (
+                              <ElevenLabsIcon className="h-3 w-3 text-violet-600" />
+                            ) : (
+                              <SiOpenai className="h-3 w-3 text-emerald-600" />
+                            )}
+                            <span>{agent.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))
+                    );
+                  })()}
                 </SelectContent>
               </Select>
             </div>
@@ -1017,7 +1155,7 @@ export default function IncomingConnectionsPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setPlivoCreateDialogOpen(false); setSelectedPlivoAgentId(""); setSelectedPlivoPhoneId(""); }}>
+            <Button variant="outline" onClick={() => { setPlivoCreateDialogOpen(false); setIsSarvamDialog(false); setSelectedPlivoAgentId(""); setSelectedPlivoPhoneId(""); }}>
               Cancel
             </Button>
             <Button

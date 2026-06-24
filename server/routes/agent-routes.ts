@@ -209,6 +209,41 @@ export function createAgentRoutes(ctx: RouteContext): Router {
         }
       }
 
+      // ────────────────────────────────────────────────────────────────
+      // Voice Provider Plan Validation
+      // Block unauthorized engine usage even if UI is bypassed
+      // ────────────────────────────────────────────────────────────────
+      if (telephonyProvider) {
+        const { getUserPlanCapabilities } = await import('../services/membership-service');
+        const planCaps = await getUserPlanCapabilities(req.userId!);
+        const vp = planCaps.voiceProvider; // 'openai' | 'elevenlabs' | 'both'
+
+        // Providers that require ElevenLabs access
+        const elevenLabsProviders = ['twilio', 'elevenlabs-sip'];
+        // Providers that require OpenAI access
+        const openaiProviders = ['twilio_openai', 'plivo', 'openai-sip'];
+
+        const needsElevenLabs = elevenLabsProviders.includes(telephonyProvider);
+        const needsOpenAI = openaiProviders.includes(telephonyProvider);
+
+        if (needsElevenLabs && vp === 'openai') {
+          return res.status(403).json({
+            error: "Plan restriction",
+            message: `Your ${planCaps.planDisplayName} plan does not include ElevenLabs voice. Please upgrade to an Indian Voice plan.`,
+            upgradeRequired: true
+          });
+        }
+
+        if (needsOpenAI && vp === 'elevenlabs') {
+          return res.status(403).json({
+            error: "Plan restriction",
+            message: `Your ${planCaps.planDisplayName} plan does not include OpenAI voice. Please contact support if you need access.`,
+            upgradeRequired: true
+          });
+        }
+      }
+
+
       let elevenLabsAgentId = null;
       let effectiveLlmModelId: string | null = "gpt-4o-mini";
 

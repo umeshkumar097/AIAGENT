@@ -57,6 +57,7 @@ import { adminRouter } from "./routes/admin-routes";
 import { maintenanceMiddleware } from "./services/system-update-service";
 import adminTeamAccessRoutes from "./routes/admin-team-access.routes";
 import { createPublicRoutes } from "./routes/public-routes";
+import { registerSarvamRoutes } from "./routes/sarvam-routes";
 import { createAuthRoutes } from "./routes/auth-routes";
 import { createAgentRoutes } from "./routes/agent-routes";
 import { createCampaignRoutes } from "./routes/campaign-routes";
@@ -177,6 +178,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const publicRoutes = createPublicRoutes(routeContext);
   app.use(publicRoutes);
 
+  // Sarvam AI routes (voices list + TTS preview)
+  // Cast app as Router — Express Application supports the same .get()/.post() interface
+  registerSarvamRoutes(app as unknown as import('express').Router);
+  
   // Register authentication routes (login, register, OTP, password, etc.)
   const authRoutes = createAuthRoutes(routeContext);
   app.use(authRoutes);

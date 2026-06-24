@@ -35,6 +35,7 @@ export interface PlanCapabilities {
   sipEnabled: boolean;
   maxConcurrentSipCalls: number;
   sipEnginesAllowed: string[];
+  voiceProvider: 'openai' | 'elevenlabs' | 'both'; // Controls which AI/telephony shown in UI
 }
 
 /**
@@ -247,6 +248,7 @@ export async function getUserPlanCapabilities(userId: string): Promise<PlanCapab
     sipEnabled: false,
     maxConcurrentSipCalls: 0,
     sipEnginesAllowed: [],
+    voiceProvider: 'openai',
   };
 
   // Check subscription first
@@ -268,6 +270,7 @@ export async function getUserPlanCapabilities(userId: string): Promise<PlanCapab
         sipEnabled: plan.sipEnabled ?? false,
         maxConcurrentSipCalls: plan.maxConcurrentSipCalls ?? 0,
         sipEnginesAllowed: (plan.sipEnginesAllowed as string[]) ?? [],
+        voiceProvider: ((plan as any).voiceProvider as 'openai' | 'elevenlabs' | 'both') ?? 'openai',
       };
     }
   }
@@ -292,6 +295,7 @@ export async function getUserPlanCapabilities(userId: string): Promise<PlanCapab
           sipEnabled: userPlan.sipEnabled ?? false,
           maxConcurrentSipCalls: userPlan.maxConcurrentSipCalls ?? 0,
           sipEnginesAllowed: (userPlan.sipEnginesAllowed as string[]) ?? [],
+          voiceProvider: ((userPlan as any).voiceProvider as 'openai' | 'elevenlabs' | 'both') ?? 'openai',
         };
       }
     }
@@ -312,6 +316,7 @@ export async function getUserPlanCapabilities(userId: string): Promise<PlanCapab
       sipEnabled: freePlan.sipEnabled ?? false,
       maxConcurrentSipCalls: freePlan.maxConcurrentSipCalls ?? 0,
       sipEnginesAllowed: (freePlan.sipEnginesAllowed as string[]) ?? [],
+      voiceProvider: ((freePlan as any).voiceProvider as 'openai' | 'elevenlabs' | 'both') ?? 'openai',
     };
   }
 

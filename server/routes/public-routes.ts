@@ -419,6 +419,12 @@ export function createPublicRoutes(ctx: RouteContext): Router {
       const twilioKycRequired = await storage.getGlobalSetting('twilio_kyc_required');
       const plivoKycRequired = await storage.getGlobalSetting('plivo_kyc_required');
       const defaultTtsModel = await storage.getGlobalSetting('default_tts_model');
+      // Sarvam: enabled if explicitly set OR if sarvam_api_key is configured
+      const sarvamEnabledSetting = await storage.getGlobalSetting('sarvam_engine_enabled');
+      const sarvamApiKey = await storage.getGlobalSetting('sarvam_api_key');
+      const sarvamEnabled = sarvamEnabledSetting
+        ? toBool(sarvamEnabledSetting.value)
+        : Boolean(sarvamApiKey?.value);
 
       res.json({
         plivo_openai_engine_enabled: toBool(plivoEngineEnabled?.value) || false,
@@ -426,6 +432,7 @@ export function createPublicRoutes(ctx: RouteContext): Router {
         twilio_kyc_required: toBool(twilioKycRequired?.value) ?? true,
         plivo_kyc_required: toBool(plivoKycRequired?.value) ?? true,
         default_tts_model: (defaultTtsModel?.value as string) || 'eleven_v3_conversational',
+        sarvam_engine_enabled: sarvamEnabled,
       });
     } catch (error) {
       console.error('Error fetching voice engine settings:', error);
@@ -435,6 +442,7 @@ export function createPublicRoutes(ctx: RouteContext): Router {
         twilio_kyc_required: true,
         plivo_kyc_required: true,
         default_tts_model: 'eleven_v3_conversational',
+        sarvam_engine_enabled: false,
       });
     }
   });

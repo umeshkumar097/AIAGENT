@@ -56,11 +56,36 @@ const OPENAI_VOICES: OpenAIVoiceInfo[] = [
   { id: 'marin', name: 'Marin', description: 'Fresh, youthful voice with modern appeal', gender: 'Female', style: 'Youthful' },
 ];
 
+interface SarvamVoiceInfo {
+  id: string;
+  name: string;
+  gender: string;
+  language: string;
+  age: string;
+  description: string;
+}
+
+const SARVAM_VOICES: SarvamVoiceInfo[] = [
+  { id: 'priya',    name: 'Priya',    gender: 'Female', language: 'Hindi',   age: 'Young',       description: 'Natural & Conversational — default' },
+  { id: 'meera',    name: 'Meera',    gender: 'Female', language: 'Hindi',   age: 'Young',       description: 'Warm & Expressive' },
+  { id: 'anushka',  name: 'Anushka',  gender: 'Female', language: 'Hindi',   age: 'Young',       description: 'Cheerful & Friendly' },
+  { id: 'maya',     name: 'Maya',     gender: 'Female', language: 'Hindi',   age: 'Young',       description: 'Professional & Clear' },
+  { id: 'maitreyi', name: 'Maitreyi', gender: 'Female', language: 'Hindi',   age: 'Middle_aged', description: 'Deep & Mature' },
+  { id: 'kalpana',  name: 'Kalpana',  gender: 'Female', language: 'Tamil',   age: 'Young',       description: 'Tamil Native Speaker' },
+  { id: 'pavithra', name: 'Pavithra', gender: 'Female', language: 'Telugu',  age: 'Young',       description: 'Telugu Native Speaker' },
+  { id: 'vinaya',   name: 'Vinaya',   gender: 'Female', language: 'Kannada', age: 'Young',       description: 'Kannada Native Speaker' },
+  { id: 'arvind',   name: 'Arvind',   gender: 'Male',   language: 'Hindi',   age: 'Young',       description: 'Clear & Authoritative' },
+  { id: 'aarav',    name: 'Aarav',    gender: 'Male',   language: 'Hindi',   age: 'Young',       description: 'Modern & Dynamic' },
+  { id: 'neel',     name: 'Neel',     gender: 'Male',   language: 'Hindi',   age: 'Young',       description: 'Professional Male Voice' },
+  { id: 'amol',     name: 'Amol',     gender: 'Male',   language: 'Marathi', age: 'Young',       description: 'Marathi Native Speaker' },
+];
+
 export default function Voices() {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [playingVoice, setPlayingVoice] = useState<string | null>(null);
+  const [sarvamPreviewLoading, setSarvamPreviewLoading] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("elevenlabs");
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -137,6 +162,52 @@ export default function Voices() {
     };
   };
 
+  const handleSarvamPreview = async (voiceId: string, language: string) => {
+    if (sarvamPreviewLoading === voiceId) return;
+    if (playingVoice === voiceId) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        audioRef.current = null;
+      }
+      setPlayingVoice(null);
+      return;
+    }
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setSarvamPreviewLoading(voiceId);
+    try {
+      const resp = await fetch('/api/sarvam/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voiceId, language }),
+      });
+      const data = await resp.json();
+      if (data.success && data.audio) {
+        const byteCharacters = atob(data.audio);
+        const byteNumbers = new Array(byteCharacters.length).fill(0).map((_, i) => byteCharacters.charCodeAt(i));
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'audio/wav' });
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audioRef.current = audio;
+        audio.play();
+        setPlayingVoice(voiceId);
+        audio.onended = () => {
+          setPlayingVoice(null);
+          audioRef.current = null;
+          URL.revokeObjectURL(url);
+        };
+      }
+    } catch (e) {
+      console.error('Sarvam preview error', e);
+    } finally {
+      setSarvamPreviewLoading(null);
+    }
+  };
+
   const formatLanguageName = (code: string) => {
     const languageNames: Record<string, string> = {
       en: "English",
@@ -181,17 +252,20 @@ export default function Voices() {
   };
 
   const getTotalVoiceCount = () => {
-    if (activeTab === "elevenlabs") {
-      return accountVoices?.length || 0;
-    }
-    return OPENAI_VOICES.length;
+    if (activeTab === "elevenlabs") return accountVoices?.length || 0;
+    if (activeTab === "openai") return OPENAI_VOICES.length;
+    return SARVAM_VOICES.length;
   };
 
   const getFilteredCount = () => {
-    if (activeTab === "elevenlabs") {
-      return filteredVoices.length;
-    }
-    return filteredOpenAIVoices.length;
+    if (activeTab === "elevenlabs") return filteredVoices.length;
+    if (activeTab === "openai") return filteredOpenAIVoices.length;
+    const q = debouncedSearch.toLowerCase();
+    return !q ? SARVAM_VOICES.length : SARVAM_VOICES.filter(v =>
+      v.name.toLowerCase().includes(q) ||
+      v.language.toLowerCase().includes(q) ||
+      v.description.toLowerCase().includes(q)
+    ).length;
   };
 
   return (
@@ -220,6 +294,9 @@ export default function Voices() {
           </TabsTrigger>
           <TabsTrigger value="openai" data-testid="tab-openai">
             OpenAI ({OPENAI_VOICES.length})
+          </TabsTrigger>
+          <TabsTrigger value="sarvam" data-testid="tab-sarvam">
+            🇮🇳 Sarvam AI ({SARVAM_VOICES.length})
           </TabsTrigger>
         </TabsList>
 
@@ -409,6 +486,65 @@ export default function Voices() {
               ))}
             </div>
           )}
+        </TabsContent>
+
+        {/* ── Sarvam AI Tab ───────────────────────────────────────────────── */}
+        <TabsContent value="sarvam" className="space-y-4">
+          <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-sm text-amber-800 dark:text-amber-200">
+            🇮🇳 <strong>Sarvam AI Bulbul v3</strong> — Indian languages ke liye optimized TTS engine. Hindi, Tamil, Telugu, Kannada, Marathi aur aur bhi languages support karta hai.
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {SARVAM_VOICES
+              .filter(v => !debouncedSearch || v.name.toLowerCase().includes(debouncedSearch.toLowerCase()) || v.language.toLowerCase().includes(debouncedSearch.toLowerCase()))
+              .map((voice) => (
+              <Card
+                key={voice.id}
+                className="p-4 hover-elevate relative overflow-visible border-amber-200 dark:border-amber-800/50"
+                data-testid={`card-sarvam-voice-${voice.id}`}
+              >
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-400 rounded-t-lg" />
+
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold truncate mb-1.5" data-testid="text-sarvam-voice-name">
+                      {voice.name}
+                      {voice.id === 'priya' && <span className="ml-1 text-[10px] font-normal text-amber-600 border border-amber-300 rounded-full px-1.5">default</span>}
+                    </h3>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <Badge variant="secondary" className="text-xs">{voice.gender}</Badge>
+                      <Badge variant="outline" className="text-xs text-amber-700 border-amber-300">{voice.language}</Badge>
+                    </div>
+                  </div>
+                  <Button
+                    variant={playingVoice === voice.id ? "default" : "ghost"}
+                    size="icon"
+                    onClick={() => handleSarvamPreview(voice.id, voice.language)}
+                    disabled={sarvamPreviewLoading === voice.id}
+                    data-testid={`button-preview-sarvam-${voice.id}`}
+                    className="flex-shrink-0"
+                  >
+                    {sarvamPreviewLoading === voice.id
+                      ? <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      : playingVoice === voice.id
+                        ? <Square className="h-4 w-4" />
+                        : <Play className="h-4 w-4" />
+                    }
+                  </Button>
+                </div>
+
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {voice.description}
+                </p>
+
+                <div className="mt-3 flex items-center gap-1.5">
+                  <Badge className="text-xs bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0">
+                    Bulbul v3
+                  </Badge>
+                  <span className="text-xs text-amber-600 dark:text-amber-400">{voice.age}</span>
+                </div>
+              </Card>
+            ))}
+          </div>
         </TabsContent>
       </Tabs>
     </div>
