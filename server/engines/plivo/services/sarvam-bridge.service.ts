@@ -345,6 +345,17 @@ export class SarvamBridgeService {
     (plivoWs as any).sarvamCallStartTime   = Date.now();
 
     try {
+      // ── Fire first message TTS IMMEDIATELY (no need to wait for STT WS) ────
+      // STT connection takes 2-4s — don't block greeting on it.
+      if (agentConfig.firstMessage) {
+        const msg = agentConfig.firstMessage;
+        chatHistory.push({ role: 'assistant', content: msg });
+        transcriptLines.push(`Agent: ${msg}`);
+        logger.info(`[SarvamBridge] 🚀 Firing first message TTS immediately (parallel to STT connect)`);
+        SarvamBridgeService.speakViaTTS(callUuid, plivoWs, msg, sarvamApiKey, language, voice)
+          .catch((e: Error) => logger.error(`[SarvamBridge] First msg TTS error: ${e.message}`));
+      }
+
       const sttUrl = `${SARVAM_STT_URL}?language-code=${language}&model=saaras:v3&mode=transcribe&sample_rate=8000&input_audio_codec=pcm_s16le`;
       const sttWs = new WebSocket(sttUrl, {
         headers: { 'Api-Subscription-Key': sarvamApiKey }
@@ -356,8 +367,6 @@ export class SarvamBridgeService {
         logger.info(`[SarvamBridge] STT WS open for call ${callUuid}`);
 
         // ── Keep STT alive with silence until real Plivo audio arrives ────────
-        // Sarvam STT closes (1000) if no audio within ~500ms of opening
-        // Format: { audio: { data: <base64>, encoding: "audio/wav", sample_rate: 8000 } }
         const SILENCE_B64 = Buffer.alloc(320, 0).toString('base64');
         const SILENCE_MSG = JSON.stringify({ audio: { data: SILENCE_B64, encoding: 'audio/wav', sample_rate: 8000 } });
         const keepAlive = setInterval(() => {
@@ -368,19 +377,11 @@ export class SarvamBridgeService {
           }
         }, 20);
         (plivoWs as any).sarvamKeepAlive = keepAlive;
-
-        if (agentConfig.firstMessage) {
-          const msg = agentConfig.firstMessage;
-          chatHistory.push({ role: 'assistant', content: msg });
-          transcriptLines.push(`Agent: ${msg}`);
-          // Fire-and-forget — do NOT await so silence keeps flowing to STT
-          SarvamBridgeService.speakViaTTS(callUuid, plivoWs, msg, sarvamApiKey, language, voice)
-            .catch((e: Error) => logger.error(`[SarvamBridge] First msg TTS error: ${e.message}`));
-        }
-      });
+      }); // end sttWs.on('open')
 
       sttWs.on('message', async (raw: Buffer | string) => {
         try {
+
           if (raw instanceof Buffer && raw[0] !== 123) return;
           const msg = JSON.parse(typeof raw === 'string' ? raw : raw.toString('utf8'));
 
