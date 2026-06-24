@@ -2,7 +2,7 @@
 
 **Version:** 5.4.1  
 **Last Updated:** May 2026  
-**License:** Regular/Extended License (CodeCanyon)
+**License:** Aiclex Technologies
 
 ---
 
