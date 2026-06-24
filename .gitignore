@@ -56,3 +56,27 @@ export/*
 !kyc/.gitkeep
 !logs/.gitkeep
 !export/.gitkeep
+add_key.js
+insert_packages.mjs
+save_sarvam_key.mjs
+
+# Sensitive scripts (IP, passwords, SSH)
+*.exp
+fix_caps.py
+rename.py
+rename_fix.py
+renamer.py
+
+# Test/scratch files
+test-db.ts
+test-get.ts
+test-post.ts
+test-spec.ts
+diagnose_twilio.ts
+
+# Temp scripts
+add_key.js
+insert_packages.mjs
+save_sarvam_key.mjs
+update_db.cjs
+bcconfig.json
