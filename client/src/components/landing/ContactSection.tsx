@@ -15,7 +15,7 @@
  * ============================================================
  */
 import { motion, useReducedMotion } from "framer-motion";
-import { Mail, Clock, Users, Send, Shield, CheckCircle, Loader2, MessageSquare, Phone } from "lucide-react";
+import { Mail, Clock, Users, Send, Shield, CheckCircle, Loader2, MessageSquare, Phone, Headphones } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,11 +54,11 @@ interface TrustElementProps {
 
 const TrustElement = ({ icon: Icon, text, testId }: TrustElementProps) => (
   <div 
-    className="flex items-center gap-3 text-muted-foreground"
+    className="flex items-center gap-3 text-gray-300"
     data-testid={testId}
   >
-    <div className="h-10 w-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
-      <Icon className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+    <div className="h-10 w-10 rounded-lg bg-amber-500/15 flex items-center justify-center flex-shrink-0">
+      <Icon className="h-5 w-5 text-amber-400" />
     </div>
     <span className="text-sm">{text}</span>
   </div>
@@ -131,7 +131,8 @@ export function ContactSection() {
   return (
     <section
       id="contact"
-      className="py-12 sm:py-16 md:py-24 lg:py-32 relative overflow-hidden bg-background"
+      className="py-12 sm:py-16 md:py-24 lg:py-32 relative overflow-hidden"
+      style={{backgroundColor: '#06060c'}}
       data-testid="section-contact"
     >
       <div className="absolute top-0 left-1/4 w-72 h-72 bg-amber-500/10 rounded-full mix-blend-multiply filter blur-3xl dark:mix-blend-normal" />
@@ -151,18 +152,18 @@ export function ContactSection() {
             className="space-y-8"
           >
             <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-sm font-medium">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/20 text-amber-400 text-sm font-medium">
                 <MessageSquare className="h-4 w-4" />
                 {t('landing.contact.badge')}
               </div>
               <h2
-                className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold"
+                className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white"
                 data-testid="heading-contact"
               >
                 {t('landing.contact.title')}
               </h2>
               <p
-                className="text-sm sm:text-base md:text-lg text-muted-foreground leading-relaxed max-w-lg"
+                className="text-sm sm:text-base md:text-lg text-gray-400 leading-relaxed max-w-lg"
                 data-testid="text-contact-description"
               >
                 {t('landing.contact.description', { appName: branding.app_name })}
@@ -180,8 +181,8 @@ export function ContactSection() {
                   <Mail className="h-7 w-7 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">{t('landing.contact.emailLabel')}</p>
-                  <p className="text-lg font-semibold group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                  <p className="text-sm text-gray-400">{t('landing.contact.emailLabel')}</p>
+                  <p className="text-lg font-semibold text-white group-hover:text-amber-400 transition-colors">
                     info@aiclex.in
                   </p>
                 </div>
@@ -197,14 +198,14 @@ export function ContactSection() {
                   <Phone className="h-7 w-7 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Call karein</p>
-                  <p className="text-lg font-semibold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                  <p className="text-sm text-gray-400">Call karein</p>
+                  <p className="text-lg font-semibold text-white group-hover:text-emerald-400 transition-colors">
                     +91 84494 88090
                   </p>
                 </div>
               </motion.a>
 
-              <div className="border-t pt-6 space-y-4">
+              <div className="border-t border-white/10 pt-6 space-y-4">
                 <TrustElement
                   icon={Clock}
                   text={t('landing.contact.trustResponseTime')}

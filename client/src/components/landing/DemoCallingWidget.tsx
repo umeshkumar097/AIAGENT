@@ -87,22 +87,22 @@ export function DemoCallingWidget() {
         />
       )}
       
-      <div className="relative z-10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 shadow-2xl rounded-3xl p-6 sm:p-8 flex flex-col items-center">
+      <div className="relative z-10 bg-[#111118]/90 backdrop-blur-xl border border-white/10 shadow-2xl rounded-3xl p-6 sm:p-8 flex flex-col items-center">
         
         {/* Header Tags */}
         <div className="flex justify-between w-full mb-8">
-          <span className="text-[10px] sm:text-xs font-semibold tracking-widest text-zinc-500 uppercase flex items-center gap-1">
+          <span className="text-[10px] sm:text-xs font-semibold tracking-widest text-zinc-400 uppercase flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             Live Demo
           </span>
-          <span className="text-[10px] sm:text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-3 py-1 rounded-full border border-zinc-200 dark:border-zinc-700">
+          <span className="text-[10px] sm:text-xs font-medium bg-zinc-800 text-zinc-300 px-3 py-1 rounded-full border border-zinc-700">
             3/3 free calls
           </span>
         </div>
 
         {/* Central Orb / Avatar */}
         <div className="relative w-40 h-40 mb-8 cursor-pointer group" onClick={!isCalling ? handleToggleCall : undefined}>
-          <div className={`absolute inset-0 rounded-full flex items-center justify-center transition-all duration-500 ${isCalling ? 'bg-gradient-to-br from-brand to-purple-600 scale-100 shadow-[0_0_40px_rgba(139,92,246,0.5)]' : 'bg-zinc-100 dark:bg-zinc-800 scale-95 shadow-inner'}`}>
+          <div className={`absolute inset-0 rounded-full flex items-center justify-center transition-all duration-500 ${isCalling ? 'bg-gradient-to-br from-brand to-purple-600 scale-100 shadow-[0_0_40px_rgba(139,92,246,0.5)]' : 'bg-zinc-800 scale-95 shadow-inner'}`}>
             {isCalling ? (
               <div className="flex gap-1.5 items-end h-12">
                 {[...Array(5)].map((_, i) => (
@@ -147,10 +147,10 @@ export function DemoCallingWidget() {
 
         {/* Status / Call to Action */}
         <div className="text-center mb-8">
-          <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">
+          <h3 className="text-xl font-bold text-white mb-2">
             {isConnecting ? "Connecting to AI..." : isCalling ? formatTime(timeElapsed) : "Tap to talk"}
           </h3>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="text-sm text-zinc-400">
             {isCalling 
               ? (isMuted ? "Microphone muted" : "Agent is speaking...") 
               : isConnecting 
@@ -160,10 +160,10 @@ export function DemoCallingWidget() {
         </div>
 
         {/* Controls */}
-        <div className="w-full flex items-center justify-between border-t border-zinc-100 dark:border-zinc-800 pt-6">
+        <div className="w-full flex items-center justify-between border-t border-white/10 pt-6">
           {!isCalling ? (
             <div className="w-full text-center text-xs text-zinc-400">
-              <span className="font-medium text-zinc-600 dark:text-zinc-300">Hindi • Hinglish +28 more</span>
+              <span className="font-medium text-zinc-300">Hindi • Hinglish +28 more</span>
               <br />
               &lt;300ms • emotion-aware
             </div>

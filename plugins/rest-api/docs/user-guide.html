@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zonvo — User Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a10;
+      --sidebar-bg: #111118;
+      --card-bg: #16161f;
+      --border: #ffffff12;
+      --text: #f0f0f8;
+      --text-secondary: #9898b0;
+      --accent: #f97316;
+      --accent-soft: #f9731620;
+      --green: #22c55e;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --code-bg: #0d0d16;
+      --sidebar-w: 260px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: var(--sidebar-w); min-height: 100vh; background: var(--sidebar-bg);
+      border-right: 1px solid var(--border); position: fixed; top: 0; left: 0;
+      overflow-y: auto; z-index: 100; display: flex; flex-direction: column;
+    }
+    .sidebar-brand {
+      padding: 24px 20px 16px; border-bottom: 1px solid var(--border);
+    }
+    .sidebar-brand .logo { font-size: 20px; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
+    .sidebar-brand .sub { font-size: 11px; color: var(--text-secondary); margin-top: 2px; text-transform: uppercase; letter-spacing: 1px; }
+    .sidebar-nav { padding: 12px 0; flex: 1; }
+    .nav-section { padding: 16px 20px 6px; font-size: 10px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1.5px; }
+    .nav-link {
+      display: block; padding: 9px 20px; font-size: 13.5px; color: var(--text-secondary);
+      text-decoration: none; transition: all 0.15s; border-left: 2px solid transparent;
+    }
+    .nav-link:hover { color: var(--text); background: var(--border); }
+    .nav-link.active { color: var(--accent); border-left-color: var(--accent); background: var(--accent-soft); }
+    .nav-link .icon { margin-right: 8px; font-size: 15px; }
+
+    /* ── Main content ── */
+    #main { margin-left: var(--sidebar-w); flex: 1; min-height: 100vh; }
+    .topbar {
+      position: sticky; top: 0; background: var(--bg); border-bottom: 1px solid var(--border);
+      padding: 0 48px; height: 56px; display: flex; align-items: center; justify-content: space-between; z-index: 50;
+    }
+    .topbar-title { font-size: 14px; color: var(--text-secondary); }
+    .topbar-badge { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent)40; font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 600; }
+
+    .content { max-width: 860px; margin: 0 auto; padding: 48px 48px 120px; }
+
+    /* ── Sections ── */
+    .section { margin-bottom: 72px; scroll-margin-top: 72px; }
+    .section-header {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+      padding-bottom: 16px; border-bottom: 1px solid var(--border);
+    }
+    .section-icon {
+      width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center;
+      justify-content: center; font-size: 20px; flex-shrink: 0;
+    }
+    h1 { font-size: 32px; font-weight: 700; color: var(--text); letter-spacing: -1px; margin-bottom: 8px; }
+    h2 { font-size: 22px; font-weight: 600; color: var(--text); }
+    h3 { font-size: 16px; font-weight: 600; color: var(--text); margin: 24px 0 10px; }
+    p { font-size: 14.5px; line-height: 1.75; color: var(--text-secondary); margin-bottom: 12px; }
+    
+    /* ── Hero ── */
+    .hero { margin-bottom: 64px; padding: 40px; background: linear-gradient(135deg, #f97316, #f97316,  #a855f7); border-radius: 16px; position: relative; overflow: hidden; }
+    .hero::before { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,0.45); }
+    .hero-content { position: relative; z-index: 1; }
+    .hero h1 { font-size: 36px; color: #fff; margin-bottom: 12px; }
+    .hero p { color: rgba(255,255,255,0.85); font-size: 16px; max-width: 600px; margin: 0; }
+
+    /* ── Steps ── */
+    .steps { display: flex; flex-direction: column; gap: 0; }
+    .step {
+      display: flex; gap: 16px; padding: 20px 0;
+      border-left: 2px solid var(--border); padding-left: 24px; margin-left: 16px;
+      position: relative;
+    }
+    .step:last-child { border-left-color: transparent; }
+    .step-num {
+      position: absolute; left: -14px; top: 20px; width: 26px; height: 26px;
+      border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px;
+      font-weight: 700; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-body { flex: 1; }
+    .step-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .step-desc { font-size: 13.5px; color: var(--text-secondary); line-height: 1.65; }
+
+    /* ── Cards ── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; margin: 20px 0; }
+    .card {
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
+      padding: 20px; transition: border-color 0.2s;
+    }
+    .card:hover { border-color: var(--accent)60; }
+    .card-icon { font-size: 28px; margin-bottom: 10px; }
+    .card-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .card-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+
+    /* ── Code ── */
+    code {
+      background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px;
+      padding: 2px 7px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #a78bfa;
+    }
+    pre {
+      background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px;
+      padding: 18px 20px; overflow-x: auto; margin: 16px 0;
+    }
+    pre code { background: none; border: none; padding: 0; font-size: 13px; color: #c4b5fd; }
+
+    /* ── Tip / Note boxes ── */
+    .tip, .note, .warn {
+      border-radius: 10px; padding: 14px 18px; margin: 16px 0;
+      font-size: 13.5px; line-height: 1.65; display: flex; gap: 10px; align-items: flex-start;
+    }
+    .tip  { background: #22c55e12; border: 1px solid #22c55e30; color: #86efac; }
+    .note { background: #3b82f612; border: 1px solid #3b82f630; color: #93c5fd; }
+    .warn { background: #f9731612; border: 1px solid #f9731630; color: #fdba74; }
+    .tip::before  { content: '✅'; flex-shrink: 0; }
+    .note::before { content: 'ℹ️'; flex-shrink: 0; }
+    .warn::before { content: '⚠️'; flex-shrink: 0; }
+
+    /* ── Table ── */
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13.5px; }
+    th { background: var(--card-bg); color: var(--text); font-weight: 600; padding: 11px 14px; text-align: left; border-bottom: 2px solid var(--border); }
+    td { padding: 11px 14px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+    tr:last-child td { border-bottom: none; }
+
+    /* ── Badge ── */
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-green { background: #22c55e20; color: #4ade80; border: 1px solid #22c55e40; }
+    .badge-orange { background: #f9731620; color: #fb923c; border: 1px solid #f9731640; }
+    .badge-blue   { background: #3b82f620; color: #60a5fa; border: 1px solid #3b82f640; }
+    .badge-purple { background: #a855f720; color: #c084fc; border: 1px solid #a855f740; }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      #sidebar { transform: translateX(-100%); }
+      #main { margin-left: 0; }
+      .content { padding: 32px 20px 80px; }
+      .topbar { padding: 0 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── SIDEBAR ─── -->
+<nav id="sidebar">
+  <div class="sidebar-brand">
+    <div class="logo">🎙️ Zonvo</div>
+    <div class="sub">User Guide</div>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-section">Getting Started</div>
+    <a href="#overview"      class="nav-link active"><span class="icon">🏠</span>Overview</a>
+    <a href="#account-setup" class="nav-link"><span class="icon">👤</span>Account Setup</a>
+    <a href="#dashboard"     class="nav-link"><span class="icon">📊</span>Dashboard</a>
+
+    <div class="nav-section">Core Features</div>
+    <a href="#agents"        class="nav-link"><span class="icon">🤖</span>AI Agents</a>
+    <a href="#phone-numbers" class="nav-link"><span class="icon">📞</span>Phone Numbers</a>
+    <a href="#campaigns"     class="nav-link"><span class="icon">📣</span>Campaigns</a>
+    <a href="#contacts"      class="nav-link"><span class="icon">👥</span>Contacts</a>
+    <a href="#calls"         class="nav-link"><span class="icon">📱</span>Calls & Logs</a>
+    <a href="#analytics"     class="nav-link"><span class="icon">📈</span>Analytics</a>
+
+    <div class="nav-section">Advanced</div>
+    <a href="#webhooks"      class="nav-link"><span class="icon">🔗</span>Webhooks</a>
+    <a href="#api-keys"      class="nav-link"><span class="icon">🔑</span>API Keys</a>
+    <a href="#voices"        class="nav-link"><span class="icon">🎵</span>Voices</a>
+    <a href="#credits"       class="nav-link"><span class="icon">💳</span>Credits & Plans</a>
+    <a href="#troubleshoot"  class="nav-link"><span class="icon">🛠️</span>Troubleshooting</a>
+  </div>
+</nav>
+
+<!-- ─── MAIN ─── -->
+<main id="main">
+  <div class="topbar">
+    <span class="topbar-title">Zonvo Platform Documentation</span>
+    <span class="topbar-badge">v5.4</span>
+  </div>
+
+  <div class="content">
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-content">
+        <h1>Welcome to Zonvo 👋</h1>
+        <p>Zonvo ek AI-powered voice agent platform hai jo aapke calls ko automate karta hai — inbound support se lekar outbound sales campaigns tak. Ye guide aapko har feature use karna sikhayegi.</p>
+      </div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <section id="overview" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:#f9731620">🏠</div>
+        <h2>Platform Overview</h2>
+      </div>
+      <p>Zonvo ka main kaam hai AI voice agents banana jo aapki taraf se real phone calls handle karein — bina kisi human ke. Platform ke main components:</p>
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-icon">🤖</div>
+          <div class="card-title">AI Agents</div>
+          <div class="card-desc">Custom voice agents banao jo calls attend karein, sawal poochein, aur actions lein.</div>
+        </div>
+        <div class="card">
+          <div class="card-icon">📣</div>
+          <div class="card-title">Campaigns</div>
+          <div class="card-desc">Bulk outbound calling — hazaron contacts ko ek saath call karo.</div>
+        </div>
+        <div class="card">
+          <div class="card-icon">📞</div>
+          <div class="card-title">Phone Numbers</div>
+          <div class="card-desc">Plivo ya Twilio se real phone numbers lo. Inbound & outbound dono ke liye.</div>
+        </div>
+        <div class="card">
+          <div class="card-icon">📈</div>
+          <div class="card-title">Analytics</div>
+          <div class="card-desc">Real-time dashboards — calls, duration, conversion rate, agent performance.</div>
+        </div>
+        <div class="card">
+          <div class="card-icon">🔗</div>
+          <div class="card-title">Webhooks</div>
+          <div class="card-desc">Har call ke baad apne CRM/system ko real-time data bhejo.</div>
+        </div>
+        <div class="card">
+          <div class="card-icon">🔑</div>
+          <div class="card-title">REST API</div>
+          <div class="card-desc">Programmatically calls trigger karo aur data fetch karo.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ACCOUNT SETUP -->
+    <section id="account-setup" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:#3b82f620">👤</div>
+        <h2>Account Setup</h2>
+      </div>
+      <p>Zonvo use karna shuru karne ke liye ye steps follow karo:</p>
+      <div class="steps">
+        <div class="step"><span class="step-num">1</span><div class="step-body">
+          <div class="step-title">Register / Login</div>
+          <div class="step-desc"><code>app.zonvo.tech</code> par jaao → <strong>Sign Up</strong> button click karo → Email + password dalo → Email verify karo.</div>
+        </div></div>
+        <div class="step"><span class="step-num">2</span><div class="step-body">
+          <div class="step-title">Profile Complete Karo</div>
+          <div class="step-desc">Settings → Profile mein jaao. Apna naam, company name, aur time zone set karo.</div>
+        </div></div>
+        <div class="step"><span class="step-num">3</span><div class="step-body">
+          <div class="step-title">Plan Select Karo</div>
+          <div class="step-desc">Settings → Billing mein jaao. Free trial se shuru karo ya apni zaroorat ke hisaab se plan choose karo.</div>
+        </div></div>
+        <div class="step"><span class="step-num">4</span><div class="step-body">
+          <div class="step-title">Pehla Agent Banao</div>
+          <div class="step-desc">Dashboard → Agents → <strong>+ New Agent</strong>. Agent ka naam, voice, aur system prompt set karo.</div>
+        </div></div>
+      </div>
+    </section>
+
+    <!-- DASHBOARD -->
+    <section id="dashboard" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:#a855f720">📊</div>
+        <h2>Dashboard</h2>
+      </div>
+      <p>Login karne ke baad main dashboard dikhta hai jismein:</p>
+      <table>
+        <tr><th>Widget</th><th>Kya dikhata hai</th></tr>
+        <tr><td>Total Calls Today</td><td>Aaj ke total calls (inbound + outbound)</td></tr>
+        <tr><td>Active Campaigns</td><td>Chalu campaigns ki count aur progress</td></tr>
+        <tr><td>Credits Remaining</td><td>Aapke baaki call credits</td></tr>
+        <tr><td>Success Rate</td><td>Completed calls ka percentage</td></tr>
+        <tr><td>Recent Calls</td><td>Last 10 calls ki list with status</td></tr>
+      </table>
+      <div class="tip">Dashboard real-time update hota hai — har 30 seconds mein auto-refresh.</div>
+    </section>
+
+    <!-- AGENTS -->
+    <section id="agents" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:#f9731620">🤖</div>
+        <h2>AI Agents Banana</h2>
+      </div>
+      <p>Agent ek virtual voice assistant hai jo aapki jagah call attend karta hai. 2 types ke agents hote hain:</p>
+      <div class="card-grid" style="grid-template-columns: 1fr 1fr">
+        <div class="card">
+          <div class="card-title">🌊 Flow Agent</div>
+          <div class="card-desc">Visual conversation builder. Pre-defined script se chalta hai. Structured calls ke liye perfect.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">📥 Incoming Agent</div>
+          <div class="card-desc">Inbound calls ke liye. Customer ki baat sunkar AI se response deta hai. Dynamic conversations.</div>
+        </div>
+      </div>
+      <h3>Naya Agent Kaise Banayein</h3>
+      <div class="steps">
+        <div class="step"><span class="step-num">1</span><div class="step-body">
+          <div class="step-title">Agents Page Kholo</div>
+          <div class="step-desc">Left sidebar → <strong>Agents</strong> → <strong>+ Create Agent</strong> button click karo.</div>
+        </div></div>
+        <div class="step"><span class="step-num">2</span><div class="step-body">
+          <div class="step-title">Basic Info Bharo</div>
+          <div class="step-desc"><strong>Name:</strong> Agent ka naam (e.g. "Sales Bot"). <strong>Language:</strong> Hindi/English/Hinglish. <strong>Voice:</strong> Male ya Female voice choose karo.</div>
+        </div></div>
+        <div class="step"><span class="step-num">3</span><div class="step-body">
+          <div class="step-title">System Prompt Likho</div>
+          <div class="step-desc">Ye agent ki personality define karta hai. Example:<br><br>
+            <code>Tum Zonvo ke sales agent ho. Customer se friendly tarike se baat karo. Unhe hamara premium plan batao aur demo book karwao.</code>
+          </div>
+        </div></div>
+        <div class="step"><span class="step-num">4</span><div class="step-body">
+          <div class="step-title">Telephony Provider Set Karo</div>
+          <div class="step-desc">Plivo (Indian numbers) ya Twilio (international) choose karo. Phone number assign karo.</div>
+        </div></div>
+        <div class="step"><span class="step-num">5</span><div class="step-body">
+          <div class="step-title">Test & Publish</div>
+          <div class="step-desc"><strong>Test Call</strong> button se pehle test karo. Sab theek lage toh <strong>Publish</strong> karo.</div>
+        </div></div>
+      </div>
+      <div class="note">System prompt likhte waqt simple, conversational language use karo. Hindi ya Hinglish mein likho agar Indian customers ke liye hai.</div>
+      <h3>Agent Best Practices</h3>
+      <table>
+        <tr><th>Kya Karo</th><th>Kya Na Karo</th></tr>
+        <tr><td>Short, clear sentences</td><td>Lambe paragraphs mat likho</td></tr>
+        <tr><td>Agent ka ek naam do (e.g. "Main Priya hoon")</td><td>Bahut zyada formal/sarkari language mat use karo</td></tr>
+        <tr><td>Specific tasks define karo</td><td>Agent ko sab kuch karne ko mat kaho</td></tr>
+        <tr><td>Fallback response set karo</td><td>Edge cases ignore mat karo</td></tr>
+      </table>
+    </section>
+
+    <!-- PHONE NUMBERS -->
+    <section id="phone-numbers" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:#22c55e20">📞</div>
+        <h2>Phone Numbers</h2>
+      </div>
+      <p>Agents ke liye real phone numbers chahiye hote hain. Zonvo 2 providers support karta hai:</p>
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-title">🇮🇳 Plivo (India)</div>
+          <div class="card-desc">Indian numbers ke liye best. Local +91 numbers milte hain. Cost-effective. Sarvam AI voice engine support karta hai.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">🌍 Twilio (International)</div>
+          <div class="card-desc">Global numbers ke liye. USA, UK, Australia etc. ElevenLabs voice engine ke saath kaam karta hai.</div>
+        </div>
+      </div>
+      <h3>Phone Number Kaise Lein</h3>
+      <div class="steps">
+        <div class="step"><span class="step-num">1</span><div class="step-body">
+          <div class="step-title">Phone Numbers Page Kholo</div>
+          <div class="step-desc">Sidebar → <strong>Phone Numbers</strong>. Yahan aapke existing numbers dikhenge.</div>
+        </div></div>
+        <div class="step"><span class="step-num">2</span><div class="step-body">
+          <div class="step-title">Provider Tab Choose Karo</div>
+          <div class="step-desc"><strong>Plivo tab</strong> click karo Indian numbers ke liye. <strong>Twilio tab</strong> international ke liye.</div>
+        </div></div>
+        <div class="step"><span class="step-num">3</span><div class="step-body">
+          <div class="step-title">Number Search Karo</div>
+          <div class="step-desc">Country → State → City filter karo. Available numbers ki list aayegi.</div>
+        </div></div>
+        <div class="step"><span class="step-num">4</span><div class="step-body">
+          <div class="step-title">Number Purchase Karo</div>
+          <div class="step-desc"><strong>Buy</strong> button click karo. Number turant aapke account mein aa jayega.</div>
+        </div></div>
+        <div class="step"><span class="step-num">5</span><div class="step-body">
+          <div class="step-title">Agent Se Link Karo</div>
+          <div class="step-desc">Agent settings mein jaao → <strong>Phone Number</strong> dropdown → apna number select karo.</div>
+        </div></div>
+      </div>
+    </section>
+
+    <!-- CAMPAIGNS -->
+    <section id="campaigns" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:#f9731620">📣</div>
+        <h2>Campaigns (Bulk Calling)</h2>
+      </div>
+      <p>Campaign ek automated bulk calling operation hai jismein ek hi agent hazaron contacts ko call karta hai.</p>
+      <h3>Campaign Kaise Banayein</h3>
+      <div class="steps">
+        <div class="step"><span class="step-num">1</span><div class="step-body">
+          <div class="step-title">Campaigns → New Campaign</div>
+          <div class="step-desc">Sidebar → <strong>Campaigns</strong> → <strong>+ Create Campaign</strong>.</div>
+        </div></div>
+        <div class="step"><span class="step-num">2</span><div class="step-body">
+          <div class="step-title">Campaign Details</div>
+          <div class="step-desc"><strong>Name:</strong> Campaign ka naam. <strong>Agent:</strong> Kaunsa agent use hoga. <strong>Phone Number:</strong> Kaunse number se calls jayengi.</div>
+        </div></div>
+        <div class="step"><span class="step-num">3</span><div class="step-body">
+          <div class="step-title">Contacts Add Karo</div>
+          <div class="step-desc">CSV file upload karo ya existing contact list select karo. Format: <code>name, phone, email</code> (first row headers).</div>
+        </div></div>
+        <div class="step"><span class="step-num">4</span><div class="step-body">
+          <div class="step-title">Schedule Set Karo (Optional)</div>
+          <div class="step-desc">Calls abhi start karni hain ya baad mein? Time aur date set karo. Calling hours set karo (e.g. 9 AM – 6 PM).</div>
+        </div></div>
+        <div class="step"><span class="step-num">5</span><div class="step-body">
+          <div class="step-title">Campaign Launch Karo</div>
+          <div class="step-desc"><strong>Start Campaign</strong> click karo. Dashboard pe real-time progress dikhega.</div>
+        </div></div>
+      </div>
+      <h3>Campaign Status</h3>
+      <table>
+        <tr><th>Status</th><th>Matlab</th></tr>
+        <tr><td><span class="badge badge-blue">Scheduled</span></td><td>Start hone ka wait kar raha hai</td></tr>
+        <tr><td><span class="badge badge-orange">Running</span></td><td>Calls chal rahi hain</td></tr>
+        <tr><td><span class="badge badge-green">Completed</span></td><td>Saare contacts call ho gaye</td></tr>
+        <tr><td><span class="badge badge-purple">Paused</span></td><td>Manually rokha gaya</td></tr>
+      </table>
+      <div class="tip">CSV file mein international format mein phone numbers daalo: <code>+919999988888</code> (country code ke saath).</div>
+    </section>
+
+    <!-- CONTACTS -->
+    <section id="contacts" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:#3b82f620">👥</div>
+        <h2>Contacts</h2>
+      </div>
+      <p>Contacts section mein aap apni contact list manage kar sakte ho — add, edit, import, export.</p>
+      <h3>Contacts Import Karna</h3>
+      <div class="steps">
+        <div class="step"><span class="step-num">1</span><div class="step-body">
+          <div class="step-title">Contacts Page Kholo</div>
+          <div class="step-desc">Sidebar → <strong>Contacts</strong>.</div>
+        </div></div>
+        <div class="step"><span class="step-num">2</span><div class="step-body">
+          <div class="step-title">Import Button Click Karo</div>
+          <div class="step-desc"><strong>Import CSV</strong> button click karo. Sample CSV download karo format dekhne ke liye.</div>
+        </div></div>
+        <div class="step"><span class="step-num">3</span><div class="step-body">
+          <div class="step-title">File Upload Karo</div>
+          <div class="step-desc">CSV file select karo. Columns map karo (Name → name, Phone → phone_number etc.).</div>
+        </div></div>
+      </div>
+      <h3>Contact Fields</h3>
+      <table>
+        <tr><th>Field</th><th>Required?</th><th>Example</th></tr>
+        <tr><td>Name</td><td><span class="badge badge-orange">Required</span></td><td>Rahul Sharma</td></tr>
+        <tr><td>Phone</td><td><span class="badge badge-orange">Required</span></td><td>+919876543210</td></tr>
+        <tr><td>Email</td><td><span class="badge badge-green">Optional</span></td><td>rahul@example.com</td></tr>
+        <tr><td>Company</td><td><span class="badge badge-green">Optional</span></td><td>Acme Corp</td></tr>
+        <tr><td>Custom Fields</td><td><span class="badge badge-green">Optional</span></td><td>product_interest=CRM</td></tr>
+      </table>
+    </section>
+
+    <!-- CALLS -->
+    <section id="calls" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:#22c55e20">📱</div>
+        <h2>Calls & Logs</h2>
+      </div>
+      <p>Har call ka detailed log aur recording yahan milti hai.</p>
+      <div class="steps">
+        <div class="step"><span class="step-num">1</span><div class="step-body">
+          <div class="step-title">Calls Page Kholo</div>
+          <div class="step-desc">Sidebar → <strong>Calls</strong>. Filter by date, status, agent, duration.</div>
+        </div></div>
+        <div class="step"><span class="step-num">2</span><div class="step-body">
+          <div class="step-title">Call Details Dekhna</div>
+          <div class="step-desc">Kisi bhi call pe click karo: Recording sunna, Transcript padhna, AI-generated summary dekhna.</div>
+        </div></div>
+        <div class="step"><span class="step-num">3</span><div class="step-body">
+          <div class="step-title">Call Data Export</div>
+          <div class="step-desc"><strong>Export CSV</strong> button se filtered calls ka data download karo.</div>
+        </div></div>
+      </div>
+      <h3>Call Status Types</h3>
+      <table>
+        <tr><th>Status</th><th>Matlab</th></tr>
+        <tr><td><span class="badge badge-green">Completed</span></td><td>Call successfully complete hua</td></tr>
+        <tr><td><span class="badge badge-orange">No Answer</span></td><td>Call utha nahi gaya</td></tr>
+        <tr><td><span class="badge badge-purple">Busy</span></td><td>Line busy thi</td></tr>
+        <tr><td><span class="badge badge-blue">Failed</span></td><td>Technical issue se call fail hua</td></tr>
+      </table>
+    </section>
+
+    <!-- ANALYTICS -->
+    <section id="analytics" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:#a855f720">📈</div>
+        <h2>Analytics</h2>
+      </div>
+      <p>Analytics page pe aap apne voice agent ke performance ko track kar sakte ho.</p>
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-icon">📊</div>
+          <div class="card-title">Call Volume Graph</div>
+          <div class="card-desc">Din, week, ya month ke hisaab se calls ka trend dekho.</div>
+        </div>
+        <div class="card">
+          <div class="card-icon">⏱️</div>
+          <div class="card-title">Average Duration</div>
+          <div class="card-desc">Har call ki average length. Zyada duration = zyada engagement.</div>
+        </div>
+        <div class="card">
+          <div class="card-icon">✅</div>
+          <div class="card-title">Success Rate</div>
+          <div class="card-desc">Successfully completed calls ka percentage.</div>
+        </div>
+        <div class="card">
+          <div class="card-icon">🏆</div>
+          <div class="card-title">Agent Performance</div>
+          <div class="card-desc">Kaunsa agent best perform kar raha hai — calls, duration, outcomes.</div>
+        </div>
+      </div>
+      <div class="note">Analytics data har 15 minutes mein update hota hai. Real-time calls ke liye Dashboard use karo.</div>
+    </section>
+
+    <!-- WEBHOOKS -->
+    <section id="webhooks" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:#f9731620">🔗</div>
+        <h2>Webhooks</h2>
+      </div>
+      <p>Webhooks se Zonvo aapke CRM, database ya kisi bhi system ko real-time events bhej sakta hai.</p>
+      <h3>Webhook Kaise Setup Karein</h3>
+      <div class="steps">
+        <div class="step"><span class="step-num">1</span><div class="step-body">
+          <div class="step-title">Settings → Webhooks</div>
+          <div class="step-desc">Sidebar → <strong>Settings</strong> → <strong>Webhooks</strong> tab.</div>
+        </div></div>
+        <div class="step"><span class="step-num">2</span><div class="step-body">
+          <div class="step-title">New Webhook Add Karo</div>
+          <div class="step-desc"><strong>URL:</strong> Apne server ka endpoint dalo (e.g. <code>https://yourapp.com/webhook/zonvo</code>).<br><strong>Events:</strong> Kaun se events sunna chahte ho.</div>
+        </div></div>
+        <div class="step"><span class="step-num">3</span><div class="step-body">
+          <div class="step-title">Test Karo</div>
+          <div class="step-desc"><strong>Send Test Payload</strong> button click karo. Apne server pe receive hota dekho.</div>
+        </div></div>
+      </div>
+      <h3>Available Events</h3>
+      <table>
+        <tr><th>Event</th><th>Kab Fire Hota Hai</th></tr>
+        <tr><td><code>call.started</code></td><td>Call connect hone par</td></tr>
+        <tr><td><code>call.completed</code></td><td>Call khatam hone par (with transcript)</td></tr>
+        <tr><td><code>call.failed</code></td><td>Call fail hone par</td></tr>
+        <tr><td><code>campaign.started</code></td><td>Campaign start hone par</td></tr>
+        <tr><td><code>campaign.completed</code></td><td>Campaign finish hone par</td></tr>
+      </table>
+      <h3>Sample Webhook Payload</h3>
+      <pre><code>{
+  "event": "call.completed",
+  "call_id": "cl_xyz123",
+  "agent_id": "ag_abc456",
+  "contact": { "name": "Rahul", "phone": "+919876543210" },
+  "duration": 142,
+  "status": "completed",
+  "transcript": "Agent: Namaste Rahul ji...",
+  "summary": "Customer interested in premium plan",
+  "timestamp": "2025-06-25T10:30:00Z"
+}</code></pre>
+    </section>
+
+    <!-- API KEYS -->
+    <section id="api-keys" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:#3b82f620">🔑</div>
+        <h2>API Keys</h2>
+      </div>
+      <p>REST API use karne ke liye aapko API key chahiye hogi.</p>
+      <div class="steps">
+        <div class="step"><span class="step-num">1</span><div class="step-body">
+          <div class="step-title">Settings → Developer</div>
+          <div class="step-desc">Sidebar → <strong>Settings</strong> → <strong>Developer</strong> tab kholo.</div>
+        </div></div>
+        <div class="step"><span class="step-num">2</span><div class="step-body">
+          <div class="step-title">New API Key Generate Karo</div>
+          <div class="step-desc"><strong>Generate API Key</strong> button click karo. Key ka naam do (e.g. "My CRM Integration").</div>
+        </div></div>
+        <div class="step"><span class="step-num">3</span><div class="step-body">
+          <div class="step-title">Key Copy Karo (Sirf Ek Baar Dikhegi!)</div>
+          <div class="step-desc">Key copy karo aur safely store karo. Baad mein dobara nahi dikhegi.</div>
+        </div></div>
+        <div class="step"><span class="step-num">4</span><div class="step-body">
+          <div class="step-title">API Use Karo</div>
+          <div class="step-desc">Har request mein header mein bhejo: <code>Authorization: Bearer YOUR_API_KEY</code></div>
+        </div></div>
+      </div>
+      <div class="warn">API key ko kabhi bhi public GitHub, frontend code, ya kisi aur ke saath share mat karo.</div>
+    </section>
+
+    <!-- VOICES -->
+    <section id="voices" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:#22c55e20">🎵</div>
+        <h2>Voices</h2>
+      </div>
+      <p>Zonvo multiple voice providers support karta hai. Agent banate waqt voice choose karo.</p>
+      <table>
+        <tr><th>Provider</th><th>Language</th><th>Best For</th></tr>
+        <tr><td>Sarvam AI (Priya)</td><td>Hindi, Hinglish</td><td>Indian customers — natural Hinglish</td></tr>
+        <tr><td>ElevenLabs</td><td>English + 30 languages</td><td>International calls, premium quality</td></tr>
+        <tr><td>OpenAI TTS</td><td>English</td><td>Fast, cost-effective English calls</td></tr>
+      </table>
+      <div class="tip">Indian customers ke liye <strong>Sarvam AI (Priya voice)</strong> sabse natural lagti hai. Hinglish mein baat karti hai.</div>
+    </section>
+
+    <!-- CREDITS -->
+    <section id="credits" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:#f9731620">💳</div>
+        <h2>Credits & Plans</h2>
+      </div>
+      <p>Zonvo credit-based system use karta hai. Har call karne par credits consume hote hain.</p>
+      <h3>Credits Kaise Kaam Karte Hain</h3>
+      <table>
+        <tr><th>Action</th><th>Credits Used</th></tr>
+        <tr><td>1 minute outbound call</td><td>Plan ke hisaab se vary karta hai</td></tr>
+        <tr><td>1 minute inbound call</td><td>Plan ke hisaab se vary karta hai</td></tr>
+        <tr><td>Campaign scheduling</td><td>Free</td></tr>
+        <tr><td>Webhook events</td><td>Free</td></tr>
+      </table>
+      <h3>Credits Kaise Khareedein</h3>
+      <div class="steps">
+        <div class="step"><span class="step-num">1</span><div class="step-body">
+          <div class="step-title">Settings → Billing</div>
+          <div class="step-desc">Sidebar → <strong>Settings</strong> → <strong>Billing</strong>.</div>
+        </div></div>
+        <div class="step"><span class="step-num">2</span><div class="step-body">
+          <div class="step-title">Plan Upgrade ya Credits Add</div>
+          <div class="step-desc"><strong>Upgrade Plan</strong> ya <strong>Add Credits</strong> click karo. Payment gateway pe jaoge.</div>
+        </div></div>
+      </div>
+    </section>
+
+    <!-- TROUBLESHOOTING -->
+    <section id="troubleshoot" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:#3b82f620">🛠️</div>
+        <h2>Troubleshooting</h2>
+      </div>
+      <h3>Common Problems</h3>
+      <table>
+        <tr><th>Problem</th><th>Solution</th></tr>
+        <tr><td>Call connect nahi ho raha</td><td>Phone number agent se linked hai? Telephony provider credentials check karo Settings mein.</td></tr>
+        <tr><td>Agent Hindi mein nahi bol raha</td><td>Agent settings mein Language "Hindi" ya "Hinglish" select karo. Sarvam AI voice use karo.</td></tr>
+        <tr><td>Campaign calls fail ho rahe hain</td><td>Contact list mein phone numbers format check karo: +91XXXXXXXXXX hona chahiye.</td></tr>
+        <tr><td>Webhook receive nahi ho raha</td><td>URL correct hai? Server publicly accessible hai? HTTPS use karo.</td></tr>
+        <tr><td>Credits khatam ho gaye</td><td>Settings → Billing → Add Credits.</td></tr>
+        <tr><td>API 401 Unauthorized error</td><td>API key expire toh nahi hui? Nayi key generate karo Settings → Developer mein.</td></tr>
+      </table>
+      <div class="note">Koi aur problem? <strong>info@aiclex.in</strong> pe email karo ya <strong>+91 84494 88090</strong> pe call karo. Hum 24 ghante mein response denge.</div>
+    </section>
+
+  </div>
+</main>
+
+<script>
+  // Active nav link on scroll
+  const sections = document.querySelectorAll('.section');
+  const navLinks = document.querySelectorAll('.nav-link');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(link => link.classList.remove('active'));
+        const active = document.querySelector(`.nav-link[href="#${entry.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
