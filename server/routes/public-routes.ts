@@ -641,11 +641,20 @@ export function createPublicRoutes(ctx: RouteContext): Router {
     { url: '/features', changefreq: 'weekly', priority: 0.9 },
     { url: '/use-cases', changefreq: 'weekly', priority: 0.8 },
     { url: '/integrations', changefreq: 'weekly', priority: 0.8 },
-    { url: '/blog', changefreq: 'daily', priority: 0.7 },
+    { url: '/blog', changefreq: 'daily', priority: 0.8 },
     { url: '/contact', changefreq: 'monthly', priority: 0.6 },
     { url: '/about', changefreq: 'monthly', priority: 0.5 },
     { url: '/privacy', changefreq: 'yearly', priority: 0.2 },
     { url: '/terms', changefreq: 'yearly', priority: 0.2 },
+    // Blog posts
+    { url: '/blog/ai-voice-agents-customer-service-india', changefreq: 'monthly', priority: 0.9, lastmod: '2025-06-20' },
+    { url: '/blog/case-study-ecommerce-cost-reduction-ai-calling', changefreq: 'monthly', priority: 0.85, lastmod: '2025-06-15' },
+    { url: '/blog/flow-agents-visual-call-scripting', changefreq: 'monthly', priority: 0.8, lastmod: '2025-06-10' },
+    { url: '/blog/ai-voice-agent-use-cases-india-2025', changefreq: 'monthly', priority: 0.85, lastmod: '2025-06-05' },
+    { url: '/blog/how-to-setup-ai-voice-agent-15-minutes', changefreq: 'monthly', priority: 0.8, lastmod: '2025-05-28' },
+    { url: '/blog/ai-voice-agents-vs-ivr-comparison', changefreq: 'monthly', priority: 0.8, lastmod: '2025-05-20' },
+    // Docs
+    { url: '/api/user-guide', changefreq: 'monthly', priority: 0.6 },
   ];
 
   function escapeXml(str: string): string {
@@ -743,9 +752,23 @@ ${allUrls.map(u => {
       const defaultRules = [
         {
           userAgent: '*',
-          allow: ['/', '/pricing', '/features', '/use-cases', '/integrations', '/blog', '/contact', '/about', '/privacy', '/terms'],
-          disallow: ['/app/', '/admin/', '/api/']
-        }
+          allow: ['/', '/pricing', '/features', '/use-cases', '/integrations', '/blog', '/contact', '/about', '/privacy', '/terms', '/api/docs', '/api/user-guide'],
+          disallow: ['/app/', '/admin/', '/api/v1/', '/api/auth/', '/api/admin/']
+        },
+        // Allow Google
+        { userAgent: 'Googlebot', allow: ['/'], disallow: ['/app/', '/admin/'] },
+        // Allow Bing
+        { userAgent: 'Bingbot', allow: ['/'], disallow: ['/app/', '/admin/'] },
+        // Allow ChatGPT / OpenAI
+        { userAgent: 'GPTBot', allow: ['/blog', '/api/docs', '/api/user-guide', '/features', '/use-cases', '/pricing'], disallow: ['/app/', '/admin/', '/api/v1/'] },
+        // Allow Claude / Anthropic
+        { userAgent: 'ClaudeBot', allow: ['/blog', '/features', '/use-cases', '/api/user-guide'], disallow: ['/app/', '/admin/', '/api/v1/'] },
+        // Allow Perplexity
+        { userAgent: 'PerplexityBot', allow: ['/'], disallow: ['/app/', '/admin/'] },
+        // Allow Meta AI
+        { userAgent: 'meta-externalagent', allow: ['/'], disallow: ['/app/', '/admin/'] },
+        // Allow Common Crawl (used by many AI training datasets)
+        { userAgent: 'CCBot', allow: ['/blog', '/features', '/use-cases'], disallow: ['/app/', '/admin/', '/api/v1/'] },
       ];
 
       const rules = (seoSettings?.robotsRules as any[]) || defaultRules;
