@@ -58,14 +58,14 @@ const TypingWord = ({ words, reduceMotion }: { words: string[]; reduceMotion: bo
 
   return (
     <span className="inline-block min-w-[200px] text-left">
-      <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-amber-500 to-emerald-600 font-extrabold">
+      <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 font-extrabold">
         {displayText}
       </span>
       {!reduceMotion && (
         <motion.span
           animate={{ opacity: [1, 0] }}
           transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse" }}
-          className="inline-block w-[3px] h-[0.9em] bg-orange-500 ml-1 align-middle"
+          className="inline-block w-[3px] h-[0.9em] bg-blue-500 ml-1 align-middle"
         />
       )}
     </span>
@@ -173,11 +173,16 @@ export function HeroSection() {
   return (
     <section
       ref={sectionRef}
-      className="relative flex flex-col items-center overflow-hidden bg-[#06060c] pt-32 pb-16 md:pt-40 md:pb-24"
+      className="relative flex flex-col items-center overflow-hidden bg-[#030308] pt-32 pb-16 md:pt-40 md:pb-24"
       data-testid="hero-section"
     >
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-orange-500/20 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute top-1/4 right-0 w-[400px] h-[400px] bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none" />
+      {/* Premium Grid Background */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f1a_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f1a_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_30%,#000_60%,transparent_100%)]"></div>
+      
+      {/* Subtle Mesh Gradients */}
+      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-blue-600/15 blur-[150px] rounded-full pointer-events-none mix-blend-screen" />
+      <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-cyan-500/10 blur-[120px] rounded-full pointer-events-none mix-blend-screen" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none mix-blend-screen" />
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center">
           <motion.div
@@ -225,7 +230,7 @@ export function HeroSection() {
               <Link href={getDashboardLink()}>
                 <Button
                   size="lg"
-                  className="rounded-full shadow-orange-500/20 shadow-xl bg-orange-500 hover:bg-orange-600 text-white border-0 font-semibold px-8"
+                  className="rounded-full shadow-blue-500/25 shadow-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white border-0 font-semibold px-8 transition-all hover:scale-105"
                   data-testid="button-hero-get-started"
                 >
                   {t('landing.hero.getStarted')}
@@ -267,11 +272,11 @@ export function HeroSection() {
               initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
               animate={shouldReduceMotion ? { opacity: 1 } : (isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 })}
               transition={shouldReduceMotion ? undefined : { delay: 1 + index * 0.1, duration: 0.5 }}
-              className="relative overflow-hidden rounded-2xl flex flex-col p-6 border border-white/10 bg-white/5 backdrop-blur-md group hover:border-orange-500/50 transition-all duration-300"
+              className="relative overflow-hidden rounded-2xl flex flex-col p-6 border border-white/5 bg-white/[0.02] backdrop-blur-xl group hover:border-blue-500/30 hover:bg-white/[0.04] transition-all duration-300 shadow-2xl"
               data-testid={`card-usecase-${card.title.toLowerCase().replace(/\s+/g, "-")}`}
             >
               <div className="mb-4">
-                <card.icon className="h-8 w-8 text-orange-500" />
+                <card.icon className="h-8 w-8 text-cyan-400 group-hover:text-blue-400 transition-colors" />
               </div>
               <div>
                 <p className="text-slate-400 text-xs font-medium mb-1">{card.label}</p>

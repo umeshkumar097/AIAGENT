@@ -83,7 +83,7 @@ export function DemoCallingWidget() {
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1.1 }}
           exit={{ opacity: 0, scale: 0.8 }}
-          className="absolute -inset-4 bg-brand/20 blur-3xl rounded-full z-0"
+          className="absolute -inset-4 bg-cyan-500/20 blur-3xl rounded-full z-0"
         />
       )}
       
@@ -102,7 +102,7 @@ export function DemoCallingWidget() {
 
         {/* Central Orb / Avatar */}
         <div className="relative w-40 h-40 mb-8 cursor-pointer group" onClick={!isCalling ? handleToggleCall : undefined}>
-          <div className={`absolute inset-0 rounded-full flex items-center justify-center transition-all duration-500 ${isCalling ? 'bg-gradient-to-br from-brand to-purple-600 scale-100 shadow-[0_0_40px_rgba(139,92,246,0.5)]' : 'bg-zinc-800 scale-95 shadow-inner'}`}>
+          <div className={`absolute inset-0 rounded-full flex items-center justify-center transition-all duration-500 ${isCalling ? 'bg-gradient-to-br from-cyan-400 to-blue-600 scale-100 shadow-[0_0_40px_rgba(56,189,248,0.5)]' : 'bg-zinc-800 scale-95 shadow-inner'}`}>
             {isCalling ? (
               <div className="flex gap-1.5 items-end h-12">
                 {[...Array(5)].map((_, i) => (
@@ -125,12 +125,12 @@ export function DemoCallingWidget() {
               <motion.div 
                 whileHover={!isConnecting ? { scale: 1.1 } : undefined}
                 whileTap={!isConnecting ? { scale: 0.95 } : undefined}
-                className="w-24 h-24 rounded-full bg-gradient-to-br from-brand/20 to-purple-500/20 flex items-center justify-center border border-brand/30"
+                className="w-24 h-24 rounded-full bg-gradient-to-br from-cyan-400/20 to-blue-500/20 flex items-center justify-center border border-cyan-400/30"
               >
                 {isConnecting ? (
-                  <Loader2 className="w-10 h-10 text-brand animate-spin" />
+                  <Loader2 className="w-10 h-10 text-cyan-400 animate-spin" />
                 ) : (
-                  <Mic className="w-10 h-10 text-brand" />
+                  <Mic className="w-10 h-10 text-cyan-400" />
                 )}
               </motion.div>
             )}
@@ -139,8 +139,8 @@ export function DemoCallingWidget() {
           {/* Pulsing rings when ringing/calling */}
           {isCalling && (
             <>
-              <motion.div animate={{ scale: [1, 1.2, 1.4], opacity: [0.5, 0.2, 0] }} transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }} className="absolute inset-0 rounded-full border-2 border-brand" />
-              <motion.div animate={{ scale: [1, 1.3, 1.6], opacity: [0.3, 0.1, 0] }} transition={{ duration: 2, repeat: Infinity, ease: "easeOut", delay: 0.5 }} className="absolute inset-0 rounded-full border border-brand/50" />
+              <motion.div animate={{ scale: [1, 1.2, 1.4], opacity: [0.5, 0.2, 0] }} transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }} className="absolute inset-0 rounded-full border-2 border-cyan-400" />
+              <motion.div animate={{ scale: [1, 1.3, 1.6], opacity: [0.3, 0.1, 0] }} transition={{ duration: 2, repeat: Infinity, ease: "easeOut", delay: 0.5 }} className="absolute inset-0 rounded-full border border-cyan-400/50" />
             </>
           )}
         </div>
