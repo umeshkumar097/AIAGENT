@@ -83,9 +83,9 @@ const StatsBadge = ({ value, label }: { value: string; label: string }) => (
 );
 
 const TrustBadge = ({ text }: { text: string }) => (
-  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-    <div className="w-5 h-5 rounded-full bg-emerald-500/15 dark:bg-emerald-500/20 flex items-center justify-center">
-      <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+  <div className="flex items-center gap-2 text-sm text-slate-300">
+    <div className="w-5 h-5 rounded-full bg-emerald-500/15 flex items-center justify-center">
+      <Check className="h-3 w-3 text-emerald-400" />
     </div>
     <span>{text}</span>
   </div>
@@ -192,7 +192,7 @@ export function HeroSection() {
             className="space-y-7 text-left"
           >
             <motion.div variants={itemVariants} className="flex justify-start">
-              <span className="text-sm font-semibold text-primary tracking-widest uppercase">
+              <span className="text-sm font-semibold text-cyan-400 tracking-widest uppercase">
                 {t('landing.hero.badge')}
               </span>
             </motion.div>
@@ -299,7 +299,7 @@ export function HeroSection() {
           aria-label="Scroll down"
           data-testid="button-scroll-indicator"
         >
-          <ChevronDown className={`h-6 w-6 text-muted-foreground transition-colors ${shouldReduceMotion ? '' : 'animate-bounce'}`} />
+          <ChevronDown className={`h-6 w-6 text-slate-400 transition-colors ${shouldReduceMotion ? '' : 'animate-bounce'}`} />
         </button>
       </motion.div>
     </section>
