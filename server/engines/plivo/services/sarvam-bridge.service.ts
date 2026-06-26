@@ -130,12 +130,20 @@ export class SarvamBridgeService {
     const queue = (plivoWs as any).sarvamAudioQueue as Buffer[];
     if (!queue || queue.length === 0) {
       (plivoWs as any).sarvamIsPacing = false;
-      // Audio drained: if still SPEAKING, transition to LISTENING
+      // BUG FIX: Only transition SPEAKING→LISTENING when TTS synthesis is fully done.
+      // If TTS WS is still open (synthesis in progress), audio chunks may still arrive.
+      // Transitioning early drops those chunks → sliced/incomplete audio.
       const st: ConvState = (plivoWs as any).sarvamState;
-      if (st === 'SPEAKING') {
+      const ttsSynthesizing: boolean = (plivoWs as any).sarvamTtsSynthesizing ?? false;
+      if (st === 'SPEAKING' && !ttsSynthesizing) {
         SarvamBridgeService.setState(callUuid, plivoWs, 'LISTENING');
         (plivoWs as any).sarvamIsSpeaking = false;
-        logger.info(`[SarvamBridge][${callUuid}] Audio queue drained → LISTENING`);
+        logger.info(`[SarvamBridge][${callUuid}] Audio queue drained + TTS done → LISTENING`);
+      } else if (st === 'SPEAKING' && ttsSynthesizing) {
+        // TTS still streaming — check again in 20ms
+        const timer = setTimeout(() => SarvamBridgeService.paceNext(callUuid, plivoWs), MULAW_CHUNK_MS);
+        (plivoWs as any).sarvamPacingTimer = timer;
+        return;
       }
       return;
     }
@@ -297,10 +305,22 @@ ${systemPrompt}`;
           // Guard: only send if call is still in SPEAKING or THINKING state
           const st: ConvState = (plivoWs as any).sarvamState;
           if (st === 'SPEAKING' || st === 'THINKING') {
+            (plivoWs as any).sarvamTtsSynthesizing = true; // mark: audio is arriving
             SarvamBridgeService.sendMulawPaced(callUuid, plivoWs, mulaw8k);
           }
         } else if (msg.type === 'event') {
-          logger.info(`[SarvamBridge][${callUuid}] TTS synthesis completed`);
+          // Sarvam signals synthesis complete — safe to transition SPEAKING→LISTENING
+          logger.info(`[SarvamBridge][${callUuid}] TTS synthesis completed (send_completion_event)`);
+          (plivoWs as any).sarvamTtsSynthesizing = false;
+          // If audio queue already drained, transition now
+          if (!(plivoWs as any).sarvamIsPacing) {
+            const st: ConvState = (plivoWs as any).sarvamState;
+            if (st === 'SPEAKING') {
+              SarvamBridgeService.setState(callUuid, plivoWs, 'LISTENING');
+              (plivoWs as any).sarvamIsSpeaking = false;
+              logger.info(`[SarvamBridge][${callUuid}] TTS done + queue empty → LISTENING`);
+            }
+          }
         }
       } catch { /* ignore malformed */ }
     });
@@ -338,6 +358,9 @@ ${systemPrompt}`;
     if (!trimmed) return;
 
     perf.mark(`TTS_START_${idx}`);
+
+    // Mark synthesis as in-progress BEFORE sending text
+    (plivoWs as any).sarvamTtsSynthesizing = true;
 
     // Ensure TTS WS is open; open if needed
     let ttsWs = (plivoWs as any).sarvamTtsWs as WebSocket | null;
@@ -621,6 +644,7 @@ ${systemPrompt}`;
     (plivoWs as any).sarvamTtsWs                = null;
     (plivoWs as any).sarvamTtsReady             = false;
     (plivoWs as any).sarvamRealAudioStarted     = false;
+    (plivoWs as any).sarvamTtsSynthesizing      = false;
 
     const transcriptLines: string[] = [];
     const chatHistory: { role: 'user' | 'assistant'; content: string }[] = [];
@@ -672,16 +696,28 @@ ${systemPrompt}`;
       sttWs.on('open', () => {
         logger.info(`[SarvamBridge][${callUuid}] STT WebSocket opened`);
 
-        // Suggestion 11: 5 s ping (was 20 ms silence flood = 250× fewer messages)
-        // Sarvam docs: use { type: "ping" } to keep connection alive
+        // BUG FIX: Sarvam STT WebSocket requires continuous audio at ~20ms intervals.
+        // JSON pings (type:"ping") do NOT keep the STT alive — it expects audio data.
+        // Without silence audio, STT closes after ~3-4s → call drops.
+        // We send silence (320 bytes of zeros = 20ms of silence at 8kHz) until real
+        // Plivo audio arrives, then stop (real audio takes over).
+        const SILENCE_PCM = Buffer.alloc(320, 0); // 20ms silence, PCM16 8kHz
+        const SILENCE_B64 = SILENCE_PCM.toString('base64');
+        const SILENCE_MSG = JSON.stringify({
+          audio: { data: SILENCE_B64, encoding: 'audio/wav', sample_rate: 8000 }
+        });
         const keepAlive = setInterval(() => {
           if (sttWs.readyState === WebSocket.OPEN) {
-            sttWs.send(JSON.stringify({ type: 'ping' }));
+            // Only send silence if real Plivo audio hasn't started yet
+            if (!(plivoWs as any).sarvamRealAudioStarted) {
+              sttWs.send(SILENCE_MSG);
+            }
           } else {
             clearInterval(keepAlive);
           }
-        }, 5000);
+        }, 20);
         (plivoWs as any).sarvamKeepAlive = keepAlive;
+        logger.info(`[SarvamBridge][${callUuid}] STT keepalive started (silence at 20ms until real audio)`);
       });
 
       sttWs.on('message', async (raw: Buffer | string) => {
@@ -806,8 +842,9 @@ ${systemPrompt}`;
 
     if (!(plivoWs as any).sarvamRealAudioStarted) {
       (plivoWs as any).sarvamRealAudioStarted = true;
-      logger.info(`[SarvamBridge][${callUuid}] First Plivo audio frame received`);
-      // Note: keepAlive continues — it now sends JSON pings, not silence
+      logger.info(`[SarvamBridge][${callUuid}] First Plivo audio frame received — silence keepalive stops`);
+      // keepAlive interval continues but now skips sending (sarvamRealAudioStarted=true)
+      // Real Plivo audio takes over — interval auto-stops after next check
     }
 
     const mulawBuf = Buffer.from(payload, 'base64');
