@@ -4,13 +4,25 @@ import { db } from '../../../db';
 import { globalSettings } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 
-// ── Audio pacing config (same as ElevenLabs bridge) ─────────────────────────
-const MULAW_CHUNK_BYTES = 160;   // 20ms at 8kHz
+// ── Audio pacing config ───────────────────────────────────────────────────────
+const MULAW_CHUNK_BYTES = 160;   // 20 ms at 8 kHz
 const MULAW_CHUNK_MS    = 20;
 
 // ── Sarvam endpoints ─────────────────────────────────────────────────────────
-const SARVAM_STT_URL = 'wss://api.sarvam.ai/speech-to-text/ws';
-const SARVAM_TTS_URL = 'wss://api.sarvam.ai/text-to-speech/ws';
+const SARVAM_STT_URL     = 'wss://api.sarvam.ai/speech-to-text/ws';
+const SARVAM_TTS_WS_URL  = 'wss://api.sarvam.ai/text-to-speech/ws';
+
+// ── Conversation state machine ─────────────────────────────────────────────────
+type ConvState = 'LISTENING' | 'THINKING' | 'SPEAKING' | 'INTERRUPTED' | 'TERMINATED';
+
+// Valid state transitions (used for logging unexpected ones)
+const VALID_TRANSITIONS: Record<ConvState, ConvState[]> = {
+  LISTENING:   ['THINKING', 'TERMINATED'],
+  THINKING:    ['SPEAKING', 'INTERRUPTED', 'LISTENING', 'TERMINATED'],
+  SPEAKING:    ['LISTENING', 'INTERRUPTED', 'TERMINATED'],
+  INTERRUPTED: ['LISTENING', 'TERMINATED'],
+  TERMINATED:  [],
+};
 
 export interface SarvamAgentConfig {
   systemPrompt:  string;
@@ -20,9 +32,32 @@ export interface SarvamAgentConfig {
   openaiApiKey:  string;
 }
 
+// ── Per-call latency profiler (Suggestion 6, 7, 10) ─────────────────────────
+class PerfTimer {
+  private marks = new Map<string, number>();
+  constructor(private readonly callUuid: string) {}
+
+  mark(label: string): void {
+    this.marks.set(label, Date.now());
+  }
+
+  log(from: string, to: string): void {
+    const t0 = this.marks.get(from);
+    const t1 = this.marks.get(to) ?? Date.now();
+    if (t0 == null) return;
+    logger.info(`[PERF][${this.callUuid}] ${from}→${to}: ${t1 - t0}ms`);
+  }
+
+  summary(from: string): void {
+    const t0 = this.marks.get(from);
+    if (t0 == null) return;
+    logger.info(`[PERF][${this.callUuid}] TURN_TOTAL (${from}→now): ${Date.now() - t0}ms`);
+  }
+}
+
 export class SarvamBridgeService {
 
-  // ── mulaw decode table (G.711) ────────────────────────────────────────────
+  // ── mulaw decode table (G.711 μ-law) ─────────────────────────────────────
   private static readonly MULAW_DECODE: Int16Array = (() => {
     const t = new Int16Array(256);
     for (let i = 0; i < 256; i++) {
@@ -50,7 +85,7 @@ export class SarvamBridgeService {
     return (~(sign | (exp << 4) | mant)) & 0xFF;
   }
 
-  // ── mulaw 8kHz → PCM16 8kHz ──────────────────────────────────────────────
+  // ── μ-law 8 kHz → PCM16 LE 8 kHz ─────────────────────────────────────────
   private static mulaw8k_to_pcm16_8k(src: Buffer): Buffer {
     const out = Buffer.alloc(src.length * 2);
     for (let i = 0; i < src.length; i++) {
@@ -59,7 +94,7 @@ export class SarvamBridgeService {
     return out;
   }
 
-  // ── PCM16 any-rate → mulaw 8kHz ──────────────────────────────────────────
+  // ── PCM16 LE any-rate → μ-law 8 kHz (downsampler for 24 kHz TTS output) ──
   private static pcm16_to_mulaw8k(src: Buffer, srcRate: number): Buffer {
     const inSamples  = Math.floor(src.length / 2);
     const outSamples = Math.floor(inSamples * 8000 / srcRate);
@@ -93,7 +128,17 @@ export class SarvamBridgeService {
 
   private static paceNext(callUuid: string, plivoWs: WebSocket): void {
     const queue = (plivoWs as any).sarvamAudioQueue as Buffer[];
-    if (!queue || queue.length === 0) { (plivoWs as any).sarvamIsPacing = false; return; }
+    if (!queue || queue.length === 0) {
+      (plivoWs as any).sarvamIsPacing = false;
+      // Audio drained: if still SPEAKING, transition to LISTENING
+      const st: ConvState = (plivoWs as any).sarvamState;
+      if (st === 'SPEAKING') {
+        SarvamBridgeService.setState(callUuid, plivoWs, 'LISTENING');
+        (plivoWs as any).sarvamIsSpeaking = false;
+        logger.info(`[SarvamBridge][${callUuid}] Audio queue drained → LISTENING`);
+      }
+      return;
+    }
     const chunk = queue.shift()!;
     if (plivoWs.readyState === WebSocket.OPEN) {
       plivoWs.send(JSON.stringify({
@@ -114,7 +159,64 @@ export class SarvamBridgeService {
     (plivoWs as any).sarvamIsPacing   = false;
   }
 
-  // ── Get Sarvam API key from DB ─────────────────────────────────────────────
+  // ── State machine helper ──────────────────────────────────────────────────
+  private static setState(callUuid: string, plivoWs: WebSocket, next: ConvState): void {
+    const prev: ConvState = (plivoWs as any).sarvamState ?? 'LISTENING';
+    if (prev === 'TERMINATED') return; // terminal — no further transitions
+    if (!VALID_TRANSITIONS[prev].includes(next)) {
+      logger.warn(`[SarvamBridge][${callUuid}] Unexpected state: ${prev} → ${next}`);
+    }
+    (plivoWs as any).sarvamState = next;
+  }
+
+  // ── Close TTS WebSocket cleanly ───────────────────────────────────────────
+  private static closeTtsWs(plivoWs: WebSocket): void {
+    const ttsWs = (plivoWs as any).sarvamTtsWs as WebSocket | null;
+    if (ttsWs) {
+      ttsWs.removeAllListeners();
+      if (ttsWs.readyState === WebSocket.OPEN || ttsWs.readyState === WebSocket.CONNECTING) {
+        try { ttsWs.close(); } catch { /* ignore */ }
+      }
+      (plivoWs as any).sarvamTtsWs   = null;
+      (plivoWs as any).sarvamTtsReady = false;
+    }
+  }
+
+  // ── Full barge-in interrupt ───────────────────────────────────────────────
+  // Suggestions 7, 8, 9: abort GPT, clear audio, signal Plivo, invalidate turn
+  private static interruptAI(callUuid: string, plivoWs: WebSocket): void {
+    const prev: ConvState = (plivoWs as any).sarvamState ?? 'LISTENING';
+    if (prev === 'LISTENING' || prev === 'TERMINATED') return;
+
+    // 1. Abort in-flight GPT fetch via AbortController
+    const ctrl = (plivoWs as any).sarvamAbortController as AbortController | null;
+    if (ctrl) {
+      ctrl.abort();
+      (plivoWs as any).sarvamAbortController = null;
+    }
+
+    // 2. Stop audio pacing and drain queue completely (Suggestion 7)
+    SarvamBridgeService.stopPacing(plivoWs);
+
+    // 3. Close TTS WebSocket — stops any in-progress synthesis (Suggestion 9)
+    SarvamBridgeService.closeTtsWs(plivoWs);
+
+    // 4. Tell Plivo to discard its internal audio buffer
+    if (plivoWs.readyState === WebSocket.OPEN) {
+      plivoWs.send(JSON.stringify({ event: 'clearAudio' }));
+    }
+
+    // 5. Bump turnId — outstanding .then() callbacks see mismatch and drop stale replies
+    (plivoWs as any).sarvamTurnId = ((plivoWs as any).sarvamTurnId ?? 0) + 1;
+
+    // 6. Clear legacy flag
+    (plivoWs as any).sarvamIsSpeaking = false;
+
+    SarvamBridgeService.setState(callUuid, plivoWs, 'INTERRUPTED');
+    logger.info(`[SarvamBridge][${callUuid}] AI interrupted (was: ${prev}) — GPT aborted, audio cleared`);
+  }
+
+  // ── Get Sarvam API key ────────────────────────────────────────────────────
   private static async getSarvamApiKey(): Promise<string | null> {
     try {
       const [row] = await db
@@ -128,16 +230,15 @@ export class SarvamBridgeService {
     }
   }
 
-  // ── Gender detection from voice name ────────────────────────────────────
+  // ── Gender detection from voice ───────────────────────────────────────────
   private static getGenderFromVoice(voice: string): 'female' | 'male' {
     const femaleVoices = ['priya', 'meera', 'kavya', 'anushka', 'manisha', 'vidya', 'maya'];
     return femaleVoices.includes((voice || '').toLowerCase()) ? 'female' : 'male';
   }
 
-  // ── Build natural system prompt wrapper ──────────────────────────────────
+  // ── System prompt wrapper (Suggestion 6: compact, ~250 tokens) ────────────
   private static buildWrapper(systemPrompt: string, voice: string): string {
     const gender = SarvamBridgeService.getGenderFromVoice(voice);
-    const genderHindi = gender === 'female' ? 'female (aurat)' : 'male (mard)';
     const selfRef = gender === 'female'
       ? 'Main ek female assistant hoon — "main karti hoon", "mujhe lagta hai" etc. use karo.'
       : 'Main ek male assistant hoon — "main karta hoon", "mujhe lagta hai" etc. use karo.';
@@ -156,9 +257,134 @@ Your role:
 ${systemPrompt}`;
   }
 
-  // ── GPT-4o-mini streaming → sentence-level TTS dispatch ──────────────────
-  // Streams GPT response and fires TTS for each sentence as it completes.
-  // This cuts latency by 50-70% — caller hears first sentence immediately.
+  // ── Open/Reuse persistent TTS WebSocket (Suggestion 3: WS replaces REST) ─
+  // Returns immediately — audio arrives via 'message' events on ttsWs
+  private static openTtsWs(
+    callUuid: string,
+    plivoWs: WebSocket,
+    sarvamApiKey: string,
+    language: string,
+    voice: string
+  ): WebSocket {
+    SarvamBridgeService.closeTtsWs(plivoWs); // close any stale one
+
+    const ttsWs = new WebSocket(
+      `${SARVAM_TTS_WS_URL}?model=bulbul:v3&send_completion_event=true`,
+      { headers: { 'Api-Subscription-Key': sarvamApiKey } }
+    );
+    (plivoWs as any).sarvamTtsWs   = ttsWs;
+    (plivoWs as any).sarvamTtsReady = false;
+
+    ttsWs.on('open', () => {
+      (plivoWs as any).sarvamTtsReady = true;
+      // Send config immediately on open
+      ttsWs.send(JSON.stringify({
+        type: 'config',
+        data: { target_language_code: language, speaker: voice }
+      }));
+      logger.info(`[SarvamBridge][${callUuid}] TTS WebSocket opened (lang=${language} voice=${voice})`);
+    });
+
+    ttsWs.on('message', (raw: Buffer | string) => {
+      try {
+        const msg = JSON.parse(typeof raw === 'string' ? raw : raw.toString('utf8'));
+
+        if (msg.type === 'audio' && msg.data?.audio) {
+          // Sarvam TTS WS returns 24 kHz PCM16 LE — downsample to 8 kHz μ-law for Plivo
+          const pcm24k  = Buffer.from(msg.data.audio, 'base64');
+          const mulaw8k = SarvamBridgeService.pcm16_to_mulaw8k(pcm24k, 24000);
+
+          // Guard: only send if call is still in SPEAKING or THINKING state
+          const st: ConvState = (plivoWs as any).sarvamState;
+          if (st === 'SPEAKING' || st === 'THINKING') {
+            SarvamBridgeService.sendMulawPaced(callUuid, plivoWs, mulaw8k);
+          }
+        } else if (msg.type === 'event') {
+          logger.info(`[SarvamBridge][${callUuid}] TTS synthesis completed`);
+        }
+      } catch { /* ignore malformed */ }
+    });
+
+    ttsWs.on('error', (e) => {
+      logger.error(`[SarvamBridge][${callUuid}] TTS WS error: ${(e as Error).message}`);
+    });
+
+    ttsWs.on('close', (code) => {
+      logger.info(`[SarvamBridge][${callUuid}] TTS WS closed (${code})`);
+      // Only clear if this is still the active ttsWs (not a replaced one)
+      if ((plivoWs as any).sarvamTtsWs === ttsWs) {
+        (plivoWs as any).sarvamTtsWs   = null;
+        (plivoWs as any).sarvamTtsReady = false;
+      }
+    });
+
+    return ttsWs;
+  }
+
+  // ── Send one sentence to TTS WebSocket ───────────────────────────────────
+  // Returns after flushing — audio chunks arrive asynchronously via message handler
+  private static async sendSentenceToTtsWs(
+    callUuid: string,
+    plivoWs: WebSocket,
+    text: string,
+    sarvamApiKey: string,
+    language: string,
+    voice: string,
+    signal: AbortSignal,
+    perf: PerfTimer,
+    idx: number
+  ): Promise<void> {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+
+    perf.mark(`TTS_START_${idx}`);
+
+    // Ensure TTS WS is open; open if needed
+    let ttsWs = (plivoWs as any).sarvamTtsWs as WebSocket | null;
+    if (!ttsWs || ttsWs.readyState === WebSocket.CLOSED || ttsWs.readyState === WebSocket.CLOSING) {
+      ttsWs = SarvamBridgeService.openTtsWs(callUuid, plivoWs, sarvamApiKey, language, voice);
+    }
+
+    // Wait up to 3 s for the WS to be ready (usually ~50–100 ms)
+    if (!(plivoWs as any).sarvamTtsReady) {
+      await new Promise<void>((resolve) => {
+        const deadline = Date.now() + 3000;
+        const poll = () => {
+          if (signal.aborted || Date.now() > deadline) { resolve(); return; }
+          if ((plivoWs as any).sarvamTtsReady)         { resolve(); return; }
+          setTimeout(poll, 20);
+        };
+        poll();
+      });
+    }
+
+    if (signal.aborted) return;
+
+    const ws = (plivoWs as any).sarvamTtsWs as WebSocket | null;
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      logger.warn(`[SarvamBridge][${callUuid}] TTS WS not ready for sentence ${idx} — skipping`);
+      return;
+    }
+
+    // Send text chunk then flush → server streams audio back
+    ws.send(JSON.stringify({ type: 'audio', data: { text: trimmed } }));
+    ws.send(JSON.stringify({ type: 'flush' }));
+
+    perf.mark(`TTS_FLUSHED_${idx}`);
+    perf.log(`TTS_START_${idx}`, `TTS_FLUSHED_${idx}`);
+
+    // First sentence: transition THINKING → SPEAKING
+    if (idx === 0) {
+      SarvamBridgeService.setState(callUuid, plivoWs, 'SPEAKING');
+      (plivoWs as any).sarvamIsSpeaking = true; // legacy compat
+    }
+
+    logger.info(`[SarvamBridge][${callUuid}] TTS WS sent sentence ${idx}: "${trimmed.substring(0, 50)}"`);
+  }
+
+  // ── GPT-4o-mini streaming → sentence-level TTS (non-blocking capable) ─────
+  // Respects AbortSignal — stops immediately when ctrl.abort() is called.
+  // Suggestions 3, 6, 8, 9
   private static async streamGPTAndSpeak(
     callUuid: string,
     plivoWs: WebSocket,
@@ -167,45 +393,51 @@ ${systemPrompt}`;
     history: { role: 'user' | 'assistant'; content: string }[],
     sarvamApiKey: string,
     language: string,
-    voice: string
+    voice: string,
+    signal: AbortSignal,
+    perf: PerfTimer
   ): Promise<string> {
     const naturalWrapper = SarvamBridgeService.buildWrapper(systemPrompt, voice);
     const messages = [{ role: 'system' as const, content: naturalWrapper }, ...history];
 
+    perf.mark('GPT_START');
+
+    // Passes AbortSignal to fetch — network request cancelled immediately on abort
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${openaiApiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'gpt-4o-mini', messages, max_tokens: 200, temperature: 0.7, stream: true })
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages,
+        max_tokens: 200,
+        temperature: 0.7,
+        stream: true
+      }),
+      signal
     });
     if (!response.ok) throw new Error(`OpenAI ${response.status}: ${await response.text()}`);
 
-    const reader = response.body!.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-    let fullReply = '';
-    let sentenceBuffer = '';
-    let firstSentence = true;
-    (plivoWs as any).sarvamIsSpeaking = true;
-
-    // Flush a sentence to TTS
-    const flushSentence = async (sentence: string) => {
-      const s = sentence.trim();
-      if (!s) return;
-      if (firstSentence) {
-        logger.info(`[SarvamBridge] First sentence ready (${s.length}c), firing TTS immediately`);
-        firstSentence = false;
-      }
-      await SarvamBridgeService.speakViaTTS(callUuid, plivoWs, s, sarvamApiKey, language, voice);
-    };
+    const reader     = response.body!.getReader();
+    const decoder    = new TextDecoder();
+    let buffer       = '';
+    let fullReply    = '';
+    let sentenceBuf  = '';
+    let sentenceIdx  = 0;
+    let firstToken   = false;
 
     try {
       while (true) {
+        if (signal.aborted) break;
+
         const { done, value } = await reader.read();
         if (done) break;
+
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
+
         for (const line of lines) {
+          if (signal.aborted) break;
           if (!line.startsWith('data: ')) continue;
           const data = line.slice(6).trim();
           if (data === '[DONE]') break;
@@ -213,109 +445,129 @@ ${systemPrompt}`;
             const chunk = JSON.parse(data);
             const token = chunk.choices?.[0]?.delta?.content || '';
             if (!token) continue;
-            fullReply += token;
-            sentenceBuffer += token;
-            // Check for sentence boundary
-            const match = sentenceBuffer.match(/^(.*[।.!?\n])(.*)$/s);
+
+            // Perf: mark first token separately (Suggestion 6, 7)
+            if (!firstToken) {
+              firstToken = true;
+              perf.mark('GPT_FIRST_TOKEN');
+              perf.log('GPT_START', 'GPT_FIRST_TOKEN');
+            }
+
+            fullReply   += token;
+            sentenceBuf += token;
+
+            // Sentence boundary: ., !, ?, ।, \n
+            // Note: using [\s\S] instead of /s flag for ES2015 compat
+            const match = sentenceBuf.match(/^([\s\S]*[।.!?\n])([\s\S]*)$/);
             if (match) {
               const sentence = match[1];
-              sentenceBuffer = match[2] || '';
-              flushSentence(sentence).catch(e => logger.error(`[SarvamBridge] Sentence TTS err: ${e.message}`));
+              sentenceBuf    = match[2] || '';
+              if (!signal.aborted) {
+                // Fire TTS immediately — do NOT await; keeps reading GPT tokens concurrently
+                SarvamBridgeService.sendSentenceToTtsWs(
+                  callUuid, plivoWs, sentence,
+                  sarvamApiKey, language, voice,
+                  signal, perf, sentenceIdx
+                ).catch(e => {
+                  if (!signal.aborted) {
+                    logger.error(`[SarvamBridge][${callUuid}] TTS err sentence ${sentenceIdx}: ${e.message}`);
+                  }
+                });
+                sentenceIdx++;
+              }
             }
-          } catch {}
+          } catch { /* ignore malformed SSE */ }
         }
       }
-      // Flush remaining buffer
-      if (sentenceBuffer.trim()) await flushSentence(sentenceBuffer);
+
+      // Flush remaining buffer (sentence without trailing punctuation)
+      if (sentenceBuf.trim() && !signal.aborted) {
+        perf.mark('GPT_DONE');
+        await SarvamBridgeService.sendSentenceToTtsWs(
+          callUuid, plivoWs, sentenceBuf,
+          sarvamApiKey, language, voice,
+          signal, perf, sentenceIdx
+        );
+      } else {
+        perf.mark('GPT_DONE');
+      }
+
+      perf.log('GPT_START', 'GPT_DONE');
+      perf.summary('STT_FINAL');
+
     } finally {
       reader.cancel().catch(() => {});
-      (plivoWs as any).sarvamIsSpeaking = false;
+      // Note: sarvamIsSpeaking cleared by paceNext() when audio queue drains
     }
-    return fullReply.trim() || 'Kuch samajh nahi aaya, kripya dobara bolein.';
+
+    return signal.aborted ? '' : (fullReply.trim() || 'Kuch samajh nahi aaya, kripya dobara bolein.');
   }
 
-  // ── Non-streaming GPT call ────────────────────────────────────────────────
-  private static async callGPT(
-    openaiApiKey: string,
-    systemPrompt: string,
-    history: { role: 'user' | 'assistant'; content: string }[],
-    voice = 'priya'
-  ): Promise<string> {
-    const naturalWrapper = SarvamBridgeService.buildWrapper(systemPrompt, voice);
-    const messages = [{ role: 'system' as const, content: naturalWrapper }, ...history];
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${openaiApiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'gpt-4o-mini', messages, max_tokens: 200, temperature: 0.7 })
-    });
-    if (!response.ok) throw new Error(`OpenAI ${response.status}: ${await response.text()}`);
-    const data = await response.json() as any;
-    return data.choices?.[0]?.message?.content?.trim() || 'Kuch samajh nahi aaya, dobara bolein.';
-  }
-
-  // ── Play text via Sarvam TTS REST API → Plivo ─────────────────────────────
-  // We use the REST API instead of WebSocket because REST supports PCM output
-  // directly, while the WS endpoint returns MP3 which requires decoding.
-  private static async speakViaTTS(
+  // ── Fire first message (greeting) ─────────────────────────────────────────
+  private static async fireFirstMessage(
     callUuid: string,
     plivoWs: WebSocket,
-    text: string,
+    agentConfig: SarvamAgentConfig,
     sarvamApiKey: string,
     language: string,
-    voice: string
+    voice: string,
+    chatHistory: { role: 'user' | 'assistant'; content: string }[],
+    transcriptLines: string[],
+    signal: AbortSignal,
+    perf: PerfTimer
   ): Promise<void> {
-    (plivoWs as any).sarvamIsSpeaking = true;
-    try {
-      logger.info(`[SarvamBridge] TTS REST call for "${text.substring(0, 50)}..." call ${callUuid}`);
-      
-      // Use REST API which supports wav/pcm output
-      const res = await fetch('https://api.sarvam.ai/text-to-speech', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Api-Subscription-Key': sarvamApiKey
-        },
-        body: JSON.stringify({
-          inputs: [text],
-          target_language_code: language || 'hi-IN',
-          speaker: voice || 'priya',
-          model: 'bulbul:v3',
-          speech_sample_rate: 8000,
-          enable_preprocessing: true
-        })
-      });
+    if (agentConfig.firstMessage) {
+      const fullMsg = agentConfig.firstMessage;
+      logger.info(`[SarvamBridge][${callUuid}] First message configured (${fullMsg.length} chars)`);
+      chatHistory.push({ role: 'assistant', content: fullMsg });
+      transcriptLines.push(`Agent: ${fullMsg}`);
+      SarvamBridgeService.setState(callUuid, plivoWs, 'THINKING');
 
-      if (!res.ok) {
-        const errText = await res.text();
-        logger.error(`[SarvamBridge] TTS REST failed: ${res.status} ${errText} for ${callUuid}`);
-        return;
+      // Split into sentences and TTS sequentially
+      // Note: using manual split to avoid lookbehind regex (ES2018+)
+      const sentences: string[] = [];
+      const parts = fullMsg.split(/([।.!?]+)/);
+      for (let pi = 0; pi < parts.length - 1; pi += 2) {
+        const s = ((parts[pi] || '') + (parts[pi + 1] || '')).trim();
+        if (s.length > 0) sentences.push(s);
       }
+      // Add any remaining text after last punctuation
+      const lastPart = parts[parts.length - 1]?.trim();
+      if (lastPart && lastPart.length > 0) sentences.push(lastPart);
+      const allSents = sentences.length > 0 ? sentences : [fullMsg];
 
-      const json = await res.json() as any;
-      const b64Audio = json.audios?.[0];
-      if (!b64Audio) {
-        logger.error(`[SarvamBridge] TTS REST no audio in response for ${callUuid}`);
-        return;
+      for (let i = 0; i < allSents.length; i++) {
+        if (signal.aborted || plivoWs.readyState !== WebSocket.OPEN) break;
+        await SarvamBridgeService.sendSentenceToTtsWs(
+          callUuid, plivoWs, allSents[i],
+          sarvamApiKey, language, voice, signal, perf, i
+        ).catch(e => logger.error(`[SarvamBridge][${callUuid}] First msg TTS s${i}: ${e.message}`));
       }
-
-      // Response is base64 WAV — strip 44-byte WAV header to get raw PCM16 8kHz
-      const wavBuf = Buffer.from(b64Audio, 'base64');
-      const pcmBuf = wavBuf.subarray(44); // Skip WAV header
-      
-      logger.info(`[SarvamBridge] TTS got ${pcmBuf.length} PCM bytes, converting to mulaw for ${callUuid}`);
-      
-      // Convert PCM16 LE 8kHz → mulaw 8kHz
-      const mulawBuf = Buffer.alloc(pcmBuf.length / 2);
-      for (let i = 0; i < mulawBuf.length; i++) {
-        mulawBuf[i] = SarvamBridgeService.lin2ulaw(pcmBuf.readInt16LE(i * 2));
+    } else {
+      // No firstMessage — GPT generates greeting
+      logger.info(`[SarvamBridge][${callUuid}] No firstMessage — streaming GPT greeting`);
+      SarvamBridgeService.setState(callUuid, plivoWs, 'THINKING');
+      try {
+        const gptReply = await SarvamBridgeService.streamGPTAndSpeak(
+          callUuid, plivoWs, agentConfig.openaiApiKey,
+          agentConfig.systemPrompt, [],
+          sarvamApiKey, language, voice, signal, perf
+        );
+        if (gptReply && !signal.aborted) {
+          chatHistory.push({ role: 'assistant', content: gptReply });
+          transcriptLines.push(`Agent: ${gptReply}`);
+        }
+      } catch (e: any) {
+        if (e.name !== 'AbortError') {
+          const fallback = 'Namaste! Main aapki kaise madad kar sakta hoon?';
+          logger.warn(`[SarvamBridge][${callUuid}] GPT greeting failed: ${e.message}`);
+          chatHistory.push({ role: 'assistant', content: fallback });
+          transcriptLines.push(`Agent: ${fallback}`);
+          await SarvamBridgeService.sendSentenceToTtsWs(
+            callUuid, plivoWs, fallback, sarvamApiKey, language, voice, signal, perf, 0
+          ).catch(() => {});
+        }
       }
-      
-      logger.info(`[SarvamBridge] Sending ${mulawBuf.length} mulaw bytes to Plivo for ${callUuid}`);
-      SarvamBridgeService.sendMulawPaced(callUuid, plivoWs, mulawBuf);
-    } catch (e: any) {
-      logger.error(`[SarvamBridge] TTS error: ${e.message} for ${callUuid}`);
-    } finally {
-      (plivoWs as any).sarvamIsSpeaking = false;
     }
   }
 
@@ -327,216 +579,262 @@ ${systemPrompt}`;
     _agentId: string,
     agentConfig: SarvamAgentConfig
   ): Promise<void> {
-    logger.info(`[SarvamBridge] Init for call ${callUuid}`);
+    logger.info(`[SarvamBridge][${callUuid}] Initializing session`);
 
     const sarvamApiKey = await SarvamBridgeService.getSarvamApiKey();
     if (!sarvamApiKey) {
-      logger.error(`[SarvamBridge] No Sarvam API key — aborting ${callUuid}`);
+      logger.error(`[SarvamBridge][${callUuid}] No Sarvam API key — aborting`);
       if (plivoWs.readyState === WebSocket.OPEN) plivoWs.close();
       return;
     }
 
-    // ── Normalize language code for Sarvam (must be like 'hi-IN', 'en-IN', etc.) ──
+    // ── Language normalization ────────────────────────────────────────────────
     const LANG_MAP: Record<string, string> = {
       'hi': 'hi-IN', 'en': 'en-IN', 'bn': 'bn-IN', 'ta': 'ta-IN',
       'te': 'te-IN', 'kn': 'kn-IN', 'ml': 'ml-IN', 'mr': 'mr-IN',
       'pa': 'pa-IN', 'gu': 'gu-IN', 'od': 'od-IN', 'ur': 'ur-IN',
     };
-    const rawLang = agentConfig.language || 'hi-IN';
+    const rawLang  = agentConfig.language || 'hi-IN';
     const language = LANG_MAP[rawLang] ?? (rawLang.includes('-') ? rawLang : 'hi-IN');
 
-    // ── Normalize voice for bulbul:v3 (priya is valid; map v2-only voices to priya) ──
-    // bulbul:v3 valid speakers: priya (female), meera, kavya, etc.
-    // bulbul:v2 voices (anushka/manisha/vidya/arya/karun/hitesh/abhilash) → map to priya
+    // ── Voice normalization ───────────────────────────────────────────────────
     const BULBUL_V3_VOICES = ['priya'];
     const rawVoice = (agentConfig.voice || 'priya').toLowerCase();
-    // Map v2-only voices to their v3 equivalents
     const VOICE_MAP: Record<string, string> = {
       'anushka': 'priya', 'manisha': 'priya', 'vidya': 'priya',
-      'arya': 'priya', 'karun': 'priya', 'hitesh': 'priya', 'abhilash': 'priya',
-      'meera': 'priya', 'maya': 'priya', 'raj': 'priya', 'ravi': 'priya',
+      'arya': 'priya',    'karun': 'priya',   'hitesh': 'priya',
+      'abhilash': 'priya','meera': 'priya',   'maya': 'priya',
+      'raj': 'priya',     'ravi': 'priya',
     };
     const voice = BULBUL_V3_VOICES.includes(rawVoice) ? rawVoice : (VOICE_MAP[rawVoice] || 'priya');
-    logger.info(`[SarvamBridge] language=${language} voice=${voice} (raw: ${rawLang}/${rawVoice}) for ${callUuid}`);
+    logger.info(`[SarvamBridge][${callUuid}] language=${language} voice=${voice} (raw: ${rawLang}/${rawVoice})`);
 
-
-    // Init plivoWs state
-    (plivoWs as any).sarvamAudioQueue     = [];
-    (plivoWs as any).sarvamIsPacing       = false;
-    (plivoWs as any).sarvamPacingTimer    = null;
-    (plivoWs as any).sarvamIsSpeaking     = false;
-    (plivoWs as any).isSarvam             = true;
+    // ── Initialize per-call state on plivoWs ─────────────────────────────────
+    (plivoWs as any).sarvamAudioQueue           = [];
+    (plivoWs as any).sarvamIsPacing             = false;
+    (plivoWs as any).sarvamPacingTimer          = null;
+    (plivoWs as any).sarvamIsSpeaking           = false;     // legacy compat flag
+    (plivoWs as any).isSarvam                   = true;
+    (plivoWs as any).sarvamState                = 'LISTENING' as ConvState;
+    (plivoWs as any).sarvamAbortController      = null as AbortController | null;
+    (plivoWs as any).sarvamTurnId               = 0;
+    (plivoWs as any).sarvamTtsWs                = null;
+    (plivoWs as any).sarvamTtsReady             = false;
+    (plivoWs as any).sarvamRealAudioStarted     = false;
 
     const transcriptLines: string[] = [];
     const chatHistory: { role: 'user' | 'assistant'; content: string }[] = [];
     (plivoWs as any).sarvamTranscriptLines = transcriptLines;
     (plivoWs as any).sarvamCallStartTime   = Date.now();
 
+    // Master abort controller — aborted on call end to stop any in-flight tasks
+    const masterCtrl = new AbortController();
+    (plivoWs as any).sarvamMasterAbortController = masterCtrl;
+
     try {
-      // ── Fire first message IMMEDIATELY — sentence-by-sentence TTS ────────────
-      // Split long firstMessage into sentences and TTS each one separately.
-      // This makes the FIRST sentence play in ~1.5s instead of waiting 5s for full text.
-      const fireFirstMessage = async () => {
-        let fullMsg: string;
+      // ── Pre-warm TTS WebSocket (opens in background, ready before first user turn) ──
+      SarvamBridgeService.openTtsWs(callUuid, plivoWs, sarvamApiKey, language, voice);
 
-        if (agentConfig.firstMessage) {
-          fullMsg = agentConfig.firstMessage;
-          logger.info(`[SarvamBridge] 🚀 firstMessage configured (${fullMsg.length} chars), splitting into sentences for ${callUuid}`);
-        } else {
-          // No firstMessage — use streamGPTAndSpeak for sentence-level TTS
-          logger.info(`[SarvamBridge] 🚀 No firstMessage — streaming GPT greeting for ${callUuid}`);
-          try {
-            const gptReply = await SarvamBridgeService.streamGPTAndSpeak(
-              callUuid, plivoWs, agentConfig.openaiApiKey,
-              agentConfig.systemPrompt, [], sarvamApiKey, language, voice
-            );
-            chatHistory.push({ role: 'assistant', content: gptReply });
-            transcriptLines.push(`Agent: ${gptReply}`);
-          } catch (e: any) {
-            const fallback = 'Namaste! Main aapki kaise madad kar sakta hoon?';
-            logger.warn(`[SarvamBridge] GPT greeting failed: ${e.message}`);
-            chatHistory.push({ role: 'assistant', content: fallback });
-            transcriptLines.push(`Agent: ${fallback}`);
-            await SarvamBridgeService.speakViaTTS(callUuid, plivoWs, fallback, sarvamApiKey, language, voice).catch(() => {});
-          }
-          return;
-        }
+      // ── Fire greeting (non-blocking — STT connects in parallel) ──────────
+      const greetPerf = new PerfTimer(`${callUuid}:greeting`);
+      greetPerf.mark('GREETING_START');
+      SarvamBridgeService.fireFirstMessage(
+        callUuid, plivoWs, agentConfig,
+        sarvamApiKey, language, voice,
+        chatHistory, transcriptLines,
+        masterCtrl.signal, greetPerf
+      ).then(() => greetPerf.summary('GREETING_START'))
+       .catch(e => {
+         if (e.name !== 'AbortError') {
+           logger.error(`[SarvamBridge][${callUuid}] Greeting error: ${e.message}`);
+         }
+       });
 
-        // Split by sentence boundaries and TTS each sentence in order
-        const sentences = fullMsg
-          .split(/(?<=[।.!?\n])\s+/)
-          .map(s => s.trim())
-          .filter(s => s.length > 0);
+      // ── STT WebSocket ─────────────────────────────────────────────────────
+      // Suggestion 1: vad_signals=true → receive START_SPEECH events for barge-in
+      // Suggestion 1: high_vad_sensitivity=true → 0.5 s silence threshold (was ~1 s = saves 400-500 ms)
+      const sttUrl = [
+        SARVAM_STT_URL,
+        `?language-code=${language}`,
+        `&model=saaras:v3`,
+        `&mode=transcribe`,
+        `&sample_rate=8000`,
+        `&input_audio_codec=pcm_s16le`,
+        `&vad_signals=true`,          // Suggestion 1: receive VAD barge-in events
+        `&high_vad_sensitivity=true`, // Suggestion 1: 0.5 s end-of-speech (saves 400-500 ms)
+      ].join('');
 
-        const allSentences = sentences.length > 0 ? sentences : [fullMsg];
-        chatHistory.push({ role: 'assistant', content: fullMsg });
-        transcriptLines.push(`Agent: ${fullMsg}`);
-
-        for (const sentence of allSentences) {
-          if (plivoWs.readyState !== WebSocket.OPEN) break;
-          logger.info(`[SarvamBridge] TTS sentence: "${sentence.substring(0, 40)}..." for ${callUuid}`);
-          await SarvamBridgeService.speakViaTTS(callUuid, plivoWs, sentence, sarvamApiKey, language, voice)
-            .catch((e: Error) => logger.error(`[SarvamBridge] Sentence TTS error: ${e.message}`));
-        }
-      };
-      fireFirstMessage(); // fire-and-forget — STT connects in parallel
-
-
-
-      const sttUrl = `${SARVAM_STT_URL}?language-code=${language}&model=saaras:v3&mode=transcribe&sample_rate=8000&input_audio_codec=pcm_s16le`;
       const sttWs = new WebSocket(sttUrl, {
         headers: { 'Api-Subscription-Key': sarvamApiKey }
       });
-
       (plivoWs as any).sarvamSttWs = sttWs;
 
-      sttWs.on('open', async () => {
-        logger.info(`[SarvamBridge] STT WS open for call ${callUuid}`);
+      sttWs.on('open', () => {
+        logger.info(`[SarvamBridge][${callUuid}] STT WebSocket opened`);
 
-        // ── Keep STT alive with silence until real Plivo audio arrives ────────
-        const SILENCE_B64 = Buffer.alloc(320, 0).toString('base64');
-        const SILENCE_MSG = JSON.stringify({ audio: { data: SILENCE_B64, encoding: 'audio/wav', sample_rate: 8000 } });
+        // Suggestion 11: 5 s ping (was 20 ms silence flood = 250× fewer messages)
+        // Sarvam docs: use { type: "ping" } to keep connection alive
         const keepAlive = setInterval(() => {
           if (sttWs.readyState === WebSocket.OPEN) {
-            sttWs.send(SILENCE_MSG);
+            sttWs.send(JSON.stringify({ type: 'ping' }));
           } else {
             clearInterval(keepAlive);
           }
-        }, 20);
+        }, 5000);
         (plivoWs as any).sarvamKeepAlive = keepAlive;
-      }); // end sttWs.on('open')
+      });
 
       sttWs.on('message', async (raw: Buffer | string) => {
         try {
-
+          // Ignore binary frames that are not JSON
           if (raw instanceof Buffer && raw[0] !== 123) return;
           const msg = JSON.parse(typeof raw === 'string' ? raw : raw.toString('utf8'));
 
-          // User started speaking → interrupt
-          if (msg.type === 'user_started_speaking') {
-            if ((plivoWs as any).sarvamIsSpeaking) {
-              SarvamBridgeService.stopPacing(plivoWs);
-              if (plivoWs.readyState === WebSocket.OPEN) plivoWs.send(JSON.stringify({ event: 'clearAudio' }));
-              logger.info(`[SarvamBridge] Interrupted for call ${callUuid}`);
+          // ── VAD event: user started speaking → barge-in ──────────────────
+          // Suggestion 1: vad_signals=true enables these events from Sarvam
+          // Fires ~100-200 ms after speech onset — much earlier than final transcript
+          if (msg.type === 'user_started_speaking' || msg.type === 'START_SPEECH') {
+            const st: ConvState = (plivoWs as any).sarvamState;
+            if (st === 'SPEAKING' || st === 'THINKING') {
+              logger.info(`[SarvamBridge][${callUuid}] VAD barge-in detected (state: ${st})`);
+              SarvamBridgeService.interruptAI(callUuid, plivoWs);
             }
             return;
           }
 
+          // ── Final transcript received ─────────────────────────────────────
+          // Suggestion 1: saaras:v3 progressive updates; we treat each as actionable
           const transcript = msg.data?.transcript || msg.transcript || msg.data?.text;
           if (!transcript || !transcript.trim()) return;
 
-          logger.info(`[SarvamBridge] User: ${transcript}`);
+          const st: ConvState = (plivoWs as any).sarvamState;
+
+          // If AI is mid-turn, interrupt it before processing new user speech
+          if (st === 'SPEAKING' || st === 'THINKING') {
+            SarvamBridgeService.interruptAI(callUuid, plivoWs);
+          }
+
+          // ── Latency profiling (Suggestions 6, 7, 10) ─────────────────────
+          const perf = new PerfTimer(callUuid);
+          perf.mark('STT_FINAL');
+          logger.info(`[SarvamBridge][${callUuid}] User: "${transcript.substring(0, 80)}"`);
+          perf.log('STT_FINAL', 'STT_FINAL');
+
+          // Build history snapshot BEFORE adding current turn
+          // (snapshot is safe to read inside the async GPT call)
           transcriptLines.push(`User: ${transcript}`);
           chatHistory.push({ role: 'user', content: transcript });
+          const historyCopy = [...chatHistory]; // snapshot for this turn
 
-          if ((plivoWs as any).sarvamIsSpeaking) return; // debounce
+          // ── Start new conversation turn ───────────────────────────────────
+          SarvamBridgeService.setState(callUuid, plivoWs, 'THINKING');
+          const turnId = ++(plivoWs as any).sarvamTurnId;
+          const ctrl   = new AbortController();
+          (plivoWs as any).sarvamAbortController = ctrl;
 
-          try {
-            // Stream GPT + sentence-level TTS for low latency
-            const reply = await SarvamBridgeService.streamGPTAndSpeak(
-              callUuid, plivoWs,
-              agentConfig.openaiApiKey,
-              agentConfig.systemPrompt,
-              chatHistory,
-              sarvamApiKey, language, voice
-            );
-            logger.info(`[SarvamBridge] Agent (full): ${reply.substring(0, 80)}`);
-            transcriptLines.push(`Agent: ${reply}`);
-            chatHistory.push({ role: 'assistant', content: reply });
-          } catch (gptErr: any) {
-            logger.error(`[SarvamBridge] GPT error: ${gptErr.message}`);
-          }
+          // Open a fresh TTS WebSocket for this turn (clean state, no leftover audio)
+          SarvamBridgeService.openTtsWs(callUuid, plivoWs, sarvamApiKey, language, voice);
+
+          // ── NON-BLOCKING GPT call (Suggestion 4: handler returns immediately) ──
+          // New STT messages (barge-in) can be processed while GPT is running
+          SarvamBridgeService.streamGPTAndSpeak(
+            callUuid, plivoWs,
+            agentConfig.openaiApiKey,
+            agentConfig.systemPrompt,
+            historyCopy,
+            sarvamApiKey, language, voice,
+            ctrl.signal, perf
+          ).then(reply => {
+            // Suggestion 8, 9: turnId guard — stale replies are never committed
+            const currentTurnId = (plivoWs as any).sarvamTurnId;
+            if (currentTurnId !== turnId) {
+              logger.info(`[SarvamBridge][${callUuid}] Stale reply discarded (turn ${turnId} < current ${currentTurnId})`);
+              return;
+            }
+            if (reply) {
+              logger.info(`[SarvamBridge][${callUuid}] Agent (turn ${turnId}): "${reply.substring(0, 80)}"`);
+              transcriptLines.push(`Agent: ${reply}`);
+              chatHistory.push({ role: 'assistant', content: reply });
+            }
+            // Transition to LISTENING if audio queue already drained
+            // (otherwise paceNext() handles it when queue empties)
+            if (!(plivoWs as any).sarvamIsPacing) {
+              SarvamBridgeService.setState(callUuid, plivoWs, 'LISTENING');
+            }
+          }).catch(err => {
+            if (err.name === 'AbortError') {
+              logger.info(`[SarvamBridge][${callUuid}] GPT turn ${turnId} aborted (barge-in)`);
+            } else {
+              logger.error(`[SarvamBridge][${callUuid}] GPT turn ${turnId} error: ${err.message}`);
+            }
+            // Recover state — don't leave stuck in THINKING
+            if ((plivoWs as any).sarvamTurnId === turnId) {
+              SarvamBridgeService.setState(callUuid, plivoWs, 'LISTENING');
+            }
+          });
+
         } catch (e: any) {
-          logger.error(`[SarvamBridge] STT msg error: ${e.message}`);
+          logger.error(`[SarvamBridge][${callUuid}] STT message error: ${e.message}`);
         }
-      });
+      }); // end sttWs.on('message')
 
       sttWs.on('close', (code, reason) => {
-        logger.info(`[SarvamBridge] STT closed (${code}: ${reason?.toString()}) for ${callUuid}`);
-        // Stop keep-alive interval
+        logger.info(`[SarvamBridge][${callUuid}] STT closed (${code}: ${reason?.toString()})`);
         const ka = (plivoWs as any).sarvamKeepAlive;
         if (ka) { clearInterval(ka); (plivoWs as any).sarvamKeepAlive = null; }
         SarvamBridgeService.stopPacing(plivoWs);
+        SarvamBridgeService.setState(callUuid, plivoWs, 'TERMINATED');
         if (plivoWs.readyState === WebSocket.OPEN) plivoWs.close();
       });
 
       sttWs.on('error', (e) => {
-        logger.error(`[SarvamBridge] STT error for ${callUuid}:`, e);
+        logger.error(`[SarvamBridge][${callUuid}] STT error:`, e);
       });
 
     } catch (e) {
-      logger.error(`[SarvamBridge] Init error for ${callUuid}:`, e);
+      logger.error(`[SarvamBridge][${callUuid}] Init error:`, e);
       SarvamBridgeService.stopPacing(plivoWs);
+      SarvamBridgeService.closeTtsWs(plivoWs);
       if (plivoWs.readyState === WebSocket.OPEN) plivoWs.close();
     }
   }
 
-  /** Forward Plivo mulaw 8kHz → Sarvam STT as JSON { audio: { data, encoding, sample_rate } } */
+  /** Forward Plivo μ-law 8 kHz → Sarvam STT as JSON */
   static handlePlivoAudio(callUuid: string, plivoWs: WebSocket, payload: string): void {
     const sttWs = (plivoWs as any).sarvamSttWs as WebSocket | undefined;
     if (!sttWs || sttWs.readyState !== WebSocket.OPEN) return;
 
-    // ── Stop silence keep-alive on first real audio from Plivo ───────────────
-    // The keep-alive sends silence to prevent Sarvam timing out before the call
-    // starts. Once real audio arrives, we must stop it or it drowns out the user.
-    const ka = (plivoWs as any).sarvamKeepAlive;
-    if (ka) {
-      clearInterval(ka);
-      (plivoWs as any).sarvamKeepAlive = null;
-      logger.info(`[SarvamBridge] KeepAlive stopped on first real audio for ${callUuid}`);
+    if (!(plivoWs as any).sarvamRealAudioStarted) {
+      (plivoWs as any).sarvamRealAudioStarted = true;
+      logger.info(`[SarvamBridge][${callUuid}] First Plivo audio frame received`);
+      // Note: keepAlive continues — it now sends JSON pings, not silence
     }
 
     const mulawBuf = Buffer.from(payload, 'base64');
     const pcmBuf   = SarvamBridgeService.mulaw8k_to_pcm16_8k(mulawBuf);
-    // Sarvam STT requires JSON: { audio: { data: <base64_pcm>, encoding: "audio/wav", sample_rate: 8000 } }
-    sttWs.send(JSON.stringify({ audio: { data: pcmBuf.toString('base64'), encoding: 'audio/wav', sample_rate: 8000 } }));
+    sttWs.send(JSON.stringify({
+      audio: { data: pcmBuf.toString('base64'), encoding: 'audio/wav', sample_rate: 8000 }
+    }));
   }
 
-  /** End session — returns transcript and duration */
+  /** End session cleanly — returns transcript and duration */
   static endSession(plivoWs: WebSocket): { duration: number; transcript: string } {
+    // Abort master controller — cancels any in-flight GPT/TTS
+    const masterCtrl = (plivoWs as any).sarvamMasterAbortController as AbortController | null;
+    if (masterCtrl) { masterCtrl.abort(); }
+
+    SarvamBridgeService.setState('call_end', plivoWs, 'TERMINATED');
     SarvamBridgeService.stopPacing(plivoWs);
+    SarvamBridgeService.closeTtsWs(plivoWs);
+
     const sttWs = (plivoWs as any).sarvamSttWs as WebSocket | undefined;
-    if (sttWs && sttWs.readyState === WebSocket.OPEN) sttWs.close();
+    if (sttWs && (sttWs.readyState === WebSocket.OPEN || sttWs.readyState === WebSocket.CONNECTING)) {
+      try { sttWs.close(); } catch { /* ignore */ }
+    }
+
+    const ka = (plivoWs as any).sarvamKeepAlive;
+    if (ka) { clearInterval(ka); (plivoWs as any).sarvamKeepAlive = null; }
+
     const lines: string[] = (plivoWs as any).sarvamTranscriptLines || [];
     const startMs: number = (plivoWs as any).sarvamCallStartTime   || Date.now();
     const duration = Math.round((Date.now() - startMs) / 1000);
