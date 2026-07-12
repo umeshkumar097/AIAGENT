@@ -449,7 +449,22 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
               
               <div className="space-y-2">
                 <Label htmlFor="agent-select">{t("campaigns.create.selectAgentRequired")}</Label>
-                <Select value={formData.agentId} onValueChange={(value) => setFormData({ ...formData, agentId: value })}>
+                <Select 
+                  value={formData.agentId} 
+                  onValueChange={(value) => {
+                    const newAgent = agents.find(a => a.id === value);
+                    const newIsElevenLabsSipAgent = newAgent?.telephonyProvider === 'elevenlabs-sip';
+                    const newIsPlivoAgent = newAgent?.telephonyProvider === 'plivo' || newAgent?.telephonyProvider === 'plivo_openai' || newAgent?.telephonyProvider === 'sarvam-plivo';
+                    
+                    setFormData({ 
+                      ...formData, 
+                      agentId: value,
+                      phoneNumberId: !newIsElevenLabsSipAgent && !newIsPlivoAgent ? formData.phoneNumberId : "",
+                      plivoPhoneNumberId: newIsPlivoAgent ? formData.plivoPhoneNumberId : "",
+                      sipPhoneNumberId: newIsElevenLabsSipAgent ? formData.sipPhoneNumberId : ""
+                    });
+                  }}
+                >
                   <SelectTrigger data-testid="select-agent">
                     <SelectValue placeholder={agents.filter(a => a.type !== 'incoming').length === 0 ? t("campaigns.create.noAgentsAvailable") : t("campaigns.create.agentPlaceholder")} />
                   </SelectTrigger>
