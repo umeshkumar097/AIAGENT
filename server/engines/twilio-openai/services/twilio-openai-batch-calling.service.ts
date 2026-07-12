@@ -349,122 +349,149 @@ export class TwilioOpenAIBatchCallingService {
     const CONTACT_BATCH_SIZE = 500;
     logger.info(`Processing queue with ${this.callQueue.length} contacts (paginated)`, undefined, 'TwilioOpenAIBatch');
 
-    while (true) {
-      if (this.isCancelled) {
-        logger.info('Campaign cancelled, stopping queue processing', undefined, 'TwilioOpenAIBatch');
-        await this.releaseAllActiveSlots();
-        break;
-      }
-
-      // Handle capacity failure - graceful shutdown
-      if (this.isCapacityFailed) {
-        logger.error('Campaign stopping due to OpenAI capacity timeout', undefined, 'TwilioOpenAIBatch');
-        await this.releaseAllActiveSlots();
-        // Mark remaining queued contacts as failed
-        if (this.callQueue.length > 0 && this.config) {
-          const queuedContactIds = this.callQueue.map(c => c.id);
-          await db
-            .update(contacts)
-            .set({ status: 'failed' })
-            .where(inArray(contacts.id, queuedContactIds));
-          this.failedCount += queuedContactIds.length;
-          logger.info(`Marked ${queuedContactIds.length} queued contacts as failed due to capacity timeout`, undefined, 'TwilioOpenAIBatch');
+    return new Promise<void>((resolve, reject) => {
+      const scheduleNextTick = () => {
+        if (!this.isProcessing) {
+          resolve();
+          return;
         }
-        this.callQueue = [];
-        break;
-      }
 
-      if (this.isPaused) {
-        logger.info('Campaign paused, waiting...', undefined, 'TwilioOpenAIBatch');
-        await this.sleep(1000);
-        continue;
-      }
-
-      // Refill queue from database if running low and there are more pending contacts.
-      // Exclude ALL terminal statuses so that contacts which ended as no-answer / busy /
-      // cancelled in this session are never re-queued and re-dialled within the same
-      // processQueue loop (regression guard for Task #145).
-      if (this.callQueue.length < 50 && this.config) {
-        const moreContacts = await db
-          .select()
-          .from(contacts)
-          .where(and(
-            eq(contacts.campaignId, this.config.campaignId),
-            ne(contacts.status, 'completed'),
-            ne(contacts.status, 'failed'),
-            ne(contacts.status, 'no-answer'),
-            ne(contacts.status, 'busy'),
-            ne(contacts.status, 'cancelled'),
-            ne(contacts.status, 'canceled'),
-            ne(contacts.status, 'in_progress')
-          ))
-          .limit(CONTACT_BATCH_SIZE);
-        
-        if (moreContacts.length > 0) {
-          // Filter out contacts already in queue
-          const existingIds = new Set(this.callQueue.map(c => c.id));
-          const newContacts = moreContacts.filter(c => !existingIds.has(c.id));
-          if (newContacts.length > 0) {
-            this.callQueue.push(...newContacts);
-            logger.info(`Refilled queue with ${newContacts.length} contacts (total: ${this.callQueue.length})`, undefined, 'TwilioOpenAIBatch');
+        setImmediate(async () => {
+          try {
+            const shouldContinue = await this.processQueueTick(CONTACT_BATCH_SIZE);
+            if (shouldContinue) {
+              scheduleNextTick();
+            } else {
+              resolve();
+            }
+          } catch (err) {
+            reject(err);
           }
-        }
-      }
-
-      // Exit if no more work to do (including calls that are being initiated but not yet in activeCalls)
-      if (this.callQueue.length === 0 && this.activeCalls.size === 0 && this.pendingInitiations === 0) {
-        break;
-      }
-
-      while (
-        this.callQueue.length > 0 &&
-        this.activeCalls.size < this.config!.maxConcurrentCalls
-      ) {
-        if (this.isPaused || this.isCancelled || this.isCapacityFailed) {
-          break;
-        }
-
-        const hasCapacity = await this.checkOpenAICapacity();
-        if (!hasCapacity) {
-          // Track when we started waiting for capacity
-          if (this.capacityWaitStartTime === null) {
-            this.capacityWaitStartTime = Date.now();
-            logger.info('No OpenAI capacity available, starting wait timer...', undefined, 'TwilioOpenAIBatch');
-          }
-          
-          const waitDuration = Date.now() - this.capacityWaitStartTime;
-          if (waitDuration > MAX_CAPACITY_WAIT_MS) {
-            logger.error(`OpenAI capacity wait exceeded ${MAX_CAPACITY_WAIT_MS / 60000} minutes, failing campaign gracefully`, undefined, 'TwilioOpenAIBatch');
-            this.isCapacityFailed = true;
-            break; // Exit inner loop, outer loop will handle cleanup
-          }
-          
-          logger.info(`No OpenAI capacity, waited ${Math.floor(waitDuration / 1000)}s (max: ${MAX_CAPACITY_WAIT_MS / 1000}s)`, undefined, 'TwilioOpenAIBatch');
-          await this.sleep(2000);
-          break;
-        }
-
-        // Reset capacity wait timer on successful capacity check
-        this.capacityWaitStartTime = null;
-
-        const contact = this.callQueue.shift()!;
-        this.pendingInitiations++;
-        this.initiateCallForContact(contact).catch(err => {
-          logger.error(`Failed to initiate call for ${contact.phone}`, err, 'TwilioOpenAIBatch');
-          this.failedCount++;
         });
+      };
 
-        if (this.config!.callDelayMs > 0 && this.callQueue.length > 0) {
-          await this.sleep(this.config!.callDelayMs);
-        }
-      }
+      scheduleNextTick();
+    });
+  }
 
-      await this.updateProgress();
-      await this.sleep(500);
+  private async processQueueTick(CONTACT_BATCH_SIZE: number): Promise<boolean> {
+    if (this.isCancelled) {
+      logger.info('Campaign cancelled, stopping queue processing', undefined, 'TwilioOpenAIBatch');
+      await this.releaseAllActiveSlots();
+      this.isProcessing = false;
+      return false;
     }
 
-    this.isProcessing = false;
-    logger.info('Queue processing complete', undefined, 'TwilioOpenAIBatch');
+    // Handle capacity failure - graceful shutdown
+    if (this.isCapacityFailed) {
+      logger.error('Campaign stopping due to OpenAI capacity timeout', undefined, 'TwilioOpenAIBatch');
+      await this.releaseAllActiveSlots();
+      // Mark remaining queued contacts as failed
+      if (this.callQueue.length > 0 && this.config) {
+        const queuedContactIds = this.callQueue.map(c => c.id);
+        await db
+          .update(contacts)
+          .set({ status: 'failed' })
+          .where(inArray(contacts.id, queuedContactIds));
+        this.failedCount += queuedContactIds.length;
+        logger.info(`Marked ${queuedContactIds.length} queued contacts as failed due to capacity timeout`, undefined, 'TwilioOpenAIBatch');
+      }
+      this.callQueue = [];
+      this.isProcessing = false;
+      return false;
+    }
+
+    if (this.isPaused) {
+      logger.info('Campaign paused, waiting...', undefined, 'TwilioOpenAIBatch');
+      await this.sleep(1000);
+      return true;
+    }
+
+    // Refill queue from database if running low and there are more pending contacts.
+    // Exclude ALL terminal statuses so that contacts which ended as no-answer / busy /
+    // cancelled in this session are never re-queued and re-dialled within the same
+    // processQueue loop (regression guard for Task #145).
+    if (this.callQueue.length < 50 && this.config) {
+      const moreContacts = await db
+        .select()
+        .from(contacts)
+        .where(and(
+          eq(contacts.campaignId, this.config.campaignId),
+          ne(contacts.status, 'completed'),
+          ne(contacts.status, 'failed'),
+          ne(contacts.status, 'no-answer'),
+          ne(contacts.status, 'busy'),
+          ne(contacts.status, 'cancelled'),
+          ne(contacts.status, 'canceled'),
+          ne(contacts.status, 'in_progress')
+        ))
+        .limit(CONTACT_BATCH_SIZE);
+      
+      if (moreContacts.length > 0) {
+        // Filter out contacts already in queue
+        const existingIds = new Set(this.callQueue.map(c => c.id));
+        const newContacts = moreContacts.filter(c => !existingIds.has(c.id));
+        if (newContacts.length > 0) {
+          this.callQueue.push(...newContacts);
+          logger.info(`Refilled queue with ${newContacts.length} contacts (total: ${this.callQueue.length})`, undefined, 'TwilioOpenAIBatch');
+        }
+      }
+    }
+
+    // Exit if no more work to do (including calls that are being initiated but not yet in activeCalls)
+    if (this.callQueue.length === 0 && this.activeCalls.size === 0 && this.pendingInitiations === 0) {
+      this.isProcessing = false;
+      logger.info('Queue processing complete', undefined, 'TwilioOpenAIBatch');
+      return false;
+    }
+
+    while (
+      this.callQueue.length > 0 &&
+      this.activeCalls.size < this.config!.maxConcurrentCalls
+    ) {
+      if (this.isPaused || this.isCancelled || this.isCapacityFailed) {
+        break;
+      }
+
+      const hasCapacity = await this.checkOpenAICapacity();
+      if (!hasCapacity) {
+        // Track when we started waiting for capacity
+        if (this.capacityWaitStartTime === null) {
+          this.capacityWaitStartTime = Date.now();
+          logger.info('No OpenAI capacity available, starting wait timer...', undefined, 'TwilioOpenAIBatch');
+        }
+        
+        const waitDuration = Date.now() - this.capacityWaitStartTime;
+        if (waitDuration > MAX_CAPACITY_WAIT_MS) {
+          logger.error(`OpenAI capacity wait exceeded ${MAX_CAPACITY_WAIT_MS / 60000} minutes, failing campaign gracefully`, undefined, 'TwilioOpenAIBatch');
+          this.isCapacityFailed = true;
+          break; // Exit inner loop, outer loop will handle cleanup
+        }
+        
+        logger.info(`No OpenAI capacity, waited ${Math.floor(waitDuration / 1000)}s (max: ${MAX_CAPACITY_WAIT_MS / 1000}s)`, undefined, 'TwilioOpenAIBatch');
+        await this.sleep(2000);
+        break;
+      }
+
+      // Reset capacity wait timer on successful capacity check
+      this.capacityWaitStartTime = null;
+
+      const contact = this.callQueue.shift()!;
+      this.pendingInitiations++;
+      this.initiateCallForContact(contact).catch(err => {
+        logger.error(`Failed to initiate call for ${contact.phone}`, err, 'TwilioOpenAIBatch');
+        this.failedCount++;
+      });
+
+      if (this.config!.callDelayMs > 0 && this.callQueue.length > 0) {
+        await this.sleep(this.config!.callDelayMs);
+      }
+    }
+
+    await this.updateProgress();
+    await this.sleep(500);
+    return true;
+  }
   }
 
   private async checkOpenAICapacity(): Promise<boolean> {
