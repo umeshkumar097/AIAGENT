@@ -20,6 +20,7 @@ import { db } from "../../db";
 import { globalSettings } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import type WebSocket from "ws";
+import { isBullMQEnabled, getRedisConnection } from "../bullmq";
 
 interface OpenAIConnection {
   ws: WebSocket;
@@ -127,6 +128,69 @@ export class OpenAIPoolManager {
     return currentLoad < this.settings.maxConnectionsPerCredential;
   }
 
+  async reserveSlot(credentialId: string): Promise<boolean> {
+    const maxLimit = this.settings.maxConnectionsPerCredential;
+
+    if (isBullMQEnabled()) {
+      try {
+        const redis = getRedisConnection();
+        const key = `openai:pool:load:${credentialId}`;
+        const newLoad = await redis.incr(key);
+
+        await redis.expire(key, 86400); // 24-hour safety TTL
+
+        if (newLoad > maxLimit) {
+          await redis.decr(key);
+          this.warn(`Global limit reached for ${credentialId}: ${newLoad}/${maxLimit}`);
+          return false;
+        }
+        return true;
+      } catch (err: any) {
+        this.error(`Redis reserveSlot failed for ${credentialId}`, err);
+        return this.reserveSlotLocal(credentialId);
+      }
+    } else {
+      return this.reserveSlotLocal(credentialId);
+    }
+  }
+
+  private reserveSlotLocal(credentialId: string): boolean {
+    const currentLoad = this.credentialLoads.get(credentialId) || 0;
+    if (currentLoad >= this.settings.maxConnectionsPerCredential) {
+      return false;
+    }
+    this.credentialLoads.set(credentialId, currentLoad + 1);
+    return true;
+  }
+
+  async releaseSlot(credentialId: string): Promise<void> {
+    if (isBullMQEnabled()) {
+      try {
+        const redis = getRedisConnection();
+        const key = `openai:pool:load:${credentialId}`;
+        const newLoad = await redis.decr(key);
+        if (newLoad < 0) {
+          await redis.set(key, 0);
+        }
+      } catch (err: any) {
+        this.error(`Redis releaseSlot failed for ${credentialId}`, err);
+        this.releaseSlotLocal(credentialId);
+      }
+    } else {
+      this.releaseSlotLocal(credentialId);
+    }
+  }
+
+  private releaseSlotLocal(credentialId: string): void {
+    const currentLoad = this.credentialLoads.get(credentialId) || 0;
+    const newLoad = Math.max(0, currentLoad - 1);
+    if (newLoad === 0) {
+      this.credentialLoads.delete(credentialId);
+    } else {
+      this.credentialLoads.set(credentialId, newLoad);
+    }
+  }
+
   addConnection(
     callUuid: string,
     ws: WebSocket,
@@ -145,16 +209,17 @@ export class OpenAIPoolManager {
 
     this.connections.set(callUuid, connection);
 
-    const currentLoad = this.credentialLoads.get(credentialId) || 0;
-    this.credentialLoads.set(credentialId, currentLoad + 1);
-
-    this.log(
-      `Added connection: callUuid=${callUuid}, credentialId=${credentialId}, ` +
-      `load=${currentLoad + 1}/${this.settings.maxConnectionsPerCredential}`
-    );
+    this.getCredentialLoad(credentialId).then(load => {
+      this.log(
+        `Added connection: callUuid=${callUuid}, credentialId=${credentialId}, ` +
+        `load=${load}/${this.settings.maxConnectionsPerCredential}`
+      );
+    }).catch(() => {
+      this.log(`Added connection: callUuid=${callUuid}, credentialId=${credentialId}`);
+    });
   }
 
-  removeConnection(callUuid: string): void {
+  async removeConnection(callUuid: string): Promise<void> {
     const connection = this.connections.get(callUuid);
     if (!connection) {
       return;
@@ -163,15 +228,9 @@ export class OpenAIPoolManager {
     const { credentialId } = connection;
     this.connections.delete(callUuid);
 
-    const currentLoad = this.credentialLoads.get(credentialId) || 0;
-    const newLoad = Math.max(0, currentLoad - 1);
-    
-    if (newLoad === 0) {
-      this.credentialLoads.delete(credentialId);
-    } else {
-      this.credentialLoads.set(credentialId, newLoad);
-    }
+    await this.releaseSlot(credentialId);
 
+    const newLoad = await this.getCredentialLoad(credentialId);
     this.log(
       `Removed connection: callUuid=${callUuid}, credentialId=${credentialId}, ` +
       `load=${newLoad}/${this.settings.maxConnectionsPerCredential}`
@@ -190,7 +249,7 @@ export class OpenAIPoolManager {
     let closedCount = 0;
 
     const connectionsToClose: string[] = [];
-    
+
     Array.from(this.connections.entries()).forEach(([callUuid, connection]) => {
       const age = now - connection.createdAt;
       const idleTime = now - connection.lastActivity;
@@ -217,8 +276,13 @@ export class OpenAIPoolManager {
         closedCount++;
       }
     });
-    
-    connectionsToClose.forEach(callUuid => this.removeConnection(callUuid));
+
+    // Handle removal asynchronously
+    connectionsToClose.forEach(callUuid => {
+      this.removeConnection(callUuid).catch(err => {
+        this.error(`Failed to remove stale connection ${callUuid}`, err);
+      });
+    });
 
     if (closedCount > 0) {
       this.log(`Cleanup completed: closed ${closedCount} stale connections`);
@@ -245,7 +309,7 @@ export class OpenAIPoolManager {
     }
   }
 
-  getStats(): PoolStats {
+  async getStats(): Promise<PoolStats> {
     const now = Date.now();
     let totalConnections = this.connections.size;
     let oldestAge = 0;
@@ -261,9 +325,33 @@ export class OpenAIPoolManager {
       totalIdleTime += idleTime;
     });
 
-    const credentials: CredentialStats[] = Array.from(this.credentialLoads.entries()).map(
-      ([credentialId, currentLoad]) => ({ credentialId, currentLoad })
-    );
+    const credentials: CredentialStats[] = [];
+
+    if (isBullMQEnabled()) {
+      try {
+        const redis = getRedisConnection();
+        const credentialIds = new Set<string>();
+        Array.from(this.connections.values()).forEach(c => credentialIds.add(c.credentialId));
+        Array.from(this.credentialLoads.keys()).forEach(c => credentialIds.add(c));
+
+        for (const credId of credentialIds) {
+          const currentLoad = Number(await redis.get(`openai:pool:load:${credId}`) || 0);
+          credentials.push({ credentialId: credId, currentLoad });
+        }
+      } catch (err) {
+        Array.from(this.credentialLoads.entries()).forEach(
+          ([credentialId, currentLoad]) => {
+            credentials.push({ credentialId, currentLoad });
+          }
+        );
+      }
+    } else {
+      Array.from(this.credentialLoads.entries()).forEach(
+        ([credentialId, currentLoad]) => {
+          credentials.push({ credentialId, currentLoad });
+        }
+      );
+    }
 
     return {
       totalConnections,
@@ -277,7 +365,15 @@ export class OpenAIPoolManager {
     return this.connections.get(callUuid);
   }
 
-  getCredentialLoad(credentialId: string): number {
+  async getCredentialLoad(credentialId: string): Promise<number> {
+    if (isBullMQEnabled()) {
+      try {
+        const redis = getRedisConnection();
+        return Number(await redis.get(`openai:pool:load:${credentialId}`) || 0);
+      } catch (err) {
+        return this.credentialLoads.get(credentialId) || 0;
+      }
+    }
     return this.credentialLoads.get(credentialId) || 0;
   }
 
