@@ -41,6 +41,7 @@ import CallMonitoring from "@/components/admin/CallMonitoring";
 import BannedWordsManagement from "@/components/admin/BannedWordsManagement";
 import OpenAIPoolManagement from "@/components/admin/OpenAIPoolManagement";
 import PlivoSettings from "@/components/admin/PlivoSettings";
+import CustomVoiceEngineSettings from "@/components/admin/CustomVoiceEngineSettings";
 import { Badge } from "@/components/ui/badge";
 import { Suspense } from "react";
 import { usePluginRegistry } from "@/contexts/plugin-registry";
@@ -514,6 +515,11 @@ export default function AdminDashboard() {
               <span className="hidden sm:inline">Voice AI</span>
               <span className="sm:hidden">Voice</span>
             </TabsTrigger>
+            <TabsTrigger value="custom-voice-engine" className="text-xs md:text-sm whitespace-nowrap" data-testid="tab-custom-voice-engine">
+              <Mic className="h-4 w-4 mr-1 md:mr-2" />
+              <span className="hidden sm:inline">Voice Engine</span>
+              <span className="sm:hidden">Engine</span>
+            </TabsTrigger>
             {(Array.isArray(adminMenuItems) ? adminMenuItems : []).map((item) => (
               <TabsTrigger key={item.id} value={item.id} className="text-xs md:text-sm whitespace-nowrap" data-testid={`tab-${item.id}`}>
                 {item.icon === 'Users' && <Building2 className="h-4 w-4 mr-1 md:mr-2" />}
@@ -576,6 +582,10 @@ export default function AdminDashboard() {
 
         <TabsContent value="voice-ai" className="space-y-4">
           <VoiceAIPanel />
+        </TabsContent>
+
+        <TabsContent value="custom-voice-engine" className="space-y-4">
+          <CustomVoiceEngineSettings />
         </TabsContent>
 
         {(Array.isArray(adminMenuItems) ? adminMenuItems : []).map((item) => (

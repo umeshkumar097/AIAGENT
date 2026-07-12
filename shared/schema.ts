@@ -2134,7 +2134,10 @@ export const plivoPhoneNumbers = pgTable("plivo_phone_numbers", {
   
   // Incoming agent connection
   assignedAgentId: varchar("assigned_agent_id").references(() => agents.id, { onDelete: "set null" }),
-  
+
+  // Stripe subscription tracking (for monthly billing via Stripe)
+  stripeSubscriptionId: text("stripe_subscription_id").unique(),
+
   purchasedAt: timestamp("purchased_at").notNull().defaultNow(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CreditCard, Download, Plus, Loader2, Check, Crown, Calendar, AlertCircle, Wallet, Coins, Receipt, TrendingUp, Sparkles, ArrowUpRight, Clock, Globe, FileText, ChevronLeft, ChevronRight } from "lucide-react";
+import { CreditCard, Download, Plus, Loader2, Check, Crown, Calendar, AlertCircle, Wallet, Coins, Receipt, TrendingUp, Sparkles, ArrowUpRight, Clock, Globe, FileText, ChevronLeft, ChevronRight, Phone, Trash2 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow, format } from "date-fns";
@@ -47,6 +47,7 @@ import { CreditPurchaseDialog } from "@/components/CreditPurchaseDialog";
 import { useTranslation } from 'react-i18next';
 import TransactionHistory from "@/pages/TransactionHistory";
 import { UpgradePlansContent } from "@/pages/Upgrade";
+import { PhoneNumberSubscriptionSection } from "@/components/PhoneNumberSubscriptionSection";
 
 type GatewayType = 'stripe' | 'razorpay' | 'paypal' | 'paystack' | 'mercadopago';
 
@@ -103,7 +104,7 @@ interface Plan {
   maxAgents: number;
   maxCampaigns: number;
   maxContactsPerCampaign: number;
-  includedCredits: number;
+  includedMinutes: number;
 }
 
 interface UserSubscription {
@@ -600,11 +601,15 @@ export default function Billing() {
           </TabsTrigger>
           <TabsTrigger value="packs" className="gap-2" data-testid="tab-packs">
             <Coins className="h-4 w-4" />
-            {t('billing.creditPacks') || 'Credit Packs'}
+            Minute Packs
           </TabsTrigger>
           <TabsTrigger value="history" className="gap-2" data-testid="tab-history">
             <FileText className="h-4 w-4" />
             {t('billing.transactionHistory') || 'Transaction History'}
+          </TabsTrigger>
+          <TabsTrigger value="numbers" className="gap-2" data-testid="tab-phone-numbers">
+            <Phone className="h-4 w-4" />
+            Phone Numbers
           </TabsTrigger>
         </TabsList>
 
@@ -674,8 +679,8 @@ export default function Billing() {
                     <Coins className="h-7 w-7 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{t('billing.creditsAndUsage')}</h2>
-                    <p className="text-slate-600 dark:text-slate-400 text-sm">{t('billing.creditsSubtitle')}</p>
+                    <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Minutes & Usage</h2>
+                    <p className="text-slate-600 dark:text-slate-400 text-sm">Your available calling minutes and usage history</p>
                   </div>
                 </div>
                 
@@ -714,13 +719,13 @@ export default function Billing() {
                       <Wallet className="h-10 w-10 text-white" />
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{t('billing.currentBalance')}</div>
+                      <div className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Current Balance</div>
                       <div className="text-5xl font-bold font-mono tabular-nums text-slate-800 dark:text-slate-100" data-testid="text-credit-balance">
                         {currentBalance.toLocaleString()}
                       </div>
                       <div className="text-sm text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
                         <Sparkles className="h-3 w-3" />
-                        {t('billing.availableCredits')}
+                        Available minutes
                       </div>
                     </div>
                   </div>
@@ -732,7 +737,7 @@ export default function Billing() {
                     data-testid="button-recharge-credits"
                   >
                     <Plus className="h-5 w-5 mr-2" />
-                    {t('billing.purchaseCredits')}
+                    Add Minutes
                   </Button>
                 </div>
               </div>
@@ -741,7 +746,7 @@ export default function Billing() {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
                     <TrendingUp className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                    {t('billing.creditPackages')}
+                    Minute Packages
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {packages.map((pkg, index) => {
@@ -795,7 +800,7 @@ export default function Billing() {
                                 <span className="text-xl font-mono font-semibold text-emerald-600 dark:text-emerald-400">
                                   {pkg.credits.toLocaleString()}
                                 </span>
-                                <span className="text-sm text-slate-500 dark:text-slate-400">{t('billing.credits')}</span>
+                                <span className="text-sm text-slate-500 dark:text-slate-400">minutes</span>
                               </div>
                             </div>
                             
@@ -893,7 +898,7 @@ export default function Billing() {
                                 }`}
                               >
                                 {transaction.type === "credit" ? (
-                                  <><Plus className="h-3 w-3 mr-1" />{t('billing.credit')}</>
+                                  <><Plus className="h-3 w-3 mr-1" />Min Added</>
                                 ) : (
                                   <>{t('billing.debit')}</>
                                 )}
@@ -974,6 +979,12 @@ export default function Billing() {
             </div>
           </div>
         </TabsContent>
+
+        {/* ─── PHONE NUMBER SUBSCRIPTION TAB ─── */}
+        <TabsContent value="numbers" className="space-y-8">
+          <PhoneNumberSubscriptionSection hasActiveSubscription={hasActiveSubscription} />
+        </TabsContent>
+
       </Tabs>
 
       <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>

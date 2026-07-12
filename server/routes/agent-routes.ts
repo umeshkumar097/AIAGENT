@@ -141,7 +141,7 @@ export function createAgentRoutes(ctx: RouteContext): Router {
       // Voice validation depends on telephony provider
       // OpenAI-based providers (plivo, twilio_openai, openai-sip) use OpenAI voices, not ElevenLabs
       // SIP providers (elevenlabs-sip, openai-sip) need special handling
-      const isOpenAIProvider = telephonyProvider === 'plivo' || telephonyProvider === 'twilio_openai' || telephonyProvider === 'openai-sip';
+      const isOpenAIProvider = telephonyProvider === 'plivo' || telephonyProvider === 'twilio_openai' || telephonyProvider === 'openai-sip' || telephonyProvider === 'sarvam-plivo';
       const isSipProvider = telephonyProvider === 'elevenlabs-sip' || telephonyProvider === 'openai-sip';
 
       if (type === 'incoming') {

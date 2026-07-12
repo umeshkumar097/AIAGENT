@@ -37,12 +37,13 @@ export function createPublicRoutes(ctx: RouteContext): Router {
   /**
    * Check if installation is complete by checking for any users in the database.
    */
-  async function isInstalled(): Promise<boolean> {
+  async function isInstalled(): Promise<{ installed: boolean; dbError?: boolean }> {
     try {
       const userCount = await db.select({ count: sql<number>`count(*)::int` }).from(users);
-      return userCount[0]?.count > 0;
-    } catch {
-      return false;
+      return { installed: (userCount[0]?.count ?? 0) > 0 };
+    } catch (error: any) {
+      // DB connection/quota error — NOT the same as "not installed"
+      return { installed: false, dbError: true, errorMessage: error?.message || 'Database unavailable' };
     }
   }
 
@@ -52,10 +53,22 @@ export function createPublicRoutes(ctx: RouteContext): Router {
 
   router.get("/api/installer/status", async (_req: Request, res: Response) => {
     try {
-      const installed = await isInstalled();
-      res.json({ installed });
+      const result = await isInstalled();
+      if (result.dbError) {
+        // DB is down/quota exceeded — do NOT say "not installed"
+        return res.status(503).json({
+          installed: true,  // assume installed to prevent install screen
+          dbError: true,
+          error: "Database connection failed. Please try again later.",
+        });
+      }
+      res.json({ installed: result.installed });
     } catch (error: any) {
-      res.status(500).json({ message: "Failed to check installation status" });
+      res.status(503).json({
+        installed: true,
+        dbError: true,
+        error: "Database connection failed.",
+      });
     }
   });
 
@@ -80,7 +93,7 @@ export function createPublicRoutes(ctx: RouteContext): Router {
 
     try {
       // Fetch all data in parallel for speed
-      const [installed, brandingSettings, seoSettings] = await Promise.all([
+      const [installResult, brandingSettings, seoSettings] = await Promise.all([
         isInstalled(),
         (async () => {
           const brandingKeys = ['app_name', 'app_tagline', 'logo_url', 'logo_url_light', 'logo_url_dark', 'favicon_url'];
@@ -94,9 +107,13 @@ export function createPublicRoutes(ctx: RouteContext): Router {
         storage.getSeoSettings().catch(() => null)
       ]);
 
+      // If DB error, assume installed=true to prevent install screen
+      const installed = installResult.dbError ? true : installResult.installed;
+
       res.json({
         success: true,
         installed,
+        dbError: installResult.dbError || false,
         branding: {
           app_name: brandingSettings.app_name || '',
           app_tagline: brandingSettings.app_tagline || '',
@@ -115,7 +132,8 @@ export function createPublicRoutes(ctx: RouteContext): Router {
       console.error('Error in /api/init:', error);
       res.json({
         success: false,
-        installed: false,
+        installed: true,  // assume installed on error — never show install screen
+        dbError: true,
         branding: { app_name: '', app_tagline: '', logo_url: null, favicon_url: null },
         seo: null,
         version
@@ -125,8 +143,11 @@ export function createPublicRoutes(ctx: RouteContext): Router {
 
   router.get("/api/installer/check", async (_req: Request, res: Response) => {
     try {
-      const installed = await isInstalled();
-      if (installed) {
+      const result = await isInstalled();
+      if (result.dbError) {
+        return res.status(503).json({ message: "Database connection failed. Cannot check install status." });
+      }
+      if (result.installed) {
         return res.status(403).json({ message: "Application is already installed" });
       }
 

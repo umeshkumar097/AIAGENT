@@ -58,6 +58,11 @@ class PerfTimer {
 
 export class SarvamBridgeService {
 
+  // ── Pre-built STT message templates (avoids JSON.stringify per chunk) ────────
+  private static readonly STT_MSG_PREFIX = '{"audio":{"data":"';
+  private static readonly STT_MSG_SUFFIX = '","encoding":"audio/wav","sample_rate":8000}}';
+
+
   // ── mulaw decode table (G.711 μ-law) ─────────────────────────────────────
   private static readonly MULAW_DECODE: Int16Array = (() => {
     const t = new Int16Array(256);
@@ -329,8 +334,8 @@ ${systemPrompt}`;
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages,
-        max_tokens: 200,
-        temperature: 0.7,
+        max_tokens: 80,       // Phone pe 25 words kaafi — shorter = faster first token
+        temperature: 0.4,     // Lower = faster + more consistent responses
         stream: true
       }),
       signal
@@ -444,24 +449,25 @@ ${systemPrompt}`;
       transcriptLines.push(`Agent: ${fullMsg}`);
       SarvamBridgeService.setState(callUuid, plivoWs, 'THINKING');
 
-      // Split into sentences and TTS each one sequentially
-      const sentences: string[] = [];
-      const parts = fullMsg.split(/([।.!?]+)/);
-      for (let pi = 0; pi < parts.length - 1; pi += 2) {
-        const s = ((parts[pi] || '') + (parts[pi + 1] || '')).trim();
-        if (s.length > 0) sentences.push(s);
-      }
-      const lastPart = parts[parts.length - 1]?.trim();
-      if (lastPart && lastPart.length > 0) sentences.push(lastPart);
-      const allSents = sentences.length > 0 ? sentences : [fullMsg];
+      // Split into sentences — clean regex, reliable on Hindi + English
+      const allSents = fullMsg
+        .split(/(?<=[।.!?])\s+/)
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+      const sentences = allSents.length > 0 ? allSents : [fullMsg];
 
-      for (let i = 0; i < allSents.length; i++) {
-        if (signal.aborted || plivoWs.readyState !== WebSocket.OPEN) break;
-        await SarvamBridgeService.speakViaTTS(
-          callUuid, plivoWs, allSents[i],
-          sarvamApiKey, language, voice,
-          signal, perf, i
-        ).catch(e => logger.error(`[SarvamBridge][${callUuid}] First msg s${i}: ${e.message}`));
+      // Fire ALL sentence TTS calls in parallel — audio pacing queue (sentenceIdx)
+      // ensures correct playback order even if API responses arrive out of order
+      if (!signal.aborted && plivoWs.readyState === WebSocket.OPEN) {
+        await Promise.all(
+          sentences.map((s, i) =>
+            SarvamBridgeService.speakViaTTS(
+              callUuid, plivoWs, s,
+              sarvamApiKey, language, voice,
+              signal, perf, i
+            ).catch(e => logger.error(`[SarvamBridge][${callUuid}] First msg s${i}: ${e.message}`))
+          )
+        );
       }
     } else {
       logger.info(`[SarvamBridge][${callUuid}] No firstMessage — GPT greeting`);
@@ -709,9 +715,12 @@ ${systemPrompt}`;
 
     const mulawBuf = Buffer.from(payload, 'base64');
     const pcmBuf   = SarvamBridgeService.mulaw8k_to_pcm16_8k(mulawBuf);
-    sttWs.send(JSON.stringify({
-      audio: { data: pcmBuf.toString('base64'), encoding: 'audio/wav', sample_rate: 8000 }
-    }));
+    // Pre-built template — avoids JSON.stringify on every 20ms audio chunk
+    sttWs.send(
+      SarvamBridgeService.STT_MSG_PREFIX +
+      pcmBuf.toString('base64') +
+      SarvamBridgeService.STT_MSG_SUFFIX
+    );
   }
 
   /** End session — returns transcript and duration */

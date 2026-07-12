@@ -36,19 +36,19 @@ export function CreditWidget({ credits, lowBalance = false }: CreditWidgetProps)
         <Button variant="ghost" className="gap-2 font-mono" data-testid="button-credits">
           <CreditCard className="h-4 w-4" />
           <span className={lowBalance ? "text-destructive" : ""}>{credits.toLocaleString()}</span>
-          <span className="text-muted-foreground text-xs">credits</span>
+          <span className="text-muted-foreground text-xs">min</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
         <div className="px-4 py-3">
-          <div className="text-sm font-medium mb-1">Credit Balance</div>
+          <div className="text-sm font-medium mb-1">Minutes Balance</div>
           <div className="text-2xl font-mono font-semibold">{credits.toLocaleString()}</div>
-          <div className="text-xs text-muted-foreground mt-1">Available credits</div>
+          <div className="text-xs text-muted-foreground mt-1">Available minutes</div>
         </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem data-testid="button-recharge">
           <CreditCard className="mr-2 h-4 w-4" />
-          Recharge Credits
+          Add Minutes
         </DropdownMenuItem>
         <DropdownMenuItem data-testid="button-view-usage">
           View Usage History

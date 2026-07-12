@@ -220,5 +220,240 @@ export function createSubscriptionRoutes(ctx: RouteContext): Router {
     }
   });
 
+
+  // ============================================
+  // PHONE NUMBER SUBSCRIPTION (₹400/month via Stripe)
+  // Auto-buys a Plivo number and bills monthly
+  // ============================================
+
+  /**
+   * POST /api/phone-number/subscribe
+   * Creates a Stripe Checkout Session for ₹400/month phone number rental.
+   * Returns checkoutUrl → frontend redirects user to Stripe hosted payment page.
+   * After payment, Stripe redirects to /api/phone-number/subscribe/return?session_id=...
+   */
+  router.post("/api/phone-number/subscribe", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId!;
+      const { country = "IN", phoneNumber } = req.body;
+
+      // 1. Get Stripe secret key
+      const stripeKeySetting = await storage.getGlobalSetting("stripe_secret_key");
+      const stripeSecretKey = (stripeKeySetting?.value as string) || process.env.STRIPE_SECRET_KEY;
+      if (!stripeSecretKey) {
+        return res.status(500).json({ error: "Stripe not configured" });
+      }
+
+      // 2. Get price ID
+      const priceIdSetting = await storage.getGlobalSetting("phone_number_stripe_price_id");
+      const priceId = priceIdSetting?.value as string;
+      if (!priceId) {
+        return res.status(500).json({ error: "Phone number price not configured. Contact admin." });
+      }
+
+      // 3. Get user
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      const { default: Stripe } = await import("stripe");
+      const stripe = new Stripe(stripeSecretKey, { apiVersion: "2025-10-29.clover" as any });
+
+      // 4. Ensure Stripe customer
+      let stripeCustomerId = user.stripeCustomerId;
+      if (!stripeCustomerId) {
+        const customer = await stripe.customers.create({
+          email: user.email,
+          name: user.billingName || user.email,
+          metadata: { userId },
+        });
+        stripeCustomerId = customer.id;
+        await storage.updateUser(userId, { stripeCustomerId });
+      }
+
+      // 5. Determine origin for redirect URLs
+      const origin = (req.headers.origin as string) || process.env.APP_URL || "https://app.zonvo.tech";
+
+      // 6. Create Stripe Checkout Session (hosted payment page)
+      const session = await stripe.checkout.sessions.create({
+        customer: stripeCustomerId,
+        mode: "subscription",
+        line_items: [{ price: priceId, quantity: 1 }],
+        metadata: {
+          type: "phone_number_rental",
+          userId,
+          country: country.toUpperCase(),
+          phoneNumber: phoneNumber || "",
+        },
+        subscription_data: {
+          metadata: {
+            type: "phone_number_rental",
+            userId,
+            country: country.toUpperCase(),
+            phoneNumber: phoneNumber || "",
+          },
+        },
+        success_url: `${origin}/app/phone-numbers?checkout_success=1&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${origin}/app/phone-numbers`,
+        allow_promotion_codes: false,
+      });
+
+      res.json({
+        checkoutUrl: session.url,
+        sessionId: session.id,
+      });
+    } catch (error: any) {
+      console.error("Phone number subscribe error:", error);
+      res.status(500).json({ error: error.message || "Subscription creation failed" });
+    }
+  });
+
+  /**
+   * GET /api/phone-number/subscribe/checkout-success
+   * Called after Stripe Checkout success redirect. 
+   * Reads session metadata → buys the phone number from Plivo → saves to DB.
+   */
+  router.get("/api/phone-number/subscribe/checkout-success", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const { session_id } = req.query;
+      if (!session_id) return res.status(400).json({ error: "session_id required" });
+
+      const stripeKeySetting = await storage.getGlobalSetting("stripe_secret_key");
+      const stripeSecretKey = (stripeKeySetting?.value as string) || process.env.STRIPE_SECRET_KEY;
+      if (!stripeSecretKey) return res.status(500).json({ error: "Stripe not configured" });
+
+      const { default: Stripe } = await import("stripe");
+      const stripe = new Stripe(stripeSecretKey, { apiVersion: "2025-10-29.clover" as any });
+
+      // Retrieve the checkout session
+      const session = await stripe.checkout.sessions.retrieve(session_id as string);
+      if (session.payment_status !== "paid") {
+        return res.status(400).json({ error: "Payment not completed" });
+      }
+
+      const { userId: sessionUserId, country, phoneNumber } = session.metadata || {};
+      const stripeSubscriptionId = session.subscription as string;
+
+      // Verify this belongs to the authenticated user
+      if (sessionUserId !== req.userId) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+
+      if (!phoneNumber || !country || !stripeSubscriptionId) {
+        return res.status(400).json({ error: "Missing phone/country in session metadata" });
+      }
+
+      // Check if already processed (idempotency)
+      const { PlivoPhoneService } = await import("../engines/plivo/services/plivo-phone.service.js");
+      const existing = await PlivoPhoneService.getUserPhoneNumbers(req.userId!);
+      const alreadyOwned = existing.find((n: any) => n.stripeSubscriptionId === stripeSubscriptionId);
+      if (alreadyOwned) {
+        return res.json({ success: true, phoneNumber: alreadyOwned.phoneNumber, alreadyProcessed: true });
+      }
+
+      // Purchase from Plivo
+      await PlivoPhoneService.purchaseNumberViaStripe({
+        userId: req.userId!,
+        phoneNumber,
+        country,
+        stripeSubscriptionId,
+      });
+
+      res.json({ success: true, phoneNumber });
+    } catch (error: any) {
+      console.error("Checkout success handler error:", error);
+      res.status(500).json({ error: error.message || "Failed to process payment" });
+    }
+  });
+
+  /**
+   * POST /api/phone-number/subscribe/confirm
+   * Called after Stripe payment succeeds on frontend.
+   * Buys the SPECIFIC number the user selected.
+   */
+  router.post("/api/phone-number/subscribe/confirm", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId!;
+      const { stripeSubscriptionId, country = "IN", phoneNumber } = req.body;
+
+      if (!stripeSubscriptionId) {
+        return res.status(400).json({ error: "stripeSubscriptionId required" });
+      }
+      if (!phoneNumber) {
+        return res.status(400).json({ error: "phoneNumber required" });
+      }
+
+      const { PlivoPhoneService } = await import("../engines/plivo/services/plivo-phone.service.js");
+
+      // Purchase the specific number user selected — Stripe handles billing
+      await PlivoPhoneService.purchaseNumberViaStripe({
+        userId,
+        phoneNumber,
+        country: country.toUpperCase(),
+        stripeSubscriptionId,
+      });
+
+      res.json({ success: true, phoneNumber });
+    } catch (error: any) {
+      console.error("Phone number confirm error:", error);
+      res.status(500).json({ error: error.message || "Number purchase failed" });
+    }
+  });
+
+  /**
+   * GET /api/phone-number/subscriptions
+   * Returns user's active phone number subscriptions with billing info.
+   */
+  router.get("/api/phone-number/subscriptions", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId!;
+      const { PlivoPhoneService } = await import("../engines/plivo/services/plivo-phone.service.js");
+      const numbers = await PlivoPhoneService.getUserPhoneNumbers(userId);
+
+      // Filter only Stripe-billed numbers
+      const stripeBilled = numbers.filter((n: any) => n.stripeSubscriptionId);
+      res.json(stripeBilled);
+    } catch (error: any) {
+      console.error("Get phone subscriptions error:", error);
+      res.status(500).json({ error: "Failed to get subscriptions" });
+    }
+  });
+
+  /**
+   * DELETE /api/phone-number/subscriptions/:phoneNumberId
+   * Cancels Stripe subscription and releases the Plivo number.
+   */
+  router.delete("/api/phone-number/subscriptions/:phoneNumberId", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId!;
+      const { phoneNumberId } = req.params;
+
+      const stripeKeySetting = await storage.getGlobalSetting("stripe_secret_key");
+      const stripeSecretKey = (stripeKeySetting?.value as string) || process.env.STRIPE_SECRET_KEY;
+
+      const { PlivoPhoneService } = await import("../engines/plivo/services/plivo-phone.service.js");
+      const numbers = await PlivoPhoneService.getUserPhoneNumbers(userId);
+      const numberRecord = numbers.find((n: any) => n.id === phoneNumberId);
+
+      if (!numberRecord) {
+        return res.status(404).json({ error: "Phone number not found" });
+      }
+
+      // Cancel Stripe subscription if present
+      if (numberRecord.stripeSubscriptionId && stripeSecretKey) {
+        const { default: Stripe } = await import("stripe");
+        const stripe = new Stripe(stripeSecretKey, { apiVersion: "2025-10-29.clover" as any });
+        await stripe.subscriptions.cancel(numberRecord.stripeSubscriptionId);
+      }
+
+      // Release from Plivo + delete from DB
+      await PlivoPhoneService.releaseNumber(phoneNumberId);
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Cancel phone subscription error:", error);
+      res.status(500).json({ error: error.message || "Cancellation failed" });
+    }
+  });
+
   return router;
 }

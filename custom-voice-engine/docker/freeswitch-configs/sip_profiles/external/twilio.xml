@@ -1,0 +1,6 @@
+<gateway name="twilio">
+  <param name="username" value="AC5abcd0b2b42bf050853e1a28295bac33"/>
+  <param name="password" value="977477a8b699ca27ce0af79d6603775a"/>
+  <param name="proxy" value="testhr.pstn.twilio.com"/>
+  <param name="register" value="false"/>
+</gateway>

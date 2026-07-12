@@ -297,6 +297,30 @@ export default function PhoneNumbers() {
     }
   }, [countries, searchCountry]);
 
+  // Handle Stripe Checkout return — buy the Plivo number after payment success
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("checkout_success") === "1") {
+      const sessionId = params.get("session_id");
+      if (sessionId) {
+        apiRequest("GET", `/api/phone-number/subscribe/checkout-success?session_id=${sessionId}`)
+          .then(r => r.json())
+          .then(data => {
+            if (data.success) {
+              toast({ title: "✅ Phone Number Activated!", description: `${data.phoneNumber} is now active. ₹400/month via Stripe.` });
+              queryClient.invalidateQueries({ queryKey: ["/api/plivo/phone-numbers"] });
+              queryClient.invalidateQueries({ queryKey: ["/api/phone-number/subscriptions"] });
+            }
+          })
+          .catch(err => console.error("Checkout confirm error:", err))
+          .finally(() => {
+            // Clean URL
+            window.history.replaceState({}, "", "/app/phone-numbers");
+          });
+      }
+    }
+  }, []);
+
   const { data: incomingData } = useQuery<{ connections: IncomingConnection[]; allConnections: IncomingConnection[]; availablePhoneNumbers: PhoneNumber[] }>({
     queryKey: ["/api/incoming-connections"],
   });
@@ -348,49 +372,33 @@ export default function PhoneNumbers() {
   });
 
   const buyMutation = useMutation({
-    mutationFn: async ({ phoneNumber, friendlyName, addressSid, country, numberType }: { phoneNumber: string; friendlyName?: string; addressSid?: string; country?: string; numberType?: string }) => {
-      const res = await apiRequest("POST", "/api/phone-numbers/buy", { phoneNumber, friendlyName, addressSid, country, numberType });
-      return res.json();
+    mutationFn: async ({ phoneNumber, country }: { phoneNumber: string; friendlyName?: string; addressSid?: string; country?: string; numberType?: string }) => {
+      // Use Stripe Checkout Session — same as Plivo flow
+      const res = await apiRequest("POST", "/api/phone-number/subscribe", {
+        phoneNumber,
+        country: country || searchCountry || "US",
+        provider: "twilio",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Subscription failed");
+
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+      throw new Error("Failed to get Stripe checkout URL");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/phone-numbers"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/incoming-connections"] });
       setBuyDialogOpen(false);
       setSelectedNumber(null);
       setFriendlyName("");
       setSearchContains("");
       setHasSearched(false);
       setTwilioSearchType("local");
-      toast({ title: t('phoneNumbers.toast.purchaseSuccess'), description: t('phoneNumbers.toast.creditsDeducted', { credits: MONTHLY_CREDITS }) });
     },
     onError: (error: any) => {
-      // ApiError includes 'data' field with full JSON response from server
       const errorData = error.data || error;
-      
-      // Check if the error response indicates address is required
-      if (errorData.addressRequired) {
-        const countryObj = countries.find(c => c.code === errorData.country);
-        setAddressRequiredCountry(countryObj?.name || errorData.country || searchCountry || "this country");
-        setAddressRequiredDialogOpen(true);
-        setBuyDialogOpen(false);
-        return;
-      }
-      
-      // Check if regulatory bundle is required
-      if (errorData.bundleRequired) {
-        const countryObj = countries.find(c => c.code === errorData.country);
-        setBundleRequiredCountry(countryObj?.name || errorData.country || searchCountry || "this country");
-        setBundleRequiredDialogOpen(true);
-        setBuyDialogOpen(false);
-        return;
-      }
-
-      // Check if KYC is required
-      if (errorData.kycRequired) {
-        setKycRequiredDialogOpen(true);
-        setBuyDialogOpen(false);
-        return;
-      }
       
       toast({
         title: t('phoneNumbers.toast.purchaseFailed'),
@@ -421,19 +429,24 @@ export default function PhoneNumbers() {
     },
   });
 
-  // Plivo purchase mutation
+  // Plivo purchase via Stripe Checkout Session (₹400/month)
   const plivoBuyMutation = useMutation({
     mutationFn: async ({ phoneNumber, country }: { phoneNumber: string; country: string }) => {
-      const res = await apiRequest("POST", "/api/plivo/phone-numbers/purchase", { phoneNumber, country });
-      return res.json();
+      const res = await apiRequest("POST", "/api/phone-number/subscribe", { phoneNumber, country });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Subscription failed");
+
+      // Backend returns a Stripe Checkout Session URL → redirect user there
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+        return; // page will redirect
+      }
+
+      throw new Error("Failed to get Stripe checkout URL");
     },
     onSuccess: () => {
+      // This fires only if no redirect (shouldn't happen normally)
       queryClient.invalidateQueries({ queryKey: ["/api/plivo/phone-numbers"] });
-      setPlivoBuyDialogOpen(false);
-      setSelectedPlivoNumber(null);
-      setPlivoSearchCountry("");
-      setPlivoSearchRegion("");
-      toast({ title: "Plivo Number Purchased", description: "Your new phone number has been added to your account." });
     },
     onError: (error: any) => {
       toast({
@@ -993,12 +1006,12 @@ export default function PhoneNumbers() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="bg-accent/50 border border-accent rounded-lg p-4 flex items-start gap-3">
-            <CreditCard className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+          <div className="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/50 rounded-lg p-4 flex items-start gap-3">
+            <CreditCard className="h-5 w-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-0.5" />
             <div>
-              <h4 className="font-semibold text-sm mb-1">{t('phoneNumbers.dialog.monthlyBilling')}</h4>
+              <h4 className="font-semibold text-sm mb-1 text-indigo-700 dark:text-indigo-300">Stripe Billing</h4>
               <p className="text-sm text-muted-foreground">
-                {t('phoneNumbers.dialog.monthlyBillingDesc', { credits: MONTHLY_CREDITS })}
+                Phone numbers are billed at <strong>₹400/month</strong> via Stripe. Cancel anytime.
               </p>
             </div>
           </div>
@@ -1169,13 +1182,14 @@ export default function PhoneNumbers() {
               onClick={handleBuyNumber}
               disabled={!selectedNumber || buyMutation.isPending}
               data-testid="button-confirm-purchase"
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
             >
               {buyMutation.isPending ? (
-                t('phoneNumbers.actions.purchasing')
+                <><div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2" />Redirecting to Stripe...</>
               ) : (
                 <>
                   <ShoppingCart className="h-4 w-4 mr-2" />
-                  {t('phoneNumbers.actions.purchaseFor', { credits: MONTHLY_CREDITS })}
+                  {selectedNumber ? 'Rent for ₹400/month' : 'Select a Number'}
                 </>
               )}
             </Button>
@@ -1222,33 +1236,33 @@ export default function PhoneNumbers() {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            {/* Pricing Info Banner */}
+            {/* Stripe Billing Info Banner */}
             {plivoSearchCountry && (() => {
               const pricing = getPlivoPricing(plivoSearchCountry);
-              return pricing ? (
-                <div className="bg-accent/50 border border-accent rounded-lg p-4">
+              return (
+                <div className="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/50 rounded-lg p-4">
                   <div className="flex items-center gap-3 mb-2">
-                    <CreditCard className="h-5 w-5 text-primary" />
-                    <span className="font-semibold">Pricing</span>
+                    <CreditCard className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                    <span className="font-semibold text-indigo-700 dark:text-indigo-300">Stripe Billing</span>
                   </div>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-muted-foreground">One-time Purchase:</span>
-                      <span className="font-semibold ml-2">{pricing.purchaseCredits} credits</span>
+                      <span className="text-muted-foreground">Monthly Rental:</span>
+                      <span className="font-bold ml-2 text-indigo-700 dark:text-indigo-300">₹400/month</span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Monthly Rental:</span>
-                      <span className="font-semibold ml-2">{pricing.monthlyCredits} credits/mo</span>
+                      <span className="text-muted-foreground">Billing:</span>
+                      <span className="font-semibold ml-2">Stripe auto-renewal</span>
                     </div>
                   </div>
-                  {pricing.kycRequired && (
+                  {pricing?.kycRequired && (
                     <div className="mt-3 flex items-center gap-2 text-amber-600 dark:text-amber-400">
                       <Shield className="h-4 w-4" />
                       <span className="text-sm">KYC verification is required for numbers in this country</span>
                     </div>
                   )}
                 </div>
-              ) : null;
+              );
             })()}
 
             {/* Filters Row */}
@@ -1390,16 +1404,17 @@ export default function PhoneNumbers() {
               onClick={handlePlivoBuy}
               disabled={!selectedPlivoNumber || plivoBuyMutation.isPending}
               data-testid="button-purchase-plivo"
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
             >
               {plivoBuyMutation.isPending ? (
                 <>
                   <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2" />
-                  Purchasing...
+                  Processing...
                 </>
               ) : (
                 <>
                   <ShoppingCart className="h-4 w-4 mr-2" />
-                  {selectedPlivoNumber ? `Purchase for ${getPlivoPricing(plivoSearchCountry)?.purchaseCredits || 0} Credits` : 'Select a Number'}
+                  {selectedPlivoNumber ? 'Rent for ₹400/month' : 'Select a Number'}
                 </>
               )}
             </Button>

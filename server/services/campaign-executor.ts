@@ -206,6 +206,11 @@ export class CampaignExecutor {
           if (!agent.elevenLabsAgentId) {
             errors.push('ElevenLabs SIP agent is not synced. Please sync the agent from Agent Settings.');
           }
+        } else if (provider === 'sarvam-plivo') {
+          // Sarvam Plivo requires no ElevenLabs sync verification
+          if (!agent.openaiCredentialId) {
+            warnings.push('No OpenAI credential assigned to agent. Will use default pool.');
+          }
         } else {
           // ElevenLabs engine validation (default)
           if (!agent.elevenLabsAgentId) {
@@ -283,9 +288,9 @@ export class CampaignExecutor {
         throw new Error('Agent not found');
       }
 
-      // Route to Plivo engine if agent uses Plivo telephony
-      if (agent.telephonyProvider === 'plivo') {
-        console.log(`📞 [Campaign Executor] Routing to Plivo + OpenAI engine for campaign ${campaignId}`);
+      // Route to Plivo engine if agent uses Plivo telephony (including Sarvam Plivo)
+      if (agent.telephonyProvider === 'plivo' || agent.telephonyProvider === 'sarvam-plivo') {
+        console.log(`📞 [Campaign Executor] Routing to Plivo engine for campaign ${campaignId} (${agent.telephonyProvider})`);
         
         // Get all contacts for the campaign
         const campaignContacts = await db
@@ -342,7 +347,7 @@ export class CampaignExecutor {
             batchCall: true,
             batchJobId: plivoBatchJobId,
             agentId: agent.id,
-            telephonyProvider: 'plivo',
+            telephonyProvider: agent.telephonyProvider || 'plivo',
             contactName: `${contact.firstName} ${contact.lastName || ''}`.trim(),
           },
         }));
@@ -364,7 +369,7 @@ export class CampaignExecutor {
             campaignId: campaign.id,
             campaignName: campaign.name,
             contactPhone: callRecord.phoneNumber || '',
-            telephonyProvider: 'plivo',
+            telephonyProvider: agent.telephonyProvider || 'plivo',
           }));
           
           await batchInsertFlowExecutions(flowExecInserts, '🔀 [Plivo Campaign]');
@@ -1507,8 +1512,8 @@ export class CampaignExecutor {
       throw new Error('Agent not found');
     }
 
-    // Route to Plivo engine if agent uses Plivo telephony
-    if (agent.telephonyProvider === 'plivo') {
+    // Route to Plivo engine if agent uses Plivo telephony (including Sarvam Plivo)
+    if (agent.telephonyProvider === 'plivo' || agent.telephonyProvider === 'sarvam-plivo') {
       const plivoBatchService = PlivoBatchCallingService.getInstance(campaignId);
       plivoBatchService.pause();
       
@@ -1698,8 +1703,8 @@ export class CampaignExecutor {
       throw new Error('Agent not found');
     }
 
-    // Route to Plivo engine if agent uses Plivo telephony
-    if (agent.telephonyProvider === 'plivo') {
+    // Route to Plivo engine if agent uses Plivo telephony (including Sarvam Plivo)
+    if (agent.telephonyProvider === 'plivo' || agent.telephonyProvider === 'sarvam-plivo') {
       const plivoBatchService = PlivoBatchCallingService.getInstance(campaignId);
       await plivoBatchService.cancel();
       
@@ -1907,8 +1912,8 @@ export class CampaignExecutor {
       throw new Error('Agent not found');
     }
 
-    // Route to Plivo engine if agent uses Plivo telephony
-    if (agent.telephonyProvider === 'plivo') {
+    // Route to Plivo engine if agent uses Plivo telephony (including Sarvam Plivo)
+    if (agent.telephonyProvider === 'plivo' || agent.telephonyProvider === 'sarvam-plivo') {
       // For Plivo, resume means re-executing the campaign with pending contacts
       const plivoBatchService = PlivoBatchCallingService.getInstance(campaignId);
       
@@ -2097,8 +2102,8 @@ export class CampaignExecutor {
       throw new Error('Agent not found');
     }
 
-    // Route to Plivo engine if agent uses Plivo telephony
-    if (agent.telephonyProvider === 'plivo') {
+    // Route to Plivo engine if agent uses Plivo telephony (including Sarvam Plivo)
+    if (agent.telephonyProvider === 'plivo' || agent.telephonyProvider === 'sarvam-plivo') {
       const plivoBatchService = PlivoBatchCallingService.getInstance(campaignId);
       
       // Update campaign status to running

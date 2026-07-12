@@ -54,6 +54,7 @@ import AdminCampaignDetail from "@/pages/AdminCampaignDetail";
 import PrivacyPolicy from "@/pages/policies/PrivacyPolicy";
 import TermsOfService from "@/pages/policies/TermsOfService";
 import CookiePolicy from "@/pages/policies/CookiePolicy";
+import DataDeletion from "@/pages/policies/DataDeletion";
 import InstallWizard from "@/pages/InstallWizard";
 import NotFound from "@/pages/not-found";
 import FlowsPage from "@/pages/FlowsPage";
@@ -214,6 +215,7 @@ function PublicRouter() {
         <Route path="/privacy" component={PrivacyPolicy} />
         <Route path="/terms" component={TermsOfService} />
         <Route path="/cookies" component={CookiePolicy} />
+        <Route path="/data-deletion" component={DataDeletion} />
         <Route>
           {isAppDomain ? <Redirect to="/login" /> : <LandingPage />}
         </Route>
@@ -701,9 +703,9 @@ function Router() {
   const [isChecking, setIsChecking] = useState(true);
 
   // Check installation status
-  const { data: installStatus } = useQuery<{ installed: boolean }>({
+  const { data: installStatus } = useQuery<{ installed: boolean; dbError?: boolean; error?: string }>({
     queryKey: ["/api/installer/status"],
-    retry: false,
+    retry: 1,
   });
 
   // Verify auth state and mark checking complete
@@ -734,8 +736,34 @@ function Router() {
     );
   }
 
+  // DB error — show error screen, never redirect to /install
+  if (installStatus?.dbError && location !== '/install') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center max-w-md px-6">
+          <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-foreground mb-2">Database Unavailable</h2>
+          <p className="text-muted-foreground text-sm mb-4">
+            The database is temporarily unavailable. This may be due to a connection issue or quota limit.
+            Please try again in a moment.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:opacity-90 transition"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Installation check - if not installed, redirect to installer unless already on /install
-  if (installStatus && !installStatus.installed && location !== '/install') {
+  if (installStatus && !installStatus.installed && !installStatus.dbError && location !== '/install') {
     console.log("Router - Not installed, redirecting to /install");
     return <Redirect to="/install" />;
   }

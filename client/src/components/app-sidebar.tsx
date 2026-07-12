@@ -14,32 +14,25 @@
  * Respect the author's rights and Envato licensing terms.
  * ============================================================
  */
-import { Users, BookOpen, Mic, Link as LinkIcon, Phone, Settings, ChevronsUpDown, Plus, BarChart3, Home, Target, LogOut, Coins, Shield, CreditCard, TrendingUp, UserCheck, Workflow, Webhook, ClipboardList, Calendar, Layout, FileText, Wrench, Globe, Bot, ContactRound, MessageSquare } from "lucide-react";
+import {
+  Users, BookOpen, Mic, Link as LinkIcon, Phone, Settings, ChevronsUpDown,
+  Plus, BarChart3, Home, Target, LogOut, Coins, Shield, CreditCard,
+  TrendingUp, UserCheck, Workflow, Webhook, ClipboardList, Calendar,
+  Layout, FileText, Wrench, Globe, Bot, ContactRound, MessageSquare,
+  ChevronRight,
+} from "lucide-react";
 import { usePluginStatus } from "@/hooks/use-plugin-status";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarHeader,
-  SidebarFooter,
-  SidebarTrigger,
-  useSidebar,
+  Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
+  SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
+  SidebarHeader, SidebarFooter, SidebarTrigger, useSidebar,
 } from "@/components/ui/sidebar";
-import { Link, useLocation, useRoute } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from 'react-i18next';
@@ -62,148 +55,146 @@ export function AppSidebar() {
   const { setOpenMobile, isMobile } = useSidebar();
 
   const handleNavClick = () => {
-    if (isMobile) {
-      setOpenMobile(false);
-    }
+    if (isMobile) setOpenMobile(false);
   };
 
-  const topItems = [
-    { title: t('nav.home'), url: "/app", icon: Home },
-  ];
-
   const buildItems = [
-    { title: t('nav.campaigns'), url: "/app/campaigns", icon: Target, hasPlus: true, iconColor: "text-orange-500" },
-    { title: t('nav.agents'), url: "/app/agents", icon: Bot, hasPlus: true, iconColor: "text-blue-500" },
-    { title: t('nav.knowledgeBase'), url: "/app/knowledge-base", icon: BookOpen, iconColor: "text-violet-500" },
-    { title: t('nav.flowBuilder'), url: "/app/flows", icon: Workflow, iconColor: "text-indigo-500" },
-    { title: t('nav.tools', 'Tools'), url: "/app/tools", icon: Wrench, iconColor: "text-slate-500" },
+    { title: t('nav.campaigns'), url: "/app/campaigns", icon: Target, hasPlus: true },
+    { title: t('nav.agents'), url: "/app/agents", icon: Bot, hasPlus: true },
+    { title: t('nav.knowledgeBase'), url: "/app/knowledge-base", icon: BookOpen },
+    { title: t('nav.flowBuilder'), url: "/app/flows", icon: Workflow },
+    { title: t('nav.tools', 'Tools'), url: "/app/tools", icon: Wrench },
   ];
 
   const telephonyItems = [
-    { title: t('nav.allContacts'), url: "/app/contacts", icon: UserCheck, iconColor: "text-brand" },
-    { title: t('nav.phoneNumbers'), url: "/app/phone-numbers", icon: Phone, iconColor: "text-emerald-500" },
+    { title: t('nav.allContacts'), url: "/app/contacts", icon: UserCheck },
+    { title: t('nav.phoneNumbers'), url: "/app/phone-numbers", icon: Phone },
   ];
 
   const { isEnabled: isMessagingEnabled } = usePluginStatus('messaging') as { isEnabled: boolean };
 
   const monitorItems = [
-    ...(isMessagingEnabled ? [{ title: t('nav.conversations', 'Conversations'), url: "/app/conversations", icon: MessageSquare, iconColor: "text-green-500" }] : []),
-    { title: t('nav.calls'), url: "/app/calls", icon: Phone, iconColor: "text-blue-500" },
-    { title: t('nav.analytics'), url: "/app/analytics", icon: BarChart3, iconColor: "text-purple-500" },
+    ...(isMessagingEnabled ? [{ title: t('nav.conversations', 'Conversations'), url: "/app/conversations", icon: MessageSquare }] : []),
+    { title: t('nav.calls'), url: "/app/calls", icon: Phone },
+    { title: t('nav.analytics'), url: "/app/analytics", icon: BarChart3 },
   ];
 
-
-  // Fetch current user data including credits - ONLY from server, no localStorage fallback
   const { data: user, isLoading: userLoading } = useQuery<User>({
     queryKey: ["/api/auth/me"],
   });
 
-  // If no user data from server, don't render (security: prevents localStorage spoofing)
-  if (userLoading || !user) {
-    return null;
-  }
+  if (userLoading || !user) return null;
 
   const userName = user.name || "User";
+  const userEmail = user.email || "";
   const userInitial = userName.charAt(0).toUpperCase() || "U";
-  
-  // Check if user is on any paid plan (not just "pro")
   const isPaidPlan = user.planType && user.planType !== "free";
-  
-  // Format plan name for display (capitalize first letter)
-  const planDisplayName = user.planType 
-    ? user.planType.charAt(0).toUpperCase() + user.planType.slice(1) 
+  const planDisplayName = user.planType
+    ? user.planType.charAt(0).toUpperCase() + user.planType.slice(1)
     : "Free";
-
-  // Credits from user data
   const remainingCredits = user.credits || 0;
-  
 
   const handleLogout = () => {
-    // Logout request clears the HttpOnly refresh token cookie on the server
-    fetch('/api/auth/logout', {
-      method: 'POST',
-      credentials: 'include',
-    }).catch(() => {});
+    fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
     AuthStorage.clearAuth();
     window.location.href = "/";
   };
 
+  const isActive = (url: string) => {
+    if (url === "/app") return location === "/app";
+    return location === url || location.startsWith(url + "/");
+  };
+
   return (
-    <Sidebar collapsible="icon">
-      {/* Header with responsive logo */}
-      <SidebarHeader className="px-3 py-3 border-b border-sidebar-border">
-        {/* When expanded: Logo on left, toggle on right */}
+    <Sidebar
+      collapsible="icon"
+      className="border-r-0"
+    >
+      {/* ── HEADER ── */}
+      <SidebarHeader className="px-4 py-4">
+        {/* Expanded: Logo + toggle */}
         <div className="flex items-center justify-between gap-2 group-data-[collapsible=icon]:hidden">
           {showLogo && (
-            <img 
-              src={currentLogo!} 
-              alt={branding.app_name} 
-              className="h-8 w-auto max-w-[140px] object-contain"
+            <img
+              src={currentLogo!}
+              alt={branding.app_name}
+              className="h-7 w-auto max-w-[130px] object-contain"
             />
           )}
-          <SidebarTrigger 
-            className="h-6 w-6 shrink-0" 
-            data-testid="button-sidebar-toggle" 
+          <SidebarTrigger
+            className="h-6 w-6 shrink-0 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded"
+            data-testid="button-sidebar-toggle"
           />
         </div>
-        {/* When collapsed: Favicon + toggle stacked */}
+        {/* Collapsed: Favicon + toggle */}
         <div className="hidden group-data-[collapsible=icon]:flex flex-col items-center gap-2">
           {showFavicon && (
-            <img 
-              src={branding.favicon_url!} 
-              alt={branding.app_name} 
-              className="h-6 w-6 object-contain"
-            />
+            <img src={branding.favicon_url!} alt={branding.app_name} className="h-6 w-6 object-contain" />
           )}
-          <SidebarTrigger 
-            className="h-5 w-5 shrink-0" 
-            data-testid="button-sidebar-toggle-collapsed" 
+          <SidebarTrigger
+            className="h-5 w-5 shrink-0 text-zinc-400 hover:text-zinc-200"
+            data-testid="button-sidebar-toggle-collapsed"
           />
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="group-data-[collapsible=icon]:px-0 px-2 py-1">
+      {/* ── NAV CONTENT ── */}
+      <SidebarContent className="px-2 py-2 space-y-1">
         {/* Home */}
-        <SidebarGroup>
+        <SidebarGroup className="p-0">
           <SidebarGroupContent>
             <SidebarMenu>
-              {topItems.map((item) => (
-                <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location === item.url}
-                    tooltip={item.title}
-                    data-testid={`link-${item.title.toLowerCase()}`}
-                  >
-                    <Link href={item.url} onClick={handleNavClick}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive("/app")}
+                  tooltip={t('nav.home')}
+                  data-testid="link-home"
+                  className={`
+                    h-8 rounded-md text-[13px] font-medium transition-all duration-150
+                    ${isActive("/app")
+                      ? "bg-emerald-500/15 text-emerald-400"
+                      : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/70"
+                    }
+                  `}
+                >
+                  <Link href="/app" onClick={handleNavClick}>
+                    <Home className="h-[15px] w-[15px] shrink-0" />
+                    <span>Home</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Build Section */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="px-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">{t('sidebar.build')}</SidebarGroupLabel>
+        {/* BUILD */}
+        <SidebarGroup className="p-0">
+          <SidebarGroupLabel className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-600 group-data-[collapsible=icon]:hidden">
+            Build
+          </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-0.5">
               {buildItems.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton
                     asChild
-                    isActive={location === item.url}
+                    isActive={isActive(item.url)}
                     tooltip={item.title}
                     data-testid={`link-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
+                    className={`
+                      h-8 rounded-md text-[13px] font-medium transition-all duration-150
+                      ${isActive(item.url)
+                        ? "bg-emerald-500/15 text-emerald-400"
+                        : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/70"
+                      }
+                    `}
                   >
                     <Link href={item.url} onClick={handleNavClick}>
-                      <item.icon className={`h-4 w-4 ${item.iconColor || ''}`} />
+                      <item.icon className="h-[15px] w-[15px] shrink-0" />
                       <span>{item.title}</span>
                       {item.hasPlus && (
-                        <Plus className="ml-auto h-3.5 w-3.5 text-muted-foreground" />
+                        <Plus className="ml-auto h-3 w-3 text-zinc-600 group-data-[collapsible=icon]:hidden" />
                       )}
                     </Link>
                   </SidebarMenuButton>
@@ -213,21 +204,30 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Telephony Section */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="px-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">{t('sidebar.telephony')}</SidebarGroupLabel>
+        {/* TELEPHONY */}
+        <SidebarGroup className="p-0">
+          <SidebarGroupLabel className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-600 group-data-[collapsible=icon]:hidden">
+            Telephony
+          </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-0.5">
               {telephonyItems.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton
                     asChild
-                    isActive={location === item.url}
+                    isActive={isActive(item.url)}
                     tooltip={item.title}
                     data-testid={`link-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
+                    className={`
+                      h-8 rounded-md text-[13px] font-medium transition-all duration-150
+                      ${isActive(item.url)
+                        ? "bg-emerald-500/15 text-emerald-400"
+                        : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/70"
+                      }
+                    `}
                   >
                     <Link href={item.url} onClick={handleNavClick}>
-                      <item.icon className={`h-4 w-4 ${item.iconColor || ''}`} />
+                      <item.icon className="h-[15px] w-[15px] shrink-0" />
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -237,21 +237,30 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Monitor Section */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="px-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">{t('sidebar.monitor')}</SidebarGroupLabel>
+        {/* MONITOR */}
+        <SidebarGroup className="p-0">
+          <SidebarGroupLabel className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-600 group-data-[collapsible=icon]:hidden">
+            Monitor
+          </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-0.5">
               {monitorItems.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton
                     asChild
-                    isActive={location === item.url}
+                    isActive={isActive(item.url)}
                     tooltip={item.title}
                     data-testid={`link-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
+                    className={`
+                      h-8 rounded-md text-[13px] font-medium transition-all duration-150
+                      ${isActive(item.url)
+                        ? "bg-emerald-500/15 text-emerald-400"
+                        : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/70"
+                      }
+                    `}
                   >
                     <Link href={item.url} onClick={handleNavClick}>
-                      <item.icon className={`h-4 w-4 ${item.iconColor || ''}`} />
+                      <item.icon className="h-[15px] w-[15px] shrink-0" />
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -261,186 +270,184 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Billing & Credits */}
-        <SidebarGroup>
+        {/* MANAGE */}
+        <SidebarGroup className="p-0">
+          <SidebarGroupLabel className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-600 group-data-[collapsible=icon]:hidden">
+            Manage
+          </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-0.5">
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
-                  isActive={location === "/app/billing"}
-                  tooltip={t('nav.billingCredits') || 'Billing & Credits'}
+                  isActive={isActive("/app/billing")}
+                  tooltip="Billing"
                   data-testid="link-billing-credits"
+                  className={`
+                    h-8 rounded-md text-[13px] font-medium transition-all duration-150
+                    ${isActive("/app/billing")
+                      ? "bg-emerald-500/15 text-emerald-400"
+                      : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/70"
+                    }
+                  `}
                 >
                   <Link href="/app/billing" onClick={handleNavClick}>
-                    <CreditCard className="h-4 w-4 text-amber-500" />
-                    <span>{t('nav.billingCredits') || 'Billing & Credits'}</span>
+                    <CreditCard className="h-[15px] w-[15px] shrink-0" />
+                    <span>Billing & Credits</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Settings */}
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
-                  isActive={location === "/app/settings"}
-                  tooltip={t('nav.settings') || 'Settings'}
+                  isActive={isActive("/app/settings")}
+                  tooltip="Settings"
                   data-testid="link-settings"
+                  className={`
+                    h-8 rounded-md text-[13px] font-medium transition-all duration-150
+                    ${isActive("/app/settings")
+                      ? "bg-emerald-500/15 text-emerald-400"
+                      : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/70"
+                    }
+                  `}
                 >
                   <Link href="/app/settings" onClick={handleNavClick}>
-                    <Settings className="h-4 w-4" />
-                    <span>{t('nav.settings') || 'Settings'}</span>
+                    <Settings className="h-[15px] w-[15px] shrink-0" />
+                    <span>Settings</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Admin - Show for admins only */}
-        {user.role === 'admin' && (
-          <SidebarGroup>
-            <SidebarGroupLabel className="px-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">{t('nav.administration')}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
+              {user.role === 'admin' && (
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild
-                    isActive={location === "/admin"}
-                    tooltip={t('nav.adminDashboard')}
+                    isActive={isActive("/admin")}
+                    tooltip="Admin"
                     data-testid="link-admin-dashboard"
+                    className={`
+                      h-8 rounded-md text-[13px] font-medium transition-all duration-150
+                      ${isActive("/admin")
+                        ? "bg-emerald-500/15 text-emerald-400"
+                        : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/70"
+                      }
+                    `}
                   >
                     <Link href="/admin" onClick={handleNavClick}>
-                      <Shield className="h-4 w-4" />
-                      <span>{t('nav.adminDashboard')}</span>
+                      <Shield className="h-[15px] w-[15px] shrink-0" />
+                      <span>Admin Panel</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+              )}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
-        {/* Credit Status - Silver Shiny Design */}
-        <div className="mx-2 my-2 group-data-[collapsible=icon]:hidden">
-          <div className="relative overflow-hidden rounded-xl border border-slate-300/60 dark:border-slate-600/60 p-3 bg-gradient-to-br from-slate-100 via-slate-50 to-white dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 shadow-sm">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent dark:via-white/10 -translate-x-full animate-[shimmer_3s_ease-in-out_infinite]" style={{ backgroundSize: '200% 100%' }} />
-            <div className="relative">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-600 dark:to-slate-700 shadow-inner">
-                    <Coins className="h-4 w-4 text-slate-600 dark:text-slate-300" />
-                  </div>
-                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t('sidebar.credits')}</span>
-                </div>
-                {isPaidPlan ? (
-                  <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide bg-gradient-to-r from-amber-400/90 to-yellow-500/90 text-amber-900 dark:from-amber-500 dark:to-yellow-600 dark:text-amber-950 shadow-sm border border-amber-500/30 dark:border-yellow-600/30">
-                    {planDisplayName}
-                  </span>
-                ) : (
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    className="h-6 px-2 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-600/60"
-                    onClick={() => setLocation("/app/billing?tab=plans")}
-                    data-testid="button-upgrade-inline"
-                  >
-                    {t('sidebar.upgrade')}
-                  </Button>
-                )}
-              </div>
-              <div className="mt-1.5 text-xl font-bold bg-gradient-to-r from-slate-700 via-slate-600 to-slate-700 dark:from-slate-100 dark:via-slate-200 dark:to-slate-100 bg-clip-text text-transparent">
-                {remainingCredits.toLocaleString()}
-              </div>
+        {/* Minutes / Plan — VAPI-style bottom info */}
+        <div className="mx-1 mt-2 group-data-[collapsible=icon]:hidden">
+          <div
+            className="rounded-lg border border-border p-3 cursor-pointer hover:bg-accent/50 transition-colors bg-accent/30"
+            onClick={() => setLocation("/app/billing?tab=plans")}
+            data-testid="sidebar-credits-box"
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[11px] font-medium text-zinc-500 uppercase tracking-wide">Minutes</span>
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide ${
+                isPaidPlan
+                  ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                  : "bg-muted text-muted-foreground"
+              }`}>
+                {planDisplayName}
+              </span>
             </div>
+            <div className="text-lg font-bold text-foreground">
+              {remainingCredits.toLocaleString()}
+              <span className="text-xs font-normal text-muted-foreground ml-1">min</span>
+            </div>
+            {!isPaidPlan && (
+              <div className="mt-2 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                Upgrade plan →
+              </div>
+            )}
           </div>
         </div>
       </SidebarContent>
 
-      {/* Footer */}
-      <SidebarFooter className="px-2 py-1.5 mt-auto border-t border-sidebar-border">
-        {/* User Profile Dropdown */}
+      {/* ── FOOTER ── */}
+      <SidebarFooter className="px-2 py-3 border-t border-border">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <div 
-              className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover-elevate cursor-pointer"
+            <div
+              className="flex items-center gap-2.5 px-2 py-2 rounded-lg cursor-pointer hover:bg-accent/50 transition-colors group"
               data-testid="button-user-menu"
             >
-              <Avatar className="h-7 w-7">
-                <AvatarFallback className="bg-primary text-primary-foreground text-xs font-medium">
+              <Avatar className="h-7 w-7 shrink-0">
+                <AvatarFallback className="text-[11px] font-semibold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                   {userInitial}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex flex-col flex-1 min-w-0">
-                <span className="text-xs font-medium text-sidebar-foreground truncate">
-                  {userName}
-                </span>
-                <span className="text-xs text-muted-foreground truncate">{t('sidebar.myWorkspace')}</span>
+              <div className="flex flex-col flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
+                <span className="text-[12px] font-medium text-zinc-200 truncate leading-tight">{userName}</span>
+                <span className="text-[11px] text-zinc-500 truncate leading-tight">{userEmail}</span>
               </div>
-              <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+              <ChevronsUpDown className="h-3.5 w-3.5 text-zinc-600 shrink-0 group-data-[collapsible=icon]:hidden" />
             </div>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-72 p-0">
-            {/* Credits Section - Silver Shiny Design */}
-            <div className="relative overflow-hidden m-2 rounded-xl border border-slate-300/60 dark:border-slate-600/60 p-4 bg-gradient-to-br from-slate-100 via-slate-50 to-white dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 shadow-sm">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent dark:via-white/10 -translate-x-full animate-[shimmer_3s_ease-in-out_infinite]" style={{ backgroundSize: '200% 100%' }} />
-              <div className="relative space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <div className="p-2 rounded-lg bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-600 dark:to-slate-700 shadow-inner">
-                      <Coins className="h-4 w-4 text-slate-600 dark:text-slate-300" />
-                    </div>
-                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t('sidebar.credits')}</span>
-                  </div>
-                  {isPaidPlan ? (
-                    <span className="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide bg-gradient-to-r from-amber-400/90 to-yellow-500/90 text-amber-900 dark:from-amber-500 dark:to-yellow-600 dark:text-amber-950 shadow-sm border border-amber-500/30 dark:border-yellow-600/30">
-                      {planDisplayName}
-                    </span>
-                  ) : (
-                    <Button 
-                      variant="default" 
-                      size="sm"
-                      className="h-7 px-3 text-xs font-semibold"
-                      onClick={() => setLocation("/app/billing?tab=plans")}
-                      data-testid="button-upgrade-dropdown"
-                    >
-                      {t('sidebar.upgrade')}
-                    </Button>
-                  )}
-                </div>
-                <div className="text-2xl font-bold bg-gradient-to-r from-slate-700 via-slate-600 to-slate-700 dark:from-slate-100 dark:via-slate-200 dark:to-slate-100 bg-clip-text text-transparent">
-                  {remainingCredits.toLocaleString()} <span className="text-sm font-medium text-slate-500 dark:text-slate-400">credits</span>
-                </div>
-              </div>
+
+          <DropdownMenuContent
+            align="end"
+            className="w-64 p-2 border border-border rounded-xl shadow-2xl bg-background"
+          >
+            {/* User info */}
+            <div className="px-2 py-2 mb-1">
+              <p className="text-[13px] font-semibold text-zinc-100 truncate">{userName}</p>
+              <p className="text-[11px] text-zinc-500 truncate">{userEmail}</p>
             </div>
-            <DropdownMenuSeparator />
-            
-            {/* Account Settings */}
-            <DropdownMenuItem 
+
+            {/* Credits box */}
+            <div className="mx-0 mb-2 rounded-lg border border-border p-3 bg-accent/30">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium">Minutes</span>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase ${
+                  isPaidPlan ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400" : "bg-muted text-muted-foreground"
+                }`}>{planDisplayName}</span>
+              </div>
+              <div className="text-xl font-bold text-foreground">
+                {remainingCredits.toLocaleString()}
+                <span className="text-xs font-normal text-muted-foreground ml-1">min</span>
+              </div>
+              {!isPaidPlan && (
+                <Button
+                  size="sm"
+                  className="w-full mt-2 h-7 text-xs bg-emerald-600 hover:bg-emerald-500 text-white border-0"
+                  onClick={() => setLocation("/app/billing?tab=plans")}
+                  data-testid="button-upgrade-dropdown"
+                >
+                  Upgrade Plan
+                </Button>
+              )}
+            </div>
+
+            <DropdownMenuSeparator className="my-1" />
+
+            <DropdownMenuItem
               onClick={() => setLocation("/app/settings")}
-              className="cursor-pointer"
+              className="cursor-pointer rounded-md text-[13px]"
               data-testid="link-account-settings"
             >
-              <Settings className="mr-2 h-4 w-4" />
-              <span>{t('nav.accountSettings')}</span>
+              <Settings className="mr-2 h-3.5 w-3.5" />
+              Account Settings
             </DropdownMenuItem>
-            
-            <DropdownMenuSeparator />
-            
-            {/* Log out */}
-            <DropdownMenuItem 
+
+            <DropdownMenuSeparator className="my-1" />
+
+            <DropdownMenuItem
               onClick={handleLogout}
-              className="cursor-pointer text-destructive focus:text-destructive"
+              className="cursor-pointer text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-md text-[13px]"
               data-testid="button-logout"
             >
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>{t('auth.logout')}</span>
+              <LogOut className="mr-2 h-3.5 w-3.5" />
+              Log Out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

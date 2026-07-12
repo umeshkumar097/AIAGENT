@@ -387,6 +387,78 @@ export class PlivoPhoneService {
   }
 
   /**
+   * Purchase a Plivo number via Stripe subscription (NO credit deduction).
+   * Called after Stripe payment is confirmed.
+   */
+  static async purchaseNumberViaStripe(params: {
+    userId: string;
+    phoneNumber: string;
+    country: string;
+    stripeSubscriptionId: string;
+  }): Promise<void> {
+    logger.info(`Purchasing ${params.phoneNumber} via Stripe for user ${params.userId}`, undefined, 'PlivoPhone');
+
+    const { client, credential } = await this.getPlivoClient();
+
+    // Buy the number from Plivo
+    let plivoNumberId: string;
+    try {
+      const response = await client.numbers.buy(params.phoneNumber);
+      const responseAny = response as PlivoNumberPurchaseResponse;
+      if (responseAny?.numbers && Array.isArray(responseAny.numbers)) {
+        plivoNumberId = responseAny.numbers[0]?.number ?? params.phoneNumber;
+      } else if (responseAny?.number) {
+        plivoNumberId = responseAny.number;
+      } else {
+        plivoNumberId = params.phoneNumber;
+      }
+      logger.info(`Purchased ${params.phoneNumber} via Plivo`, undefined, 'PlivoPhone');
+    } catch (error: any) {
+      logger.error('Plivo purchase failed in Stripe flow', error, 'PlivoPhone');
+      throw new Error(`Failed to purchase number from Plivo: ${error.message}`);
+    }
+
+    const nextBillingDate = new Date();
+    nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+
+    // Save to DB — NO credit deduction, Stripe handles billing
+    await db
+      .insert(plivoPhoneNumbers)
+      .values({
+        userId: params.userId,
+        plivoCredentialId: credential.id,
+        phoneNumber: params.phoneNumber,
+        plivoNumberId,
+        friendlyName: params.phoneNumber,
+        country: params.country.toUpperCase(),
+        numberType: 'local',
+        capabilities: { voice: true, sms: true },
+        status: 'active',
+        purchaseCredits: 0,
+        monthlyCredits: 0,
+        nextBillingDate,
+        stripeSubscriptionId: params.stripeSubscriptionId,
+        purchasedAt: new Date(),
+      } as InsertPlivoPhoneNumber)
+      .returning();
+
+    logger.info(`Saved ${params.phoneNumber} with Stripe sub ${params.stripeSubscriptionId}`, undefined, 'PlivoPhone');
+  }
+
+  /**
+   * Get all phone numbers for a user (active/pending, not released)
+   */
+  static async getUserPhoneNumbers(userId: string) {
+    return db
+      .select()
+      .from(plivoPhoneNumbers)
+      .where(
+        sql`${plivoPhoneNumbers.userId} = ${userId} AND ${plivoPhoneNumbers.status} != 'released'`
+      )
+      .orderBy(desc(plivoPhoneNumbers.createdAt));
+  }
+
+  /**
    * Release a phone number (cancel and remove)
    */
   static async releaseNumber(phoneNumberId: string): Promise<void> {

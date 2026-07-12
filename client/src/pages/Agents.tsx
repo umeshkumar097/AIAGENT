@@ -631,9 +631,12 @@ export default function Agents() {
     if (formData.type === 'incoming') {
       // Voice validation depends on telephony provider
       const isOpenAIVoice = formData.telephonyProvider === "plivo" || formData.telephonyProvider === "twilio_openai" || formData.telephonyProvider === "openai-sip";
-      const hasValidVoice = isOpenAIVoice
-        ? !!formData.openaiVoice 
-        : !!formData.elevenLabsVoiceId;
+      const isSarvamVoice = formData.telephonyProvider === "sarvam-plivo";
+      const hasValidVoice = isSarvamVoice
+        ? !!(formData.sarvamVoice || formData.voice || 'priya')  // sarvam always has a default voice
+        : isOpenAIVoice
+          ? !!formData.openaiVoice
+          : !!formData.elevenLabsVoiceId;
       // Note: SIP phone number selection moved to campaign level
       if (!hasValidVoice) {
         toast({
@@ -690,9 +693,12 @@ export default function Agents() {
       }
       // Voice validation depends on telephony provider for flow agents
       const isOpenAIVoiceFlow = formData.telephonyProvider === "plivo" || formData.telephonyProvider === "twilio_openai" || formData.telephonyProvider === "openai-sip";
-      const hasValidVoice = isOpenAIVoiceFlow
-        ? !!formData.openaiVoice 
-        : !!formData.elevenLabsVoiceId;
+      const isSarvamVoiceFlow = formData.telephonyProvider === "sarvam-plivo";
+      const hasValidVoice = isSarvamVoiceFlow
+        ? true  // sarvam-plivo always has Priya as default — no block needed
+        : isOpenAIVoiceFlow
+          ? !!formData.openaiVoice
+          : !!formData.elevenLabsVoiceId;
       // Note: SIP phone number selection moved to campaign level
       if (!hasValidVoice) {
         toast({

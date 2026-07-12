@@ -42,21 +42,21 @@
 
   --card-border: 210 6% 90%;
 
-  --sidebar: 45 25% 97%;
+  --sidebar: 240 5% 4%;
 
-  --sidebar-foreground: 20 14% 17%;
+  --sidebar-foreground: 240 5% 85%;
 
-  --sidebar-border: 45 15% 80%;
+  --sidebar-border: 240 5% 12%;
 
-  --sidebar-primary: 215 20% 15%;
+  --sidebar-primary: 158 64% 52%;
 
   --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: 215 20% 90%;
+  --sidebar-accent: 158 64% 15%;
 
-  --sidebar-accent-foreground: 215 20% 15%;
+  --sidebar-accent-foreground: 158 64% 65%;
 
-  --sidebar-ring: 215 20% 15%;
+  --sidebar-ring: 158 64% 52%;
 
   --popover: 45 25% 97%;
 
@@ -166,21 +166,21 @@
 
   --card-border: 210 6% 16%;
 
-  --sidebar: 20 14% 8%;
+  --sidebar: 240 5% 4%;
 
-  --sidebar-foreground: 45 25% 85%;
+  --sidebar-foreground: 240 5% 75%;
 
-  --sidebar-border: 20 14% 15%;
+  --sidebar-border: 240 5% 11%;
 
-  --sidebar-primary: 215 20% 85%;
+  --sidebar-primary: 158 64% 52%;
 
-  --sidebar-primary-foreground: 215 20% 15%;
+  --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: 215 20% 20%;
+  --sidebar-accent: 158 64% 12%;
 
-  --sidebar-accent-foreground: 215 20% 85%;
+  --sidebar-accent-foreground: 158 64% 62%;
 
-  --sidebar-ring: 215 20% 85%;
+  --sidebar-ring: 158 64% 52%;
 
   --popover: 20 14% 4%;
 
@@ -386,6 +386,126 @@ html[dir="rtl"] {
 html[dir="rtl"] .rtl-flip {
   transform: scaleX(-1);
 }
+
+/* ═══════════════════════════════════════════════════
+   ZONVO SIDEBAR — Theme-Adaptive Clean Design
+   Light mode = soft white/gray sidebar
+   Dark mode  = pure black sidebar
+   ═══════════════════════════════════════════════════ */
+
+/* ── LIGHT MODE sidebar ── */
+:root [data-sidebar="sidebar"],
+:root [data-slot="sidebar"],
+:root [data-slot="sidebar-container"] {
+  background-color: rgb(250, 250, 250) !important;
+  border-right: 1px solid rgb(235, 235, 238) !important;
+}
+
+:root [data-slot="sidebar-header"] {
+  background-color: rgb(250, 250, 250) !important;
+  border-bottom: 1px solid rgb(235, 235, 238) !important;
+}
+
+:root [data-slot="sidebar-footer"] {
+  background-color: rgb(250, 250, 250) !important;
+  border-top: 1px solid rgb(235, 235, 238) !important;
+}
+
+:root [data-slot="sidebar-content"] {
+  background-color: rgb(250, 250, 250) !important;
+}
+
+/* Light mode section labels */
+:root [data-sidebar="group-label"] {
+  color: rgb(161, 161, 170) !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.09em !important;
+  text-transform: uppercase !important;
+  padding: 4px 8px !important;
+  margin-top: 8px !important;
+}
+
+/* Light mode nav items */
+:root [data-sidebar="menu-button"] {
+  color: rgb(82, 82, 91) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  border-radius: 6px !important;
+  height: 32px !important;
+  transition: background 0.12s, color 0.12s !important;
+}
+
+:root [data-sidebar="menu-button"]:hover {
+  background-color: rgb(240, 240, 243) !important;
+  color: rgb(24, 24, 27) !important;
+}
+
+:root [data-sidebar="menu-button"][data-active="true"] {
+  background-color: rgba(16, 185, 129, 0.1) !important;
+  color: rgb(5, 150, 105) !important;
+  font-weight: 600 !important;
+}
+
+/* ── DARK MODE sidebar ── */
+.dark [data-sidebar="sidebar"],
+.dark [data-slot="sidebar"],
+.dark [data-slot="sidebar-container"] {
+  background-color: rgb(9, 9, 11) !important;
+  border-right: 1px solid rgb(24, 24, 27) !important;
+}
+
+.dark [data-slot="sidebar-header"] {
+  background-color: rgb(9, 9, 11) !important;
+  border-bottom: 1px solid rgb(24, 24, 27) !important;
+}
+
+.dark [data-slot="sidebar-footer"] {
+  background-color: rgb(9, 9, 11) !important;
+  border-top: 1px solid rgb(24, 24, 27) !important;
+}
+
+.dark [data-slot="sidebar-content"] {
+  background-color: rgb(9, 9, 11) !important;
+}
+
+/* Dark mode section labels */
+.dark [data-sidebar="group-label"] {
+  color: rgb(63, 63, 70) !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.09em !important;
+  text-transform: uppercase !important;
+  padding: 4px 8px !important;
+  margin-top: 8px !important;
+}
+
+/* Dark mode nav items */
+.dark [data-sidebar="menu-button"] {
+  color: rgb(113, 113, 122) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  border-radius: 6px !important;
+  height: 32px !important;
+  transition: background 0.12s, color 0.12s !important;
+}
+
+.dark [data-sidebar="menu-button"]:hover {
+  background-color: rgb(24, 24, 27) !important;
+  color: rgb(244, 244, 245) !important;
+}
+
+.dark [data-sidebar="menu-button"][data-active="true"] {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+  color: rgb(52, 211, 153) !important;
+  font-weight: 600 !important;
+}
+
+/* Active SVG icon teal tint */
+[data-sidebar="menu-button"][data-active="true"] svg {
+  color: inherit !important;
+}
+
 
 /* Don't flip certain icons that should remain the same in RTL */
 html[dir="rtl"] .rtl-no-flip {

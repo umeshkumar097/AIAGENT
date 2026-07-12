@@ -267,8 +267,8 @@ export function createCampaignRoutes(ctx: RouteContext): Router {
           return res.status(403).json({ error: "You don't have access to this Plivo phone number" });
         }
 
-        // Validate agent is using Plivo telephony
-        if (agent.telephonyProvider !== 'plivo' && agent.telephonyProvider !== 'plivo_openai') {
+        // Validate agent is using Plivo telephony (including Sarvam PLIVO)
+        if (agent.telephonyProvider !== 'plivo' && agent.telephonyProvider !== 'plivo_openai' && agent.telephonyProvider !== 'sarvam-plivo') {
           return res.status(400).json({ 
             error: "Engine mismatch",
             message: `Cannot use a Plivo phone number with a ${agent.telephonyProvider || 'Twilio'} agent. Please select a Plivo agent for this campaign.`

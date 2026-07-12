@@ -50,6 +50,7 @@ const getEngineLabel = (provider: string | null): string => {
     case 'twilio_openai': return 'Twilio+OpenAI';
     case 'elevenlabs-sip': return 'ElevenLabs SIP';
     case 'openai-sip': return 'OpenAI SIP';
+    case 'sarvam-plivo': return 'Sarvam AI';
     default: return 'Twilio+ElevenLabs';
   }
 };
@@ -168,7 +169,7 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
   const selectedAgent = agents.find(a => a.id === formData.agentId);
   const isElevenLabsSipAgent = selectedAgent?.telephonyProvider === 'elevenlabs-sip';
   const isSipAgent = selectedAgent?.telephonyProvider === 'elevenlabs-sip' || selectedAgent?.telephonyProvider === 'openai-sip';
-  const isPlivoAgent = selectedAgent?.telephonyProvider === 'plivo' || selectedAgent?.telephonyProvider === 'plivo_openai';
+  const isPlivoAgent = selectedAgent?.telephonyProvider === 'plivo' || selectedAgent?.telephonyProvider === 'plivo_openai' || selectedAgent?.telephonyProvider === 'sarvam-plivo';
   const isTwilioAgent = !selectedAgent?.telephonyProvider || selectedAgent?.telephonyProvider === 'twilio' || selectedAgent?.telephonyProvider === 'twilio_openai';
 
   const { data: flows = [] } = useQuery<Array<{ id: string; name: string; description?: string }>>({
