@@ -1,7 +1,8 @@
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { eq } from "drizzle-orm";
-import { db } from "../../db";
+import { defaultDb } from "../../db";
+import * as schema from "@shared/schema";
 import { globalSettings } from "@shared/schema";
 
 interface PoolSettings {
@@ -18,6 +19,7 @@ interface PoolStats {
 
 export class DatabasePoolManager {
   private pool: Pool | null = null;
+  private drizzleInstance: any = null;
   private isInitialized = false;
   private settings: PoolSettings = {
     minConnections: 2,
@@ -44,7 +46,7 @@ export class DatabasePoolManager {
     console.log("[DB Pool] Loading settings from globalSettings table...");
     
     try {
-      const settings = await db
+      const settings = await defaultDb
         .select()
         .from(globalSettings)
         .where(
@@ -53,12 +55,12 @@ export class DatabasePoolManager {
       
       const minConnectionsSetting = settings[0];
       
-      const maxConnectionsResult = await db
+      const maxConnectionsResult = await defaultDb
         .select()
         .from(globalSettings)
         .where(eq(globalSettings.key, "db_pool_max_connections"));
       
-      const idleTimeoutResult = await db
+      const idleTimeoutResult = await defaultDb
         .select()
         .from(globalSettings)
         .where(eq(globalSettings.key, "db_pool_idle_timeout_ms"));
@@ -186,6 +188,7 @@ export class DatabasePoolManager {
     try {
       await this.pool.end();
       this.pool = null;
+      this.drizzleInstance = null;
       this.isInitialized = false;
       console.log("[DB Pool] Graceful shutdown complete");
     } catch (error) {
@@ -203,7 +206,10 @@ export class DatabasePoolManager {
     if (!this.pool) {
       throw new Error("[DB Pool] Pool not initialized. Call initialize() first.");
     }
-    return drizzle(this.pool);
+    if (!this.drizzleInstance) {
+      this.drizzleInstance = drizzle(this.pool, { schema });
+    }
+    return this.drizzleInstance;
   }
 
   getSettings(): PoolSettings {

@@ -19,6 +19,7 @@ import "dotenv/config";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "@shared/schema";
+import { databasePoolManager } from "./infrastructure/database/connection-pool";
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -26,8 +27,26 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({
+// Fallback pool and database instance for early bootstrapping
+export const defaultPool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
+export const defaultDb = drizzle(defaultPool, { schema });
 
-export const db = drizzle(pool, { schema });
+// Proxy to delegate pg Pool calls to DatabasePoolManager once ready
+export const pool = new Proxy(defaultPool, {
+  get(target, prop, receiver) {
+    const managedPool = databasePoolManager.getPool();
+    return Reflect.get(managedPool || target, prop, receiver);
+  }
+});
+
+// Proxy to delegate drizzle queries to DatabasePoolManager once ready
+export const db = new Proxy(defaultDb, {
+  get(target, prop, receiver) {
+    if (databasePoolManager.isReady()) {
+      return Reflect.get(databasePoolManager.getDrizzle(), prop, receiver);
+    }
+    return Reflect.get(target, prop, receiver);
+  }
+});

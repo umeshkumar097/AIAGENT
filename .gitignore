@@ -80,3 +80,7 @@ insert_packages.mjs
 save_sarvam_key.mjs
 update_db.cjs
 bcconfig.json
+
+
+# docs 
+docs/

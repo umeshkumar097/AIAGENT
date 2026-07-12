@@ -45,6 +45,7 @@ import { correlationIdMiddleware } from "./middleware/correlation-id";
 import { emailService } from "./services/email-service";
 import { initializeDirectories } from "./utils/init-directories";
 import { runAllSeeds } from "./seed-all";
+import { databasePoolManager } from "./infrastructure/database/connection-pool";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 import { resyncSipAgentTransferTools, resyncSipTrunkConfigs, resyncAppointmentWebhookUrls, resyncFormWebhookUrls, resyncMessagingWebhookUrls } from "./services/sip-transfer-resync";
@@ -55,6 +56,11 @@ setupGlobalHandlers();
 
 // Ensure all required directories exist before starting
 initializeDirectories();
+
+// Initialize database connection pool manager
+databasePoolManager.initialize().catch((err) => {
+  console.error("❌ Failed to initialize database pool manager:", err);
+});
 
 // Zonvo AI startup signature
 console.log(`
@@ -642,6 +648,19 @@ app.use((req, res, next) => {
       }).catch(() => {
         // BullMQ module not available, continue without it
       });
+
+      // Initialize Redis Pub/Sub if REDIS_URL is configured
+      if (process.env.REDIS_URL) {
+        import('./infrastructure/redis/pubsub-manager').then((pubsub) => {
+          try {
+            pubsub.getPublisher();
+            pubsub.getSubscriber();
+            console.log('✅ [PubSub] Redis Pub/Sub initialized');
+          } catch (error: any) {
+            console.warn('⚠️ [PubSub] Failed to initialize Pub/Sub:', error.message);
+          }
+        }).catch(() => {});
+      }
       
       // Signal PM2 that the process is ready to receive connections
       signalReady();

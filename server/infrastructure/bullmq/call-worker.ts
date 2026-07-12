@@ -242,6 +242,189 @@ async function initiateCall(data: CampaignCallJob): Promise<CallResult> {
         break;
       }
       
+      case 'plivo': {
+        const { PlivoCallService } = await import('../../engines/plivo/services/plivo-call.service');
+        const { plivoPhoneNumbers, flows } = await import('../../../shared/schema');
+        const { OpenAIAgentFactory } = await import('../../engines/plivo/services/openai-agent-factory');
+        const { PlivoEngineConfig } = await import('../../engines/plivo/config/plivo-config');
+        
+        const plivoPhoneNumberId = metadata?.plivoPhoneNumberId as string;
+        if (!plivoPhoneNumberId) {
+          throw new Error('plivoPhoneNumberId is required for Plivo OpenAI calls');
+        }
+        
+        const [plivoPhone] = await db.select().from(plivoPhoneNumbers).where(eq(plivoPhoneNumbers.id, plivoPhoneNumberId)).limit(1);
+        if (!plivoPhone) {
+          throw new Error('Plivo phone number not found');
+        }
+        
+        // Mark contact as in_progress
+        await db
+          .update(contacts)
+          .set({ status: 'in_progress' })
+          .where(eq(contacts.id, contact.id));
+          
+        const agentConfigData = agent.config as Record<string, any> || {};
+        const validatedVoice = OpenAIAgentFactory.validateVoice(
+          agent.openaiVoice || PlivoEngineConfig.defaults.voice
+        );
+        const validatedModel = OpenAIAgentFactory.validateModel(
+          agentConfigData.openaiModel || PlivoEngineConfig.defaults.model,
+          'pro'
+        );
+        
+        let agentConfig: any;
+        
+        const buildSystemPromptHelper = (cont: any) => {
+          let prompt = agent.systemPrompt || '';
+          prompt = prompt.replace(/\{firstName\}/g, cont.firstName);
+          prompt = prompt.replace(/\{lastName\}/g, cont.lastName || '');
+          prompt = prompt.replace(/\{phone\}/g, cont.phone);
+          prompt = prompt.replace(/\{email\}/g, cont.email || '');
+          const customFields = cont.customFields as Record<string, any> || {};
+          for (const [key, val] of Object.entries(customFields)) {
+            prompt = prompt.replace(new RegExp(`\\{${key}\\}`, 'g'), String(val || ''));
+          }
+          return prompt;
+        };
+        
+        const buildFirstMessageHelper = (cont: any) => {
+          let msg = agent.firstMessage || '';
+          if (!msg) return undefined;
+          const fullName = cont.lastName ? `${cont.firstName} ${cont.lastName}`.trim() : cont.firstName;
+          msg = msg.replace(/\{\{contact_name\}\}/g, fullName);
+          msg = msg.replace(/\{\{contact_first_name\}\}/g, cont.firstName);
+          msg = msg.replace(/\{\{contact_last_name\}\}/g, cont.lastName || '');
+          msg = msg.replace(/\{\{contact_phone\}\}/g, cont.phone);
+          msg = msg.replace(/\{\{contact_email\}\}/g, cont.email || '');
+          msg = msg.replace(/\{\{name\}\}/g, fullName);
+          msg = msg.replace(/\{\{first_name\}\}/g, cont.firstName);
+          msg = msg.replace(/\{\{last_name\}\}/g, cont.lastName || '');
+          msg = msg.replace(/\{\{phone\}\}/g, cont.phone);
+          msg = msg.replace(/\{\{email\}\}/g, cont.email || '');
+          msg = msg.replace(/\{firstName\}/g, cont.firstName);
+          msg = msg.replace(/\{lastName\}/g, cont.lastName || '');
+          msg = msg.replace(/\{phone\}/g, cont.phone);
+          msg = msg.replace(/\{email\}/g, cont.email || '');
+          const customFields = cont.customFields as Record<string, any> || {};
+          for (const [key, val] of Object.entries(customFields)) {
+            msg = msg.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), String(val || ''));
+            msg = msg.replace(new RegExp(`\\{${key}\\}`, 'g'), String(val || ''));
+          }
+          return msg;
+        };
+        
+        try {
+          if (agent.type === 'flow' && agent.flowId) {
+            const [flow] = await db.select().from(flows).where(eq(flows.id, agent.flowId)).limit(1);
+            if (flow) {
+              const contactVariables: Record<string, unknown> = {
+                firstName: contact.firstName,
+                lastName: contact.lastName || '',
+                phone: contact.phone,
+                email: contact.email || '',
+                ...(contact.customFields as Record<string, unknown> || {}),
+              };
+              const language = agent.language || 'en';
+              if (flow.compiledSystemPrompt && flow.compiledTools) {
+                const { hydrateCompiledFlow, substituteContactVariables } = await import('../../../services/openai-voice-agent/hydrator');
+                const systemPrompt = substituteContactVariables(flow.compiledSystemPrompt, contactVariables);
+                const firstMessage = flow.compiledFirstMessage ? substituteContactVariables(flow.compiledFirstMessage, contactVariables) : undefined;
+                const hydratedConfig = hydrateCompiledFlow({
+                  compiledSystemPrompt: systemPrompt,
+                  compiledFirstMessage: firstMessage || null,
+                  compiledTools: flow.compiledTools as any[],
+                  compiledStates: (flow.compiledStates || []) as any[],
+                  voice: validatedVoice,
+                  model: validatedModel,
+                  temperature: agent.temperature ?? 0.7,
+                  toolContext: { userId, agentId, callId },
+                  language,
+                  knowledgeBaseIds: agent.knowledgeBaseIds || [],
+                  transferPhoneNumber: agent.transferPhoneNumber || undefined,
+                  transferEnabled: !!agent.transferPhoneNumber,
+                });
+                agentConfig = {
+                  voice: validatedVoice,
+                  model: validatedModel,
+                  systemPrompt: hydratedConfig.systemPrompt,
+                  firstMessage: hydratedConfig.firstMessage,
+                  tools: hydratedConfig.tools,
+                };
+              } else {
+                const flowConfig: any = {
+                  nodes: flow.nodes as any[],
+                  edges: flow.edges as any[],
+                  variables: contactVariables,
+                };
+                const compiledConfig = await OpenAIAgentFactory.compileFlow(flowConfig, {
+                  voice: validatedVoice,
+                  model: validatedModel,
+                  userId,
+                  agentId,
+                  temperature: agent.temperature ?? 0.7,
+                  language,
+                });
+                agentConfig = {
+                  voice: compiledConfig.voice,
+                  model: compiledConfig.model,
+                  systemPrompt: compiledConfig.systemPrompt,
+                  firstMessage: compiledConfig.firstMessage,
+                  tools: compiledConfig.tools,
+                };
+              }
+            } else {
+              agentConfig = {
+                voice: validatedVoice,
+                model: validatedModel,
+                systemPrompt: buildSystemPromptHelper(contact),
+                firstMessage: buildFirstMessageHelper(contact),
+              };
+            }
+          } else {
+            agentConfig = {
+              voice: validatedVoice,
+              model: validatedModel,
+              systemPrompt: buildSystemPromptHelper(contact),
+              firstMessage: buildFirstMessageHelper(contact),
+            };
+          }
+          
+          const result = await PlivoCallService.initiateCall({
+            fromNumber: plivoPhone.phoneNumber,
+            toNumber: phone,
+            userId,
+            campaignId,
+            contactId,
+            agentId,
+            plivoPhoneNumberId,
+            agentConfig,
+          });
+          
+          success = !!result.callUuid;
+          if (!success) {
+            errorMessage = 'Failed to initiate Plivo call';
+          }
+        } catch (initErr: any) {
+          console.error(`[CallWorker] Plivo call initiation error for ${phone}:`, initErr.message);
+          success = false;
+          errorMessage = initErr.message;
+          
+          // Mark contact and call as failed in DB
+          await db
+            .update(contacts)
+            .set({ status: 'failed' })
+            .where(eq(contacts.id, contact.id));
+            
+          const { calls } = await import('../../../shared/schema');
+          await db
+            .update(calls)
+            .set({ status: 'failed', endedAt: new Date() })
+            .where(eq(calls.id, callId));
+        }
+        break;
+      }
+      
       default:
         throw new Error(`Unknown engine: ${engine}`);
     }

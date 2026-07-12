@@ -55,7 +55,7 @@ export interface QueueableCampaignCall {
   phone: string;
   agentId: string;
   userId: string;
-  engine: 'openai' | 'sip' | 'elevenlabs' | 'elevenlabs-sip';
+  engine: 'openai' | 'sip' | 'elevenlabs' | 'elevenlabs-sip' | 'plivo';
   flowId?: string;
   metadata?: Record<string, any>;
 }
@@ -95,7 +95,7 @@ export async function queueCampaignCallsFromBatch(
   callRecords: Array<{ id: string; contactId: string; phoneNumber: string }>,
   agentId: string,
   userId: string,
-  engine: 'openai' | 'sip' | 'elevenlabs-sip',
+  engine: 'openai' | 'sip' | 'elevenlabs-sip' | 'plivo',
   metadata?: Record<string, any>
 ): Promise<{ queued: boolean; count: number }> {
   if (!isBullMQEnabled()) {
