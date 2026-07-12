@@ -57,6 +57,12 @@ setupGlobalHandlers();
 // Ensure all required directories exist before starting
 initializeDirectories();
 
+// Initialize CacheManager (hybrid Redis/in-memory)
+import { cacheManager } from "./infrastructure/cache/cache-manager";
+cacheManager.initialize().catch((err) => {
+  console.error("❌ Failed to initialize cache manager:", err);
+});
+
 // Initialize database connection pool manager
 databasePoolManager.initialize().catch((err) => {
   console.error("❌ Failed to initialize database pool manager:", err);

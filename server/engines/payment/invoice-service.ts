@@ -698,6 +698,17 @@ export const invoiceService = new InvoiceService();
 
 export async function generateInvoiceForTransaction(transactionId: string): Promise<Invoice | null> {
   try {
+    const { isBullMQEnabled, getPDFGenerationQueue } = await import('../../infrastructure/bullmq');
+    if (isBullMQEnabled()) {
+      logger.info(`Queueing PDF generation for transaction invoice: ${transactionId}`, undefined, SOURCE);
+      const queue = getPDFGenerationQueue();
+      await queue.add(`invoice-${transactionId}`, {
+        type: 'invoice',
+        targetId: transactionId
+      });
+      return null;
+    }
+
     logger.info(`Auto-generating invoice for transaction: ${transactionId}`, undefined, SOURCE);
     const invoice = await invoiceService.generateInvoice(transactionId);
     logger.info(`Invoice generated successfully: ${invoice.invoiceNumber}`, { transactionId }, SOURCE);

@@ -478,5 +478,19 @@ export class RefundNoteService {
 export const refundNoteService = new RefundNoteService();
 
 export async function generateRefundNoteForRefund(refundId: string): Promise<Refund> {
+  const { isBullMQEnabled, getPDFGenerationQueue } = await import('../infrastructure/bullmq');
+  if (isBullMQEnabled()) {
+    logger.info(`Queueing PDF generation for refund note: ${refundId}`, undefined, SOURCE);
+    const queue = getPDFGenerationQueue();
+    await queue.add(`refund-note-${refundId}`, {
+      type: 'refund-note',
+      targetId: refundId
+    });
+    const refund = await storage.getRefund(refundId);
+    if (!refund) {
+      throw new Error(`Refund not found: ${refundId}`);
+    }
+    return refund;
+  }
   return refundNoteService.generateRefundNote(refundId);
 }

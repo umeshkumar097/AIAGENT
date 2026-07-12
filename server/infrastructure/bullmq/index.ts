@@ -13,11 +13,15 @@ export * from './queues';
 export * from './call-worker';
 export * from './scheduler-worker';
 export * from './campaign-queue-bridge';
+export * from './pdf-worker';
+export * from './rag-worker';
 
 import { getRedisConnection, closeRedisConnection, isRedisAvailable, getRedisHealthStatus } from './redis-connection';
 import { closeAllQueues, getCampaignCallsQueue, getCampaignSchedulerQueue, getCampaignRecoveryQueue, addCampaignCallJobs, getQueueStats, QUEUE_NAMES, CampaignCallJob } from './queues';
 import { startCallWorker, stopCallWorker, getCallWorker } from './call-worker';
 import { startSchedulerWorker, startRecoveryWorker, setupRecurringJobs, stopSchedulerWorkers } from './scheduler-worker';
+import { startPDFWorker, stopPDFWorker, getPDFWorker } from './pdf-worker';
+import { startRAGWorker, stopRAGWorker, getRAGWorker } from './rag-worker';
 
 let isInitialized = false;
 
@@ -51,6 +55,8 @@ export async function initializeBullMQ(): Promise<boolean> {
     startCallWorker();
     startSchedulerWorker();
     startRecoveryWorker();
+    startPDFWorker();
+    startRAGWorker();
     
     await setupRecurringJobs();
     
@@ -74,6 +80,8 @@ export async function shutdownBullMQ(): Promise<void> {
   try {
     await stopCallWorker();
     await stopSchedulerWorkers();
+    await stopPDFWorker();
+    await stopRAGWorker();
     await closeAllQueues();
     await closeRedisConnection();
     
@@ -114,6 +122,8 @@ export function getBullMQStatus(): {
   workers: {
     call: boolean;
     scheduler: boolean;
+    pdf: boolean;
+    rag: boolean;
   };
 } {
   return {
@@ -124,6 +134,8 @@ export function getBullMQStatus(): {
     workers: {
       call: !!getCallWorker(),
       scheduler: true,
+      pdf: !!getPDFWorker(),
+      rag: !!getRAGWorker(),
     },
   };
 }

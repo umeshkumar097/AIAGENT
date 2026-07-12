@@ -61,6 +61,7 @@ import {
 } from "@shared/schema";
 import { eq, sql, and, gte, lte, lt, desc, asc, isNull, isNotNull, or, inArray } from "drizzle-orm";
 import { calculateGlobalAnalytics, calculateUserAnalytics, calculateDashboardData } from "./storage/analytics-helpers";
+import { cacheManager, CACHE_KEYS, CACHE_TTL } from "./infrastructure/cache/cache-manager";
 
 // Effective limits type - merges plan limits with per-user subscription overrides
 export interface EffectiveLimits {
@@ -1438,8 +1439,14 @@ export class DbStorage implements IStorage {
 
   // Plans
   async getPlan(id: string): Promise<Plan | undefined> {
-    const [plan] = await db.select().from(plans).where(eq(plans.id, id));
-    return plan;
+    return cacheManager.wrap(
+      CACHE_KEYS.PLAN(id),
+      async () => {
+        const [plan] = await db.select().from(plans).where(eq(plans.id, id));
+        return plan;
+      },
+      CACHE_TTL.PLANS
+    );
   }
 
   async getPlanByName(name: string): Promise<Plan | undefined> {
@@ -1448,11 +1455,17 @@ export class DbStorage implements IStorage {
   }
 
   async getAllPlans(): Promise<Plan[]> {
-    return db.select().from(plans).where(eq(plans.isActive, true));
+    return cacheManager.wrap(
+      CACHE_KEYS.ALL_PLANS,
+      async () => db.select().from(plans).where(eq(plans.isActive, true)),
+      CACHE_TTL.PLANS
+    );
   }
 
   async createPlan(insertPlan: InsertPlan): Promise<Plan> {
     const [plan] = await db.insert(plans).values(insertPlan).returning();
+    // Invalidate plans list cache
+    await cacheManager.del(CACHE_KEYS.ALL_PLANS);
     return plan;
   }
   
@@ -1461,29 +1474,41 @@ export class DbStorage implements IStorage {
     if (result.length === 0) {
       throw new Error(`Failed to update plan: Plan with id '${id}' not found`);
     }
+    // Invalidate both the specific plan and the list
+    await cacheManager.del(CACHE_KEYS.PLAN(id));
+    await cacheManager.del(CACHE_KEYS.ALL_PLANS);
   }
 
   async deletePlan(id: string): Promise<void> {
     await db.delete(plans).where(eq(plans.id, id));
+    // Invalidate both the specific plan and the list
+    await cacheManager.del(CACHE_KEYS.PLAN(id));
+    await cacheManager.del(CACHE_KEYS.ALL_PLANS);
   }
 
   // Global Settings
   async getGlobalSetting(key: string): Promise<GlobalSettings | undefined> {
-    const [setting] = await db.select().from(globalSettings).where(eq(globalSettings.key, key));
-    if (setting && setting.value !== null && setting.value !== undefined) {
-      // Handle double-encoded JSON strings (legacy data fix)
-      // If value is a string that looks like a JSON-encoded string (starts/ends with quotes), parse it
-      let val = setting.value;
-      if (typeof val === 'string' && val.startsWith('"') && val.endsWith('"')) {
-        try {
-          val = JSON.parse(val);
-        } catch {
-          // Keep original value if parsing fails
+    return cacheManager.wrap(
+      CACHE_KEYS.SETTING(key),
+      async () => {
+        const [setting] = await db.select().from(globalSettings).where(eq(globalSettings.key, key));
+        if (setting && setting.value !== null && setting.value !== undefined) {
+          // Handle double-encoded JSON strings (legacy data fix)
+          // If value is a string that looks like a JSON-encoded string (starts/ends with quotes), parse it
+          let val = setting.value;
+          if (typeof val === 'string' && val.startsWith('"') && val.endsWith('"')) {
+            try {
+              val = JSON.parse(val);
+            } catch {
+              // Keep original value if parsing fails
+            }
+          }
+          return { ...setting, value: val };
         }
-      }
-      return { ...setting, value: val };
-    }
-    return setting;
+        return setting;
+      },
+      CACHE_TTL.GLOBAL_SETTINGS
+    );
   }
 
   async updateGlobalSetting(key: string, value: any): Promise<void> {
@@ -1498,6 +1523,8 @@ export class DbStorage implements IStorage {
           value = ${jsonValue}::jsonb,
           updated_at = NOW()
       `);
+      // Invalidate the cached setting
+      await cacheManager.del(CACHE_KEYS.SETTING(key));
       console.log(`✅ [Settings] Saved setting '${key}' successfully`);
     } catch (error: any) {
       console.error(`❌ [Settings] Failed to save setting '${key}':`, error.message);
@@ -1609,21 +1636,36 @@ export class DbStorage implements IStorage {
 
   async createUserSubscription(insertSubscription: InsertUserSubscription): Promise<UserSubscription> {
     const [subscription] = await db.insert(userSubscriptions).values(insertSubscription).returning();
+    // Invalidate user effective limits cache
+    if (insertSubscription.userId) {
+      await cacheManager.del(CACHE_KEYS.USER_LIMITS(insertSubscription.userId as string));
+    }
     return subscription;
   }
 
   async updateUserSubscription(id: string, subscription: Partial<InsertUserSubscription>): Promise<void> {
+    // Get the subscription first to know the userId for cache invalidation
+    const [existing] = await db.select({ userId: userSubscriptions.userId }).from(userSubscriptions).where(eq(userSubscriptions.id, id)).limit(1);
     await db.update(userSubscriptions).set(subscription).where(eq(userSubscriptions.id, id));
+    // Invalidate user effective limits cache
+    if (existing?.userId) {
+      await cacheManager.del(CACHE_KEYS.USER_LIMITS(existing.userId));
+    }
   }
 
   async updateUserSubscriptionByUserId(userId: string, subscription: Partial<InsertUserSubscription>): Promise<void> {
     await db.update(userSubscriptions)
       .set({ ...subscription, updatedAt: new Date() })
       .where(eq(userSubscriptions.userId, userId));
+    // Invalidate user effective limits cache
+    await cacheManager.del(CACHE_KEYS.USER_LIMITS(userId));
   }
 
   // Get effective limits for a user - merges plan defaults with per-user overrides
   async getUserEffectiveLimits(userId: string): Promise<EffectiveLimits> {
+    return cacheManager.wrap(
+      CACHE_KEYS.USER_LIMITS(userId),
+      async () => {
     // Get user's subscription with plan
     const subscriptionWithPlan = await this.getUserSubscription(userId);
     
@@ -1706,8 +1748,11 @@ export class DbStorage implements IStorage {
       },
       planName: plan.name,
       planDisplayName: plan.displayName,
-    };
-  }
+      };
+    },
+    CACHE_TTL.USER_EFFECTIVE_LIMITS
+  );
+}
 
   // Phone Numbers
   async getPhoneNumber(id: string): Promise<PhoneNumber | undefined> {
@@ -1929,16 +1974,28 @@ export class DbStorage implements IStorage {
   }
 
   async getEmailTemplate(templateType: string): Promise<EmailTemplate | undefined> {
-    const [template] = await db.select()
-      .from(emailTemplates)
-      .where(eq(emailTemplates.templateType, templateType));
-    return template;
+    return cacheManager.wrap(
+      CACHE_KEYS.EMAIL_TEMPLATE(templateType),
+      async () => {
+        const [template] = await db.select()
+          .from(emailTemplates)
+          .where(eq(emailTemplates.templateType, templateType));
+        return template;
+      },
+      CACHE_TTL.EMAIL_TEMPLATES
+    );
   }
 
   async updateEmailTemplate(id: string, data: Partial<EmailTemplate>): Promise<void> {
+    // Get the template type before update for cache invalidation
+    const [existing] = await db.select({ templateType: emailTemplates.templateType }).from(emailTemplates).where(eq(emailTemplates.id, id)).limit(1);
     await db.update(emailTemplates)
       .set({ ...data, updatedAt: new Date() })
       .where(eq(emailTemplates.id, id));
+    // Invalidate the cached email template
+    if (existing?.templateType) {
+      await cacheManager.del(CACHE_KEYS.EMAIL_TEMPLATE(existing.templateType));
+    }
   }
 
   async createEmailTemplate(data: InsertEmailTemplate): Promise<EmailTemplate> {
@@ -1962,10 +2019,14 @@ export class DbStorage implements IStorage {
   }
 
   async getSystemPromptTemplates(): Promise<PromptTemplate[]> {
-    return await db.select()
-      .from(promptTemplates)
-      .where(eq(promptTemplates.isSystemTemplate, true))
-      .orderBy(asc(promptTemplates.category), asc(promptTemplates.name));
+    return cacheManager.wrap(
+      CACHE_KEYS.PROMPT_TEMPLATES_SYSTEM,
+      async () => db.select()
+        .from(promptTemplates)
+        .where(eq(promptTemplates.isSystemTemplate, true))
+        .orderBy(asc(promptTemplates.category), asc(promptTemplates.name)),
+      CACHE_TTL.PROMPT_TEMPLATES
+    );
   }
 
   async getPublicPromptTemplates(): Promise<PromptTemplate[]> {
@@ -1984,10 +2045,14 @@ export class DbStorage implements IStorage {
     await db.update(promptTemplates)
       .set({ ...template, updatedAt: new Date() })
       .where(eq(promptTemplates.id, id));
+    // Invalidate system prompt templates cache
+    await cacheManager.del(CACHE_KEYS.PROMPT_TEMPLATES_SYSTEM);
   }
 
   async deletePromptTemplate(id: string): Promise<void> {
     await db.delete(promptTemplates).where(eq(promptTemplates.id, id));
+    // Invalidate system prompt templates cache
+    await cacheManager.del(CACHE_KEYS.PROMPT_TEMPLATES_SYSTEM);
   }
 
   async incrementPromptTemplateUsage(id: string): Promise<void> {
@@ -2040,26 +2105,36 @@ export class DbStorage implements IStorage {
 
   // SEO Settings
   async getSeoSettings(): Promise<SeoSettings | undefined> {
-    const [settings] = await db.select().from(seoSettings).limit(1);
-    return settings;
+    return cacheManager.wrap(
+      CACHE_KEYS.SEO,
+      async () => {
+        const [settings] = await db.select().from(seoSettings).limit(1);
+        return settings;
+      },
+      CACHE_TTL.SEO_SETTINGS
+    );
   }
 
   async updateSeoSettings(settings: Partial<InsertSeoSettings>): Promise<SeoSettings> {
     const existing = await this.getSeoSettings();
     
+    let result: SeoSettings;
     if (existing) {
       const updateData = { ...settings, updatedAt: new Date() } as typeof seoSettings.$inferInsert;
       const [updated] = await db.update(seoSettings)
         .set(updateData)
         .where(eq(seoSettings.id, existing.id))
         .returning();
-      return updated;
+      result = updated;
     } else {
       const [created] = await db.insert(seoSettings)
         .values(settings as typeof seoSettings.$inferInsert)
         .returning();
-      return created;
+      result = created;
     }
+    // Invalidate the cached SEO settings
+    await cacheManager.del(CACHE_KEYS.SEO);
+    return result;
   }
 
   // Analytics Scripts

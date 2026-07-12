@@ -13,9 +13,23 @@ export const QUEUE_NAMES = {
   CAMPAIGN_CALLS: 'campaign-calls',
   CAMPAIGN_SCHEDULER: 'campaign-scheduler',
   CAMPAIGN_RECOVERY: 'campaign-recovery',
+  RAG_PROCESSING: 'rag-processing',
+  PDF_GENERATION: 'pdf-generation',
 } as const;
 
 export type QueueName = typeof QUEUE_NAMES[keyof typeof QUEUE_NAMES];
+
+export interface RAGProcessingJob {
+  knowledgeBaseId: string;
+  userId: string;
+  fileContent: string;
+  metadata: Record<string, any>;
+}
+
+export interface PDFGenerationJob {
+  type: 'invoice' | 'refund-note';
+  targetId: string; // transactionId or refundId
+}
 
 export interface CampaignCallJob {
   campaignId: string;
@@ -44,6 +58,8 @@ export interface RecoveryJob {
 let campaignCallsQueue: Queue<CampaignCallJob> | null = null;
 let campaignSchedulerQueue: Queue<SchedulerJob> | null = null;
 let campaignRecoveryQueue: Queue<RecoveryJob> | null = null;
+let ragProcessingQueue: Queue<RAGProcessingJob> | null = null;
+let pdfGenerationQueue: Queue<PDFGenerationJob> | null = null;
 
 const defaultQueueOptions = {
   defaultJobOptions: {
@@ -111,6 +127,26 @@ export function getCampaignRecoveryQueue(): Queue<RecoveryJob> {
   return campaignRecoveryQueue;
 }
 
+export function getRAGProcessingQueue(): Queue<RAGProcessingJob> {
+  if (!ragProcessingQueue) {
+    ragProcessingQueue = new Queue<RAGProcessingJob>(QUEUE_NAMES.RAG_PROCESSING, {
+      connection: getRedisConnection(),
+      ...defaultQueueOptions,
+    });
+  }
+  return ragProcessingQueue;
+}
+
+export function getPDFGenerationQueue(): Queue<PDFGenerationJob> {
+  if (!pdfGenerationQueue) {
+    pdfGenerationQueue = new Queue<PDFGenerationJob>(QUEUE_NAMES.PDF_GENERATION, {
+      connection: getRedisConnection(),
+      ...defaultQueueOptions,
+    });
+  }
+  return pdfGenerationQueue;
+}
+
 export async function closeAllQueues(): Promise<void> {
   const closePromises: Promise<void>[] = [];
   
@@ -125,6 +161,14 @@ export async function closeAllQueues(): Promise<void> {
   if (campaignRecoveryQueue) {
     closePromises.push(campaignRecoveryQueue.close());
     campaignRecoveryQueue = null;
+  }
+  if (ragProcessingQueue) {
+    closePromises.push(ragProcessingQueue.close());
+    ragProcessingQueue = null;
+  }
+  if (pdfGenerationQueue) {
+    closePromises.push(pdfGenerationQueue.close());
+    pdfGenerationQueue = null;
   }
   
   await Promise.all(closePromises);

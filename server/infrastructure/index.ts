@@ -20,3 +20,6 @@ export { CampaignQueueService, campaignQueue } from './queue/campaign-queue.serv
 
 // Campaign recovery service
 export { CampaignRecoveryService, campaignRecoveryService } from './queue/campaign-recovery.service';
+
+// Cache manager (hybrid Redis/in-memory)
+export { CacheManager, cacheManager, CACHE_TTL, CACHE_KEYS } from './cache/cache-manager';

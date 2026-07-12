@@ -346,12 +346,34 @@ export function createRAGKnowledgeRoutes(authenticateToken: any): Router {
       });
 
       // Process with RAG (async - chunks and embeddings)
-      RAGKnowledgeService.processKnowledgeItem(
-        item.id,
-        req.userId!,
-        fileContent,
-        { source: 'file', filename }
-      ).catch(err => console.error("[RAG Routes] Background processing error:", err));
+      try {
+        const { isBullMQEnabled, getRAGProcessingQueue } = await import('../infrastructure/bullmq');
+        if (isBullMQEnabled()) {
+          const queue = getRAGProcessingQueue();
+          await queue.add(`rag-${item.id}`, {
+            knowledgeBaseId: item.id,
+            userId: req.userId!,
+            fileContent,
+            metadata: { source: 'file', filename }
+          });
+          console.log(`[RAG Routes] Offloaded file RAG processing to BullMQ for item: ${item.id}`);
+        } else {
+          RAGKnowledgeService.processKnowledgeItem(
+            item.id,
+            req.userId!,
+            fileContent,
+            { source: 'file', filename }
+          ).catch(err => console.error("[RAG Routes] Background processing error:", err));
+        }
+      } catch (err: any) {
+        console.warn("[RAG Routes] Failed to check/queue with BullMQ, falling back to sync processing:", err.message);
+        RAGKnowledgeService.processKnowledgeItem(
+          item.id,
+          req.userId!,
+          fileContent,
+          { source: 'file', filename }
+        ).catch(syncErr => console.error("[RAG Routes] Background processing error:", syncErr));
+      }
 
       res.json({
         ...item,
@@ -434,12 +456,34 @@ export function createRAGKnowledgeRoutes(authenticateToken: any): Router {
       });
 
       // Process with RAG (async)
-      RAGKnowledgeService.processKnowledgeItem(
-        item.id,
-        req.userId!,
-        content,
-        { source: 'url', url }
-      ).catch(err => console.error("[RAG Routes] Background processing error:", err));
+      try {
+        const { isBullMQEnabled, getRAGProcessingQueue } = await import('../infrastructure/bullmq');
+        if (isBullMQEnabled()) {
+          const queue = getRAGProcessingQueue();
+          await queue.add(`rag-${item.id}`, {
+            knowledgeBaseId: item.id,
+            userId: req.userId!,
+            fileContent: content,
+            metadata: { source: 'url', url }
+          });
+          console.log(`[RAG Routes] Offloaded URL RAG processing to BullMQ for item: ${item.id}`);
+        } else {
+          RAGKnowledgeService.processKnowledgeItem(
+            item.id,
+            req.userId!,
+            content,
+            { source: 'url', url }
+          ).catch(err => console.error("[RAG Routes] Background processing error:", err));
+        }
+      } catch (err: any) {
+        console.warn("[RAG Routes] Failed to check/queue with BullMQ, falling back to sync processing:", err.message);
+        RAGKnowledgeService.processKnowledgeItem(
+          item.id,
+          req.userId!,
+          content,
+          { source: 'url', url }
+        ).catch(syncErr => console.error("[RAG Routes] Background processing error:", syncErr));
+      }
 
       res.json({
         ...item,
@@ -490,12 +534,34 @@ export function createRAGKnowledgeRoutes(authenticateToken: any): Router {
       });
 
       // Process with RAG (async)
-      RAGKnowledgeService.processKnowledgeItem(
-        item.id,
-        req.userId!,
-        text,
-        { source: 'text' }
-      ).catch(err => console.error("[RAG Routes] Background processing error:", err));
+      try {
+        const { isBullMQEnabled, getRAGProcessingQueue } = await import('../infrastructure/bullmq');
+        if (isBullMQEnabled()) {
+          const queue = getRAGProcessingQueue();
+          await queue.add(`rag-${item.id}`, {
+            knowledgeBaseId: item.id,
+            userId: req.userId!,
+            fileContent: text,
+            metadata: { source: 'text' }
+          });
+          console.log(`[RAG Routes] Offloaded text RAG processing to BullMQ for item: ${item.id}`);
+        } else {
+          RAGKnowledgeService.processKnowledgeItem(
+            item.id,
+            req.userId!,
+            text,
+            { source: 'text' }
+          ).catch(err => console.error("[RAG Routes] Background processing error:", err));
+        }
+      } catch (err: any) {
+        console.warn("[RAG Routes] Failed to check/queue with BullMQ, falling back to sync processing:", err.message);
+        RAGKnowledgeService.processKnowledgeItem(
+          item.id,
+          req.userId!,
+          text,
+          { source: 'text' }
+        ).catch(syncErr => console.error("[RAG Routes] Background processing error:", syncErr));
+      }
 
       res.json({
         ...item,
