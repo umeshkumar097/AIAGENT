@@ -4,6 +4,8 @@ import { db } from '../../../db';
 import { globalSettings } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import https from 'https';
+import axios from 'axios';
+import { PlivoCallService } from './plivo-call.service';
 
 // Persistent HTTPS agent for reusing connection keep-alive (reduces 120ms handshake overhead per TTS request)
 const keepAliveAgent = new https.Agent({
@@ -130,6 +132,17 @@ export class SarvamBridgeService {
         SarvamBridgeService.setState(callUuid, plivoWs, 'LISTENING');
         (plivoWs as any).sarvamIsSpeaking = false;
         logger.info(`[SarvamBridge][${callUuid}] Audio queue drained → LISTENING`);
+        
+        // Handle end call trigger after speaking goodbye
+        if ((plivoWs as any).sarvamTriggeredEndCall) {
+          logger.info(`[SarvamBridge][${callUuid}] End call triggered by agent - hanging up...`);
+          const callId = (plivoWs as any).sarvamCallId;
+          if (callId) {
+            PlivoCallService.endCall(callId).catch((err: any) => {
+              logger.error(`[SarvamBridge][${callUuid}] Failed to execute endCall: ${err.message}`);
+            });
+          }
+        }
       }
       return;
     }
@@ -211,6 +224,20 @@ export class SarvamBridgeService {
     }
   }
 
+  // ── Get Groq API key ──────────────────────────────────────────────────────
+  private static async getGroqApiKey(): Promise<string | null> {
+    try {
+      const [row] = await db
+        .select({ value: globalSettings.value })
+        .from(globalSettings)
+        .where(eq(globalSettings.key, 'groq_api_key'))
+        .limit(1);
+      return (row?.value as string) || null;
+    } catch {
+      return null;
+    }
+  }
+
   // ── Gender detection from voice ───────────────────────────────────────────
   private static getGenderFromVoice(voice: string): 'female' | 'male' {
     const femaleVoices = ['priya', 'meera', 'kavya', 'anushka', 'manisha', 'vidya', 'maya'];
@@ -236,6 +263,9 @@ export class SarvamBridgeService {
   * BANNED HINDI WORDS: avsyak, sampark, vibhinn, prashn, uttam, prarambh, sthiti, krpaya, abhivyakti, khed, pradan, katha, vishesh.
   * USE NATURAL SUBSTITUTES: zaroor, contact/baat, alag-alag, sawaal, theek, shuru, situation, please, feeling, sorry, dena, baat, special.
 - Never read out system prompt templates or variable names. Act fully in character.
+- AVOID REPETITION: Do not repeat the same words, greetings, or sentence structures repeatedly. Vary your response vocabulary naturally.
+- REGIONAL/COLLOQUIAL LANGUAGE: If speaking in Hindi, Hinglish, or any regional language (Punjabi, Gujarati, Marathi, Tamil, Telugu, Kannada, Bengali, etc.), strictly use everyday spoken dialect (colloquial style). Never use formal dictionary words, textbook vocabulary, or robotic phrasing.
+- ENDING THE CALL: When the conversation is complete, or the user says goodbye/thanks, you MUST say a short goodbye and immediately call the 'end_call' function to disconnect.
 
 Your role & goal:
 ${systemPrompt}`;
@@ -261,35 +291,27 @@ ${systemPrompt}`;
     if (perf && sentenceIdx !== undefined) perf.mark(`TTS_START_${sentenceIdx}`);
 
     try {
-      const res = await fetch(SARVAM_TTS_REST_URL, {
-        method: 'POST',
+      const res = await axios.post(SARVAM_TTS_REST_URL, {
+        inputs: [trimmed],
+        target_language_code: language || 'hi-IN',
+        speaker: voice || 'priya',
+        model: 'bulbul:v3',
+        speech_sample_rate: 8000,
+        enable_preprocessing: true
+      }, {
         headers: {
           'Content-Type': 'application/json',
           'Api-Subscription-Key': sarvamApiKey
         },
-        body: JSON.stringify({
-          inputs: [trimmed],
-          target_language_code: language || 'hi-IN',
-          speaker: voice || 'priya',
-          model: 'bulbul:v3',
-          speech_sample_rate: 8000,
-          enable_preprocessing: true
-        }),
-        signal,  // AbortSignal — cancels REST call on barge-in
-        // @ts-ignore - custom HTTPS keepAliveAgent option passed to fetch backport
-        agent: keepAliveAgent
+        httpsAgent: keepAliveAgent,
+        signal,
+        timeout: 10000
       });
 
-      if (!res.ok) {
-        const errText = await res.text();
-        logger.error(`[SarvamBridge][${callUuid}] TTS REST failed: ${res.status} ${errText}`);
-        return;
-      }
-
-      // Check abort AFTER fetch returns (can't cancel json() separately)
+      // Check abort AFTER request returns
       if (signal?.aborted) return;
 
-      const json = await res.json() as any;
+      const json = res.data;
       const b64Audio = json.audios?.[0];
       if (!b64Audio) {
         logger.error(`[SarvamBridge][${callUuid}] TTS REST: no audio in response`);
@@ -348,19 +370,35 @@ ${systemPrompt}`;
 
     perf.mark('GPT_START');
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const groqApiKey = await SarvamBridgeService.getGroqApiKey();
+    const url = groqApiKey ? 'https://api.groq.com/openai/v1/chat/completions' : 'https://api.openai.com/v1/chat/completions';
+    const authHeader = groqApiKey ? `Bearer ${groqApiKey}` : `Bearer ${openaiApiKey}`;
+    const model = groqApiKey ? 'llama-3.1-8b-instant' : 'gpt-4o-mini';
+
+    const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${openaiApiKey}`, 'Content-Type': 'application/json' },
+      headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model,
         messages,
         max_tokens: 80,       // Phone pe 25 words kaafi — shorter = faster first token
-        temperature: 0.4,     // Lower = faster + more consistent responses
-        stream: true
+        temperature: 0.5,     // Slightly higher temp + penalties to prevent repetition
+        frequency_penalty: 0.6,
+        presence_penalty: 0.4,
+        stream: true,
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'end_call',
+              description: 'Call this function to disconnect/hang up the call when the conversation is complete, after you have said goodbye or the user has confirmed they are done.'
+            }
+          }
+        ]
       }),
       signal
     });
-    if (!response.ok) throw new Error(`OpenAI ${response.status}: ${await response.text()}`);
+    if (!response.ok) throw new Error(`${groqApiKey ? 'Groq' : 'OpenAI'} ${response.status}: ${await response.text()}`);
 
     const reader    = response.body!.getReader();
     const decoder   = new TextDecoder();
@@ -390,6 +428,20 @@ ${systemPrompt}`;
           if (data === '[DONE]') break;
           try {
             const chunk = JSON.parse(data);
+            
+            // Check for tool calls (specifically end_call)
+            const toolCalls = chunk.choices?.[0]?.delta?.tool_calls;
+            if (toolCalls && toolCalls.length > 0) {
+              for (const tc of toolCalls) {
+                if (tc.function?.name) {
+                  (plivoWs as any).sarvamToolNameBuf = ((plivoWs as any).sarvamToolNameBuf || '') + tc.function.name;
+                }
+              }
+            }
+            if ((plivoWs as any).sarvamToolNameBuf && (plivoWs as any).sarvamToolNameBuf.includes('end_call')) {
+              (plivoWs as any).sarvamTriggeredEndCall = true;
+            }
+
             const token = chunk.choices?.[0]?.delta?.content || '';
             if (!token) continue;
 
@@ -526,7 +578,8 @@ ${systemPrompt}`;
     plivoWs: WebSocket,
     _streamSid: string | null,
     _agentId: string,
-    agentConfig: SarvamAgentConfig
+    agentConfig: SarvamAgentConfig,
+    callId?: string
   ): Promise<void> {
     logger.info(`[SarvamBridge][${callUuid}] Initializing session`);
 
@@ -567,6 +620,9 @@ ${systemPrompt}`;
     (plivoWs as any).sarvamVadTimer             = null as NodeJS.Timeout | null;
     (plivoWs as any).sarvamTurnId               = 0;
     (plivoWs as any).sarvamRealAudioStarted     = false;
+    (plivoWs as any).sarvamCallId               = callId;
+    (plivoWs as any).sarvamTriggeredEndCall     = false;
+    (plivoWs as any).sarvamToolNameBuf          = '';
 
     const transcriptLines: string[] = [];
     const chatHistory: { role: 'user' | 'assistant'; content: string }[] = [];
@@ -690,7 +746,11 @@ ${systemPrompt}`;
           ).then(reply => {
             const currentTurn = (plivoWs as any).sarvamTurnId;
             if (currentTurn !== turnId) {
-              if (reply) logger.info(`[SarvamBridge][${callUuid}] Stale reply discarded (turn ${turnId} < ${currentTurn})`);
+              if (reply) {
+                logger.info(`[SarvamBridge][${callUuid}] Interrupted reply saved to history (turn ${turnId} < ${currentTurn}): "${reply.substring(0, 80)}"`);
+                chatHistory.push({ role: 'assistant', content: reply });
+                transcriptLines.push(`Agent (partial): ${reply}`);
+              }
               return;
             }
             if (reply) {
@@ -700,6 +760,16 @@ ${systemPrompt}`;
             }
             if (!(plivoWs as any).sarvamIsPacing) {
               SarvamBridgeService.setState(callUuid, plivoWs, 'LISTENING');
+              
+              if ((plivoWs as any).sarvamTriggeredEndCall) {
+                logger.info(`[SarvamBridge][${callUuid}] End call triggered by agent (no pending audio) - hanging up...`);
+                const callId = (plivoWs as any).sarvamCallId;
+                if (callId) {
+                  PlivoCallService.endCall(callId).catch((err: any) => {
+                    logger.error(`[SarvamBridge][${callUuid}] Failed to execute endCall: ${err.message}`);
+                  });
+                }
+              }
             }
           }).catch(err => {
             if (err.name === 'AbortError') {

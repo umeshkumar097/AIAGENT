@@ -121,7 +121,8 @@ export class CampaignScheduler {
           and(
             eq(campaigns.status, 'running'),
             eq(campaigns.scheduleEnabled, true),
-            isNotNull(campaigns.batchJobId)
+            isNotNull(campaigns.batchJobId),
+            isNull(campaigns.deletedAt)
           )
         );
 
@@ -146,7 +147,8 @@ export class CampaignScheduler {
           and(
             eq(campaigns.status, 'paused'),
             eq(campaigns.scheduleEnabled, true),
-            isNotNull(campaigns.batchJobId)
+            isNotNull(campaigns.batchJobId),
+            isNull(campaigns.deletedAt)
           )
         );
 
@@ -189,7 +191,8 @@ export class CampaignScheduler {
         and(
           eq(campaigns.status, 'scheduled'),
           isNotNull(campaigns.scheduledFor),
-          lte(campaigns.scheduledFor, now)
+          lte(campaigns.scheduledFor, now),
+          isNull(campaigns.deletedAt)
         )
       )
       .limit(10);
@@ -382,7 +385,8 @@ export class CampaignScheduler {
         .where(
           and(
             eq(campaigns.status, 'running'),
-            isNotNull(campaigns.batchJobId)
+            isNotNull(campaigns.batchJobId),
+            isNull(campaigns.deletedAt)
           )
         );
 
@@ -814,7 +818,12 @@ export class CampaignScheduler {
       const campaignRecords = await db
         .select()
         .from(campaigns)
-        .where(inArray(campaigns.id, campaignIds));
+        .where(
+          and(
+            inArray(campaigns.id, campaignIds),
+            isNull(campaigns.deletedAt)
+          )
+        );
 
       const { campaignExecutor } = await import('./campaign-executor');
 

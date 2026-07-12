@@ -43,8 +43,14 @@ export function getStatusWebhookUrl(): string {
 }
 
 export function getStreamWebhookUrl(callSid: string): string {
-  const baseUrl = getWebhookBaseUrl();
-  const wsUrl = baseUrl.replace('https://', 'wss://').replace('http://', 'wss://');
+  let wsUrl = process.env.WEBSOCKET_HOST || getWebhookBaseUrl();
+  if (wsUrl.startsWith('http://')) {
+    wsUrl = wsUrl.replace('http://', 'ws://');
+  } else if (wsUrl.startsWith('https://')) {
+    wsUrl = wsUrl.replace('https://', 'wss://');
+  } else if (!wsUrl.startsWith('ws://') && !wsUrl.startsWith('wss://')) {
+    wsUrl = `wss://${wsUrl}`;
+  }
   return `${wsUrl}/api/twilio-openai/stream/${callSid}`;
 }
 

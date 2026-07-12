@@ -492,7 +492,6 @@ export class TwilioOpenAIBatchCallingService {
     await this.sleep(500);
     return true;
   }
-  }
 
   private async checkOpenAICapacity(): Promise<boolean> {
     const stats = await OpenAIPoolService.getPoolStats();

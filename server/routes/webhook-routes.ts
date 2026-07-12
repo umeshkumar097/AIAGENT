@@ -982,7 +982,15 @@ export async function handleTwilioVoiceWebhook(req: Request, res: Response) {
       .where(eq(calls.id, callId as string));
 
     const domain = getDomain(req.headers.host as string);
-    const streamUrl = `wss://${domain}/api/webhooks/twilio/stream`;
+    let wsBaseUrl = process.env.WEBSOCKET_HOST || domain;
+    if (wsBaseUrl.startsWith('http://')) {
+      wsBaseUrl = wsBaseUrl.replace('http://', 'ws://');
+    } else if (wsBaseUrl.startsWith('https://')) {
+      wsBaseUrl = wsBaseUrl.replace('https://', 'wss://');
+    } else if (!wsBaseUrl.startsWith('ws://') && !wsBaseUrl.startsWith('wss://')) {
+      wsBaseUrl = 'wss://' + wsBaseUrl;
+    }
+    const streamUrl = `${wsBaseUrl}/api/webhooks/twilio/stream`;
     
     console.log(`📞 [Voice Webhook] Creating TwiML with stream URL: ${streamUrl}`);
     console.log(`   Parameters: callId=${callId}, agentId=${agentId}, contactName=${contactName || 'N/A'}`);

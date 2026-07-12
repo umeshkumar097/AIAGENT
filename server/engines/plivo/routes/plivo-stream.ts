@@ -150,6 +150,20 @@ function handlePlivoStreamConnection(ws: WebSocket, callUuid: string): void {
       // Get call to update transcript and trigger credit deduction
       const call = await PlivoCallService.getCallByUuid(callUuid);
       if (call) {
+        // Stop recording if this was a streaming agent
+        if ((ws as any).isSarvam || (ws as any).isElevenLabs) {
+          try {
+            logger.info(`[PlivoStream] Stopping recording for streaming call ${callUuid}`, undefined, 'PlivoStream');
+            const { PlivoRecordingService } = await import('../services/plivo-recording.service');
+            await PlivoRecordingService.stopRecording({
+              callUuid,
+              plivoCredentialId: call.plivoCredentialId || undefined,
+            });
+            logger.info(`[PlivoStream] ✓ Recording stopped for streaming call ${callUuid}`, undefined, 'PlivoStream');
+          } catch (recStopErr: any) {
+            logger.error(`[PlivoStream] Failed to stop recording for streaming call ${callUuid}`, recStopErr, 'PlivoStream');
+          }
+        }
         // Update call with transcript first
         if (result.transcript) {
           await db
@@ -364,7 +378,8 @@ async function initializeSession(
             language:     agent.language || 'hi-IN',
             voice:        agent.openaiVoice || 'priya',
             openaiApiKey: openaiKey,
-          }
+          },
+          call.id
         );
 
         // ── Start Plivo recording for Sarvam calls ─────────────────────────

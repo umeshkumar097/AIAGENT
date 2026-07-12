@@ -2919,7 +2919,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Start the campaign scheduler for automatic pause/resume based on time windows
-  CampaignScheduler.startBackgroundScheduler();
+  if (process.env.IS_WEBSOCKET_ONLY !== 'true') {
+    CampaignScheduler.startBackgroundScheduler();
+  }
 
   // Setup Plivo WebSocket stream on httpServer for OpenAI Realtime audio streaming
   setupPlivoStream(httpServer);

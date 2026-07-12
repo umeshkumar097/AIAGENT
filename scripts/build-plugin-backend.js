@@ -63,84 +63,27 @@ for (const pluginName of plugins) {
     
     console.log(`📦 Building ${manifest.displayName || pluginName}...`);
     
-    // Find all TypeScript files in the plugin directory (excluding node_modules)
-    const tsFiles = [];
+    const entryFile = path.join(pluginPath, manifest.entryPoint);
+    const outFile = entryFile.replace(/\.ts$/, '.js');
     
-    function findTsFiles(dir) {
-      const entries = fs.readdirSync(dir, { withFileTypes: true });
-      for (const entry of entries) {
-        const fullPath = path.join(dir, entry.name);
-        if (entry.isDirectory()) {
-          if (entry.name !== 'node_modules' && entry.name !== 'dist' && entry.name !== 'frontend' && entry.name !== 'ui') {
-            findTsFiles(fullPath);
-          }
-        } else if (entry.name.endsWith('.ts') && !entry.name.endsWith('.d.ts')) {
-          tsFiles.push(fullPath);
-        }
-      }
-    }
-    
-    findTsFiles(pluginPath);
-    
-    if (tsFiles.length === 0) {
-      console.log(`   No TypeScript files found`);
-      continue;
-    }
-    
-    console.log(`   Found ${tsFiles.length} TypeScript file(s)`);
-    
-    // Use esbuild to compile each TypeScript file to JavaScript
-    // Keep the same directory structure
-    for (const tsFile of tsFiles) {
-      const relativePath = path.relative(pluginPath, tsFile);
-      const jsFile = tsFile.replace(/\.ts$/, '.js');
+    try {
+      console.log(`   Entry file: ${manifest.entryPoint} → ${path.basename(outFile)}`);
       
-      try {
-        // Use esbuild for fast compilation
-        execSync(`npx esbuild "${tsFile}" --outfile="${jsFile}" --format=esm --platform=node --target=node18`, {
-          cwd: projectRoot,
-          stdio: 'pipe'
-        });
-        
-        // Post-process: Add .js extension to relative imports (required by Node.js ESM)
-        let content = fs.readFileSync(jsFile, 'utf-8');
-        
-        // Add .js extension to relative imports that don't have an extension
-        // Match: from "./path" or from "../path" (not from "package")
-        content = content.replace(
-          /from\s+["'](\.\.?\/[^"']+)["']/g,
-          (match, importPath) => {
-            // Skip if already has .js or .json extension
-            if (importPath.endsWith('.js') || importPath.endsWith('.json')) {
-              return match;
-            }
-            return `from "${importPath}.js"`;
-          }
-        );
-        
-        // Also handle dynamic imports
-        content = content.replace(
-          /import\s*\(\s*["'](\.\.?\/[^"']+)["']\s*\)/g,
-          (match, importPath) => {
-            if (importPath.endsWith('.js') || importPath.endsWith('.json')) {
-              return match;
-            }
-            return `import("${importPath}.js")`;
-          }
-        );
-        
-        fs.writeFileSync(jsFile, content, 'utf-8');
-        console.log(`   ✓ ${relativePath}`);
-      } catch (err) {
-        console.error(`   ✗ ${relativePath}: ${err.message}`);
-        errorCount++;
-      }
+      // Bundle using esbuild - resolves relative paths and aliases at build time
+      execSync(`npx esbuild "${entryFile}" --bundle --outfile="${outFile}" --format=esm --platform=node --target=node18 --packages=external`, {
+        cwd: projectRoot,
+        stdio: 'pipe'
+      });
+      
+      console.log(`   ✓ Bundled entryPoint successfully`);
+      successCount++;
+      console.log(`   ✅ ${manifest.displayName || pluginName} compiled`);
+      console.log('');
+      
+    } catch (err) {
+      console.error(`   ✗ Failed to bundle plugin: ${err.message}`);
+      errorCount++;
     }
-    
-    successCount++;
-    console.log(`   ✅ ${manifest.displayName || pluginName} compiled`);
-    console.log('');
-    
   } catch (error) {
     console.error(`❌ Error building ${pluginName}:`, error.message);
     errorCount++;

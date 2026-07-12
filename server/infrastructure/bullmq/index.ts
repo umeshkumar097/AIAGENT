@@ -22,7 +22,7 @@ import { startSchedulerWorker, startRecoveryWorker, setupRecurringJobs, stopSche
 let isInitialized = false;
 
 export function isBullMQEnabled(): boolean {
-  return process.env.ENABLE_BULLMQ === 'true' && !!process.env.REDIS_URL;
+  return process.env.ENABLE_BULLMQ === 'true' && !!process.env.REDIS_URL && process.env.IS_WEBSOCKET_ONLY !== 'true';
 }
 
 export async function initializeBullMQ(): Promise<boolean> {
@@ -48,11 +48,16 @@ export async function initializeBullMQ(): Promise<boolean> {
       return false;
     }
     
-    startCallWorker();
-    startSchedulerWorker();
-    startRecoveryWorker();
-    
-    await setupRecurringJobs();
+    const runWorkers = process.env.RUN_BULLMQ_WORKERS === 'true';
+    if (runWorkers) {
+      console.log('[BullMQ] Starting queue workers (Call, Scheduler, Recovery)...');
+      startCallWorker();
+      startSchedulerWorker();
+      startRecoveryWorker();
+      await setupRecurringJobs();
+    } else {
+      console.log('[BullMQ] Queue worker startup skipped (running as producer only)');
+    }
     
     isInitialized = true;
     console.log('[BullMQ] Initialization complete');

@@ -506,7 +506,6 @@ export class PlivoBatchCallingService {
     await this.sleep(500);
     return true;
   }
-  }
 
   /**
    * Check if OpenAI pool has available capacity

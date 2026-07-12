@@ -496,6 +496,9 @@ app.use((req, res, next) => {
   // Middleware to serve SEO-optimized HTML for social media crawlers
   // This runs BEFORE Vite/static file serving to catch crawler requests
   app.use(async (req: Request, res: Response, next: NextFunction) => {
+    if (process.env.IS_WEBSOCKET_ONLY === 'true') {
+      return next();
+    }
     const userAgent = req.headers['user-agent'];
     
     // Only intercept non-API HTML page requests from crawlers
@@ -536,7 +539,11 @@ app.use((req, res, next) => {
     next();
   });
   
-  if (!isProduction) {
+  if (process.env.IS_WEBSOCKET_ONLY === 'true') {
+    app.get("/", (req, res) => {
+      res.status(200).send("Zonvo AI WebSocket Node is running.");
+    });
+  } else if (!isProduction) {
     const devModule = "./vite";
     const { setupVite } = await import(/* @vite-ignore */ devModule);
     await setupVite(app, server);
@@ -601,6 +608,40 @@ app.use((req, res, next) => {
     console.log('🔄 [Production] Keepalive interval started before server.listen');
   }
   
+  if (process.env.IS_WORKER_ONLY === 'true') {
+    console.log('ℹ️ [Server] Running in Worker-only mode. HTTP server listener bypassed.');
+    
+    // Initialize BullMQ if enabled (since we are in worker mode, this will start the workers if RUN_BULLMQ_WORKERS=true)
+    if (process.env.IS_WEBSOCKET_ONLY !== 'true') {
+      try {
+        const bullmq = await import('./infrastructure/bullmq');
+        const initialized = await bullmq.initializeBullMQ();
+        if (initialized) {
+          console.log('✅ [BullMQ] Queue system ready for campaign processing');
+        }
+      } catch (error: any) {
+        console.warn('⚠️ [BullMQ] Failed to initialize:', error.message);
+      }
+    }
+    
+    // Initialize Redis Pub/Sub if REDIS_URL is configured
+    if (process.env.REDIS_URL) {
+      try {
+        const pubsub = await import('./infrastructure/redis/pubsub-manager');
+        pubsub.getPublisher();
+        pubsub.getSubscriber();
+        console.log('✅ [PubSub] Redis Pub/Sub initialized');
+      } catch (error: any) {
+        console.warn('⚠️ [PubSub] Failed to initialize Pub/Sub:', error.message);
+      }
+    }
+    
+    signalReady();
+    console.log('✅ [Production] Worker fully initialized and running');
+    console.log('🔄 [Server] Main initialization complete, worker running...');
+    return;
+  }
+  
   // Wrap server.listen in a Promise to ensure IIFE awaits server startup
   // This prevents premature exit in ESM mode on Cloud Run/containerized deployments
   await new Promise<void>((resolve) => {
@@ -616,38 +657,42 @@ app.use((req, res, next) => {
     server.listen(listenOptions, () => {
       log(`serving on port ${port}`);
       
-      // Start phone number billing cron job
-      startPhoneBillingCron();
+      if (process.env.IS_WEBSOCKET_ONLY !== 'true') {
+        // Start phone number billing cron job
+        startPhoneBillingCron();
 
-      // Start daily un-billed call detection sweep across all telephony engines.
-      startCreditBackfillMonitor();
+        // Start daily un-billed call detection sweep across all telephony engines.
+        startCreditBackfillMonitor();
 
-      // Start worker that retries failed provider phone-number releases
-      startPhoneReleaseRetryWorker();
-      
-      // Start resource watchdog for auto-restart monitoring
-      startWatchdog();
-      
-      // Start webhook retry service for failed payment webhooks
-      webhookRetryService.start();
-      
-      // Start ElevenLabs migration engine (handles retry queue for capacity errors)
-      initializeMigrationEngine();
-      
-      // Initialize BullMQ if enabled (opt-in via ENABLE_BULLMQ=true and REDIS_URL)
-      // This runs async and won't block startup if Redis is unavailable
-      import('./infrastructure/bullmq').then(async (bullmq) => {
-        try {
-          const initialized = await bullmq.initializeBullMQ();
-          if (initialized) {
-            console.log('✅ [BullMQ] Queue system ready for campaign processing');
+        // Start worker that retries failed provider phone-number releases
+        startPhoneReleaseRetryWorker();
+        
+        // Start resource watchdog for auto-restart monitoring
+        startWatchdog();
+        
+        // Start webhook retry service for failed payment webhooks
+        webhookRetryService.start();
+        
+        // Start ElevenLabs migration engine (handles retry queue for capacity errors)
+        initializeMigrationEngine();
+        
+        // Initialize BullMQ if enabled (opt-in via ENABLE_BULLMQ=true and REDIS_URL)
+        // This runs async and won't block startup if Redis is unavailable
+        import('./infrastructure/bullmq').then(async (bullmq) => {
+          try {
+            const initialized = await bullmq.initializeBullMQ();
+            if (initialized) {
+              console.log('✅ [BullMQ] Queue system ready for campaign processing');
+            }
+          } catch (error: any) {
+            console.warn('⚠️ [BullMQ] Failed to initialize (using fallback queues):', error.message);
           }
-        } catch (error: any) {
-          console.warn('⚠️ [BullMQ] Failed to initialize (using fallback queues):', error.message);
-        }
-      }).catch(() => {
-        // BullMQ module not available, continue without it
-      });
+        }).catch(() => {
+          // BullMQ module not available, continue without it
+        });
+      } else {
+        console.log('ℹ️ [Server] Running in WebSocket-only mode. Background crons, workers, and BullMQ disabled.');
+      }
 
       // Initialize Redis Pub/Sub if REDIS_URL is configured
       if (process.env.REDIS_URL) {
