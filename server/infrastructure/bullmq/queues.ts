@@ -24,7 +24,7 @@ export interface CampaignCallJob {
   phone: string;
   agentId: string;
   userId: string;
-  engine: 'openai' | 'sip' | 'elevenlabs';
+  engine: 'openai' | 'sip' | 'elevenlabs' | 'elevenlabs-sip' | 'plivo';
   flowId?: string;
   retryCount: number;
   metadata?: Record<string, any>;

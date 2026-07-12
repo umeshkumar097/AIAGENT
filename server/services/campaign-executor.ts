@@ -375,6 +375,35 @@ export class CampaignExecutor {
           await batchInsertFlowExecutions(flowExecInserts, '🔀 [Plivo Campaign]');
         }
         
+        // Check if we should use BullMQ for Plivo + OpenAI
+        const { shouldUseBullMQ, queueCampaignCallsFromBatch } = await import('../infrastructure/bullmq/campaign-queue-bridge');
+        if (shouldUseBullMQ()) {
+          console.log(`🚀 [Campaign Executor] Queueing Plivo campaign ${campaignId} to BullMQ`);
+          await queueCampaignCallsFromBatch(
+            campaign.id,
+            preCreatedCalls.map(c => ({ id: c.id, contactId: c.contactId, phoneNumber: c.phoneNumber })),
+            agent.id,
+            campaign.userId,
+            'plivo',
+            { plivoPhoneNumberId: campaign.plivoPhoneNumberId }
+          );
+          
+          return {
+            batchJob: {
+              id: plivoBatchJobId,
+              name: campaign.name,
+              agent_id: agent.id,
+              agent_name: agent.name,
+              created_at_unix: Math.floor(Date.now() / 1000),
+              scheduled_time_unix: 0,
+              last_updated_at_unix: Math.floor(Date.now() / 1000),
+              total_calls_scheduled: campaignContacts.length,
+              total_calls_dispatched: 0,
+              status: 'running' as any,
+            }
+          };
+        }
+
         // Fire-and-forget: start the Plivo engine in the background so the HTTP
         // response is returned immediately without waiting for all calls to finish.
         const plivoBatchService = PlivoBatchCallingService.getInstance(campaignId);
@@ -521,6 +550,35 @@ export class CampaignExecutor {
           await batchInsertFlowExecutions(flowExecInsertsTwilioOpenAI, '🔀 [Twilio-OpenAI Campaign]');
         }
         
+        // Check if we should use BullMQ for Twilio + OpenAI
+        const { shouldUseBullMQ, queueCampaignCallsFromBatch } = await import('../infrastructure/bullmq/campaign-queue-bridge');
+        if (shouldUseBullMQ()) {
+          console.log(`🚀 [Campaign Executor] Queueing Twilio-OpenAI campaign ${campaignId} to BullMQ`);
+          await queueCampaignCallsFromBatch(
+            campaign.id,
+            preCreatedCalls.map(c => ({ id: c.id, contactId: c.contactId, phoneNumber: c.phoneNumber })),
+            agent.id,
+            campaign.userId,
+            'openai',
+            { fromNumberId: campaign.phoneNumberId }
+          );
+          
+          return {
+            batchJob: {
+              id: twilioOpenAIBatchJobId,
+              name: campaign.name,
+              agent_id: agent.id,
+              agent_name: agent.name,
+              created_at_unix: Math.floor(Date.now() / 1000),
+              scheduled_time_unix: 0,
+              last_updated_at_unix: Math.floor(Date.now() / 1000),
+              total_calls_scheduled: campaignContacts.length,
+              total_calls_dispatched: 0,
+              status: 'running' as any,
+            }
+          };
+        }
+
         // Fire-and-forget: start the Twilio-OpenAI engine in the background so the HTTP
         // response is returned immediately without waiting for all calls to finish.
         const twilioOpenAIBatchService = TwilioOpenAIBatchCallingService.getInstance(campaignId);

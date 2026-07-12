@@ -78,9 +78,27 @@ export async function gracefulShutdown(signal: string, exitCode: number = 0): Pr
     }
 
     // Step 2: Stop background schedulers
-    console.log('   [2/4] Stopping background schedulers...');
+    console.log('   [2/4] Stopping background schedulers & workers...');
     CampaignScheduler.stopBackgroundScheduler();
     stopPhoneBillingCron();
+    
+    try {
+      const { stopCallWorker } = await import('../infrastructure/bullmq/call-worker');
+      await stopCallWorker();
+      
+      const { closeAllQueues } = await import('../infrastructure/bullmq/queues');
+      await closeAllQueues();
+      
+      const { closeRedisConnection } = await import('../infrastructure/bullmq/redis-connection');
+      await closeRedisConnection();
+      
+      const { closePubSub } = await import('../infrastructure/redis/pubsub-manager');
+      await closePubSub();
+      
+      console.log('   ✓ BullMQ and Redis connections closed');
+    } catch (err: any) {
+      console.log(`   ⚠️ BullMQ/Redis close warning: ${err.message}`);
+    }
     console.log('   ✓ Schedulers stopped');
 
     // Step 3: Wait for pending operations (brief delay)
@@ -91,7 +109,8 @@ export async function gracefulShutdown(signal: string, exitCode: number = 0): Pr
     // Step 4: Close database pool
     console.log('   [4/4] Closing database connections...');
     try {
-      await pool.end();
+      const { databasePoolManager } = await import('../infrastructure/database/connection-pool');
+      await databasePoolManager.shutdown();
       console.log('   ✓ Database pool closed');
     } catch (dbError: any) {
       console.log(`   ⚠️ Database close warning: ${dbError.message}`);
