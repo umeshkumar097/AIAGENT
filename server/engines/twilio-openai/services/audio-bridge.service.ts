@@ -91,7 +91,10 @@ export class TwilioOpenAIAudioBridge {
 
     // Check if we can reserve a slot in the OpenAI pool
     const credentialId = params.credentialId || 'twilio-openai-default';
-    if (!openaiPoolManager.canReserveSlot(credentialId)) {
+    session.credentialId = credentialId;
+
+    const hasSlot = await openaiPoolManager.reserveSlot(credentialId);
+    if (!hasSlot) {
       console.log(`[TwilioOpenAI Bridge] OpenAI pool limit reached for credential ${credentialId}`);
       throw new Error('OpenAI connection limit reached. Please try again later.');
     }
@@ -102,6 +105,7 @@ export class TwilioOpenAIAudioBridge {
     } catch (error: any) {
       console.error(`[TwilioOpenAI Bridge] Failed to create session:`, error.message);
       session.status = 'error';
+      await openaiPoolManager.releaseSlot(credentialId);
       throw error;
     }
   }
@@ -151,7 +155,7 @@ export class TwilioOpenAIAudioBridge {
           session.callSid,
           ws,
           '',  // sessionId will be updated later
-          'default'  // credentialId
+          session.credentialId || 'twilio-openai-default'
         );
 
         this.configureSession(session);
@@ -167,7 +171,9 @@ export class TwilioOpenAIAudioBridge {
         clearTimeout(connectionTimeoutId);
         console.error(`[TwilioOpenAI Bridge] OpenAI error for ${callSid}:`, error);
         session.status = 'error';
-        openaiPoolManager.removeConnection(session.callSid);
+        openaiPoolManager.removeConnection(session.callSid).catch(err => {
+          console.error(`[TwilioOpenAI Bridge] Failed to remove connection on error:`, err);
+        });
         this.activeSessions.delete(callSid);
         reject(error);
       });
@@ -175,7 +181,9 @@ export class TwilioOpenAIAudioBridge {
       ws.on('close', (code, reason) => {
         console.log(`[TwilioOpenAI Bridge] OpenAI closed for ${callSid}: ${code} ${reason}`);
         session.status = 'disconnected';
-        openaiPoolManager.removeConnection(session.callSid);
+        openaiPoolManager.removeConnection(session.callSid).catch(err => {
+          console.error(`[TwilioOpenAI Bridge] Failed to remove connection on close:`, err);
+        });
         this.fireEndCallback(session);
       });
     });
@@ -1057,7 +1065,7 @@ BACKGROUND NOISE HANDLING:
     console.log(`[TwilioOpenAI Bridge] Ending session for ${callSid}`);
 
     // Remove connection from the pool manager
-    openaiPoolManager.removeConnection(callSid);
+    await openaiPoolManager.removeConnection(callSid);
 
     session.status = 'disconnected';
     session.endedAt = new Date();

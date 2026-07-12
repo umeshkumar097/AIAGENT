@@ -148,7 +148,8 @@ export class AudioBridgeService {
 
     // Check if we can reserve a slot in the OpenAI pool
     const credentialId = plivoCredentialId || 'default';
-    if (!openaiPoolManager.canReserveSlot(credentialId)) {
+    const hasSlot = await openaiPoolManager.reserveSlot(credentialId);
+    if (!hasSlot) {
       logger.warn(`OpenAI pool limit reached for credential ${credentialId}`, undefined, 'AudioBridge');
       throw new Error('OpenAI connection limit reached. Please try again later.');
     }
@@ -200,6 +201,7 @@ export class AudioBridgeService {
     } catch (error: any) {
       logger.error(`Failed to create session: ${error.message}`, error, 'AudioBridge');
       session.status = 'error';
+      await openaiPoolManager.releaseSlot(credentialId);
       throw error;
     }
   }
@@ -259,14 +261,18 @@ export class AudioBridgeService {
       ws.on('error', (error) => {
         logger.error(`OpenAI WebSocket error for ${callUuid}`, error, 'AudioBridge');
         session.status = 'error';
-        openaiPoolManager.removeConnection(session.callUuid);
+        openaiPoolManager.removeConnection(session.callUuid).catch(err => {
+          logger.error(`Failed to remove connection on error: ${err.message}`, err, 'AudioBridge');
+        });
         reject(error);
       });
 
       ws.on('close', async (code, reason) => {
         logger.info(`OpenAI WebSocket closed for ${callUuid}: ${code} ${reason}`, undefined, 'AudioBridge');
         session.status = 'disconnected';
-        openaiPoolManager.removeConnection(session.callUuid);
+        openaiPoolManager.removeConnection(session.callUuid).catch(err => {
+          logger.error(`Failed to remove connection on close: ${err.message}`, err, 'AudioBridge');
+        });
 
         // Stop recording on session end
         await AudioBridgeService.stopSessionRecording(session);
@@ -1183,7 +1189,7 @@ CONVERSATION PACING (CRITICAL):
       .join('\n');
 
     // Remove from OpenAI pool manager
-    openaiPoolManager.removeConnection(callUuid);
+    await openaiPoolManager.removeConnection(callUuid);
 
     this.activeSessions.delete(callUuid);
 
