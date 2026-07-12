@@ -1,7 +1,12 @@
+'use strict';
+
 import { WebSocket } from "ws";
 import { eq } from "drizzle-orm";
 import { db } from "../../db";
 import { globalSettings } from "@shared/schema";
+import { randomUUID } from "crypto";
+import { isBullMQEnabled, getRedisConnection } from "../bullmq";
+import { publish, subscribe } from "../redis/pubsub-manager";
 
 interface ConnectionLimits {
   maxPerProcess: number;
@@ -18,6 +23,7 @@ interface ConnectionStats {
 }
 
 export class WebSocketConnectionManager {
+  private instanceId: string = randomUUID();
   private connections: Map<string, WebSocket> = new Map();
   private userConnections: Map<string, Set<string>> = new Map();
   private ipConnections: Map<string, Set<string>> = new Map();
@@ -30,6 +36,21 @@ export class WebSocketConnectionManager {
   };
   
   private settingsLoaded = false;
+
+  constructor() {
+    this.initializePubSub();
+  }
+
+  private initializePubSub(): void {
+    if (isBullMQEnabled()) {
+      subscribe("ws:user-updates", (message: any) => {
+        const { userId, payload } = message;
+        this.sendToLocalUser(userId, payload);
+      }).catch(err => {
+        console.error("[WS Manager] Redis PubSub subscription error:", err);
+      });
+    }
+  }
 
   async loadSettings(): Promise<void> {
     console.log("[WS Manager] Loading settings from globalSettings table...");
@@ -90,19 +111,54 @@ export class WebSocketConnectionManager {
       return false;
     }
 
-    if (userId) {
-      const userConns = this.userConnections.get(userId);
-      if (userConns && userConns.size >= this.limits.maxPerUser) {
-        console.log(`[WS Manager] Connection rejected: user limit reached for ${userId} (${userConns.size}/${this.limits.maxPerUser})`);
-        return false;
+    if (isBullMQEnabled()) {
+      const redis = getRedisConnection();
+      
+      if (userId) {
+        const userSetKey = `ws:global:conns:user:${userId}`;
+        await redis.sadd(userSetKey, `${this.instanceId}:${id}`);
+        await redis.expire(userSetKey, 86400); // 24-hour safety TTL
+        
+        const globalUserCount = await redis.scard(userSetKey);
+        if (globalUserCount > this.limits.maxPerUser) {
+          console.log(`[WS Manager] Connection rejected: global user limit reached for ${userId} (${globalUserCount}/${this.limits.maxPerUser})`);
+          await redis.srem(userSetKey, `${this.instanceId}:${id}`);
+          return false;
+        }
       }
-    }
 
-    if (ip) {
-      const ipConns = this.ipConnections.get(ip);
-      if (ipConns && ipConns.size >= this.limits.maxPerIp) {
-        console.log(`[WS Manager] Connection rejected: IP limit reached for ${ip} (${ipConns.size}/${this.limits.maxPerIp})`);
-        return false;
+      if (ip) {
+        const ipSetKey = `ws:global:conns:ip:${ip}`;
+        await redis.sadd(ipSetKey, `${this.instanceId}:${id}`);
+        await redis.expire(ipSetKey, 86400); // 24-hour safety TTL
+        
+        const globalIpCount = await redis.scard(ipSetKey);
+        if (globalIpCount > this.limits.maxPerIp) {
+          console.log(`[WS Manager] Connection rejected: global IP limit reached for ${ip} (${globalIpCount}/${this.limits.maxPerIp})`);
+          await redis.srem(ipSetKey, `${this.instanceId}:${id}`);
+          
+          if (userId) {
+            const userSetKey = `ws:global:conns:user:${userId}`;
+            await redis.srem(userSetKey, `${this.instanceId}:${id}`);
+          }
+          return false;
+        }
+      }
+    } else {
+      if (userId) {
+        const userConns = this.userConnections.get(userId);
+        if (userConns && userConns.size >= this.limits.maxPerUser) {
+          console.log(`[WS Manager] Connection rejected: user limit reached for ${userId} (${userConns.size}/${this.limits.maxPerUser})`);
+          return false;
+        }
+      }
+
+      if (ip) {
+        const ipConns = this.ipConnections.get(ip);
+        if (ipConns && ipConns.size >= this.limits.maxPerIp) {
+          console.log(`[WS Manager] Connection rejected: IP limit reached for ${ip} (${ipConns.size}/${this.limits.maxPerIp})`);
+          return false;
+        }
       }
     }
 
@@ -150,6 +206,12 @@ export class WebSocketConnectionManager {
           this.userConnections.delete(effectiveUserId);
         }
       }
+
+      if (isBullMQEnabled()) {
+        const redis = getRedisConnection();
+        redis.srem(`ws:global:conns:user:${effectiveUserId}`, `${this.instanceId}:${id}`)
+          .catch(err => console.error(`[WS Manager] Error removing user connection from Redis:`, err));
+      }
     }
 
     if (effectiveIp) {
@@ -159,6 +221,12 @@ export class WebSocketConnectionManager {
         if (ipConns.size === 0) {
           this.ipConnections.delete(effectiveIp);
         }
+      }
+
+      if (isBullMQEnabled()) {
+        const redis = getRedisConnection();
+        redis.srem(`ws:global:conns:ip:${effectiveIp}`, `${this.instanceId}:${id}`)
+          .catch(err => console.error(`[WS Manager] Error removing IP connection from Redis:`, err));
       }
     }
 
@@ -172,6 +240,24 @@ export class WebSocketConnectionManager {
 
   getUserConnections(userId: string): Set<string> {
     return this.userConnections.get(userId) || new Set();
+  }
+
+  async sendToUser(userId: string, payload: any): Promise<void> {
+    if (isBullMQEnabled()) {
+      await publish("ws:user-updates", { userId, payload });
+    } else {
+      this.sendToLocalUser(userId, payload);
+    }
+  }
+
+  private sendToLocalUser(userId: string, payload: any): void {
+    const localSockets = this.getUserConnections(userId);
+    localSockets.forEach(socketId => {
+      const ws = this.getConnection(socketId);
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(payload));
+      }
+    });
   }
 
   getStats(): ConnectionStats {
@@ -212,6 +298,26 @@ export class WebSocketConnectionManager {
     });
 
     await Promise.all(closePromises);
+
+    if (isBullMQEnabled()) {
+      try {
+        const redis = getRedisConnection();
+        const redisPromises: Promise<any>[] = [];
+        
+        for (const [id, metadata] of this.connectionMetadata.entries()) {
+          if (metadata.userId) {
+            redisPromises.push(redis.srem(`ws:global:conns:user:${metadata.userId}`, `${this.instanceId}:${id}`));
+          }
+          if (metadata.ip) {
+            redisPromises.push(redis.srem(`ws:global:conns:ip:${metadata.ip}`, `${this.instanceId}:${id}`));
+          }
+        }
+        
+        await Promise.all(redisPromises);
+      } catch (err: any) {
+        console.error(`[WS Manager] Error cleaning up Redis connections on closeAll:`, err.message);
+      }
+    }
     
     this.connections.clear();
     this.userConnections.clear();
