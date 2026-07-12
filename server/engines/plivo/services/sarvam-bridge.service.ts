@@ -3,6 +3,15 @@ import { logger } from '../../../utils/logger';
 import { db } from '../../../db';
 import { globalSettings } from '@shared/schema';
 import { eq } from 'drizzle-orm';
+import https from 'https';
+
+// Persistent HTTPS agent for reusing connection keep-alive (reduces 120ms handshake overhead per TTS request)
+const keepAliveAgent = new https.Agent({
+  keepAlive: true,
+  keepAliveMsecs: 5000,
+  maxSockets: 64,
+  timeout: 10000
+});
 
 // ── Audio pacing config ───────────────────────────────────────────────────────
 const MULAW_CHUNK_BYTES = 160;   // 20 ms at 8 kHz
@@ -166,6 +175,12 @@ export class SarvamBridgeService {
       (plivoWs as any).sarvamAbortController = null;
     }
 
+    // Clear any pending VAD timer
+    if ((plivoWs as any).sarvamVadTimer) {
+      clearTimeout((plivoWs as any).sarvamVadTimer);
+      (plivoWs as any).sarvamVadTimer = null;
+    }
+
     // 2. Stop audio pacing and drain queue
     SarvamBridgeService.stopPacing(plivoWs);
 
@@ -260,7 +275,9 @@ ${systemPrompt}`;
           speech_sample_rate: 8000,
           enable_preprocessing: true
         }),
-        signal  // AbortSignal — cancels REST call on barge-in
+        signal,  // AbortSignal — cancels REST call on barge-in
+        // @ts-ignore - custom HTTPS keepAliveAgent option passed to fetch backport
+        agent: keepAliveAgent
       });
 
       if (!res.ok) {
@@ -385,23 +402,27 @@ ${systemPrompt}`;
             fullReply   += token;
             sentenceBuf += token;
 
-            // Sentence boundary: ., !, ?, ।, \n
-            // Using [\s\S] instead of /s flag for ES2015 compat
-            const match = sentenceBuf.match(/^([\s\S]*[।.!?\n])([\s\S]*)$/);
+            // Sentence or Sub-clause boundary (., !, ?, ।, \n, or comma ',' if sentence buffer is long enough for early chunk speak)
+            const match = sentenceBuf.match(/^([\s\S]*[।.!?,\n])([\s\S]*)$/);
             if (match) {
               const sentence = match[1];
-              sentenceBuf    = match[2] || '';
-              if (!signal.aborted) {
-                const idx = sentenceIdx++;
-                // Fire TTS immediately — do NOT await (keeps reading GPT tokens)
-                const task = SarvamBridgeService.speakViaTTS(
-                  callUuid, plivoWs, sentence,
-                  sarvamApiKey, language, voice,
-                  signal, perf, idx
-                ).catch(e => {
-                  if (!signal.aborted) logger.error(`[SarvamBridge][${callUuid}] TTS s${idx}: ${e.message}`);
-                });
-                ttsTasks.push(task);
+              // Avoid sending tiny fragments (like 1-2 words) on comma breaks to prevent weird speech pacing
+              if (sentence.endsWith(',') && sentence.split(/\s+/).length < 5) {
+                // Do not split on comma yet, wait for next token
+              } else {
+                sentenceBuf    = match[2] || '';
+                if (!signal.aborted) {
+                  const idx = sentenceIdx++;
+                  // Fire TTS immediately — do NOT await (keeps reading GPT tokens)
+                  const task = SarvamBridgeService.speakViaTTS(
+                    callUuid, plivoWs, sentence,
+                    sarvamApiKey, language, voice,
+                    signal, perf, idx
+                  ).catch(e => {
+                    if (!signal.aborted) logger.error(`[SarvamBridge][${callUuid}] TTS s${idx}: ${e.message}`);
+                  });
+                  ttsTasks.push(task);
+                }
               }
             }
           } catch { /* ignore malformed SSE */ }
@@ -543,6 +564,7 @@ ${systemPrompt}`;
     (plivoWs as any).isSarvam                   = true;
     (plivoWs as any).sarvamState                = 'LISTENING' as ConvState;
     (plivoWs as any).sarvamAbortController      = null as AbortController | null;
+    (plivoWs as any).sarvamVadTimer             = null as NodeJS.Timeout | null;
     (plivoWs as any).sarvamTurnId               = 0;
     (plivoWs as any).sarvamRealAudioStarted     = false;
 
@@ -620,8 +642,17 @@ ${systemPrompt}`;
           if (msg.type === 'user_started_speaking' || msg.type === 'START_SPEECH') {
             const st: ConvState = (plivoWs as any).sarvamState;
             if (st === 'SPEAKING' || st === 'THINKING') {
-              logger.info(`[SarvamBridge][${callUuid}] VAD barge-in (state: ${st})`);
-              SarvamBridgeService.interruptAI(callUuid, plivoWs);
+              // Debounce VAD trigger by 150ms to ensure it is actual speech and not static pop noise
+              if (!(plivoWs as any).sarvamVadTimer) {
+                (plivoWs as any).sarvamVadTimer = setTimeout(() => {
+                  (plivoWs as any).sarvamVadTimer = null;
+                  const currentSt: ConvState = (plivoWs as any).sarvamState;
+                  if (currentSt === 'SPEAKING' || currentSt === 'THINKING') {
+                    logger.info(`[SarvamBridge][${callUuid}] Confirmed VAD barge-in (state: ${currentSt})`);
+                    SarvamBridgeService.interruptAI(callUuid, plivoWs);
+                  }
+                }, 150);
+              }
             }
             return;
           }
