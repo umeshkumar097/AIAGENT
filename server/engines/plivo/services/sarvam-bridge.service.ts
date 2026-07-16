@@ -483,27 +483,37 @@ ${systemPrompt}`;
     const authHeader = `Bearer ${openaiApiKey}`;
     const model = openaiModel || 'gpt-5.5';
 
+    const isReasoningModel = model.includes('gpt-5') || model.startsWith('o1') || model.startsWith('o3');
+
+    const requestBody: any = {
+      model,
+      messages,
+      stream: true,
+      tools: [
+        {
+          type: 'function',
+          function: {
+            name: 'end_call',
+            description: 'Call this function to disconnect/hang up the call when the conversation is complete, after you have said goodbye or the user has confirmed they are done.'
+          }
+        }
+      ]
+    };
+
+    if (isReasoningModel) {
+      requestBody.max_completion_tokens = 250; // Reasoning models require max_completion_tokens (which covers reasoning + output)
+      // Reasoning models do not support custom temperature, frequency_penalty or presence_penalty
+    } else {
+      requestBody.max_tokens = 250;
+      requestBody.temperature = 0.3;
+      requestBody.frequency_penalty = 0.5;
+      requestBody.presence_penalty = 0.6;
+    }
+
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        messages,
-        max_tokens: 60,       // Keep it under 20 words for faster generation
-        temperature: 0.3,     // Higher consistency, faster tokens processing
-        frequency_penalty: 0.5, // Reduces verbal loops
-        presence_penalty: 0.6,  // Encourages model to get to the point
-        stream: true,
-        tools: [
-          {
-            type: 'function',
-            function: {
-              name: 'end_call',
-              description: 'Call this function to disconnect/hang up the call when the conversation is complete, after you have said goodbye or the user has confirmed they are done.'
-            }
-          }
-        ]
-      }),
+      body: JSON.stringify(requestBody),
       signal
     });
     if (!response.ok) throw new Error(`OpenAI ${response.status}: ${await response.text()}`);
