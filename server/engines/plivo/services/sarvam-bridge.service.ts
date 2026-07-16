@@ -479,10 +479,9 @@ ${systemPrompt}`;
 
     perf.mark('GPT_START');
 
-    const groqApiKey = await SarvamBridgeService.getGroqApiKey();
-    const url = groqApiKey ? 'https://api.groq.com/openai/v1/chat/completions' : 'https://api.openai.com/v1/chat/completions';
-    const authHeader = groqApiKey ? `Bearer ${groqApiKey}` : `Bearer ${openaiApiKey}`;
-    const model = groqApiKey ? 'llama-3.1-8b-instant' : (openaiModel || 'gpt-5.5');
+    const url = 'https://api.openai.com/v1/chat/completions';
+    const authHeader = `Bearer ${openaiApiKey}`;
+    const model = openaiModel || 'gpt-5.5';
 
     const response = await fetch(url, {
       method: 'POST',
@@ -507,7 +506,7 @@ ${systemPrompt}`;
       }),
       signal
     });
-    if (!response.ok) throw new Error(`${groqApiKey ? 'Groq' : 'OpenAI'} ${response.status}: ${await response.text()}`);
+    if (!response.ok) throw new Error(`OpenAI ${response.status}: ${await response.text()}`);
 
     const reader    = response.body!.getReader();
     const decoder   = new TextDecoder();
