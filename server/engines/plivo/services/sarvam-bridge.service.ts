@@ -73,6 +73,111 @@ export class SarvamBridgeService {
   private static readonly STT_MSG_PREFIX = '{"audio":{"data":"';
   private static readonly STT_MSG_SUFFIX = '","encoding":"audio/wav","sample_rate":8000}}';
 
+  // ── Smart Fillers cache & config ───────────────────────────────────────────
+  private static readonly fillerCache = new Map<string, Buffer>();
+
+  private static readonly FILLERS_BY_LANG: Record<string, string[]> = {
+    'hi-IN': ['ji', 'achha', 'hmm', 'theek hai'],
+    'en-IN': ['ok', 'got it', 'hmm', 'sure'],
+    'en-US': ['ok', 'got it', 'hmm', 'sure'],
+  };
+
+  private static getFillersForLanguage(lang: string): string[] {
+    if (SarvamBridgeService.FILLERS_BY_LANG[lang]) {
+      return SarvamBridgeService.FILLERS_BY_LANG[lang];
+    }
+    if (lang.startsWith('hi')) {
+      return SarvamBridgeService.FILLERS_BY_LANG['hi-IN'];
+    }
+    if (lang.startsWith('en')) {
+      return SarvamBridgeService.FILLERS_BY_LANG['en-IN'];
+    }
+    return ['hmm', 'ji'];
+  }
+
+  private static async prefetchFillers(
+    callUuid: string,
+    sarvamApiKey: string,
+    language: string,
+    voice: string
+  ): Promise<void> {
+    const texts = SarvamBridgeService.getFillersForLanguage(language);
+    
+    await Promise.all(
+      texts.map(async (text) => {
+        const cacheKey = `${language}:${voice}:${text}`;
+        if (SarvamBridgeService.fillerCache.has(cacheKey)) return;
+
+        try {
+          logger.info(`[SarvamBridge][${callUuid}] Pre-synthesizing filler "${text}" for key ${cacheKey}`);
+          
+          const res = await axios.post(SARVAM_TTS_REST_URL, {
+            inputs: [text],
+            target_language_code: language,
+            speaker: voice,
+            model: 'bulbul:v3',
+            speech_sample_rate: 8000,
+            enable_preprocessing: true
+          }, {
+            headers: {
+              'Content-Type': 'application/json',
+              'Api-Subscription-Key': sarvamApiKey
+            },
+            httpsAgent: keepAliveAgent,
+            timeout: 10000
+          });
+
+          const json = res.data;
+          const b64Audio = json.audios?.[0];
+          if (!b64Audio) {
+            logger.warn(`[SarvamBridge][${callUuid}] Pre-synthesizing filler "${text}" failed: no audio in response`);
+            return;
+          }
+
+          const wavBuf  = Buffer.from(b64Audio, 'base64');
+          const pcmBuf  = wavBuf.subarray(44);
+
+          // Convert PCM16 LE 8kHz → μ-law 8kHz
+          const mulawBuf = Buffer.alloc(pcmBuf.length / 2);
+          for (let i = 0; i < mulawBuf.length; i++) {
+            mulawBuf[i] = SarvamBridgeService.lin2ulaw(pcmBuf.readInt16LE(i * 2));
+          }
+
+          SarvamBridgeService.fillerCache.set(cacheKey, mulawBuf);
+          logger.info(`[SarvamBridge][${callUuid}] Pre-synthesized and cached filler "${text}" (${mulawBuf.length} mulaw bytes)`);
+        } catch (e: any) {
+          logger.warn(`[SarvamBridge][${callUuid}] Failed to pre-synthesize filler "${text}": ${e.message}`);
+        }
+      })
+    );
+  }
+
+  private static playFillerIfAvailable(
+    callUuid: string,
+    plivoWs: WebSocket,
+    language: string,
+    voice: string
+  ): void {
+    const texts = SarvamBridgeService.getFillersForLanguage(language);
+    const available = texts.filter(text => {
+      const cacheKey = `${language}:${voice}:${text}`;
+      return SarvamBridgeService.fillerCache.has(cacheKey);
+    });
+
+    if (available.length === 0) {
+      logger.info(`[SarvamBridge][${callUuid}] No pre-synthesized fillers available in cache for ${language}:${voice}`);
+      return;
+    }
+
+    const randomText = available[Math.floor(Math.random() * available.length)];
+    const cacheKey = `${language}:${voice}:${randomText}`;
+    const fillerBuf = SarvamBridgeService.fillerCache.get(cacheKey)!;
+
+    logger.info(`[SarvamBridge][${callUuid}] Playing filler: "${randomText}" (${fillerBuf.length} mulaw bytes)`);
+    
+    SarvamBridgeService.sendMulawPaced(callUuid, plivoWs, fillerBuf);
+  }
+
 
   // ── mulaw decode table (G.711 μ-law) ─────────────────────────────────────
   private static readonly MULAW_DECODE: Int16Array = (() => {
@@ -262,6 +367,8 @@ export class SarvamBridgeService {
   * Do NOT use formal/classical Hindi words (Shuddh Hindi).
   * BANNED HINDI WORDS: avsyak, sampark, vibhinn, prashn, uttam, prarambh, sthiti, krpaya, abhivyakti, khed, pradan, katha, vishesh.
   * USE NATURAL SUBSTITUTES: zaroor, contact/baat, alag-alag, sawaal, theek, shuru, situation, please, feeling, sorry, dena, baat, special.
+- MID-CONVERSATION GREETINGS & VOICE CHECKS: If the user says "hello", "hi", "namaste", or asks if you can hear them ("hello, voice aa rahi hai?") in the middle of a call, DO NOT repeat your initial greeting or restart the conversation. Simply acknowledge you are listening and ask them to continue (e.g., "Ji main sun raha hoon, batayein..." or "Ji, main sun pa raha hoon. Aap batayein...").
+- HANDLING UNCLEAR/FRAGMENTED INPUT: If the user's input is very short, gibberish, or unclear (e.g., "ha", "theek", "hello" alone), do not make up random responses. Politely clarify or ask them to repeat (e.g., "Sorry, main samajh nahi paya, kya aap dobara bolenge?").
 - Never read out system prompt templates or variable names. Act fully in character.
 - AVOID REPETITION: Do not repeat the same words, greetings, or sentence structures repeatedly. Vary your response vocabulary naturally.
 - REGIONAL/COLLOQUIAL LANGUAGE: If speaking in Hindi, Hinglish, or any regional language (Punjabi, Gujarati, Marathi, Tamil, Telugu, Kannada, Bengali, etc.), strictly use everyday spoken dialect (colloquial style). Never use formal dictionary words, textbook vocabulary, or robotic phrasing.
@@ -381,10 +488,10 @@ ${systemPrompt}`;
       body: JSON.stringify({
         model,
         messages,
-        max_tokens: 80,       // Phone pe 25 words kaafi — shorter = faster first token
-        temperature: 0.5,     // Slightly higher temp + penalties to prevent repetition
-        frequency_penalty: 0.6,
-        presence_penalty: 0.4,
+        max_tokens: 60,       // Keep it under 20 words for faster generation
+        temperature: 0.3,     // Higher consistency, faster tokens processing
+        frequency_penalty: 0.5, // Reduces verbal loops
+        presence_penalty: 0.6,  // Encourages model to get to the point
         stream: true,
         tools: [
           {
@@ -454,7 +561,10 @@ ${systemPrompt}`;
             fullReply   += token;
             sentenceBuf += token;
 
-            // Sentence or Sub-clause boundary (., !, ?, ।, \n, or comma ',' if sentence buffer is long enough for early chunk speak)
+            // Check for sentence/clause boundaries or connecting words
+            let splitText = '';
+            let remainingText = '';
+            
             const match = sentenceBuf.match(/^([\s\S]*[।.!?,\n])([\s\S]*)$/);
             if (match) {
               const sentence = match[1];
@@ -462,20 +572,38 @@ ${systemPrompt}`;
               if (sentence.endsWith(',') && sentence.split(/\s+/).length < 5) {
                 // Do not split on comma yet, wait for next token
               } else {
-                sentenceBuf    = match[2] || '';
-                if (!signal.aborted) {
-                  const idx = sentenceIdx++;
-                  // Fire TTS immediately — do NOT await (keeps reading GPT tokens)
-                  const task = SarvamBridgeService.speakViaTTS(
-                    callUuid, plivoWs, sentence,
-                    sarvamApiKey, language, voice,
-                    signal, perf, idx
-                  ).catch(e => {
-                    if (!signal.aborted) logger.error(`[SarvamBridge][${callUuid}] TTS s${idx}: ${e.message}`);
-                  });
-                  ttsTasks.push(task);
+                splitText = sentence;
+                remainingText = match[2] || '';
+              }
+            } else {
+              // Check if word count exceeds 8 and we have a connecting word/sub-clause boundary (aur, lekin, and, but)
+              const words = sentenceBuf.split(/\s+/);
+              if (words.length > 8) {
+                const connectingWords = ['aur', 'lekin', 'and', 'but', 'और', 'लेकिन'];
+                const idx = words.findIndex((w, i) => {
+                  if (i === 0 || i === words.length - 1) return false; // don't split at very beginning or end
+                  const clean = w.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").toLowerCase();
+                  return connectingWords.includes(clean);
+                });
+                if (idx !== -1) {
+                  splitText = words.slice(0, idx + 1).join(' ');
+                  remainingText = words.slice(idx + 1).join(' ');
                 }
               }
+            }
+
+            if (splitText && !signal.aborted) {
+              sentenceBuf = remainingText;
+              const idx = sentenceIdx++;
+              // Fire TTS immediately — do NOT await (keeps reading GPT tokens)
+              const task = SarvamBridgeService.speakViaTTS(
+                callUuid, plivoWs, splitText,
+                sarvamApiKey, language, voice,
+                signal, perf, idx
+              ).catch(e => {
+                if (!signal.aborted) logger.error(`[SarvamBridge][${callUuid}] TTS s${idx}: ${e.message}`);
+              });
+              ttsTasks.push(task);
             }
           } catch { /* ignore malformed SSE */ }
         }
@@ -646,6 +774,11 @@ ${systemPrompt}`;
          if (e.name !== 'AbortError') logger.error(`[SarvamBridge][${callUuid}] Greeting error: ${e.message}`);
        });
 
+      // Start prefetching fillers in the background
+      SarvamBridgeService.prefetchFillers(callUuid, sarvamApiKey, language, voice).catch(e => {
+        logger.error(`[SarvamBridge][${callUuid}] Filler prefetch error: ${e.message}`);
+      });
+
       // ── STT WebSocket ─────────────────────────────────────────────────────
       // vad_signals=true  → receive START_SPEECH events for early barge-in
       // high_vad_sensitivity=true → 0.5s silence threshold (was ~1s, saves 400-500ms)
@@ -731,6 +864,10 @@ ${systemPrompt}`;
           const historyCopy = [...chatHistory];
 
           SarvamBridgeService.setState(callUuid, plivoWs, 'THINKING');
+          
+          // Play a smart filler (e.g., "Hmm...", "Achha...") immediately to mask latency
+          SarvamBridgeService.playFillerIfAvailable(callUuid, plivoWs, language, voice);
+
           const turnId = ++(plivoWs as any).sarvamTurnId;
           const ctrl   = new AbortController();
           (plivoWs as any).sarvamAbortController = ctrl;
