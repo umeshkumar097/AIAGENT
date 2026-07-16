@@ -20,7 +20,9 @@ export type OpenAIRealtimeModel =
   | 'gpt-realtime' 
   | 'gpt-realtime-mini'
   | 'gpt-4o-realtime-preview'
-  | 'gpt-4o-mini-realtime-preview';
+  | 'gpt-4o-mini-realtime-preview'
+  | 'gpt-5.5'
+  | 'gpt-5.5-pro';
 
 export type ModelTier = 'free' | 'pro';
 
@@ -254,7 +256,7 @@ export const MODEL_TIER_CONFIG: Record<ModelTier, { models: OpenAIRealtimeModel[
     description: 'GPT Realtime Mini - Cost-effective model',
   },
   pro: {
-    models: ['gpt-realtime-2', 'gpt-realtime-translate', 'gpt-realtime-whisper', 'gpt-realtime-1.5', 'gpt-realtime', 'gpt-realtime-mini', 'gpt-4o-realtime-preview', 'gpt-4o-mini-realtime-preview'],
-    description: 'Full model access including GPT Realtime 2 and 1.5 (recommended)',
+    models: ['gpt-realtime-2', 'gpt-realtime-translate', 'gpt-realtime-whisper', 'gpt-realtime-1.5', 'gpt-realtime', 'gpt-realtime-mini', 'gpt-4o-realtime-preview', 'gpt-4o-mini-realtime-preview', 'gpt-5.5', 'gpt-5.5-pro'],
+    description: 'Full model access including GPT-5.5, GPT Realtime 2 and 1.5 (recommended)',
   },
 };

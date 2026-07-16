@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { AzureOpenAI } from "openai";
+import { OpenAI, AzureOpenAI } from "openai";
 import { HELP_AGENT_SYSTEM_PROMPT } from "../services/help-agent-knowledge";
 import { authenticateToken } from "../middleware/auth";
 
@@ -14,22 +14,29 @@ router.post("/chat", authenticateToken, async (req: Request, res: Response) => {
   }
 
   try {
-    const endpoint = process.env.HELP_AGENT_AZURE_OPENAI_ENDPOINT;
-    const apiKey = process.env.HELP_AGENT_AZURE_OPENAI_API_KEY;
-    const deployment = process.env.HELP_AGENT_AZURE_OPENAI_DEPLOYMENT_NAME || "gpt-5.1";
-    const apiVersion = process.env.HELP_AGENT_AZURE_OPENAI_API_VERSION || "2024-02-15-preview";
+    const endpoint = process.env.HELP_AGENT_AZURE_OPENAI_ENDPOINT || process.env.AZURE_OPENAI_ENDPOINT;
+    const apiKey = process.env.HELP_AGENT_AZURE_OPENAI_API_KEY || process.env.OPENAI_API_KEY || process.env.AZURE_OPENAI_API_KEY;
+    const deployment = process.env.HELP_AGENT_AZURE_OPENAI_DEPLOYMENT_NAME || process.env.AZURE_OPENAI_DEPLOYMENT_NAME || "gpt-5.5";
+    const apiVersion = process.env.HELP_AGENT_AZURE_OPENAI_API_VERSION || process.env.AZURE_OPENAI_API_VERSION || "2024-02-15-preview";
 
-    if (!endpoint || !apiKey) {
-      console.error("Missing Azure OpenAI credentials");
-      return res.status(500).json({ error: "Azure OpenAI not configured on server" });
+    if (!apiKey) {
+      console.error("Missing OpenAI credentials");
+      return res.status(500).json({ error: "OpenAI not configured on server" });
     }
 
-    const client = new AzureOpenAI({
-      endpoint,
-      apiKey,
-      deployment,
-      apiVersion,
-    });
+    let client;
+    if (endpoint && !apiKey.startsWith('sk-')) {
+      client = new AzureOpenAI({
+        endpoint,
+        apiKey,
+        deployment,
+        apiVersion,
+      });
+    } else {
+      client = new OpenAI({
+        apiKey,
+      });
+    }
 
     const conversation = [
       { role: "system", content: HELP_AGENT_SYSTEM_PROMPT },

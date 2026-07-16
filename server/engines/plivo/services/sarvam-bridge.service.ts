@@ -42,6 +42,7 @@ export interface SarvamAgentConfig {
   language?:     string;
   voice?:        string;
   openaiApiKey:  string;
+  openaiModel?:  string;
 }
 
 // ── Per-call latency profiler ────────────────────────────────────────────────
@@ -470,7 +471,8 @@ ${systemPrompt}`;
     language: string,
     voice: string,
     signal: AbortSignal,
-    perf: PerfTimer
+    perf: PerfTimer,
+    openaiModel?: string
   ): Promise<string> {
     const naturalWrapper = SarvamBridgeService.buildWrapper(systemPrompt, voice);
     const messages = [{ role: 'system' as const, content: naturalWrapper }, ...history];
@@ -480,7 +482,7 @@ ${systemPrompt}`;
     const groqApiKey = await SarvamBridgeService.getGroqApiKey();
     const url = groqApiKey ? 'https://api.groq.com/openai/v1/chat/completions' : 'https://api.openai.com/v1/chat/completions';
     const authHeader = groqApiKey ? `Bearer ${groqApiKey}` : `Bearer ${openaiApiKey}`;
-    const model = groqApiKey ? 'llama-3.1-8b-instant' : 'gpt-4o-mini';
+    const model = groqApiKey ? 'llama-3.1-8b-instant' : (openaiModel || 'gpt-5.5');
 
     const response = await fetch(url, {
       method: 'POST',
@@ -680,7 +682,8 @@ ${systemPrompt}`;
         const reply = await SarvamBridgeService.streamGPTAndSpeak(
           callUuid, plivoWs, agentConfig.openaiApiKey,
           agentConfig.systemPrompt, [],
-          sarvamApiKey, language, voice, signal, perf
+          sarvamApiKey, language, voice, signal, perf,
+          agentConfig.openaiModel
         );
         if (reply && !signal.aborted) {
           chatHistory.push({ role: 'assistant', content: reply });
@@ -879,7 +882,8 @@ ${systemPrompt}`;
             agentConfig.systemPrompt,
             historyCopy,
             sarvamApiKey, language, voice,
-            ctrl.signal, perf
+            ctrl.signal, perf,
+            agentConfig.openaiModel
           ).then(reply => {
             const currentTurn = (plivoWs as any).sarvamTurnId;
             if (currentTurn !== turnId) {

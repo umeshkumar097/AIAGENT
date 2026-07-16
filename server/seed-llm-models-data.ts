@@ -76,6 +76,22 @@ export const MODELS_SEED_DATA = [
 
   // Pro Tier Models - Premium options for Pro plan users
   {
+    modelId: "gpt-5.5",
+    name: "GPT-5.5 (OpenAI)",
+    provider: "openai",
+    tier: "pro",
+    sortOrder: 8,
+    isActive: true,
+  },
+  {
+    modelId: "gpt-5.5-pro",
+    name: "GPT-5.5 Pro (OpenAI)",
+    provider: "openai",
+    tier: "pro",
+    sortOrder: 9,
+    isActive: true,
+  },
+  {
     modelId: "gpt-4o",
     name: "GPT-4o (OpenAI)",
     provider: "openai",

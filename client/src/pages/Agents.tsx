@@ -178,6 +178,8 @@ const MODEL_COSTS: Record<string, { llm: number; name: string; speed: string }> 
   "gpt-4o-mini": { llm: 0.006, name: "GPT-4o Mini", speed: "Fast" },
   "gpt-4-turbo": { llm: 0.04, name: "GPT-4 Turbo", speed: "High Quality" },
   "gpt-3.5-turbo": { llm: 0.003, name: "GPT-3.5 Turbo", speed: "Very Fast" },
+  "gpt-5.5": { llm: 0.05, name: "GPT-5.5", speed: "Very Fast" },
+  "gpt-5.5-pro": { llm: 0.10, name: "GPT-5.5 Pro", speed: "Balanced" },
   
   // Anthropic Models
   "claude-3-5-sonnet": { llm: 0.06, name: "Claude 3.5 Sonnet", speed: "High Quality" },
@@ -460,6 +462,8 @@ export default function Agents() {
       'gpt-realtime-mini': { name: 'GPT Realtime Mini', tier: 'free', description: 'A cost-efficient version of GPT Realtime' },
       'gpt-4o-realtime-preview': { name: 'GPT-4o Realtime Preview', tier: 'pro', description: 'Preview model for projects without GA access' },
       'gpt-4o-mini-realtime-preview': { name: 'GPT-4o Mini Realtime Preview', tier: 'free', description: 'Preview mini model for projects without GA access' },
+      'gpt-5.5': { name: 'GPT-5.5', tier: 'pro', description: 'Advanced GPT-5.5 Reasoning Model' },
+      'gpt-5.5-pro': { name: 'GPT-5.5 Pro', tier: 'pro', description: 'Premium GPT-5.5 Pro reasoning model for enterprise' },
     };
     
     return openaiModelsData.models.map(modelId => {

@@ -334,6 +334,7 @@ async function initializeSession(
           firstMessage:       agents.firstMessage,
           language:           agents.language,
           openaiVoice:        agents.openaiVoice,
+          openaiModel:        agents.openaiModel,
         })
         .from(agents)
         .where(eq(agents.id, call.agentId))
@@ -378,6 +379,7 @@ async function initializeSession(
             language:     agent.language || 'hi-IN',
             voice:        agent.openaiVoice || 'priya',
             openaiApiKey: openaiKey,
+            openaiModel:  call.openaiModel || agent.openaiModel || 'gpt-5.5',
           },
           call.id
         );
