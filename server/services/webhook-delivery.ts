@@ -93,7 +93,7 @@ export class WebhookDeliveryService {
         console.warn(`🚫 [Webhook] SSRF blocked: ${urlCheck.error} for URL ${webhook.url}`);
         return {
           success: false,
-          statusCode: 0,
+          httpStatus: 0,
           responseBody: `Blocked: ${urlCheck.error}`,
           responseTime: 0,
           error: urlCheck.error,

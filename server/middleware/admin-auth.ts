@@ -351,7 +351,7 @@ export function requireAdminPermission(
   section: string, 
   subsection: string, 
   action: PermissionAction
-): (req: AdminRequest, res: Response, next: NextFunction) => Promise<void> | void {
+): (req: AdminRequest, res: Response, next: NextFunction) => Promise<any> | any {
   return async (req: AdminRequest, res: Response, next: NextFunction) => {
     try {
       // Platform admins always have full access
@@ -403,7 +403,7 @@ export function requireAdminPermission(
  */
 export function requireAnyAdminPermission(
   permissions: Array<[string, string, PermissionAction]>
-): (req: AdminRequest, res: Response, next: NextFunction) => Promise<void> | void {
+): (req: AdminRequest, res: Response, next: NextFunction) => Promise<any> | any {
   return async (req: AdminRequest, res: Response, next: NextFunction) => {
     try {
       // Platform admins always have full access

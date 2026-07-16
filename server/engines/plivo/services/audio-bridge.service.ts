@@ -1717,8 +1717,10 @@ CONVERSATION PACING (CRITICAL):
       let estimatedDurationMs = 5000; // Default 5 seconds if we can't estimate
       try {
         const headResponse = await axios.head(fullAudioUrl, { timeout: 5000 });
-        const contentLength = parseInt(headResponse.headers['content-length'] || '0', 10);
-        const contentType = headResponse.headers['content-type'] || '';
+        const contentLengthHeader = headResponse.headers['content-length'];
+        const contentLength = parseInt(typeof contentLengthHeader === 'string' ? contentLengthHeader : String(contentLengthHeader || '0'), 10);
+        const contentTypeHeader = headResponse.headers['content-type'];
+        const contentType = typeof contentTypeHeader === 'string' ? contentTypeHeader : String(contentTypeHeader || '');
 
         if (contentLength > 0) {
           // Estimate duration based on file size and typical bitrate

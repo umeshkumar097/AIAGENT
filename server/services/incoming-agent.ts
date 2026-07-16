@@ -68,6 +68,12 @@ export interface IncomingAgentCreateParams {
   turnTimeout?: number;
   // Database agent ID (needed for webhook tool URLs when creating with appointment booking)
   databaseAgentId?: string;
+  messagingEmailEnabled?: boolean;
+  messagingWhatsappEnabled?: boolean;
+  messagingWhatsappTemplates?: string[];
+  messagingEmailSelectedTemplate?: string;
+  messagingWhatsappSelectedTemplate?: string;
+  messagingWhatsappVariables?: string;
 }
 
 export interface IncomingAgentUpdateParams {
@@ -89,6 +95,7 @@ export interface IncomingAgentUpdateParams {
   messagingWhatsappTemplates?: string[];
   messagingEmailSelectedTemplate?: string;
   messagingWhatsappSelectedTemplate?: string;
+  messagingWhatsappVariables?: string;
   expressiveMode?: boolean;
   voiceStability?: number;
   voiceSimilarityBoost?: number;

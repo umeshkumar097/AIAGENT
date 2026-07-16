@@ -10,8 +10,8 @@ export function PublicVoiceWidget() {
     
     // Initialize the widget once the script is loaded
     script.onload = () => {
-      if (window.vw) {
-        window.vw('init', 'wgt_an5k7vNFf0Kgrr5AmFPMI5cU');
+      if ((window as any).vw) {
+        (window as any).vw('init', 'wgt_an5k7vNFf0Kgrr5AmFPMI5cU');
       }
     };
 

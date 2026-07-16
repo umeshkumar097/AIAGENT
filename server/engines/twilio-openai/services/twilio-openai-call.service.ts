@@ -35,7 +35,7 @@ import {
   OpenAIVoiceAgentCompiler 
 } from '../../../services/openai-voice-agent';
 import { webhookDeliveryService } from '../../../services/webhook-delivery';
-import type { AgentConfig, OpenAIVoice, CompiledFlowConfig } from '../types';
+import type { AgentConfig, OpenAIVoice, OpenAIRealtimeModel, CompiledFlowConfig } from '../types';
 import type { CompiledFunctionTool, CompiledConversationState } from '@shared/schema';
 
 export interface InitiateCallParams {

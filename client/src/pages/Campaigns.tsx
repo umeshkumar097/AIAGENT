@@ -55,6 +55,9 @@ interface Campaign {
   phoneNumberId?: string | null;
   errorMessage?: string | null;
   errorCode?: string | null;
+  retryEnabled?: boolean;
+  currentRetryPass?: number;
+  retryMaxAttempts?: number;
 }
 
 interface User {

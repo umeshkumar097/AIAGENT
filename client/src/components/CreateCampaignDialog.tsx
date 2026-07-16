@@ -39,7 +39,7 @@ interface Agent {
   name: string;
   personality: string;
   type: 'incoming' | 'natural' | 'flow';
-  telephonyProvider: 'twilio' | 'plivo' | 'plivo_openai' | 'twilio_openai' | 'elevenlabs-sip' | 'openai-sip' | null;
+  telephonyProvider: 'twilio' | 'plivo' | 'plivo_openai' | 'twilio_openai' | 'elevenlabs-sip' | 'openai-sip' | 'sarvam-plivo' | 'elevenlabs' | null;
   sipPhoneNumberId?: string | null;
 }
 
@@ -47,10 +47,11 @@ const getEngineLabel = (provider: string | null): string => {
   switch (provider) {
     case 'plivo': 
     case 'plivo_openai': return 'Plivo+OpenAI';
+    case 'sarvam-plivo': return 'Sarvam AI (Plivo)';
+    case 'elevenlabs': return 'ElevenLabs';
     case 'twilio_openai': return 'Twilio+OpenAI';
     case 'elevenlabs-sip': return 'ElevenLabs SIP';
     case 'openai-sip': return 'OpenAI SIP';
-    case 'sarvam-plivo': return 'Sarvam AI';
     default: return 'Twilio+ElevenLabs';
   }
 };

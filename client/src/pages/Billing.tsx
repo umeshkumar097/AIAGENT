@@ -543,7 +543,7 @@ export default function Billing() {
   }
 
   const currentBalance = user?.credits || 0;
-  const hasActiveSubscription = subscription && subscription.status === "active";
+  const hasActiveSubscription = !!(subscription && subscription.status === "active");
 
   return (
     <div className="space-y-8">

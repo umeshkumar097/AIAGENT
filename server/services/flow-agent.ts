@@ -954,6 +954,7 @@ export class FlowAgentService {
       voiceStability?: number;
       voiceSimilarityBoost?: number;
       voiceSpeed?: number;
+      turnTimeout?: number;
       suggestedAudioTags?: boolean;
     } = {};
 

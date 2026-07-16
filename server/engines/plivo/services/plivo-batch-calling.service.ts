@@ -736,7 +736,7 @@ export class PlivoBatchCallingService {
           .select({ id: calls.id })
           .from(calls)
           .where(and(
-            eq(calls.campaignId, this.config.campaignId),
+            eq(calls.campaignId, this.config!.campaignId),
             eq(calls.contactId, contact.id)
           ))
           .orderBy(desc(calls.createdAt))

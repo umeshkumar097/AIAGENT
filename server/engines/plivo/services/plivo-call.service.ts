@@ -1095,6 +1095,7 @@ export class PlivoCallService {
     userId?: string;
     openaiCredentialId?: string;
     plivoCredentialId?: string;
+    metadata?: any;
   }): Promise<PlivoCallRecord> {
     logger.info(`Creating incoming call record: ${params.fromNumber} -> ${params.toNumber}`, undefined, 'PlivoCall');
 
@@ -1113,7 +1114,10 @@ export class PlivoCallService {
         status: 'ringing',
         callDirection: 'inbound',
         startedAt: new Date(),
-        metadata: params.plivoCredentialId ? { plivoCredentialId: params.plivoCredentialId } : null,
+        metadata: {
+          ...(params.metadata || {}),
+          ...(params.plivoCredentialId ? { plivoCredentialId: params.plivoCredentialId } : {})
+        },
       } as InsertPlivoCall)
       .returning();
 

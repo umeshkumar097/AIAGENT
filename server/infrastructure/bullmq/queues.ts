@@ -13,6 +13,8 @@ export const QUEUE_NAMES = {
   CAMPAIGN_CALLS: 'campaign-calls',
   CAMPAIGN_SCHEDULER: 'campaign-scheduler',
   CAMPAIGN_RECOVERY: 'campaign-recovery',
+  PDF_GENERATION: 'pdf-generation',
+  RAG_PROCESSING: 'rag-processing',
 } as const;
 
 export type QueueName = typeof QUEUE_NAMES[keyof typeof QUEUE_NAMES];
@@ -39,6 +41,18 @@ export interface RecoveryJob {
   type: 'recover_stuck' | 'cleanup_stale';
   campaignId?: string;
   maxAge?: number;
+}
+
+export interface PDFGenerationJob {
+  type: 'invoice' | 'refund';
+  id: string;
+}
+
+export interface RAGProcessingJob {
+  knowledgeBaseId: string;
+  userId: string;
+  content: string;
+  metadata?: Record<string, any>;
 }
 
 let campaignCallsQueue: Queue<CampaignCallJob> | null = null;

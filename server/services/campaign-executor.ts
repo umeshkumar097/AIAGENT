@@ -381,7 +381,7 @@ export class CampaignExecutor {
           console.log(`🚀 [Campaign Executor] Queueing Plivo campaign ${campaignId} to BullMQ`);
           await queueCampaignCallsFromBatch(
             campaign.id,
-            preCreatedCalls.map(c => ({ id: c.id, contactId: c.contactId, phoneNumber: c.phoneNumber })),
+            preCreatedCalls.map(c => ({ id: c.id, contactId: c.contactId as string, phoneNumber: (c as any).phoneNumber || c.toNumber || '' })),
             agent.id,
             campaign.userId,
             'plivo',
@@ -556,7 +556,7 @@ export class CampaignExecutor {
           console.log(`🚀 [Campaign Executor] Queueing Twilio-OpenAI campaign ${campaignId} to BullMQ`);
           await queueCampaignCallsFromBatch(
             campaign.id,
-            preCreatedCalls.map(c => ({ id: c.id, contactId: c.contactId, phoneNumber: c.phoneNumber })),
+            preCreatedCalls.map(c => ({ id: c.id, contactId: c.contactId as string, phoneNumber: (c as any).phoneNumber || c.toNumber || '' })),
             agent.id,
             campaign.userId,
             'openai',
@@ -3078,7 +3078,7 @@ export class CampaignExecutor {
 
     // Fire-and-forget via Plivo batch service
     const plivoBatchService = PlivoBatchCallingService.getInstance(`${campaign.id}-retry${pass}`);
-    plivoBatchService.executeCampaign(campaign.id, dueContacts.map(c => c.id)).catch((err: any) => {
+    plivoBatchService.executeCampaign(campaign.id).catch((err: any) => {
       console.error(`[Retry Pass Plivo] Error: ${err.message}`);
     });
 
@@ -3152,7 +3152,7 @@ export class CampaignExecutor {
     await batchInsertCalls(callInserts, `🔄 [Twilio+OpenAI Retry Pass ${pass}]`);
 
     const twilioOpenAIBatchService = TwilioOpenAIBatchCallingService.getInstance(`${campaign.id}-retry${pass}`);
-    twilioOpenAIBatchService.executeCampaign(campaign.id, dueContacts.map(c => c.id)).catch((err: any) => {
+    twilioOpenAIBatchService.executeCampaign(campaign.id).catch((err: any) => {
       console.error(`[Retry Pass Twilio+OpenAI] Error: ${err.message}`);
     });
 

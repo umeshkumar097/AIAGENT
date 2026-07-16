@@ -2641,11 +2641,12 @@ export async function handleElevenLabsWebhook(req: Request, res: Response) {
 
               // Trigger post-call messaging for completed SIP calls (fire-and-forget)
               if (isCompletedCall && callerPhoneNumber) {
+                const finalCallerPhone = callerPhoneNumber;
                 import('../services/post-call-messaging').then(({ triggerPostCallMessaging }) => {
                   triggerPostCallMessaging({
                     elevenLabsAgentId: agent_id,
                     userId: existingSipCall.user_id,
-                    callerPhone: callerPhoneNumber,
+                    callerPhone: finalCallerPhone,
                     callId: existingSipCall.id,
                   }).catch(err => console.error(`❌ [Post-Call Messaging] SIP update error: ${err.message}`));
                 }).catch(err => console.error(`❌ [Post-Call Messaging] Import error: ${err.message}`));

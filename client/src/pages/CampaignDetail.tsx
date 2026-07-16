@@ -56,6 +56,7 @@ interface Call {
   endedAt: string | null;
   classification: string | null;
   sentiment: string | null;
+  createdAt?: string | null;
 }
 
 interface Campaign {

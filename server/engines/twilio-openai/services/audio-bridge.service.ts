@@ -13,6 +13,7 @@
  */
 
 import WebSocket from 'ws';
+import { logger } from '../../../utils/logger';
 import axios from 'axios';
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -1550,7 +1551,8 @@ BACKGROUND NOISE HANDLING:
       // If it's MP3 or other format, we need to convert it (complex - skip for now)
 
       let mulawData: Buffer;
-      const contentType = response.headers['content-type'] || '';
+      const contentTypeHeader = response.headers['content-type'];
+      const contentType = typeof contentTypeHeader === 'string' ? contentTypeHeader : String(contentTypeHeader || '');
 
       if (contentType.includes('audio/wav') || contentType.includes('audio/x-wav') ||
         audioUrl.endsWith('.wav') || audioUrl.includes('.wav')) {

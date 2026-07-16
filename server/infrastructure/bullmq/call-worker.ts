@@ -106,69 +106,7 @@ async function initiateCall(data: CampaignCallJob): Promise<CallResult> {
       }
       
       case 'sip': {
-        const { PlivoElevenLabsOutboundService } = await import('../../engines/plivo-elevenlabs/services/outbound-call.service');
-        const { sipTrunks, sipPhoneNumbers, elevenLabsCredentials } = await import('../../../shared/schema');
-        
-        if (!agent.sipPhoneNumberId) {
-          throw new Error('Agent has no SIP phone number configured');
-        }
-        
-        const [sipPhone] = await db.select().from(sipPhoneNumbers).where(eq(sipPhoneNumbers.id, agent.sipPhoneNumberId)).limit(1);
-        
-        if (!sipPhone || !sipPhone.sipTrunkId) {
-          throw new Error('SIP phone number not found or has no trunk');
-        }
-        
-        const [sipTrunk] = await db.select().from(sipTrunks).where(eq(sipTrunks.id, sipPhone.sipTrunkId)).limit(1);
-        
-        if (!sipTrunk || sipTrunk.provider !== 'plivo') {
-          throw new Error('Only Plivo SIP trunks are supported');
-        }
-        
-        const [elCred] = agent.elevenLabsCredentialId 
-          ? await db.select().from(elevenLabsCredentials).where(eq(elevenLabsCredentials.id, agent.elevenLabsCredentialId)).limit(1)
-          : [];
-        
-        if (!elCred) {
-          throw new Error('ElevenLabs credentials not found');
-        }
-        
-        // Substitute contact variables in firstMessage
-        const contactInfo = {
-          firstName: contact.firstName,
-          lastName: contact.lastName,
-          phone: contact.phone,
-          email: contact.email,
-          customFields: contact.customFields as Record<string, any> || null,
-        };
-        const hydratedFirstMessage = agent.firstMessage 
-          ? substituteContactVariables(agent.firstMessage, contactInfo)
-          : undefined;
-        
-        const dynamicData = enrichDynamicDataWithContactInfo(contactInfo);
-        
-        const result = await PlivoElevenLabsOutboundService.makeCall({
-          toNumber: phone,
-          fromNumber: sipPhone.phoneNumber,
-          agentId: agent.elevenLabsAgentId || agentId,
-          elevenLabsApiKey: elCred.apiKey,
-          plivoAuthId: sipTrunk.username || '',
-          plivoAuthToken: sipTrunk.password || '',
-          agentConfig: {
-            agentId: agent.elevenLabsAgentId || agentId,
-            firstMessage: hydratedFirstMessage,
-            language: agent.language || undefined,
-            dynamicData,
-          },
-          // Tracking fields so the call can be recorded and billed.
-          userId,
-          dbAgentId: agent.id,
-          campaignId,
-          contactId,
-        });
-        success = result.success;
-        errorMessage = result.error;
-        break;
+        throw new Error('The legacy "sip" engine is deprecated and no longer supported. Please use "elevenlabs-sip" instead.');
       }
       
       case 'elevenlabs': {
@@ -327,7 +265,7 @@ async function initiateCall(data: CampaignCallJob): Promise<CallResult> {
               };
               const language = agent.language || 'en';
               if (flow.compiledSystemPrompt && flow.compiledTools) {
-                const { hydrateCompiledFlow, substituteContactVariables } = await import('../../../services/openai-voice-agent/hydrator');
+                const { hydrateCompiledFlow, substituteContactVariables } = await import('../../services/openai-voice-agent/hydrator');
                 const systemPrompt = substituteContactVariables(flow.compiledSystemPrompt, contactVariables);
                 const firstMessage = flow.compiledFirstMessage ? substituteContactVariables(flow.compiledFirstMessage, contactVariables) : undefined;
                 const hydratedConfig = hydrateCompiledFlow({

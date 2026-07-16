@@ -226,7 +226,7 @@ export class TwilioService {
     if (params.inRegion) listOptions.inRegion = params.inRegion;
     
     console.log(`📞 [Search] Fetching local numbers for ${country}`);
-    let numbers = [];
+    let numbers: any[] = [];
     try {
       numbers = await client.availablePhoneNumbers(country).local.list(listOptions);
     } catch (err: any) {

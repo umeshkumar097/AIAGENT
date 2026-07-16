@@ -157,7 +157,7 @@ function handlePlivoStreamConnection(ws: WebSocket, callUuid: string): void {
             const { PlivoRecordingService } = await import('../services/plivo-recording.service');
             await PlivoRecordingService.stopRecording({
               callUuid,
-              plivoCredentialId: call.plivoCredentialId || undefined,
+              plivoCredentialId: (call as any).plivoCredentialId || undefined,
             });
             logger.info(`[PlivoStream] ✓ Recording stopped for streaming call ${callUuid}`, undefined, 'PlivoStream');
           } catch (recStopErr: any) {

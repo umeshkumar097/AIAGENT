@@ -37,7 +37,8 @@ router.post("/chat", authenticateToken, async (req: Request, res: Response) => {
     ];
 
     const stream = await client.chat.completions.create({
-      messages: conversation,
+      model: deployment || "gpt-4o-mini",
+      messages: conversation as any,
       stream: true,
     });
 

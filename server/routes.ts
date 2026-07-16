@@ -28,6 +28,7 @@ import { validateTwilioWebhook } from "./middleware/webhookValidation";
 import { elevenLabsService, ElevenLabsService, isAgentOnSipPhoneNumber, getSipTrunkOutboundAddress } from "./services/elevenlabs";
 import { ElevenLabsPoolService } from "./services/elevenlabs-pool";
 import { twilioService } from "./services/twilio";
+import { markPluginAsRegistered } from "./plugins/loader";
 
 const elevenLabsPoolService = new ElevenLabsPoolService();
 import { getTwilioClient } from "./services/twilio-connector";
@@ -1526,7 +1527,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Format the phone number (add + if missing)
       const formattedPhone = phone.startsWith('+') ? phone : `+${phone}`;
 
-      const { agents, phoneNumbers, plivoPhoneNumbers, elevenLabsPhoneNumbers, incomingConnections } = await import("@shared/schema");
+      const { agents, phoneNumbers, plivoPhoneNumbers, incomingConnections } = await import("@shared/schema");
       const { eq, and } = await import("drizzle-orm");
       
       const agent = await db.query.agents.findFirst({
@@ -1579,7 +1580,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           agentId: agent.id,
           plivoPhoneNumberId: plivoPhone.id,
           agentConfig: {
-            voice: agent.openaiVoice || "alloy",
+            voice: (agent.openaiVoice as any) || "alloy",
             model: (agent.config as any)?.openaiModel || "gpt-realtime-1.5",
             systemPrompt: processedSystemPrompt,
             firstMessage: processedFirstMessage,
@@ -1640,7 +1641,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         const { OutboundCallService } = await import("./services/outbound-call-service");
-        const callService = new OutboundCallService();
+        const { ElevenLabsPoolService } = await import("./services/elevenlabs-pool");
+        const credential = await ElevenLabsPoolService.getCredentialForAgent(agent.id);
+        if (!credential) {
+          return res.status(400).json({ error: "No ElevenLabs credential configured for this agent" });
+        }
+        const callService = new OutboundCallService(credential.apiKey);
         
         const callResult = await callService.initiateCall({
           agentId: agent.id,

@@ -1760,6 +1760,7 @@ LANGUAGE DETECTION: You have automatic language detection enabled. Listen carefu
       messagingWhatsappEnabled?: boolean | null;
       messagingEmailTemplate?: string | null;
       messagingWhatsappTemplate?: string | null;
+      messagingWhatsappVariables?: string | null;
     },
     userTier: 'free' | 'pro',
     callId?: string,

@@ -1024,10 +1024,11 @@ export function createPlivoApiRoutes(): Router {
       console.log(`[Plivo API] Assigned agent ${agentId} to phone number ${phoneNumber.phoneNumber}`);
 
       // Configure Plivo webhooks to route incoming calls to our endpoint
+      let baseUrl = '';
       try {
         const domain = getDomain();
         // Ensure we have a full URL with protocol
-        const baseUrl = domain.startsWith('http://') || domain.startsWith('https://') 
+        baseUrl = domain.startsWith('http://') || domain.startsWith('https://') 
           ? domain 
           : `https://${domain}`;
         

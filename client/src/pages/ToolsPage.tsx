@@ -187,7 +187,7 @@ export default function ToolsPage() {
 
   const visibleTools = allTools.filter((tool) => {
     if (!tool.pluginRequired) return true;
-    return isPluginEnabled(tool.pluginRequired);
+    return isPluginEnabled?.(tool.pluginRequired) ?? false;
   });
 
   return (

@@ -1162,6 +1162,7 @@ export class WebhookTestService {
           success: false,
           responseTime: 0,
           error: urlCheck.error,
+          message: urlCheck.error || 'Blocked by security policy',
         };
       }
       

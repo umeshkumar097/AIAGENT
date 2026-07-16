@@ -80,6 +80,7 @@ export interface LoadedPlugin {
 export interface PluginLoaderOptions {
   sessionAuthMiddleware: RequestHandler;
   adminAuthMiddleware: RequestHandler;
+  callServices?: any;
 }
 
 const loadedPlugins: Map<string, LoadedPlugin> = new Map();

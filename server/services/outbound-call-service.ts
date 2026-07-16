@@ -34,12 +34,7 @@ export interface OutboundCallParams {
   webhookTools?: any[];
   conversationInitiationClientData?: {
     conversationConfigOverride?: {
-      agent?: {
-        prompt?: {
-          prompt?: string;
-        };
-        first_message?: string;
-      };
+      agent?: any;
       workflow?: any;
     };
     webhook_tools?: any[];

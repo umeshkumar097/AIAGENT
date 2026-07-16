@@ -1296,7 +1296,7 @@ export function createCampaignRoutes(ctx: RouteContext): Router {
       
       try {
         const callResult = await elevenLabsSvc.initiateOutboundCall({
-          phoneNumberId: campaignPhone.elevenLabsPhoneNumberId,
+          phoneNumberId: campaignPhone.elevenLabsPhoneNumberId || '',
           toNumber: phoneNumber,
           agentId: agent.elevenLabsAgentId,
           firstMessage: agent.firstMessage || undefined,

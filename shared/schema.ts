@@ -196,6 +196,10 @@ export const agents = pgTable("agents", {
   
   // Legacy/Common Fields
   agentLink: text("agent_link"),
+  engine: text("engine"),
+  openaiModel: text("openai_model"),
+  sarvamVoice: text("sarvam_voice"),
+  voice: text("voice"),
   config: jsonb("config"),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),

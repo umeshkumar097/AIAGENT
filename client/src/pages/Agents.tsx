@@ -233,7 +233,7 @@ export default function Agents() {
   const [activeTab, setActiveTab] = useState<'agents' | 'templates' | 'voices'>('agents');
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<'all' | 'incoming' | 'flow'>('all');
-  const [engineFilter, setEngineFilter] = useState<'all' | 'twilio' | 'plivo' | 'twilio_openai' | 'elevenlabs-sip' | 'openai-sip'>('all');
+  const [engineFilter, setEngineFilter] = useState<'all' | 'twilio' | 'plivo' | 'twilio_openai' | 'elevenlabs-sip' | 'openai-sip' | 'sarvam-plivo' | 'elevenlabs'>('all');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [knowledgeUploadOpen, setKnowledgeUploadOpen] = useState(false);
@@ -273,7 +273,7 @@ export default function Agents() {
     voiceSpeed: 1.0,
     turnTimeout: 1.5,
     // Telephony Provider selection (Twilio/ElevenLabs, Plivo/OpenAI, Twilio/OpenAI, or SIP engines)
-    telephonyProvider: "twilio" as "twilio" | "plivo" | "twilio_openai" | "elevenlabs-sip" | "openai-sip",
+    telephonyProvider: "twilio" as "twilio" | "plivo" | "twilio_openai" | "elevenlabs-sip" | "openai-sip" | "sarvam-plivo" | "elevenlabs",
     openaiVoice: "alloy",
     // SIP phone number selection (for SIP engines)
     sipPhoneNumberId: "",
@@ -325,7 +325,7 @@ export default function Agents() {
   });
 
   // Fetch voice engine settings to check if Plivo+OpenAI or Twilio+OpenAI is enabled
-  const { data: voiceEngineSettings } = useQuery<{ plivo_openai_engine_enabled: boolean; twilio_openai_engine_enabled: boolean; default_tts_model?: string; sarvam_engine_enabled?: boolean }>({
+  const { data: voiceEngineSettings } = useQuery<{ plivo_openai_engine_enabled: boolean; twilio_openai_engine_enabled: boolean; default_tts_model?: string; sarvam_engine_enabled?: boolean; elevenlabs_engine_enabled?: boolean }>({
     queryKey: ["/api/settings/voice-engine"],
     staleTime: 60000,
   });
@@ -611,7 +611,7 @@ export default function Agents() {
       voiceSpeed: 1.0,
       turnTimeout: 1.5,
       // Telephony Provider selection
-      telephonyProvider: "twilio" as "twilio" | "plivo" | "twilio_openai" | "elevenlabs-sip" | "openai-sip",
+      telephonyProvider: "twilio" as "twilio" | "plivo" | "twilio_openai" | "elevenlabs-sip" | "openai-sip" | "sarvam-plivo" | "elevenlabs",
       openaiVoice: "alloy",
       sipPhoneNumberId: "",
     });
@@ -633,7 +633,7 @@ export default function Agents() {
       const isOpenAIVoice = formData.telephonyProvider === "plivo" || formData.telephonyProvider === "twilio_openai" || formData.telephonyProvider === "openai-sip";
       const isSarvamVoice = formData.telephonyProvider === "sarvam-plivo";
       const hasValidVoice = isSarvamVoice
-        ? !!(formData.sarvamVoice || formData.voice || 'priya')  // sarvam always has a default voice
+        ? !!((formData as any).sarvamVoice || (formData as any).voice || 'priya')  // sarvam always has a default voice
         : isOpenAIVoice
           ? !!formData.openaiVoice
           : !!formData.elevenLabsVoiceId;
@@ -748,7 +748,7 @@ export default function Agents() {
       voiceSpeed: agent.voiceSpeed ?? 1.0,
       turnTimeout: agent.turnTimeout ?? 1.5,
       // Telephony Provider selection
-      telephonyProvider: (agent.telephonyProvider || "twilio") as "twilio" | "plivo" | "twilio_openai" | "elevenlabs-sip" | "openai-sip",
+      telephonyProvider: (agent.telephonyProvider || "twilio") as "twilio" | "plivo" | "twilio_openai" | "elevenlabs-sip" | "openai-sip" | "sarvam-plivo" | "elevenlabs",
       openaiVoice: agent.openaiVoice || "alloy",
       sipPhoneNumberId: (agent as any).sipPhoneNumberId || "",
     });

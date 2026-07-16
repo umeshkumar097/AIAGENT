@@ -37,7 +37,7 @@ export function createPublicRoutes(ctx: RouteContext): Router {
   /**
    * Check if installation is complete by checking for any users in the database.
    */
-  async function isInstalled(): Promise<{ installed: boolean; dbError?: boolean }> {
+  async function isInstalled(): Promise<{ installed: boolean; dbError?: boolean; errorMessage?: string }> {
     try {
       const userCount = await db.select({ count: sql<number>`count(*)::int` }).from(users);
       return { installed: (userCount[0]?.count ?? 0) > 0 };
