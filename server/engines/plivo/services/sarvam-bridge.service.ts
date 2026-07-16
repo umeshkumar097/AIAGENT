@@ -73,6 +73,111 @@ export class SarvamBridgeService {
   private static readonly STT_MSG_PREFIX = '{"audio":{"data":"';
   private static readonly STT_MSG_SUFFIX = '","encoding":"audio/wav","sample_rate":8000}}';
 
+  // ── Smart Fillers cache & config ───────────────────────────────────────────
+  private static readonly fillerCache = new Map<string, Buffer>();
+
+  private static readonly FILLERS_BY_LANG: Record<string, string[]> = {
+    'hi-IN': ['ji', 'achha', 'hmm', 'theek hai'],
+    'en-IN': ['ok', 'got it', 'hmm', 'sure'],
+    'en-US': ['ok', 'got it', 'hmm', 'sure'],
+  };
+
+  private static getFillersForLanguage(lang: string): string[] {
+    if (SarvamBridgeService.FILLERS_BY_LANG[lang]) {
+      return SarvamBridgeService.FILLERS_BY_LANG[lang];
+    }
+    if (lang.startsWith('hi')) {
+      return SarvamBridgeService.FILLERS_BY_LANG['hi-IN'];
+    }
+    if (lang.startsWith('en')) {
+      return SarvamBridgeService.FILLERS_BY_LANG['en-IN'];
+    }
+    return ['hmm', 'ji'];
+  }
+
+  private static async prefetchFillers(
+    callUuid: string,
+    sarvamApiKey: string,
+    language: string,
+    voice: string
+  ): Promise<void> {
+    const texts = SarvamBridgeService.getFillersForLanguage(language);
+    
+    await Promise.all(
+      texts.map(async (text) => {
+        const cacheKey = `${language}:${voice}:${text}`;
+        if (SarvamBridgeService.fillerCache.has(cacheKey)) return;
+
+        try {
+          logger.info(`[SarvamBridge][${callUuid}] Pre-synthesizing filler "${text}" for key ${cacheKey}`);
+          
+          const res = await axios.post(SARVAM_TTS_REST_URL, {
+            inputs: [text],
+            target_language_code: language,
+            speaker: voice,
+            model: 'bulbul:v3',
+            speech_sample_rate: 8000,
+            enable_preprocessing: true
+          }, {
+            headers: {
+              'Content-Type': 'application/json',
+              'Api-Subscription-Key': sarvamApiKey
+            },
+            httpsAgent: keepAliveAgent,
+            timeout: 10000
+          });
+
+          const json = res.data;
+          const b64Audio = json.audios?.[0];
+          if (!b64Audio) {
+            logger.warn(`[SarvamBridge][${callUuid}] Pre-synthesizing filler "${text}" failed: no audio in response`);
+            return;
+          }
+
+          const wavBuf  = Buffer.from(b64Audio, 'base64');
+          const pcmBuf  = wavBuf.subarray(44);
+
+          // Convert PCM16 LE 8kHz → μ-law 8kHz
+          const mulawBuf = Buffer.alloc(pcmBuf.length / 2);
+          for (let i = 0; i < mulawBuf.length; i++) {
+            mulawBuf[i] = SarvamBridgeService.lin2ulaw(pcmBuf.readInt16LE(i * 2));
+          }
+
+          SarvamBridgeService.fillerCache.set(cacheKey, mulawBuf);
+          logger.info(`[SarvamBridge][${callUuid}] Pre-synthesized and cached filler "${text}" (${mulawBuf.length} mulaw bytes)`);
+        } catch (e: any) {
+          logger.warn(`[SarvamBridge][${callUuid}] Failed to pre-synthesize filler "${text}": ${e.message}`);
+        }
+      })
+    );
+  }
+
+  private static playFillerIfAvailable(
+    callUuid: string,
+    plivoWs: WebSocket,
+    language: string,
+    voice: string
+  ): void {
+    const texts = SarvamBridgeService.getFillersForLanguage(language);
+    const available = texts.filter(text => {
+      const cacheKey = `${language}:${voice}:${text}`;
+      return SarvamBridgeService.fillerCache.has(cacheKey);
+    });
+
+    if (available.length === 0) {
+      logger.info(`[SarvamBridge][${callUuid}] No pre-synthesized fillers available in cache for ${language}:${voice}`);
+      return;
+    }
+
+    const randomText = available[Math.floor(Math.random() * available.length)];
+    const cacheKey = `${language}:${voice}:${randomText}`;
+    const fillerBuf = SarvamBridgeService.fillerCache.get(cacheKey)!;
+
+    logger.info(`[SarvamBridge][${callUuid}] Playing filler: "${randomText}" (${fillerBuf.length} mulaw bytes)`);
+    
+    SarvamBridgeService.sendMulawPaced(callUuid, plivoWs, fillerBuf);
+  }
+
 
   // ── mulaw decode table (G.711 μ-law) ─────────────────────────────────────
   private static readonly MULAW_DECODE: Int16Array = (() => {
@@ -646,6 +751,11 @@ ${systemPrompt}`;
          if (e.name !== 'AbortError') logger.error(`[SarvamBridge][${callUuid}] Greeting error: ${e.message}`);
        });
 
+      // Start prefetching fillers in the background
+      SarvamBridgeService.prefetchFillers(callUuid, sarvamApiKey, language, voice).catch(e => {
+        logger.error(`[SarvamBridge][${callUuid}] Filler prefetch error: ${e.message}`);
+      });
+
       // ── STT WebSocket ─────────────────────────────────────────────────────
       // vad_signals=true  → receive START_SPEECH events for early barge-in
       // high_vad_sensitivity=true → 0.5s silence threshold (was ~1s, saves 400-500ms)
@@ -731,6 +841,10 @@ ${systemPrompt}`;
           const historyCopy = [...chatHistory];
 
           SarvamBridgeService.setState(callUuid, plivoWs, 'THINKING');
+          
+          // Play a smart filler (e.g., "Hmm...", "Achha...") immediately to mask latency
+          SarvamBridgeService.playFillerIfAvailable(callUuid, plivoWs, language, voice);
+
           const turnId = ++(plivoWs as any).sarvamTurnId;
           const ctrl   = new AbortController();
           (plivoWs as any).sarvamAbortController = ctrl;
