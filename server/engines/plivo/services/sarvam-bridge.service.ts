@@ -367,6 +367,8 @@ export class SarvamBridgeService {
   * Do NOT use formal/classical Hindi words (Shuddh Hindi).
   * BANNED HINDI WORDS: avsyak, sampark, vibhinn, prashn, uttam, prarambh, sthiti, krpaya, abhivyakti, khed, pradan, katha, vishesh.
   * USE NATURAL SUBSTITUTES: zaroor, contact/baat, alag-alag, sawaal, theek, shuru, situation, please, feeling, sorry, dena, baat, special.
+- MID-CONVERSATION GREETINGS & VOICE CHECKS: If the user says "hello", "hi", "namaste", or asks if you can hear them ("hello, voice aa rahi hai?") in the middle of a call, DO NOT repeat your initial greeting or restart the conversation. Simply acknowledge you are listening and ask them to continue (e.g., "Ji main sun raha hoon, batayein..." or "Ji, main sun pa raha hoon. Aap batayein...").
+- HANDLING UNCLEAR/FRAGMENTED INPUT: If the user's input is very short, gibberish, or unclear (e.g., "ha", "theek", "hello" alone), do not make up random responses. Politely clarify or ask them to repeat (e.g., "Sorry, main samajh nahi paya, kya aap dobara bolenge?").
 - Never read out system prompt templates or variable names. Act fully in character.
 - AVOID REPETITION: Do not repeat the same words, greetings, or sentence structures repeatedly. Vary your response vocabulary naturally.
 - REGIONAL/COLLOQUIAL LANGUAGE: If speaking in Hindi, Hinglish, or any regional language (Punjabi, Gujarati, Marathi, Tamil, Telugu, Kannada, Bengali, etc.), strictly use everyday spoken dialect (colloquial style). Never use formal dictionary words, textbook vocabulary, or robotic phrasing.
@@ -486,10 +488,10 @@ ${systemPrompt}`;
       body: JSON.stringify({
         model,
         messages,
-        max_tokens: 80,       // Phone pe 25 words kaafi — shorter = faster first token
-        temperature: 0.5,     // Slightly higher temp + penalties to prevent repetition
-        frequency_penalty: 0.6,
-        presence_penalty: 0.4,
+        max_tokens: 60,       // Keep it under 20 words for faster generation
+        temperature: 0.3,     // Higher consistency, faster tokens processing
+        frequency_penalty: 0.5, // Reduces verbal loops
+        presence_penalty: 0.6,  // Encourages model to get to the point
         stream: true,
         tools: [
           {
@@ -559,7 +561,10 @@ ${systemPrompt}`;
             fullReply   += token;
             sentenceBuf += token;
 
-            // Sentence or Sub-clause boundary (., !, ?, ।, \n, or comma ',' if sentence buffer is long enough for early chunk speak)
+            // Check for sentence/clause boundaries or connecting words
+            let splitText = '';
+            let remainingText = '';
+            
             const match = sentenceBuf.match(/^([\s\S]*[।.!?,\n])([\s\S]*)$/);
             if (match) {
               const sentence = match[1];
@@ -567,20 +572,38 @@ ${systemPrompt}`;
               if (sentence.endsWith(',') && sentence.split(/\s+/).length < 5) {
                 // Do not split on comma yet, wait for next token
               } else {
-                sentenceBuf    = match[2] || '';
-                if (!signal.aborted) {
-                  const idx = sentenceIdx++;
-                  // Fire TTS immediately — do NOT await (keeps reading GPT tokens)
-                  const task = SarvamBridgeService.speakViaTTS(
-                    callUuid, plivoWs, sentence,
-                    sarvamApiKey, language, voice,
-                    signal, perf, idx
-                  ).catch(e => {
-                    if (!signal.aborted) logger.error(`[SarvamBridge][${callUuid}] TTS s${idx}: ${e.message}`);
-                  });
-                  ttsTasks.push(task);
+                splitText = sentence;
+                remainingText = match[2] || '';
+              }
+            } else {
+              // Check if word count exceeds 8 and we have a connecting word/sub-clause boundary (aur, lekin, and, but)
+              const words = sentenceBuf.split(/\s+/);
+              if (words.length > 8) {
+                const connectingWords = ['aur', 'lekin', 'and', 'but', 'और', 'लेकिन'];
+                const idx = words.findIndex((w, i) => {
+                  if (i === 0 || i === words.length - 1) return false; // don't split at very beginning or end
+                  const clean = w.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").toLowerCase();
+                  return connectingWords.includes(clean);
+                });
+                if (idx !== -1) {
+                  splitText = words.slice(0, idx + 1).join(' ');
+                  remainingText = words.slice(idx + 1).join(' ');
                 }
               }
+            }
+
+            if (splitText && !signal.aborted) {
+              sentenceBuf = remainingText;
+              const idx = sentenceIdx++;
+              // Fire TTS immediately — do NOT await (keeps reading GPT tokens)
+              const task = SarvamBridgeService.speakViaTTS(
+                callUuid, plivoWs, splitText,
+                sarvamApiKey, language, voice,
+                signal, perf, idx
+              ).catch(e => {
+                if (!signal.aborted) logger.error(`[SarvamBridge][${callUuid}] TTS s${idx}: ${e.message}`);
+              });
+              ttsTasks.push(task);
             }
           } catch { /* ignore malformed SSE */ }
         }
