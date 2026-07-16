@@ -294,6 +294,13 @@ export class SarvamBridgeService {
       (plivoWs as any).sarvamAbortController = null;
     }
 
+    // Abort master controller (greeting/background pipeline)
+    const masterCtrl = (plivoWs as any).sarvamMasterAbortController as AbortController | null;
+    if (masterCtrl) {
+      masterCtrl.abort();
+      (plivoWs as any).sarvamMasterAbortController = null;
+    }
+
     // Clear any pending VAD timer
     if ((plivoWs as any).sarvamVadTimer) {
       clearTimeout((plivoWs as any).sarvamVadTimer);
@@ -302,6 +309,12 @@ export class SarvamBridgeService {
 
     // 2. Stop audio pacing and drain queue
     SarvamBridgeService.stopPacing(plivoWs);
+
+    // Clear completed audio buffers
+    if ((plivoWs as any).sarvamCompletedAudio) {
+      (plivoWs as any).sarvamCompletedAudio.clear();
+    }
+    (plivoWs as any).sarvamNextPlayIdx = 0;
 
     // 3. Tell Plivo to discard its audio buffer
     if (plivoWs.readyState === WebSocket.OPEN) {
@@ -361,7 +374,9 @@ export class SarvamBridgeService {
 - Use natural spoken language (spoken colloquial style) for whatever language you are speaking (Hindi, English, Hinglish, or any regional language).
 - BANNED ROBOTIC/FORMAL STYLE: Strictly avoid formal/written style vocabulary. Speak exactly how people talk in everyday real life conversations.
 - Keep replies extremely short: 1-2 sentences maximum, under 25 words per turn. Long paragraphs sound robotic on phone calls.
-- Ask only ONE single question at a time to keep the conversation interactive.
+- Ask only ONE single question at a time. Never overlap two questions or ask multiple things in a single turn.
+- STRICT BUSINESS LOGIC CONTEXT: You must stay strictly within the bounds of the business logic and goals defined below. Do not go out of context, make up policies, offer unauthorized information, or make up facts.
+- CONFIRMATION RULE: Accurately confirm user inputs or choices before proceeding to the next step or asking the next question.
 - Use normal conversation fillers naturally when appropriate (e.g., "Achha...", "Theek hai...", "Ji...", "Oh ok...", "Hmm...").
 - GENDER CONSTRAINTS: ${selfRef}
 - SPECIFIC HINDI/HINGLISH DICTION RULES:
@@ -443,16 +458,41 @@ ${systemPrompt}`;
         perf.log(`TTS_START_${sentenceIdx}`, `TTS_DONE_${sentenceIdx}`);
       }
 
-      logger.info(`[SarvamBridge][${callUuid}] TTS: ${mulawBuf.length} mulaw bytes → Plivo`);
+      logger.info(`[SarvamBridge][${callUuid}] TTS (s${sentenceIdx}): ${mulawBuf.length} mulaw bytes synthesized`);
 
-      // Transition THINKING → SPEAKING on first sentence audio
-      const st: ConvState = (plivoWs as any).sarvamState;
-      if (st === 'THINKING') {
-        SarvamBridgeService.setState(callUuid, plivoWs, 'SPEAKING');
-        (plivoWs as any).sarvamIsSpeaking = true;
+      if (sentenceIdx !== undefined) {
+        const completedAudio = (plivoWs as any).sarvamCompletedAudio as Map<number, Buffer>;
+        if (completedAudio) {
+          completedAudio.set(sentenceIdx, mulawBuf);
+        }
+
+        let nextIdx = (plivoWs as any).sarvamNextPlayIdx ?? 0;
+        while (completedAudio && completedAudio.has(nextIdx)) {
+          const nextBuf = completedAudio.get(nextIdx)!;
+          completedAudio.delete(nextIdx);
+
+          logger.info(`[SarvamBridge][${callUuid}] Queueing s${nextIdx} for paced playback`);
+          
+          // Transition THINKING → SPEAKING on first sentence audio played
+          const st: ConvState = (plivoWs as any).sarvamState;
+          if (st === 'THINKING') {
+            SarvamBridgeService.setState(callUuid, plivoWs, 'SPEAKING');
+            (plivoWs as any).sarvamIsSpeaking = true;
+          }
+
+          SarvamBridgeService.sendMulawPaced(callUuid, plivoWs, nextBuf);
+          nextIdx++;
+        }
+        (plivoWs as any).sarvamNextPlayIdx = nextIdx;
+      } else {
+        // Fallback for calls without index (e.g. legacy/fillers)
+        const st: ConvState = (plivoWs as any).sarvamState;
+        if (st === 'THINKING') {
+          SarvamBridgeService.setState(callUuid, plivoWs, 'SPEAKING');
+          (plivoWs as any).sarvamIsSpeaking = true;
+        }
+        SarvamBridgeService.sendMulawPaced(callUuid, plivoWs, mulawBuf);
       }
-
-      SarvamBridgeService.sendMulawPaced(callUuid, plivoWs, mulawBuf);
 
     } catch (e: any) {
       if (e.name === 'AbortError') return; // normal barge-in cancellation
@@ -481,7 +521,7 @@ ${systemPrompt}`;
 
     const url = 'https://api.openai.com/v1/chat/completions';
     const authHeader = `Bearer ${openaiApiKey}`;
-    const model = openaiModel || 'gpt-5.5';
+    const model = openaiModel || 'gpt-4o-mini';
 
     const isReasoningModel = model.includes('gpt-5') || model.startsWith('o1') || model.startsWith('o3');
 
@@ -751,6 +791,8 @@ ${systemPrompt}`;
 
     // ── Per-call state ────────────────────────────────────────────────────────
     (plivoWs as any).sarvamAudioQueue           = [];
+    (plivoWs as any).sarvamCompletedAudio       = new Map<number, Buffer>();
+    (plivoWs as any).sarvamNextPlayIdx          = 0;
     (plivoWs as any).sarvamIsPacing             = false;
     (plivoWs as any).sarvamPacingTimer          = null;
     (plivoWs as any).sarvamIsSpeaking           = false;
@@ -877,6 +919,12 @@ ${systemPrompt}`;
 
           SarvamBridgeService.setState(callUuid, plivoWs, 'THINKING');
           
+          // Clear any completed audio map from previous turn and reset index pointer
+          if ((plivoWs as any).sarvamCompletedAudio) {
+            (plivoWs as any).sarvamCompletedAudio.clear();
+          }
+          (plivoWs as any).sarvamNextPlayIdx = 0;
+
           // Play a smart filler (e.g., "Hmm...", "Achha...") immediately to mask latency
           SarvamBridgeService.playFillerIfAvailable(callUuid, plivoWs, language, voice);
 
