@@ -367,11 +367,28 @@ export class SarvamBridgeService {
   private static buildWrapper(systemPrompt: string, voice: string, language: string): string {
     const isEnglish = (language || '').toLowerCase().startsWith('en');
 
+    const langNames: Record<string, string> = {
+      'hi': 'Hindi/Hinglish',
+      'en': 'English',
+      'bn': 'Bengali',
+      'ta': 'Tamil',
+      'te': 'Telugu',
+      'kn': 'Kannada',
+      'ml': 'Malayalam',
+      'mr': 'Marathi',
+      'pa': 'Punjabi',
+      'gu': 'Gujarati',
+      'od': 'Odia',
+      'ur': 'Urdu',
+    };
+    const prefix = (language || '').split('-')[0].toLowerCase();
+    const langName = langNames[prefix] || 'Hindi/Hinglish';
+
     if (isEnglish) {
       return `CONVERSATIONAL RULES (CRITICAL - YOU ARE ON A LIVE VOICE PHONE CALL):
 - ALWAYS speak like a natural human. Never sound like an AI, robot, news reader, or automated voice response.
 - Use natural spoken colloquial English. Speak exactly how people talk in everyday real life conversations.
-- STRICTLY SPEAK ONLY IN ENGLISH: Never use any Hindi/Hinglish words, phrases, or fillers (such as "Theek hai", "Achha", "Ji", "Namaste") under any circumstances. Speak strictly and purely in English.
+- STRICTLY SPEAK ONLY IN ENGLISH: You must conduct the entire conversation in English. Never use any Hindi/Hinglish words, phrases, or fillers (such as "Theek hai", "Achha", "Ji", "Namaste") under any circumstances. Speak strictly and purely in English.
 - Strictly avoid formal/written style vocabulary.
 - Keep replies extremely short: 1-2 sentences maximum, under 25 words per turn. Long paragraphs sound robotic on phone calls.
 - Ask only ONE single question at a time to keep the conversation interactive.
@@ -392,6 +409,7 @@ ${systemPrompt}`;
       : 'Main ek male assistant hoon — "main karta hoon", "mujhe lagta hai" etc. use karo.';
     return `CONVERSATIONAL RULES (CRITICAL - YOU ARE ON A LIVE VOICE PHONE CALL):
 - ALWAYS speak like a natural human. Never sound like an AI, robot, news reader, or automated voice response.
+- STRICTLY SPEAK ONLY IN ${langName.toUpperCase()}: You must conduct the entire conversation in ${langName}. Do not speak in English or any other language under any circumstances.
 - Use natural spoken language (spoken colloquial style) for whatever language you are speaking (Hindi, English, Hinglish, or any regional language).
 - BANNED ROBOTIC/FORMAL STYLE: Strictly avoid formal/written style vocabulary. Speak exactly how people talk in everyday real life conversations.
 - Keep replies extremely short: 1-2 sentences maximum, under 25 words per turn. Long paragraphs sound robotic on phone calls.
