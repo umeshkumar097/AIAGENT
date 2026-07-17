@@ -379,7 +379,7 @@ async function initializeSession(
             language:     agent.language || 'hi-IN',
             voice:        agent.openaiVoice || 'priya',
             openaiApiKey: openaiKey,
-            openaiModel:  call.openaiModel || agent.openaiModel || 'gpt-5.5',
+            openaiModel:  agent.openaiModel || call.openaiModel || 'gpt-5.5',
           },
           call.id
         );

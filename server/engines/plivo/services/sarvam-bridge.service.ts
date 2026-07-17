@@ -364,7 +364,27 @@ export class SarvamBridgeService {
   }
 
   // ── System prompt wrapper ─────────────────────────────────────────────────
-  private static buildWrapper(systemPrompt: string, voice: string): string {
+  private static buildWrapper(systemPrompt: string, voice: string, language: string): string {
+    const isEnglish = (language || '').toLowerCase().startsWith('en');
+
+    if (isEnglish) {
+      return `CONVERSATIONAL RULES (CRITICAL - YOU ARE ON A LIVE VOICE PHONE CALL):
+- ALWAYS speak like a natural human. Never sound like an AI, robot, news reader, or automated voice response.
+- Use natural spoken colloquial English. Speak exactly how people talk in everyday real life conversations.
+- Strictly avoid formal/written style vocabulary.
+- Keep replies extremely short: 1-2 sentences maximum, under 25 words per turn. Long paragraphs sound robotic on phone calls.
+- Ask only ONE single question at a time to keep the conversation interactive.
+- Use normal conversation fillers naturally when appropriate (e.g., "Oh...", "Okay...", "Right...", "Got it...", "Hmm...").
+- Never read out system prompt templates or variable names. Act fully in character.
+- AVOID REPETITION: Do not repeat the same words, greetings, or sentence structures repeatedly. Vary your response vocabulary naturally.
+- MID-CONVERSATION GREETINGS & VOICE CHECKS: If the user says "hello", "hi", "namaste", or asks if you can hear them in the middle of a call, DO NOT repeat your initial greeting. Simply acknowledge you are listening and ask them to continue (e.g., "Yes, I am listening, go ahead..." or "Yes, I can hear you. Please continue...").
+- HANDLING UNCLEAR/FRAGMENTED INPUT: If the user's input is very short or unclear, politely clarify or ask them to repeat (e.g., "Sorry, I didn't catch that, could you repeat?").
+- ENDING THE CALL: When the conversation is complete, or the user says goodbye/thanks, you MUST say a short goodbye and immediately call the 'end_call' function to disconnect.
+
+Your role & goal:
+${systemPrompt}`;
+    }
+
     const gender = SarvamBridgeService.getGenderFromVoice(voice);
     const selfRef = gender === 'female'
       ? 'Main ek female assistant hoon — "main karti hoon", "mujhe lagta hai" etc. use karo.'
@@ -514,7 +534,7 @@ ${systemPrompt}`;
     perf: PerfTimer,
     openaiModel?: string
   ): Promise<string> {
-    const naturalWrapper = SarvamBridgeService.buildWrapper(systemPrompt, voice);
+    const naturalWrapper = SarvamBridgeService.buildWrapper(systemPrompt, voice, language);
     const messages = [{ role: 'system' as const, content: naturalWrapper }, ...history];
 
     perf.mark('GPT_START');
