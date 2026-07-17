@@ -543,6 +543,10 @@ ${systemPrompt}`;
     const authHeader = `Bearer ${openaiApiKey}`;
     const model = openaiModel || 'gpt-4o-mini';
 
+    logger.info(`[SarvamBridge][${callUuid}] OpenAI Model: ${model || 'default'}, Language: ${language}, Messages count: ${messages.length}`);
+    logger.info(`[SarvamBridge][${callUuid}] Full wrapper sent: ${naturalWrapper}`);
+    logger.info(`[SarvamBridge][${callUuid}] Conversation history: ${JSON.stringify(history)}`);
+
     const isReasoningModel = model.includes('gpt-5') || model.startsWith('o1') || model.startsWith('o3');
 
     const requestBody: any = {
