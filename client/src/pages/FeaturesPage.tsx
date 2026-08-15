@@ -13,13 +13,19 @@ import {
 } from "lucide-react";
 import { 
   SiHubspot, SiZapier, SiSlack, SiShopify, 
-  SiCalendly, SiZendesk, SiZoho
+  SiZendesk, SiZoho
 } from "react-icons/si";
 
-// SiSalesforce removed from react-icons v5 — using inline SVG
+// SiSalesforce removed from react-icons v4 — using inline SVG
 const SiSalesforce = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
     <path d="M9.815 18.235c-.32.169-.684.265-1.07.265-1.29 0-2.337-1.048-2.337-2.337 0-.483.147-.932.4-1.305a3.984 3.984 0 01-1.4.255C3.762 15.113 2.5 13.851 2.5 12.3a2.815 2.815 0 012.315-2.773 2.516 2.516 0 01-.19-.965c0-1.394 1.131-2.525 2.525-2.525.304 0 .594.054.864.152A2.975 2.975 0 0110.8 4.5a2.977 2.977 0 012.894 2.27 2.526 2.526 0 011.281-.348c1.394 0 2.525 1.131 2.525 2.525 0 .13-.01.257-.028.382.066-.003.133-.005.2-.005A2.83 2.83 0 0120.5 12.15a2.83 2.83 0 01-2.828 2.828 2.81 2.81 0 01-.823-.123 2.097 2.097 0 01-1.879 1.168 2.09 2.09 0 01-.907-.206 2.386 2.386 0 01-2.312 1.8 2.382 2.382 0 01-1.936-.99z"/>
+  </svg>
+);
+// SiCalendly not in react-icons v4 — using inline SVG
+const SiCalendly = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path d="M19 4h-1V2h-2v2H8V2H6v2H5C3.9 4 3 4.9 3 6v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zm0-13H5V6h14v1z"/>
   </svg>
 );
 import { Button } from "@/components/ui/button";
