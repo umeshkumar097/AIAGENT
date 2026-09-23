@@ -18,6 +18,7 @@
 
 import { Router, Request, Response } from 'express';
 import { RouteContext, AuthRequest } from './common';
+import { getCashfreeConfig, getPhoneNumberPriceInr, DEFAULT_PHONE_NUMBER_PRICE_INR } from '../engines/payment/gateways/cashfree';
 import { sql, eq, count } from 'drizzle-orm';
 import { users, calls, campaigns, twilioCountries, elevenLabsCredentials } from '@shared/schema';
 import { strictRateLimiter } from '../middleware/rateLimiter';
@@ -186,7 +187,6 @@ export function createPublicRoutes(ctx: RouteContext): Router {
       });
 
       const optionalKeys = [
-        { name: 'STRIPE_SECRET_KEY', label: 'Stripe' },
         { name: 'TWILIO_ACCOUNT_SID', label: 'Twilio' },
         { name: 'ELEVENLABS_API_KEY', label: 'ElevenLabs' }
       ];
@@ -362,7 +362,6 @@ export function createPublicRoutes(ctx: RouteContext): Router {
           elevenlabs: !!process.env.ELEVENLABS_API_KEY,
           twilio_sid: !!process.env.TWILIO_ACCOUNT_SID,
           twilio_token: !!process.env.TWILIO_AUTH_TOKEN,
-          stripe: !!process.env.STRIPE_SECRET_KEY,
         },
         message: 'System operational'
       });
@@ -389,6 +388,10 @@ export function createPublicRoutes(ctx: RouteContext): Router {
         otpExpiryMinutes,
         currencyDefault,
         currencySymbol,
+        companyName,
+        companyAddress,
+        supportEmail,
+        supportPhone,
       ] = await Promise.all([
         storage.getGlobalSetting('phone_number_monthly_credits'),
         storage.getGlobalSetting('low_credits_threshold'),
@@ -396,6 +399,11 @@ export function createPublicRoutes(ctx: RouteContext): Router {
         storage.getGlobalSetting('otp_expiry_minutes'),
         storage.getGlobalSetting('currency_default'),
         storage.getGlobalSetting('currency_symbol'),
+        // Legal entity / contact details shown in the footer, contact and policy pages
+        storage.getGlobalSetting('company_name'),
+        storage.getGlobalSetting('company_address'),
+        storage.getGlobalSetting('support_email'),
+        storage.getGlobalSetting('support_phone'),
       ]);
 
       res.json({
@@ -404,7 +412,12 @@ export function createPublicRoutes(ctx: RouteContext): Router {
         credits_per_minute: typeof creditsPerMinute?.value === 'number' ? creditsPerMinute.value : 1,
         otp_expiry_minutes: typeof otpExpiryMinutes?.value === 'number' ? otpExpiryMinutes.value : 5,
         currency_default: (currencyDefault?.value as string) || "INR",
-        currency_symbol: (currencySymbol?.value as string) || '$',
+        currency_symbol: (currencySymbol?.value as string) || '₹',
+        company_name: (companyName?.value as string) || null,
+        company_address: (companyAddress?.value as string) || null,
+        support_email: (supportEmail?.value as string) || null,
+        contact_phone: (supportPhone?.value as string) || null,
+        support_phone: (supportPhone?.value as string) || null,
       });
     } catch (error) {
       console.error('Error fetching public settings:', error);
@@ -414,7 +427,12 @@ export function createPublicRoutes(ctx: RouteContext): Router {
         credits_per_minute: 1,
         otp_expiry_minutes: 5,
         "currency_default": "INR",
-        currency_symbol: '$',
+        currency_symbol: '₹',
+        company_name: null,
+        company_address: null,
+        support_email: null,
+        contact_phone: null,
+        support_phone: null,
       });
     }
   });
@@ -473,119 +491,30 @@ export function createPublicRoutes(ctx: RouteContext): Router {
 
   router.get("/api/settings/payment-gateway", async (_req: Request, res: Response) => {
     try {
-      const toBool = (value: any): boolean => {
-        if (value === true || value === 'true') return true;
-        if (value === false || value === 'false') return false;
-        return Boolean(value);
-      };
+      const [config, phoneNumberPriceInr] = await Promise.all([
+        getCashfreeConfig(),
+        getPhoneNumberPriceInr(),
+      ]);
 
-      const currencySymbols: Record<string, string> = {
-        'USD': '$', 'EUR': '€', 'GBP': '£', 'CAD': 'C$', 'AUD': 'A$',
-        'JPY': '¥', 'INR': '₹', 'BRL': 'R$', 'MXN': '$', 'CHF': 'CHF',
-        'NGN': '₦', 'GHS': '₵', 'ZAR': 'R', 'KES': 'KSh',
-        'ARS': '$', 'CLP': '$', 'COP': '$', 'PEN': 'S/', 'UYU': '$'
-      };
-
-      const dbStripeSecretKey = await storage.getGlobalSetting('stripe_secret_key');
-      const dbStripePublishableKey = await storage.getGlobalSetting('stripe_publishable_key');
-      const envStripeSecretKey = process.env.STRIPE_SECRET_KEY;
-      const envStripePublishableKey = process.env.VITE_STRIPE_PUBLIC_KEY;
-      const stripeConfigured = !!((dbStripeSecretKey?.value && dbStripePublishableKey?.value) || (envStripeSecretKey && envStripePublishableKey));
-
-      const dbRazorpayKeyId = await storage.getGlobalSetting('razorpay_key_id');
-      const dbRazorpayKeySecret = await storage.getGlobalSetting('razorpay_key_secret');
-      const razorpayConfigured = !!(dbRazorpayKeyId?.value && dbRazorpayKeySecret?.value);
-
-      const dbPaypalClientId = await storage.getGlobalSetting('paypal_client_id');
-      const dbPaypalClientSecret = await storage.getGlobalSetting('paypal_client_secret');
-      const paypalConfigured = !!(dbPaypalClientId?.value && dbPaypalClientSecret?.value);
-
-      const dbPaystackPublicKey = await storage.getGlobalSetting('paystack_public_key');
-      const dbPaystackSecretKey = await storage.getGlobalSetting('paystack_secret_key');
-      const paystackConfigured = !!(dbPaystackPublicKey?.value && dbPaystackSecretKey?.value);
-
-      const dbMercadopagoAccessToken = await storage.getGlobalSetting('mercadopago_access_token');
-      const dbMercadopagoPublicKey = await storage.getGlobalSetting('mercadopago_public_key');
-      const mercadopagoConfigured = !!dbMercadopagoAccessToken?.value;
-
-      const stripeEnabledSetting = await storage.getGlobalSetting('stripe_enabled');
-      const razorpayEnabledSetting = await storage.getGlobalSetting('razorpay_enabled');
-      const paypalEnabledSetting = await storage.getGlobalSetting('paypal_enabled');
-      const paystackEnabledSetting = await storage.getGlobalSetting('paystack_enabled');
-      const mercadopagoEnabledSetting = await storage.getGlobalSetting('mercadopago_enabled');
-
-      const stripeEnabled = stripeConfigured && toBool(stripeEnabledSetting?.value) === true;
-      const razorpayEnabled = razorpayConfigured && toBool(razorpayEnabledSetting?.value) === true;
-      const paypalEnabled = paypalConfigured && toBool(paypalEnabledSetting?.value) === true;
-      const paystackEnabled = paystackConfigured && toBool(paystackEnabledSetting?.value) === true;
-      const mercadopagoEnabled = mercadopagoConfigured && toBool(mercadopagoEnabledSetting?.value) === true;
-
-      const result: any = {
-        stripeEnabled,
-        razorpayEnabled,
-        paypalEnabled,
-        paystackEnabled,
-        mercadopagoEnabled
-      };
-
-      if (stripeEnabled) {
-        result.stripePublicKey = dbStripePublishableKey?.value || process.env.VITE_STRIPE_PUBLIC_KEY || null;
-
-        const stripeCurrencySetting = await storage.getGlobalSetting('stripe_currency');
-        const stripeCurrencyLockedSetting = await storage.getGlobalSetting('stripe_currency_locked');
-        const stripeCurrency = (stripeCurrencySetting?.value as string) || 'INR';
-        const stripeCurrencyLocked = toBool(stripeCurrencyLockedSetting?.value);
-
-        result.stripeCurrency = stripeCurrency.toUpperCase();
-        result.stripeCurrencySymbol = currencySymbols[stripeCurrency.toUpperCase()] || '$';
-        result.stripeCurrencyLocked = stripeCurrencyLocked;
-      }
-
-      if (razorpayEnabled) {
-        result.razorpayKeyId = dbRazorpayKeyId?.value || null;
-        result.razorpayCurrency = 'INR';
-        result.razorpayCurrencySymbol = '₹';
-      }
-
-      if (paypalEnabled) {
-        result.paypalClientId = dbPaypalClientId?.value || null;
-        const paypalCurrencySetting = await storage.getGlobalSetting('paypal_currency');
-        const paypalModeSetting = await storage.getGlobalSetting('paypal_mode');
-        const paypalCurrency = (paypalCurrencySetting?.value as string) || "INR";
-        result.paypalCurrency = paypalCurrency.toUpperCase();
-        result.paypalCurrencySymbol = currencySymbols[paypalCurrency.toUpperCase()] || '$';
-        result.paypalMode = (paypalModeSetting?.value as string) || 'sandbox';
-      }
-
-      if (paystackEnabled) {
-        result.paystackPublicKey = dbPaystackPublicKey?.value || null;
-        const paystackCurrencySetting = await storage.getGlobalSetting('paystack_currency');
-        const paystackCurrency = (paystackCurrencySetting?.value as string) || 'NGN';
-        result.paystackCurrency = paystackCurrency.toUpperCase();
-        result.paystackCurrencySymbol = currencySymbols[paystackCurrency.toUpperCase()] || '₦';
-        result.paystackCurrencies = ['NGN', 'GHS', 'ZAR', 'KES'];
-        result.paystackDefaultCurrency = 'NGN';
-      }
-
-      if (mercadopagoEnabled) {
-        result.mercadopagoPublicKey = dbMercadopagoPublicKey?.value || null;
-        const mercadopagoCurrencySetting = await storage.getGlobalSetting('mercadopago_currency');
-        const mercadopagoCurrency = (mercadopagoCurrencySetting?.value as string) || 'BRL';
-        result.mercadopagoCurrency = mercadopagoCurrency.toUpperCase();
-        result.mercadopagoCurrencySymbol = currencySymbols[mercadopagoCurrency.toUpperCase()] || 'R$';
-        result.mercadopagoCurrencies = ['BRL', 'MXN', 'ARS', 'CLP', 'COP', 'PEN', 'UYU'];
-      }
-
-      res.json(result);
+      res.json({
+        gateway: 'cashfree',
+        cashfreeEnabled: config.enabled,
+        cashfreeAppId: config.appId,
+        cashfreeEnvironment: config.environment,
+        currency: 'INR',
+        currencySymbol: '₹',
+        phoneNumberPriceInr,
+      });
     } catch (error) {
       console.error('Error fetching payment gateway config:', error);
       res.json({
-        stripeEnabled: false,
-        razorpayEnabled: false,
-        paypalEnabled: false,
-        paystackEnabled: false,
-        mercadopagoEnabled: false,
-        stripePublicKey: null
+        gateway: 'cashfree',
+        cashfreeEnabled: false,
+        cashfreeAppId: null,
+        cashfreeEnvironment: 'sandbox',
+        currency: 'INR',
+        currencySymbol: '₹',
+        phoneNumberPriceInr: DEFAULT_PHONE_NUMBER_PRICE_INR,
       });
     }
   });
@@ -609,7 +538,7 @@ export function createPublicRoutes(ctx: RouteContext): Router {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
     try {
-      const brandingKeys = ['app_name', 'app_tagline', 'logo_url', 'logo_url_light', 'logo_url_dark', 'favicon_url', 'branding_updated_at', 'admin_email', 'app_location', 'social_twitter_url', 'social_linkedin_url', 'social_github_url', 'theme_primary', 'theme_primary_foreground', 'theme_accent', 'theme_background', 'theme_sidebar', 'theme_website_accent', 'theme_website_foreground'];
+      const brandingKeys = ['app_name', 'app_tagline', 'logo_url', 'logo_url_light', 'logo_url_dark', 'favicon_url', 'branding_updated_at', 'admin_email', 'app_location', 'company_name', 'company_address', 'support_email', 'support_phone', 'social_twitter_url', 'social_linkedin_url', 'social_github_url', 'theme_primary', 'theme_primary_foreground', 'theme_accent', 'theme_background', 'theme_sidebar', 'theme_website_accent', 'theme_website_foreground'];
       const branding: Record<string, any> = {
         app_name: '',
         app_tagline: '',
@@ -620,6 +549,10 @@ export function createPublicRoutes(ctx: RouteContext): Router {
         branding_updated_at: null,
         admin_email: null,
         app_location: null,
+        company_name: null,
+        company_address: null,
+        support_email: null,
+        support_phone: null,
         social_twitter_url: null,
         social_linkedin_url: null,
         social_github_url: null,

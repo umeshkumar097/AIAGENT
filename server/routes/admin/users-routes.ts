@@ -5,7 +5,7 @@ import { AdminRequest, requireAdminPermission } from '../../middleware/admin-aut
 import { z } from 'zod';
 import { db } from '../../db';
 import { eq } from 'drizzle-orm';
-import { emailService } from '../../services/email-service';
+import { dispatchEvent } from '../../services/event-dispatcher';
 
 export function registerUsersRoutes(router: Router) {
   router.get('/users/search', requireAdminPermission('users', 'view_users', 'read'), async (req: AdminRequest, res: Response) => {
@@ -140,21 +140,13 @@ export function registerUsersRoutes(router: Router) {
       await storage.updateUser(userId, updateData);
       
       if (updateData.isActive === false && userBeforeUpdate?.isActive === true) {
-        try {
-          await emailService.sendAccountSuspended(userId, "Account suspended by administrator");
-          console.log(`[Admin] Sent suspension email to user ${userId}`);
-        } catch (emailError) {
-          console.error(`Failed to send suspension email to user ${userId}:`, emailError);
-        }
+        const suspended = await dispatchEvent('account_suspended', { userId, data: { reason: 'Account suspended by administrator' } });
+        console.log(`[Admin] Suspension notice for user ${userId}: email=${suspended.email}`);
       }
       
       if (updateData.isActive === true && userBeforeUpdate?.isActive === false) {
-        try {
-          await emailService.sendAccountReactivated(userId);
-          console.log(`[Admin] Sent reactivation email to user ${userId}`);
-        } catch (emailError) {
-          console.error(`Failed to send reactivation email to user ${userId}:`, emailError);
-        }
+        const reactivated = await dispatchEvent('account_reactivated', { userId });
+        console.log(`[Admin] Reactivation notice for user ${userId}: email=${reactivated.email}, inApp=${reactivated.inApp}`);
       }
       
       if (updateData.planType) {
@@ -184,12 +176,17 @@ export function registerUsersRoutes(router: Router) {
           const isPaidPlan = plan.monthlyPrice && parseFloat(plan.monthlyPrice.toString()) > 0;
           
           if (isPaidPlan && oldPlanType === 'free') {
-            try {
-              await emailService.sendMembershipUpgrade(userId, plan.displayName || plan.name);
-              console.log(`[Admin] Sent membership upgrade email to user ${userId}`);
-            } catch (emailError) {
-              console.error(`Failed to send membership upgrade email to user ${userId}:`, emailError);
-            }
+            const activated = await dispatchEvent('plan_activated', {
+              userId,
+              data: {
+                planName: plan.displayName || plan.name,
+                billingPeriod: 'monthly',
+                amount: '0.00',
+                currency: 'INR',
+                expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' }),
+              },
+            });
+            console.log(`[Admin] Plan activation notice for user ${userId}: email=${activated.email}, inApp=${activated.inApp}`);
           }
           
           console.log(`[Admin] User ${userId} plan changed from ${oldPlanType} to ${newPlanType}`);

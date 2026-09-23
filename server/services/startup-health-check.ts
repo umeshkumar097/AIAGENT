@@ -18,8 +18,7 @@
 import { db } from '../db';
 import { sql, eq } from 'drizzle-orm';
 import { elevenLabsCredentials } from '@shared/schema';
-import { isStripeConfigured, isStripeEnabled } from './stripe-service';
-import { isRazorpayConfigured, isRazorpayEnabled } from './razorpay-service';
+import { isCashfreeConfigured, isCashfreeEnabled } from '../engines/payment/gateways/cashfree/service';
 import { emailService } from './email-service';
 import * as os from 'os';
 
@@ -46,8 +45,7 @@ export interface HealthCheckResult {
       details: {
         elevenlabs: boolean;
         twilio: boolean;
-        stripe: { configured: boolean; enabled: boolean };
-        razorpay: { configured: boolean; enabled: boolean };
+        cashfree: { configured: boolean; enabled: boolean };
         openai: boolean;
         smtp: boolean;
       };
@@ -67,8 +65,6 @@ const OPTIONAL_ENV_VARS = [
   { key: 'TWILIO_ACCOUNT_SID', name: 'Twilio Account SID' },
   { key: 'TWILIO_AUTH_TOKEN', name: 'Twilio Auth Token' },
   { key: 'OPENAI_API_KEY', name: 'OpenAI' },
-  { key: 'STRIPE_SECRET_KEY', name: 'Stripe Secret Key' },
-  { key: 'VITE_STRIPE_PUBLIC_KEY', name: 'Stripe Public Key' },
   { key: 'SMTP_HOST', name: 'SMTP Host' },
   { key: 'SMTP_USER', name: 'SMTP User' },
   { key: 'SMTP_PASS', name: 'SMTP Password' },
@@ -85,8 +81,7 @@ export async function runStartupHealthCheck(): Promise<HealthCheckResult> {
         details: {
           elevenlabs: false,
           twilio: false,
-          stripe: { configured: false, enabled: false },
-          razorpay: { configured: false, enabled: false },
+          cashfree: { configured: false, enabled: false },
           openai: false,
           smtp: false,
         },
@@ -298,24 +293,15 @@ async function checkIntegrations(result: HealthCheckResult): Promise<void> {
   }
   
   try {
-    details.stripe.configured = await isStripeConfigured();
-    details.stripe.enabled = await isStripeEnabled();
+    details.cashfree.configured = await isCashfreeConfigured();
+    details.cashfree.enabled = await isCashfreeEnabled();
   } catch (error) {
-    details.stripe.configured = false;
-    details.stripe.enabled = false;
+    details.cashfree.configured = false;
+    details.cashfree.enabled = false;
   }
-  
-  try {
-    details.razorpay.configured = await isRazorpayConfigured();
-    details.razorpay.enabled = await isRazorpayEnabled();
-  } catch (error) {
-    details.razorpay.configured = false;
-    details.razorpay.enabled = false;
-  }
-  
-  const hasAnyPayment = details.stripe.enabled || details.razorpay.enabled;
-  if (!hasAnyPayment) {
-    result.warnings.push('No payment gateway configured. Users cannot purchase subscriptions or credits.');
+
+  if (!details.cashfree.enabled) {
+    result.warnings.push('Cashfree is not configured/enabled. Users cannot purchase plans, credits or phone numbers.');
   }
   
   if (!details.elevenlabs) {
@@ -350,8 +336,7 @@ function logHealthCheckResults(result: HealthCheckResult): void {
   console.log(`      - ElevenLabs: ${intDetails.elevenlabs ? '✅' : '❌'}`);
   console.log(`      - Twilio: ${intDetails.twilio ? '✅' : '❌'}`);
   console.log(`      - OpenAI: ${intDetails.openai ? '✅' : '❌'}`);
-  console.log(`      - Stripe: ${intDetails.stripe.enabled ? '✅ Enabled' : intDetails.stripe.configured ? '⚠️ Configured (disabled)' : '❌ Not configured'}`);
-  console.log(`      - Razorpay: ${intDetails.razorpay.enabled ? '✅ Enabled' : intDetails.razorpay.configured ? '⚠️ Configured (disabled)' : '❌ Not configured'}`);
+  console.log(`      - Cashfree: ${intDetails.cashfree.enabled ? '✅ Enabled' : intDetails.cashfree.configured ? '⚠️ Configured (disabled)' : '❌ Not configured'}`);
   console.log(`      - SMTP: ${intDetails.smtp ? '✅' : '❌'}`);
   
   if (result.warnings.length > 0) {

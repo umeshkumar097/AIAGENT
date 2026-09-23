@@ -68,11 +68,7 @@ import { createAnalyticsRoutes } from "./routes/analytics-routes";
 import { createRouteContext } from "./routes/common";
 // Payment Engine v1.0.0 - All payment gateway routers
 import {
-  stripeRouter,
-  razorpayRouter,
-  paypalRouter,
-  paystackRouter,
-  mercadopagoRouter,
+  cashfreeRouter,
   PAYMENT_ENGINE_VERSION,
 } from "./engines/payment";
 // Plivo + OpenAI Realtime Engine
@@ -91,7 +87,7 @@ import { googleSheetsRouter } from "./services/google-sheets/google-sheets.route
 import platformLanguagesRouter, { platformLanguagesPublicRouter } from "./routes/platform-languages-routes";
 import transactionsRouter from "./routes/transactions-routes";
 import refundRouter from "./routes/refund-routes";
-import invoiceRouter from "./routes/invoice-routes";
+import invoiceRouter, { adminInvoiceRouter } from "./routes/invoice-routes";
 import emailSettingsRouter from "./routes/email-settings-routes";
 import audioRoutes from "./routes/audio-routes";
 import { createRAGKnowledgeRoutes } from "./routes/rag-knowledge-routes";
@@ -1690,20 +1686,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Stripe routes
-  app.use("/api/stripe", stripeRouter);
-
-  // Razorpay routes (alternative payment gateway)
-  app.use("/api/razorpay", razorpayRouter);
-
-  // PayPal routes (global payment gateway)
-  app.use("/api/paypal", paypalRouter);
-
-  // Paystack routes (Africa payment gateway - NGN, GHS, ZAR, KES)
-  app.use("/api/paystack", paystackRouter);
-
-  // MercadoPago routes (Latin America payment gateway - BRL, MXN, ARS, CLP, COP)
-  app.use("/api/mercadopago", mercadopagoRouter);
+  // Cashfree routes (only payment gateway; INR). The webhook verifies its
+  // signature against req.rawBody captured by express.json({ verify }) in index.ts.
+  app.use("/api/cashfree", cashfreeRouter);
 
   // Admin routes accessible by admin team members (read-only analytics)
   // Must be before main admin router to take precedence
@@ -1726,6 +1711,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Admin Refunds routes
   app.use("/api/admin/refunds", refundRouter);
+
+  // Admin invoice list (GST tax invoices + credit notes)
+  app.use("/api/admin/invoices", checkAdminOrTeamMember, adminInvoiceRouter);
 
   // User-accessible refund note download (separate from admin routes)
   app.get("/api/refunds/:id/download", authenticateToken, async (req: AuthRequest, res: Response) => {

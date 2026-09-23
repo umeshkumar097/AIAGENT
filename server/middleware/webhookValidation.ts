@@ -19,7 +19,6 @@
 import { Request, Response, NextFunction } from "express";
 import crypto from "crypto";
 import { WebhookValidationError } from "../utils/errors";
-import { getStripeClient } from "../services/stripe-service";
 import { storage } from "../storage";
 
 /**
@@ -67,109 +66,6 @@ export function captureRawBody(
     });
   } else {
     next();
-  }
-}
-
-/**
- * Validates Stripe webhook signatures.
- * 
- * @param {RawBodyRequest} req - Express request with rawBody
- * @param {Response} res - Express response object
- * @param {NextFunction} next - Express next function
- */
-export async function validateStripeWebhook(
-  req: RawBodyRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    const stripe = await getStripeClient();
-    if (!stripe) {
-      console.warn("[Stripe Webhook] Stripe not configured, skipping validation");
-      return next();
-    }
-
-    const sig = req.headers["stripe-signature"];
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-    if (!sig) {
-      throw new WebhookValidationError("stripe", "Missing Stripe signature header");
-    }
-
-    if (!webhookSecret) {
-      console.warn("[Stripe Webhook] No webhook secret configured, skipping signature verification");
-      return next();
-    }
-
-    const rawBody = req.rawBody?.toString() || JSON.stringify(req.body);
-
-    try {
-      const event = stripe.webhooks.constructEvent(rawBody, sig as string, webhookSecret);
-      (req as any).stripeEvent = event;
-      next();
-    } catch (err: any) {
-      throw new WebhookValidationError("stripe", `Signature verification failed: ${err.message}`);
-    }
-  } catch (error) {
-    if (error instanceof WebhookValidationError) {
-      console.error(`[Stripe Webhook] Validation failed: ${error.message}`);
-      res.status(401).json(error.toJSON());
-    } else {
-      next(error);
-    }
-  }
-}
-
-/**
- * Validates Razorpay webhook signatures using HMAC-SHA256.
- * 
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- * @param {NextFunction} next - Express next function
- */
-export async function validateRazorpayWebhook(
-  req: RawBodyRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    const signature = req.headers["x-razorpay-signature"] as string;
-    
-    if (!signature) {
-      throw new WebhookValidationError("razorpay", "Missing Razorpay signature header");
-    }
-
-    const webhookSecretSetting = await storage.getGlobalSetting("razorpay_webhook_secret");
-    const webhookSecret = webhookSecretSetting?.value;
-
-    if (!webhookSecret || typeof webhookSecret !== "string") {
-      if (!allowUnverifiedWebhooks()) {
-        throw new WebhookValidationError("razorpay", "Webhook secret not configured");
-      }
-      console.warn("[Razorpay Webhook] No webhook secret configured, skipping signature verification (ALLOW_UNVERIFIED_WEBHOOKS=true)");
-      return next();
-    }
-
-    const rawBody = req.rawBody?.toString() || JSON.stringify(req.body);
-
-    const expectedSignature = crypto
-      .createHmac("sha256", webhookSecret as string)
-      .update(rawBody)
-      .digest("hex");
-
-    if (expectedSignature !== signature) {
-      throw new WebhookValidationError("razorpay", "Invalid webhook signature");
-    }
-
-    console.log("[Razorpay Webhook] Signature verified successfully");
-    next();
-  } catch (error) {
-    if (error instanceof WebhookValidationError) {
-      console.error(`[Razorpay Webhook] Validation failed: ${error.message}`);
-      res.status(401).json(error.toJSON());
-    } else {
-      next(error);
-    }
   }
 }
 

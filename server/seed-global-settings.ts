@@ -367,6 +367,48 @@ const GLOBAL_SETTINGS_SEED_DATA = [
     value: new Date().toISOString(),
     description: "Timestamp when seed data was last applied",
   },
+
+  // ============================================
+  // PAYMENTS (Cashfree — the only gateway, INR)
+  // ============================================
+  {
+    key: "cashfree_enabled",
+    value: false,
+    description: "Enable Cashfree payments (plans, credit packages, phone numbers)",
+  },
+  {
+    key: "cashfree_app_id",
+    value: "",
+    description: "Cashfree App ID (x-client-id)",
+  },
+  {
+    key: "cashfree_environment",
+    value: "sandbox",
+    description: "Cashfree environment: 'sandbox' or 'production'",
+  },
+  {
+    key: "phone_number_price_inr",
+    value: 400,
+    description: "One-time INR price charged via Cashfree to rent a phone number",
+  },
+
+  // ============================================
+  // GST INVOICES
+  // ============================================
+  { key: "invoice_seller_name", value: "Aiclex Solutions Pvt. Ltd.", description: "Legal name printed on tax invoices" },
+  { key: "invoice_seller_trade_name", value: "AICLEX Technologies", description: "Trade name printed on tax invoices" },
+  { key: "invoice_seller_gstin", value: "09ABGCA0151N1ZL", description: "Seller GSTIN" },
+  { key: "invoice_seller_cin", value: "U62099UW2026PTC254970", description: "Seller CIN" },
+  { key: "invoice_seller_dpiit", value: "DIPP271379", description: "Seller DPIIT recognition number" },
+  { key: "invoice_seller_address", value: "E58, Sector 3, Noida, UP – 201301", description: "Seller address printed on invoices" },
+  { key: "invoice_seller_state_code", value: "09", description: "Seller GST state code (decides CGST/SGST vs IGST)" },
+  { key: "invoice_seller_email", value: "", description: "Seller contact email printed on invoices" },
+  { key: "invoice_seller_phone", value: "", description: "Seller contact phone printed on invoices" },
+  { key: "invoice_prefix", value: "AIC", description: "Invoice number prefix (<prefix>/<FY>/<n>)" },
+  { key: "invoice_gst_rate", value: 18, description: "GST rate (%) applied to invoices" },
+  { key: "invoice_hsn_sac", value: "998314", description: "HSN/SAC code for the service" },
+  { key: "invoice_footer_text", value: "This is a computer-generated invoice and does not require a signature.", description: "Footer text on invoices" },
+  { key: "invoice_logo_url", value: "", description: "Logo URL for invoices (falls back to branding logo)" },
 ];
 
 async function seedGlobalSettings() {

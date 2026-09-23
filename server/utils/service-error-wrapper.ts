@@ -18,7 +18,7 @@
 
 import { ExternalServiceError, AppError } from "./errors";
 
-export type ServiceName = "ElevenLabs" | "Twilio" | "Stripe" | "Razorpay" | "OpenAI" | "SMTP";
+export type ServiceName = "ElevenLabs" | "Twilio" | "Cashfree" | "OpenAI" | "SMTP";
 
 interface ServiceErrorOptions {
   service: ServiceName;

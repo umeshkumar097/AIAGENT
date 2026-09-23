@@ -7,24 +7,13 @@ import { eq } from 'drizzle-orm';
 import { openaiCredentials } from '@shared/schema';
 import { ElevenLabsPoolService } from '../../services/elevenlabs-pool';
 import { getResourceStatus, clearSettingsCache } from '../../services/resource-watchdog';
-import {
-  resetRazorpayClient,
-} from '../../services/razorpay-service';
-import {
-  resetStripeClient,
-  getStripeCurrency,
-  getSupportedCurrencies,
-} from '../../services/stripe-service';
-import {
-  resetPayPalClient,
-} from '../../services/paypal-service';
-import {
-  resetPaystackClient,
-} from '../../services/paystack-service';
-import {
-  resetMercadoPagoClient,
-} from '../../services/mercadopago-service';
 import { resyncElevenLabsPhoneCredentials } from '../../services/elevenlabs-phone-resync';
+
+const INVOICE_SETTING_KEYS = [
+  'invoice_seller_name', 'invoice_seller_trade_name', 'invoice_seller_gstin', 'invoice_seller_cin', 'invoice_seller_dpiit',
+  'invoice_seller_address', 'invoice_seller_state_code', 'invoice_seller_email', 'invoice_seller_phone', 'invoice_prefix',
+  'invoice_gst_rate', 'invoice_hsn_sac', 'invoice_footer_text', 'invoice_logo_url',
+];
 
 export function registerSettingsRoutes(router: Router) {
   router.get('/settings', requireAdminPermission('settings', 'system_settings', 'read'), async (req: AdminRequest, res: Response) => {
@@ -36,12 +25,9 @@ export function registerSettingsRoutes(router: Router) {
         'twilio_account_sid', 'twilio_auth_token', 'plivo_auth_id', 'plivo_auth_token',
         'elevenlabs_api_key', 'openai_api_key',
         'google_client_id', 'google_client_secret',
-        'stripe_secret_key', 'stripe_publishable_key', 'stripe_currency', 'stripe_currency_locked', 'stripe_mode',
-        'razorpay_key_id', 'razorpay_key_secret', 'razorpay_webhook_secret', 'razorpay_mode',
-        'paypal_client_id', 'paypal_client_secret', 'paypal_mode', 'paypal_webhook_id', 'paypal_currency',
-        'paystack_public_key', 'paystack_secret_key', 'paystack_webhook_secret', 'paystack_currency',
-        'mercadopago_access_token', 'mercadopago_public_key', 'mercadopago_webhook_secret', 'mercadopago_webhook_id', 'mercadopago_currency',
-        'payment_gateway', 'stripe_enabled', 'razorpay_enabled', 'paypal_enabled', 'paystack_enabled', 'mercadopago_enabled',
+        'cashfree_enabled', 'cashfree_app_id', 'cashfree_secret_key', 'cashfree_environment', 'cashfree_last_webhook_at',
+        'phone_number_price_inr',
+        ...INVOICE_SETTING_KEYS,
         'auto_restart_enabled', 'auto_restart_ram_percent', 'auto_restart_cpu_percent'
       ];
       
@@ -72,16 +58,11 @@ export function registerSettingsRoutes(router: Router) {
       const openaiRealtimeCredentials = await db.select().from(openaiCredentials).where(eq(openaiCredentials.isActive, true));
       settings.openai_realtime_configured = openaiRealtimeCredentials.length > 0;
       
-      const dbStripeSecretKey = settings.stripe_secret_key;
-      const dbStripePublishableKey = settings.stripe_publishable_key;
-      const envStripeSecretKey = process.env.STRIPE_SECRET_KEY;
-      const envStripePublishableKey = process.env.VITE_STRIPE_PUBLIC_KEY;
-      settings.stripe_configured = !!((dbStripeSecretKey && dbStripePublishableKey) || (envStripeSecretKey && envStripePublishableKey));
-      
-      settings.razorpay_configured = !!(settings.razorpay_key_id && settings.razorpay_key_secret);
-      settings.paypal_configured = !!(settings.paypal_client_id && settings.paypal_client_secret);
-      settings.paystack_configured = !!(settings.paystack_public_key && settings.paystack_secret_key);
-      settings.mercadopago_configured = !!settings.mercadopago_access_token;
+      settings.cashfree_configured = !!(
+        (settings.cashfree_app_id || process.env.CASHFREE_APP_ID) &&
+        (settings.cashfree_secret_key || process.env.CASHFREE_SECRET_KEY)
+      );
+      settings.cashfree_environment = settings.cashfree_environment === 'production' ? 'production' : 'sandbox';
 
       const dbGoogleClientId = settings.google_client_id;
       const dbGoogleClientSecret = settings.google_client_secret;
@@ -98,14 +79,10 @@ export function registerSettingsRoutes(router: Router) {
         settings.google_client_id = undefined;
       }
       
-      if (!settings.payment_gateway) {
-        settings.payment_gateway = 'stripe';
-      }
+      settings.payment_gateway = 'cashfree';
       
       const secretKeys = [
-        'stripe_secret_key', 'twilio_auth_token', 'plivo_auth_token', 'openai_api_key', 'razorpay_key_secret',
-        'razorpay_webhook_secret', 'paypal_client_secret', 'paystack_secret_key',
-        'paystack_webhook_secret', 'mercadopago_access_token', 'mercadopago_webhook_secret',
+        'cashfree_secret_key', 'twilio_auth_token', 'plivo_auth_token', 'openai_api_key',
         'google_client_secret'
       ];
       for (const key of secretKeys) {
@@ -175,8 +152,8 @@ export function registerSettingsRoutes(router: Router) {
           'default_tts_model': 'eleven_turbo_v2', 'default_llm_free': null, 'pro_plan_bonus_credits': 0,
           'credit_price_per_minute': 1, 'elevenlabs_credit_price_per_minute': 2,
           'phone_number_monthly_credits': 50, 'min_credit_purchase': 10,
-          'system_phone_pool_size': 5, 'llm_margin_percentage': 15, 'stripe_currency': 'INR',
-          'stripe_currency_locked': false, 'stripe_mode': 'test', 'auto_restart_enabled': false,
+          'system_phone_pool_size': 5, 'llm_margin_percentage': 15, 'cashfree_environment': 'sandbox',
+          'phone_number_price_inr': 400, 'auto_restart_enabled': false,
           'auto_restart_ram_percent': 75, 'auto_restart_cpu_percent': 85,
         };
         
@@ -200,30 +177,27 @@ export function registerSettingsRoutes(router: Router) {
         'smtp_host', 'smtp_port', 'smtp_username', 'smtp_password', 'smtp_from_email', 'smtp_from_name',
         'app_name', 'app_tagline', 'logo_url', 'favicon_url', 'branding_updated_at',
         'google_client_id', 'google_client_secret',
-        'stripe_secret_key', 'stripe_publishable_key', 'stripe_webhook_secret', 'stripe_currency', 'stripe_currency_locked', 'stripe_mode',
-        'razorpay_key_id', 'razorpay_key_secret', 'razorpay_webhook_secret', 'razorpay_mode',
-        'paypal_client_id', 'paypal_client_secret', 'paypal_mode', 'paypal_webhook_id', 'paypal_currency',
-        'paystack_public_key', 'paystack_secret_key', 'paystack_webhook_secret',
-        'mercadopago_access_token', 'mercadopago_public_key', 'mercadopago_webhook_secret', 'mercadopago_webhook_id', 'mercadopago_currency',
-        'payment_gateway', 'stripe_enabled', 'razorpay_enabled', 'paypal_enabled', 'paystack_enabled', 'mercadopago_enabled', 'password_reset_expiry_minutes'
+        'cashfree_enabled', 'cashfree_app_id', 'cashfree_secret_key', 'cashfree_environment',
+        'phone_number_price_inr', ...INVOICE_SETTING_KEYS, 'password_reset_expiry_minutes'
       ];
       if (!allowedCredentials.includes(key) && (key.includes('api_key') || key.includes('secret') || key.includes('password'))) {
         return res.status(400).json({ error: 'API keys must be configured as environment variables' });
       }
       
-      if (key === 'stripe_currency') {
-        const currencyConfig = await getStripeCurrency();
-        if (currencyConfig.currencyLocked) {
-          return res.status(400).json({ error: 'Stripe currency is locked and cannot be changed.' });
-        }
-        const validCurrencies = getSupportedCurrencies().map(c => c.code);
-        if (!validCurrencies.includes((value as string).toUpperCase())) {
-          return res.status(400).json({ error: `Invalid currency. Supported: ${validCurrencies.join(', ')}` });
-        }
-      }
-      
       let finalValue = value;
-      
+
+      if (key === 'cashfree_environment' && value !== 'sandbox' && value !== 'production') {
+        return res.status(400).json({ error: "cashfree_environment must be 'sandbox' or 'production'" });
+      }
+      if (key === 'cashfree_enabled') {
+        finalValue = value === true || value === 'true';
+      }
+      if (key === 'phone_number_price_inr' || key === 'invoice_gst_rate') {
+        const n = Number(value);
+        if (!Number.isFinite(n) || n < 0) return res.status(400).json({ error: `${key} must be a non-negative number` });
+        finalValue = n;
+      }
+
       if (key === 'auto_restart_enabled') {
         finalValue = value === true || value === 'true';
       } else if (key === 'auto_restart_ram_percent') {
@@ -238,21 +212,6 @@ export function registerSettingsRoutes(router: Router) {
       
       await storage.updateGlobalSetting(key, finalValue);
       
-      if (key === 'razorpay_key_id' || key === 'razorpay_key_secret') {
-        resetRazorpayClient();
-      }
-      if (key === 'stripe_secret_key' || key === 'stripe_publishable_key') {
-        resetStripeClient();
-      }
-      if (key === 'paypal_client_id' || key === 'paypal_client_secret' || key === 'paypal_mode') {
-        resetPayPalClient();
-      }
-      if (key === 'paystack_secret_key' || key === 'paystack_public_key') {
-        resetPaystackClient();
-      }
-      if (key === 'mercadopago_access_token' || key === 'mercadopago_public_key') {
-        resetMercadoPagoClient();
-      }
       if (key.startsWith('auto_restart_')) {
         clearSettingsCache();
       }
@@ -269,12 +228,7 @@ export function registerSettingsRoutes(router: Router) {
         });
       }
       
-      const currencyKeys = ['paypal_currency', 'paystack_currency', 'mercadopago_currency', 'stripe_currency', 'razorpay_currency'];
-      if (currencyKeys.includes(key)) {
-        return res.json({ success: true, warning: `Currency changed to ${finalValue}. Please update prices for all Plans and Credit Packages.` });
-      }
-      
-      res.json({ success: true, key, value: finalValue });
+res.json({ success: true, key, value: finalValue });
     } catch (error: any) {
       console.error(`Error updating setting '${req.params.key}':`, error);
       res.status(500).json({ error: 'Failed to update setting' });

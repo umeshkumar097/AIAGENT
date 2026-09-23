@@ -1,7 +1,7 @@
 'use strict';
 /**
  * Webhook Helper Service
- * Manages webhook URLs, secrets, and tracking for all payment gateways
+ * Webhook URLs, secrets and last-received tracking for Cashfree + ElevenLabs.
  */
 
 import { storage } from '../../storage';
@@ -26,7 +26,7 @@ function getValidatedFrontendUrl(): string {
     console.error('[CONFIG ERROR] Production requires APP_DOMAIN or APP_URL to be set');
     return 'http://localhost:5000'; // Will fail gracefully
   }
-  
+
   // Development environment
   if (process.env.APP_DOMAIN) {
     // Strip any existing protocol to prevent "https://https://..." URLs
@@ -46,56 +46,28 @@ export function getElevenLabsWebhookUrl(): string {
   return `${FRONTEND_URL}/api/elevenlabs/webhook`;
 }
 
+/** Cashfree signs webhooks with the API secret key — there is no separate webhook secret. */
 export async function getWebhookSecret(gateway: PaymentGateway): Promise<string | null> {
-  const keyMap: Record<PaymentGateway, string> = {
-    stripe: GLOBAL_SETTINGS_KEYS.STRIPE_WEBHOOK_SECRET,
-    razorpay: GLOBAL_SETTINGS_KEYS.RAZORPAY_WEBHOOK_SECRET,
-    paypal: GLOBAL_SETTINGS_KEYS.PAYPAL_WEBHOOK_ID,
-    paystack: GLOBAL_SETTINGS_KEYS.PAYSTACK_SECRET_KEY,
-    mercadopago: GLOBAL_SETTINGS_KEYS.MERCADOPAGO_WEBHOOK_SECRET,
-  };
-
-  const settingKey = keyMap[gateway];
-  const setting = await storage.getGlobalSetting(settingKey);
-  
+  if (gateway !== 'cashfree') return null;
+  const setting = await storage.getGlobalSetting(GLOBAL_SETTINGS_KEYS.CASHFREE_SECRET_KEY);
   if (setting?.value) {
     return setting.value as string;
   }
-
-  const envKeyMap: Record<PaymentGateway, string> = {
-    stripe: 'STRIPE_WEBHOOK_SECRET',
-    razorpay: 'RAZORPAY_WEBHOOK_SECRET',
-    paypal: 'PAYPAL_WEBHOOK_ID',
-    paystack: 'PAYSTACK_SECRET_KEY',
-    mercadopago: 'MERCADOPAGO_WEBHOOK_SECRET',
-  };
-
-  return process.env[envKeyMap[gateway]] || null;
+  return process.env.CASHFREE_SECRET_KEY || null;
 }
 
 export async function setWebhookSecret(gateway: PaymentGateway, secret: string): Promise<void> {
-  const keyMap: Record<PaymentGateway, string> = {
-    stripe: GLOBAL_SETTINGS_KEYS.STRIPE_WEBHOOK_SECRET,
-    razorpay: GLOBAL_SETTINGS_KEYS.RAZORPAY_WEBHOOK_SECRET,
-    paypal: GLOBAL_SETTINGS_KEYS.PAYPAL_WEBHOOK_ID,
-    paystack: GLOBAL_SETTINGS_KEYS.PAYSTACK_SECRET_KEY,
-    mercadopago: GLOBAL_SETTINGS_KEYS.MERCADOPAGO_WEBHOOK_SECRET,
-  };
-
-  await storage.updateGlobalSetting(keyMap[gateway], secret);
+  if (gateway !== 'cashfree') return;
+  await storage.updateGlobalSetting(GLOBAL_SETTINGS_KEYS.CASHFREE_SECRET_KEY, secret);
 }
 
-export async function getLastWebhookReceivedAt(gateway: PaymentGateway | 'elevenlabs'): Promise<Date | null> {
-  const keyMap: Record<string, string> = {
-    stripe: GLOBAL_SETTINGS_KEYS.STRIPE_LAST_WEBHOOK_AT,
-    razorpay: GLOBAL_SETTINGS_KEYS.RAZORPAY_LAST_WEBHOOK_AT,
-    paypal: GLOBAL_SETTINGS_KEYS.PAYPAL_LAST_WEBHOOK_AT,
-    paystack: GLOBAL_SETTINGS_KEYS.PAYSTACK_LAST_WEBHOOK_AT,
-    mercadopago: GLOBAL_SETTINGS_KEYS.MERCADOPAGO_LAST_WEBHOOK_AT,
-    elevenlabs: GLOBAL_SETTINGS_KEYS.ELEVENLABS_LAST_WEBHOOK_AT,
-  };
+const LAST_WEBHOOK_KEYS: Record<PaymentGateway | 'elevenlabs', string> = {
+  cashfree: GLOBAL_SETTINGS_KEYS.CASHFREE_LAST_WEBHOOK_AT,
+  elevenlabs: GLOBAL_SETTINGS_KEYS.ELEVENLABS_LAST_WEBHOOK_AT,
+};
 
-  const setting = await storage.getGlobalSetting(keyMap[gateway]);
+export async function getLastWebhookReceivedAt(gateway: PaymentGateway | 'elevenlabs'): Promise<Date | null> {
+  const setting = await storage.getGlobalSetting(LAST_WEBHOOK_KEYS[gateway]);
   if (setting?.value) {
     return new Date(setting.value as string);
   }
@@ -103,16 +75,7 @@ export async function getLastWebhookReceivedAt(gateway: PaymentGateway | 'eleven
 }
 
 export async function recordWebhookReceived(gateway: PaymentGateway | 'elevenlabs'): Promise<void> {
-  const keyMap: Record<string, string> = {
-    stripe: GLOBAL_SETTINGS_KEYS.STRIPE_LAST_WEBHOOK_AT,
-    razorpay: GLOBAL_SETTINGS_KEYS.RAZORPAY_LAST_WEBHOOK_AT,
-    paypal: GLOBAL_SETTINGS_KEYS.PAYPAL_LAST_WEBHOOK_AT,
-    paystack: GLOBAL_SETTINGS_KEYS.PAYSTACK_LAST_WEBHOOK_AT,
-    mercadopago: GLOBAL_SETTINGS_KEYS.MERCADOPAGO_LAST_WEBHOOK_AT,
-    elevenlabs: GLOBAL_SETTINGS_KEYS.ELEVENLABS_LAST_WEBHOOK_AT,
-  };
-
-  await storage.updateGlobalSetting(keyMap[gateway], new Date().toISOString());
+  await storage.updateGlobalSetting(LAST_WEBHOOK_KEYS[gateway], new Date().toISOString());
 }
 
 export async function getElevenLabsHmacSecret(): Promise<string | null> {
@@ -143,9 +106,7 @@ export async function getWebhookConfig(gateway: PaymentGateway): Promise<Webhook
 }
 
 export async function getAllWebhookConfigs(): Promise<WebhookConfig[]> {
-  const gateways: PaymentGateway[] = ['stripe', 'razorpay', 'paypal', 'paystack', 'mercadopago'];
-  const configs = await Promise.all(gateways.map(getWebhookConfig));
-  return configs;
+  return [await getWebhookConfig('cashfree')];
 }
 
 export async function getElevenLabsWebhookConfig(): Promise<{
@@ -168,76 +129,26 @@ export async function getElevenLabsWebhookConfig(): Promise<{
 }
 
 export async function isGatewayEnabled(gateway: PaymentGateway): Promise<boolean> {
-  const keyMap: Record<PaymentGateway, string> = {
-    stripe: GLOBAL_SETTINGS_KEYS.STRIPE_ENABLED,
-    razorpay: GLOBAL_SETTINGS_KEYS.RAZORPAY_ENABLED,
-    paypal: GLOBAL_SETTINGS_KEYS.PAYPAL_ENABLED,
-    paystack: GLOBAL_SETTINGS_KEYS.PAYSTACK_ENABLED,
-    mercadopago: GLOBAL_SETTINGS_KEYS.MERCADOPAGO_ENABLED,
-  };
-
-  const setting = await storage.getGlobalSetting(keyMap[gateway]);
-  
-  if (gateway === 'stripe') {
-    if (setting?.value === undefined || setting?.value === null) {
-      return true;
-    }
-  }
-
+  if (gateway !== 'cashfree') return false;
+  const setting = await storage.getGlobalSetting(GLOBAL_SETTINGS_KEYS.CASHFREE_ENABLED);
   return setting?.value === true || setting?.value === 'true';
 }
 
 export async function isGatewayConfigured(gateway: PaymentGateway): Promise<boolean> {
-  switch (gateway) {
-    case 'stripe': {
-      const [secretKey, publishableKey] = await Promise.all([
-        storage.getGlobalSetting(GLOBAL_SETTINGS_KEYS.STRIPE_SECRET_KEY),
-        storage.getGlobalSetting(GLOBAL_SETTINGS_KEYS.STRIPE_PUBLISHABLE_KEY),
-      ]);
-      const dbConfigured = !!(secretKey?.value && publishableKey?.value);
-      const envConfigured = !!(process.env.STRIPE_SECRET_KEY && process.env.VITE_STRIPE_PUBLIC_KEY);
-      return dbConfigured || envConfigured;
-    }
-    case 'razorpay': {
-      const [keyId, keySecret] = await Promise.all([
-        storage.getGlobalSetting(GLOBAL_SETTINGS_KEYS.RAZORPAY_KEY_ID),
-        storage.getGlobalSetting(GLOBAL_SETTINGS_KEYS.RAZORPAY_KEY_SECRET),
-      ]);
-      return !!(keyId?.value && keySecret?.value);
-    }
-    case 'paypal': {
-      const [clientId, clientSecret] = await Promise.all([
-        storage.getGlobalSetting(GLOBAL_SETTINGS_KEYS.PAYPAL_CLIENT_ID),
-        storage.getGlobalSetting(GLOBAL_SETTINGS_KEYS.PAYPAL_CLIENT_SECRET),
-      ]);
-      return !!(clientId?.value && clientSecret?.value);
-    }
-    case 'paystack': {
-      const [publicKey, secretKey] = await Promise.all([
-        storage.getGlobalSetting(GLOBAL_SETTINGS_KEYS.PAYSTACK_PUBLIC_KEY),
-        storage.getGlobalSetting(GLOBAL_SETTINGS_KEYS.PAYSTACK_SECRET_KEY),
-      ]);
-      return !!(publicKey?.value && secretKey?.value);
-    }
-    case 'mercadopago': {
-      const accessToken = await storage.getGlobalSetting(GLOBAL_SETTINGS_KEYS.MERCADOPAGO_ACCESS_TOKEN);
-      return !!accessToken?.value;
-    }
-    default:
-      return false;
-  }
+  if (gateway !== 'cashfree') return false;
+  const [appId, secretKey] = await Promise.all([
+    storage.getGlobalSetting(GLOBAL_SETTINGS_KEYS.CASHFREE_APP_ID),
+    storage.getGlobalSetting(GLOBAL_SETTINGS_KEYS.CASHFREE_SECRET_KEY),
+  ]);
+  const dbConfigured = !!(appId?.value && secretKey?.value);
+  const envConfigured = !!(process.env.CASHFREE_APP_ID && process.env.CASHFREE_SECRET_KEY);
+  return dbConfigured || envConfigured;
 }
 
 export async function getEnabledGateways(): Promise<PaymentGateway[]> {
-  const gateways: PaymentGateway[] = ['stripe', 'razorpay', 'paypal', 'paystack', 'mercadopago'];
-  const results = await Promise.all(
-    gateways.map(async (gateway) => {
-      const [enabled, configured] = await Promise.all([
-        isGatewayEnabled(gateway),
-        isGatewayConfigured(gateway),
-      ]);
-      return { gateway, enabled: enabled && configured };
-    })
-  );
-  return results.filter(r => r.enabled).map(r => r.gateway);
+  const [enabled, configured] = await Promise.all([
+    isGatewayEnabled('cashfree'),
+    isGatewayConfigured('cashfree'),
+  ]);
+  return enabled && configured ? ['cashfree'] : [];
 }

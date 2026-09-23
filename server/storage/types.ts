@@ -177,7 +177,6 @@ export interface IPhoneNumberStorage {
 
 export interface ISubscriptionStorage {
   getUserSubscription(userId: string): Promise<any>;
-  getUserSubscriptionByPaystackCode(subscriptionCode: string): Promise<UserSubscription | undefined>;
   getAllUserSubscriptions(): Promise<UserSubscription[]>;
   createUserSubscription(subscription: InsertUserSubscription): Promise<UserSubscription>;
   updateUserSubscription(id: string, subscription: Partial<InsertUserSubscription>): Promise<void>;

@@ -387,20 +387,66 @@ export class PlivoPhoneService {
   }
 
   /**
-   * Purchase a Plivo number via Stripe subscription (NO credit deduction).
-   * Called after Stripe payment is confirmed.
+   * True when Plivo lists `phoneNumber` as purchasable in `countryCode` — used to validate paid orders before
+   * checkout so only Plivo-fulfillable numbers are ever charged for. Plivo's `pattern` filter matches the digits
+   * after the country calling code, so the full digit string and the digits after a 1–3 digit code are tried.
    */
-  static async purchaseNumberViaStripe(params: {
+  static async isNumberAvailableForPurchase(
+    countryCode: string,
+    phoneNumber: string,
+    type: 'local' | 'toll_free' | 'national' = 'local',
+  ): Promise<boolean> {
+    const digits = phoneNumber.replace(/\D/g, '');
+    if (digits.length < 6) return false;
+    const candidates = Array.from(new Set([digits.slice(1), digits.slice(2), digits.slice(3), digits].filter((p) => p.length >= 4)));
+    for (const pattern of candidates) {
+      const results = await this.searchAvailableNumbers({ countryCode, type, pattern, limit: 20 });
+      if (results.some((r) => r.phoneNumber.replace(/\D/g, '') === digits)) return true;
+    }
+    return false;
+  }
+
+  /** Plivo number id when the account already rents `phoneNumber`, else null (404 = not rented). */
+  private static async rentedNumberId(client: unknown, phoneNumber: string): Promise<string | null> {
+    try {
+      const rented = await (client as { numbers: { get: (n: string) => Promise<{ number?: string } | undefined> } }).numbers.get(phoneNumber);
+      return rented ? (rented.number || phoneNumber) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Purchase a Plivo number that was PAID for in INR via Cashfree (no credit deduction
+   * for the purchase; the number keeps being billed monthly in credits by the phone billing cron).
+   * Called by billingService.completePurchase after the payment is confirmed.
+   * Idempotent: if the number already belongs to this user, the existing row is returned.
+   */
+  static async purchaseNumberPaid(params: {
     userId: string;
     phoneNumber: string;
     country: string;
-    stripeSubscriptionId: string;
-  }): Promise<void> {
-    logger.info(`Purchasing ${params.phoneNumber} via Stripe for user ${params.userId}`, undefined, 'PlivoPhone');
+    transactionId: string;
+  }): Promise<PlivoPhoneNumberRecord> {
+    const country = params.country.toUpperCase();
+    logger.info(`Purchasing paid number ${params.phoneNumber} for user ${params.userId} (txn ${params.transactionId})`, undefined, 'PlivoPhone');
+
+    const existing = await this.getPhoneNumberByNumber(params.phoneNumber);
+    if (existing && existing.userId === params.userId && existing.status !== 'released') {
+      logger.info(`Number ${params.phoneNumber} already owned by user ${params.userId}; skipping purchase`, undefined, 'PlivoPhone');
+      return existing;
+    }
+    if (existing && existing.status !== 'released') {
+      throw new Error(`Phone number ${params.phoneNumber} is already assigned to another account`);
+    }
+
+    const pricing = await this.getAdminPricingRecord(country);
+    if (!pricing) {
+      throw new Error(`Phone numbers not available for country: ${country}. Contact admin.`);
+    }
 
     const { client, credential } = await this.getPlivoClient();
 
-    // Buy the number from Plivo
     let plivoNumberId: string;
     try {
       const response = await client.numbers.buy(params.phoneNumber);
@@ -412,37 +458,54 @@ export class PlivoPhoneService {
       } else {
         plivoNumberId = params.phoneNumber;
       }
-      logger.info(`Purchased ${params.phoneNumber} via Plivo`, undefined, 'PlivoPhone');
+      logger.info(`Purchased ${params.phoneNumber} via Plivo (paid, txn ${params.transactionId})`, undefined, 'PlivoPhone');
     } catch (error: any) {
-      logger.error('Plivo purchase failed in Stripe flow', error, 'PlivoPhone');
-      throw new Error(`Failed to purchase number from Plivo: ${error.message}`);
+      // A previous attempt may have bought the number but died before the DB write: the account already rents it
+      const rented = await this.rentedNumberId(client, params.phoneNumber);
+      if (!rented) {
+        logger.error('Plivo purchase failed in paid flow', error, 'PlivoPhone');
+        throw new Error(`Failed to purchase number from Plivo: ${error.message}`);
+      }
+      plivoNumberId = rented;
+      logger.warn(`Plivo reports ${params.phoneNumber} already rented by this account; treating as purchased (txn ${params.transactionId})`, undefined, 'PlivoPhone');
     }
 
     const nextBillingDate = new Date();
     nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
 
-    // Save to DB — NO credit deduction, Stripe handles billing
-    await db
-      .insert(plivoPhoneNumbers)
-      .values({
-        userId: params.userId,
-        plivoCredentialId: credential.id,
-        phoneNumber: params.phoneNumber,
-        plivoNumberId,
-        friendlyName: params.phoneNumber,
-        country: params.country.toUpperCase(),
-        numberType: 'local',
-        capabilities: { voice: true, sms: true },
-        status: 'active',
-        purchaseCredits: 0,
-        monthlyCredits: 0,
-        nextBillingDate,
-        stripeSubscriptionId: params.stripeSubscriptionId,
-        purchasedAt: new Date(),
-      } as InsertPlivoPhoneNumber)
-      .returning();
+    const values = {
+      userId: params.userId,
+      plivoCredentialId: credential.id,
+      phoneNumber: params.phoneNumber,
+      plivoNumberId,
+      friendlyName: params.phoneNumber,
+      country,
+      numberType: 'local',
+      capabilities: { voice: true, sms: true },
+      status: pricing.kycRequired ? 'pending' : 'active',
+      kycStatus: pricing.kycRequired ? 'pending' : null,
+      purchaseCredits: 0,
+      monthlyCredits: pricing.monthlyCredits,
+      nextBillingDate,
+      purchasedAt: new Date(),
+    } as InsertPlivoPhoneNumber;
 
-    logger.info(`Saved ${params.phoneNumber} with Stripe sub ${params.stripeSubscriptionId}`, undefined, 'PlivoPhone');
+    let phoneRecord: PlivoPhoneNumberRecord;
+    if (existing) {
+      // Re-activate a previously released row (phone_number is unique)
+      const [updated] = await db
+        .update(plivoPhoneNumbers)
+        .set({ ...values, updatedAt: new Date() })
+        .where(eq(plivoPhoneNumbers.id, existing.id))
+        .returning();
+      phoneRecord = updated;
+    } else {
+      const [inserted] = await db.insert(plivoPhoneNumbers).values(values).returning();
+      phoneRecord = inserted;
+    }
+
+    logger.info(`Saved paid number ${params.phoneNumber} (row ${phoneRecord.id}, txn ${params.transactionId})`, undefined, 'PlivoPhone');
+    return phoneRecord;
   }
 
   /**

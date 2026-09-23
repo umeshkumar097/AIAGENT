@@ -146,9 +146,7 @@ const SENSITIVE_KEY_PATTERNS = [
   'apikey', 'api_key', 'secretkey', 'secret_key', 'secret', 'password', 'token',
   'accesskey', 'access_key', 'privatekey', 'private_key', 'authtoken', 'auth_token',
   'clientsecret', 'client_secret', 'smtppassword', 'smtp_password',
-  'stripesecretkey', 'stripe_secret_key', 'razorpaykeysecret', 'razorpay_key_secret',
-  'paypalclientsecret', 'paypal_client_secret', 'paystacksecretkey', 'paystack_secret_key',
-  'mercadopagoaccesstoken', 'mercadopago_access_token', 'hashedkey', 'hashed_key',
+  'cashfreesecretkey', 'cashfree_secret_key', 'hashedkey', 'hashed_key',
   'credentials', 'authsid', 'auth_sid', 'webhook_secret', 'signing_secret',
 ];
 

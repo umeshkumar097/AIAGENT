@@ -17,6 +17,7 @@
 import { db } from "./db";
 import { plans } from "@shared/schema";
 
+// Prices are INR (Cashfree is the only gateway)
 const PLANS_SEED_DATA = [
   {
     name: "free",
@@ -24,8 +25,6 @@ const PLANS_SEED_DATA = [
     description: "Perfect for trying out AI calling. Get started with basic features at no cost.",
     monthlyPrice: "0.00",
     yearlyPrice: "0.00",
-    razorpayMonthlyPrice: "0.00",
-    razorpayYearlyPrice: "0.00",
     maxAgents: 2,
     maxCampaigns: 3,
     maxContactsPerCampaign: 10,
@@ -56,10 +55,8 @@ const PLANS_SEED_DATA = [
     name: "pro",
     displayName: "Pro",
     description: "For growing businesses. Unlock advanced features, more capacity, and premium support.",
-    monthlyPrice: "49.00",
-    yearlyPrice: "470.00",
-    razorpayMonthlyPrice: "4000.00",
-    razorpayYearlyPrice: "38000.00",
+    monthlyPrice: "4000.00",
+    yearlyPrice: "38000.00",
     maxAgents: 25,
     maxCampaigns: 50,
     maxContactsPerCampaign: 1000,
@@ -96,9 +93,9 @@ const PLANS_SEED_DATA = [
 async function seedPlans() {
   try {
     console.log("🌱 Starting Plans seed...");
-    
+
     const existingPlans = await db.select().from(plans);
-    
+
     if (existingPlans.length > 0) {
       console.log(`⚠️  Found ${existingPlans.length} existing plans. Skipping seed to prevent duplicates.`);
       console.log("   To re-seed, first delete all plans from the database.");
@@ -107,11 +104,11 @@ async function seedPlans() {
 
     console.log(`📦 Inserting ${PLANS_SEED_DATA.length} subscription plans...`);
     await db.insert(plans).values(PLANS_SEED_DATA);
-    
+
     console.log("✅ Successfully seeded Plans!");
     console.log(`   - Free plan: ${PLANS_SEED_DATA[0].includedCredits} credits included`);
-    console.log(`   - Pro plan: $${PLANS_SEED_DATA[1].monthlyPrice}/month, ${PLANS_SEED_DATA[1].includedCredits} credits included`);
-    
+    console.log(`   - Pro plan: ₹${PLANS_SEED_DATA[1].monthlyPrice}/month, ${PLANS_SEED_DATA[1].includedCredits} credits included`);
+
   } catch (error) {
     console.error("❌ Error seeding Plans:", error);
     throw error;

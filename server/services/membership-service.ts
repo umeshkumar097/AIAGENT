@@ -15,11 +15,13 @@
  * Respect the author's rights and Envato licensing terms.
  * ============================================================
  */
-import { storage } from '../storage';
-import { PaymentAuditService } from '../engines/payment/audit';
+import { storage, userSubscriptionPreferenceOrder, type DbExecutor } from '../storage';
 import { db } from '../db';
-import { campaigns, phoneNumbers } from '../../shared/schema';
-import { eq, and, isNull } from 'drizzle-orm';
+import { campaigns, phoneNumbers, userSubscriptions, users, type Plan, type UserSubscription } from '../../shared/schema';
+import { and, eq, gt, lte } from 'drizzle-orm';
+import { logger } from '../utils/logger';
+
+const SOURCE = 'Membership';
 
 /**
  * Plan capabilities returned by getUserPlanCapabilities
@@ -40,8 +42,7 @@ export interface PlanCapabilities {
 
 /**
  * Active subscription statuses that grant membership access.
- * 'active' - Subscription is active and payment is current
- * Note: Stripe's 'trialing', 'past_due' are mapped to 'active' in our webhook handlers
+ * 'active' - Subscription is paid for the current period (Cashfree one-time payment per period)
  */
 const ACTIVE_SUBSCRIPTION_STATUSES = ['active'];
 
@@ -166,22 +167,24 @@ export async function syncUserWithSubscription(userId: string): Promise<void> {
 /**
  * Applies plan credits to user's account when subscription is activated.
  * This should be called when a NEW subscription is created or when upgrading plans.
- * 
+ *
  * @param userId - The user ID
  * @param planId - The plan ID being activated
- * @param gateway - Payment gateway used (for audit logging)
+ * @param gateway - Payment gateway used (for the idempotency key / logging)
  * @param transactionId - Transaction reference (for deduplication)
+ * @param executor - Optional open transaction so the credit grant commits with the caller's work
  * @returns The number of credits applied, or 0 if already applied
  */
 export async function applyPlanCredits(
   userId: string,
   planId: string,
-  gateway: 'stripe' | 'razorpay' | 'paypal' | 'paystack' | 'mercadopago',
-  transactionId: string
+  gateway: string,
+  transactionId: string,
+  executor?: DbExecutor
 ): Promise<number> {
   const plan = await storage.getPlan(planId);
   if (!plan || !plan.includedCredits || plan.includedCredits <= 0) {
-    console.log(`[Membership] No credits to apply for plan ${planId}`);
+    logger.info(`No credits to apply for plan ${planId}`, undefined, SOURCE);
     return 0;
   }
 
@@ -189,31 +192,23 @@ export async function applyPlanCredits(
   const creditRefId = `plan_credits_${gateway}_${transactionId}`;
 
   try {
-    // Use addCreditsAtomic for deduplication - it will fail on duplicate stripePaymentId
+    // addCreditsAtomic dedupes on the unique reference
     await storage.addCreditsAtomic(
       userId,
       creditsToAdd,
       `${plan.displayName} Plan - Included Credits`,
-      creditRefId
+      creditRefId,
+      executor
     );
 
-    console.log(`✅ [Membership] Applied ${creditsToAdd} credits to user ${userId} from ${plan.displayName} plan`);
-
-    // Log the credit award for audit
-    await PaymentAuditService.logCreditsAwarded(
-      gateway,
-      userId,
-      transactionId,
-      creditsToAdd,
-      { planName: plan.name, planId: plan.id, reason: 'plan_subscription' }
-    );
+    logger.info(`Applied ${creditsToAdd} credits to user ${userId} from ${plan.displayName} plan`, { planId, transactionId }, SOURCE);
 
     // If upgrading to Pro, remove system pool numbers from campaigns
     // Pro users cannot use system pool numbers - they must purchase their own
     if (plan.name === 'pro' || plan.useSystemPool === false) {
       const removedCount = await removeSystemPoolNumbersFromCampaigns(userId);
       if (removedCount > 0) {
-        console.log(`✅ [Membership] Removed ${removedCount} system pool number(s) from campaigns for upgraded user ${userId}`);
+        logger.info(`Removed ${removedCount} system pool number(s) from campaigns for upgraded user ${userId}`, undefined, SOURCE);
       }
     }
 
@@ -221,11 +216,145 @@ export async function applyPlanCredits(
   } catch (error: any) {
     // If duplicate, credits were already applied
     if (error.message?.includes('unique') || error.message?.includes('duplicate')) {
-      console.log(`[Membership] Plan credits already applied for transaction ${transactionId}`);
+      logger.info(`Plan credits already applied for transaction ${transactionId}`, undefined, SOURCE);
       return 0;
     }
     throw error;
   }
+}
+
+export interface ActivateSubscriptionInput {
+  userId: string;
+  planId: string;
+  billingPeriod: 'monthly' | 'yearly';
+  /** Cashfree order id of the payment that paid for this period */
+  cashfreeOrderId: string;
+}
+
+export interface ActivateSubscriptionResult {
+  subscription: UserSubscription;
+  plan: Plan;
+  /** true when the same plan was already active and the period was extended */
+  renewed: boolean;
+  periodStart: Date;
+  periodEnd: Date;
+}
+
+/** Adds `n` calendar months, clamping to the last day of the target month (31 Jan + 1 → 28/29 Feb, never 2/3 Mar). */
+export function addMonths(date: Date, n: number): Date {
+  const result = new Date(date.getTime());
+  const day = result.getDate();
+  result.setDate(1);
+  result.setMonth(result.getMonth() + n);
+  const lastDay = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
+  result.setDate(Math.min(day, lastDay));
+  return result;
+}
+
+export function addBillingPeriod(from: Date, billingPeriod: 'monthly' | 'yearly'): Date {
+  return addMonths(from, billingPeriod === 'yearly' ? 12 : 1);
+}
+
+/**
+ * Activates a paid plan for a user or extends the current period.
+ * - Same plan still active → new period starts at the current period end (renewal, nothing is lost).
+ * - New plan / expired / no subscription → period starts now.
+ * Also syncs users.planType / planExpiresAt and resets the expiry-reminder bookkeeping.
+ * Runs on `executor` (an open transaction) when provided.
+ */
+export async function activateOrExtendSubscription(
+  input: ActivateSubscriptionInput,
+  executor?: DbExecutor
+): Promise<ActivateSubscriptionResult> {
+  const tx: DbExecutor = executor ?? db;
+  const plan = await storage.getPlan(input.planId);
+  if (!plan) throw new Error(`Plan not found: ${input.planId}`);
+
+  const now = new Date();
+  const [existing] = await tx.select().from(userSubscriptions)
+    .where(eq(userSubscriptions.userId, input.userId))
+    .orderBy(...userSubscriptionPreferenceOrder())
+    .limit(1);
+
+  const stillActive = !!existing
+    && existing.status === 'active'
+    && existing.planId === input.planId
+    && new Date(existing.currentPeriodEnd) > now;
+
+  const periodStart = stillActive ? new Date(existing.currentPeriodEnd) : now;
+  const periodEnd = addBillingPeriod(periodStart, input.billingPeriod);
+
+  const values = {
+    planId: input.planId,
+    status: 'active',
+    currentPeriodStart: periodStart,
+    currentPeriodEnd: periodEnd,
+    billingPeriod: input.billingPeriod,
+    cancelAtPeriodEnd: false,
+    cashfreeOrderId: input.cashfreeOrderId,
+    reminder7SentAt: null,
+    reminder3SentAt: null,
+    reminder1SentAt: null,
+    expiredNotifiedAt: null,
+    updatedAt: now,
+  };
+
+  let subscription: UserSubscription;
+  if (existing) {
+    [subscription] = await tx.update(userSubscriptions).set(values)
+      .where(eq(userSubscriptions.id, existing.id)).returning();
+  } else {
+    [subscription] = await tx.insert(userSubscriptions)
+      .values({ userId: input.userId, ...values }).returning();
+  }
+
+  await tx.update(users)
+    .set({ planType: plan.name, planExpiresAt: periodEnd, updatedAt: now })
+    .where(eq(users.id, input.userId));
+
+  logger.info(`${stillActive ? 'Renewed' : 'Activated'} plan ${plan.name} for user ${input.userId}`, {
+    periodStart, periodEnd, billingPeriod: input.billingPeriod, cashfreeOrderId: input.cashfreeOrderId,
+  }, SOURCE);
+
+  return { subscription, plan, renewed: stillActive, periodStart, periodEnd };
+}
+
+/**
+ * Downgrades a user to the free plan once the paid period has ended.
+ * Conditional: only an 'active' row whose period has ended is marked 'expired' (a renewal that landed in the
+ * meantime is left alone), and users.planType is cleared only when the user has no other running subscription.
+ * @returns true when the row was expired
+ */
+export async function expireSubscription(subscriptionId: string, userId: string): Promise<boolean> {
+  const now = new Date();
+  const [expired] = await db.update(userSubscriptions)
+    .set({ status: 'expired', cancelAtPeriodEnd: false, updatedAt: now })
+    .where(and(
+      eq(userSubscriptions.id, subscriptionId),
+      eq(userSubscriptions.status, 'active'),
+      lte(userSubscriptions.currentPeriodEnd, now),
+    ))
+    .returning({ id: userSubscriptions.id });
+  if (!expired) {
+    logger.info(`Subscription ${subscriptionId} not expired (no longer active or period still running)`, undefined, SOURCE);
+    return false;
+  }
+  const [other] = await db.select({ id: userSubscriptions.id }).from(userSubscriptions)
+    .where(and(
+      eq(userSubscriptions.userId, userId),
+      eq(userSubscriptions.status, 'active'),
+      gt(userSubscriptions.currentPeriodEnd, now),
+    ))
+    .limit(1);
+  if (other) {
+    logger.info(`Subscription ${subscriptionId} expired; user ${userId} keeps plan via subscription ${other.id}`, undefined, SOURCE);
+    return true;
+  }
+  await db.update(users)
+    .set({ planType: 'free', planExpiresAt: null, updatedAt: now })
+    .where(eq(users.id, userId));
+  logger.info(`Subscription ${subscriptionId} expired; user ${userId} downgraded to free`, undefined, SOURCE);
+  return true;
 }
 
 /**

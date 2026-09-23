@@ -31,6 +31,7 @@ function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 import { startPhoneBillingCron } from "./services/phone-billing-cron";
+import { startSubscriptionExpiryCron } from "./services/subscription-expiry-cron";
 import { startCreditBackfillMonitor } from "./services/credit-backfill-monitor";
 import { startPhoneReleaseRetryWorker } from "./services/phone-release-retry-worker";
 import { runStartupHealthCheck, getHealthStatus } from "./services/startup-health-check";
@@ -159,7 +160,7 @@ app.use(helmet({
 
 app.disable('x-powered-by');
 
-const seoPublicPaths = ['/', '/pricing', '/features', '/use-cases', '/integrations', '/blog', '/contact', '/about', '/privacy', '/terms', '/sitemap.xml', '/robots.txt'];
+const seoPublicPaths = ['/', '/pricing', '/features', '/use-cases', '/integrations', '/blog', '/contact', '/about', '/privacy', '/terms', '/refund-policy', '/sitemap.xml', '/robots.txt'];
 app.use((req: Request, res: Response, next: NextFunction) => {
   const p = req.path.replace(/\/+$/, '') || '/';
   const isPublicPage = seoPublicPaths.includes(p) || p.startsWith('/blog/');
@@ -272,35 +273,6 @@ app.use((req, res, next) => {
     console.error('⚠️ [Startup] Phone status normalization failed (non-fatal):', error);
   }
 
-  // One-time migration: auto-enable gateways that have credentials but no explicit *_enabled flag
-  try {
-    const migrationDone = await storage.getGlobalSetting('gateway_enable_migration_v1');
-    if (!migrationDone) {
-      const gatewayChecks = [
-        { credKeys: ['stripe_secret_key', 'stripe_publishable_key'], enableKey: 'stripe_enabled', envKeys: ['STRIPE_SECRET_KEY', 'VITE_STRIPE_PUBLIC_KEY'] },
-        { credKeys: ['razorpay_key_id', 'razorpay_key_secret'], enableKey: 'razorpay_enabled', envKeys: [] },
-        { credKeys: ['paypal_client_id', 'paypal_client_secret'], enableKey: 'paypal_enabled', envKeys: [] },
-        { credKeys: ['paystack_public_key', 'paystack_secret_key'], enableKey: 'paystack_enabled', envKeys: [] },
-        { credKeys: ['mercadopago_access_token'], enableKey: 'mercadopago_enabled', envKeys: [] },
-      ];
-      for (const check of gatewayChecks) {
-        const enabledSetting = await storage.getGlobalSetting(check.enableKey);
-        if (!enabledSetting) {
-          const dbCreds = await Promise.all(check.credKeys.map(k => storage.getGlobalSetting(k)));
-          const hasDbCreds = dbCreds.every(s => s?.value);
-          const hasEnvCreds = check.envKeys.length > 0 && check.envKeys.every(k => !!process.env[k]);
-          if (hasDbCreds || hasEnvCreds) {
-            await storage.updateGlobalSetting(check.enableKey, true);
-            console.log(`🔄 [Migration] Auto-enabled ${check.enableKey} (credentials present, flag was unset)`);
-          }
-        }
-      }
-      await storage.updateGlobalSetting('gateway_enable_migration_v1', 'done');
-      console.log('✅ [Migration] Gateway enable migration v1 completed');
-    }
-  } catch (error) {
-    console.error('⚠️ [Migration] Gateway enable migration failed (non-fatal):', error);
-  }
   
   // Preload JWT expiry settings from database
   await preloadJwtExpiry(storage);
@@ -677,6 +649,9 @@ app.use((req, res, next) => {
       if (process.env.IS_WEBSOCKET_ONLY !== 'true') {
         // Start phone number billing cron job
         startPhoneBillingCron();
+
+        // Start subscription expiry reminders (7/3/1 days) + period-end expiry
+        startSubscriptionExpiryCron();
 
         // Start daily un-billed call detection sweep across all telephony engines.
         startCreditBackfillMonitor();

@@ -20,16 +20,9 @@ import { Router, Response } from "express";
 import { storage } from "../storage";
 import { authenticateToken, requireRole, type AuthRequest } from "../middleware/auth";
 import { db } from "../db";
-import { users, paymentTransactions } from "@shared/schema";
+import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
-import { getStripeClient, isStripeEnabled } from "../services/stripe-service";
-import { getRazorpayClient, isRazorpayEnabled } from "../services/razorpay-service";
-import { getPayPalClient, isPayPalEnabled } from "../services/paypal-service";
-import { isPaystackEnabled } from "../services/paystack-service";
-import { getMercadoPagoClient, isMercadoPagoEnabled } from "../services/mercadopago-service";
-import { PaymentRefund as MercadoPagoRefund } from 'mercadopago';
-import axios from 'axios';
-import { applyRefund, type RefundGateway } from "../services/credit-service";
+import { processCashfreeRefund, RefundValidationError } from "../engines/payment/gateways/cashfree";
 import { generateRefundNoteForRefund, refundNoteService } from "../services/refund-note-service";
 
 const router = Router();
@@ -41,353 +34,24 @@ interface RefundRequest {
   customerNote?: string;
 }
 
-interface GatewayRefundResult {
-  success: boolean;
-  gatewayRefundId?: string;
-  error?: string;
-}
-
-async function processStripeRefund(
-  gatewayTransactionId: string,
-  amount: number,
-  currency: string
-): Promise<GatewayRefundResult> {
-  try {
-    const stripe = await getStripeClient();
-    if (!stripe) {
-      return { success: false, error: 'Stripe is not configured' };
-    }
-
-    const amountInCents = Math.round(amount * 100);
-    
-    const refund = await stripe.refunds.create({
-      payment_intent: gatewayTransactionId,
-      amount: amountInCents,
-    });
-
-    console.log(`✅ [Stripe] Created refund ${refund.id} for payment intent ${gatewayTransactionId}`);
-    return { success: true, gatewayRefundId: refund.id };
-  } catch (error: any) {
-    console.error(`❌ [Stripe] Refund failed:`, error.message);
-    return { success: false, error: error.message };
-  }
-}
-
-async function processRazorpayRefund(
-  gatewayTransactionId: string,
-  amount: number,
-  currency: string
-): Promise<GatewayRefundResult> {
-  try {
-    const razorpay = await getRazorpayClient();
-    if (!razorpay) {
-      return { success: false, error: 'Razorpay is not configured' };
-    }
-
-    const amountInPaise = Math.round(amount * 100);
-    
-    const refund = await razorpay.payments.refund(gatewayTransactionId, {
-      amount: amountInPaise,
-    });
-
-    console.log(`✅ [Razorpay] Created refund ${refund.id} for payment ${gatewayTransactionId}`);
-    return { success: true, gatewayRefundId: refund.id };
-  } catch (error: any) {
-    console.error(`❌ [Razorpay] Refund failed:`, error.message);
-    return { success: false, error: error.message };
-  }
-}
-
-async function processPayPalRefund(
-  gatewayTransactionId: string,
-  amount: number,
-  currency: string
-): Promise<GatewayRefundResult> {
-  try {
-    const client = await getPayPalClient();
-    if (!client) {
-      return { success: false, error: 'PayPal is not configured' };
-    }
-
-    const response = await client.post(`/v2/payments/captures/${gatewayTransactionId}/refund`, {
-      amount: {
-        value: amount.toFixed(2),
-        currency_code: currency.toUpperCase(),
-      },
-    });
-
-    console.log(`✅ [PayPal] Created refund ${response.data.id} for capture ${gatewayTransactionId}`);
-    return { success: true, gatewayRefundId: response.data.id };
-  } catch (error: any) {
-    console.error(`❌ [PayPal] Refund failed:`, error.message);
-    return { success: false, error: error.response?.data?.message || error.message };
-  }
-}
-
-async function getPaystackSecretKey(): Promise<string | null> {
-  const setting = await storage.getGlobalSetting('paystack_secret_key');
-  return (setting?.value as string | null) ?? null;
-}
-
-async function processPaystackRefund(
-  gatewayTransactionId: string,
-  amount: number,
-  currency: string
-): Promise<GatewayRefundResult> {
-  try {
-    const secretKey = await getPaystackSecretKey();
-    if (!secretKey) {
-      return { success: false, error: 'Paystack is not configured' };
-    }
-
-    const amountInKobo = Math.round(amount * 100);
-    
-    const response = await axios.post(
-      'https://api.paystack.co/refund',
-      {
-        transaction: gatewayTransactionId,
-        amount: amountInKobo,
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${secretKey}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-
-    if (!response.data.status) {
-      return { success: false, error: response.data.message || 'Refund failed' };
-    }
-
-    console.log(`✅ [Paystack] Created refund for transaction ${gatewayTransactionId}`);
-    return { success: true, gatewayRefundId: response.data.data?.id?.toString() };
-  } catch (error: any) {
-    console.error(`❌ [Paystack] Refund failed:`, error.message);
-    return { success: false, error: error.response?.data?.message || error.message };
-  }
-}
-
-async function processMercadoPagoRefund(
-  gatewayTransactionId: string,
-  amount: number,
-  currency: string
-): Promise<GatewayRefundResult> {
-  try {
-    const client = await getMercadoPagoClient();
-    if (!client) {
-      return { success: false, error: 'MercadoPago is not configured' };
-    }
-
-    const refund = new MercadoPagoRefund(client);
-    const response = await refund.create({
-      payment_id: parseInt(gatewayTransactionId, 10),
-      body: {
-        amount: amount,
-      },
-    });
-
-    console.log(`✅ [MercadoPago] Created refund ${response.id} for payment ${gatewayTransactionId}`);
-    return { success: true, gatewayRefundId: response.id?.toString() };
-  } catch (error: any) {
-    console.error(`❌ [MercadoPago] Refund failed:`, error.message);
-    return { success: false, error: error.message };
-  }
-}
-
+/**
+ * POST /api/admin/refunds/:transactionId — Cashfree refund + credit note.
+ * Legacy-gateway transactions (Stripe/Razorpay/…) cannot be refunded here.
+ */
 router.post("/:transactionId", authenticateToken, requireRole("admin"), async (req: AuthRequest, res: Response) => {
   try {
     const { transactionId } = req.params;
     const { amount, reason, adminNote, customerNote } = req.body as RefundRequest;
     const adminId = req.userId!;
 
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ message: "Valid refund amount is required" });
-    }
-
-    const transaction = await storage.getPaymentTransaction(transactionId);
-    if (!transaction) {
-      return res.status(404).json({ message: "Transaction not found" });
-    }
-
-    if (transaction.status === 'refunded') {
-      return res.status(400).json({ message: "Transaction has already been fully refunded" });
-    }
-
-    if (transaction.status !== 'completed') {
-      return res.status(400).json({ message: "Only completed transactions can be refunded" });
-    }
-
-    const transactionAmount = parseFloat(transaction.amount);
-    const existingRefunds = await storage.getTransactionRefunds(transactionId);
-    const totalRefunded = existingRefunds.reduce((sum, r) => sum + parseFloat(r.amount), 0);
-    const availableForRefund = transactionAmount - totalRefunded;
-
-    if (amount > availableForRefund) {
-      return res.status(400).json({ 
-        message: `Refund amount exceeds available balance. Maximum refundable: ${availableForRefund.toFixed(2)} ${transaction.currency}` 
-      });
-    }
-
-    const user = await storage.getUser(transaction.userId);
-    if (!user) {
-      return res.status(404).json({ message: "User associated with transaction not found" });
-    }
-
-    console.log(`🔄 [Refund] Processing ${transaction.gateway} refund for transaction ${transactionId}`);
-    console.log(`   Amount: ${amount} ${transaction.currency}`);
-    console.log(`   Admin: ${adminId}`);
-
-    let gatewayResult: GatewayRefundResult;
-
-    switch (transaction.gateway) {
-      case 'stripe':
-        if (!await isStripeEnabled()) {
-          return res.status(400).json({ message: "Stripe is not enabled" });
-        }
-        if (!transaction.gatewayTransactionId) {
-          return res.status(400).json({ message: "No Stripe payment intent found for this transaction" });
-        }
-        gatewayResult = await processStripeRefund(
-          transaction.gatewayTransactionId,
-          amount,
-          transaction.currency
-        );
-        break;
-
-      case 'razorpay':
-        if (!await isRazorpayEnabled()) {
-          return res.status(400).json({ message: "Razorpay is not enabled" });
-        }
-        if (!transaction.gatewayTransactionId) {
-          return res.status(400).json({ message: "No Razorpay payment ID found for this transaction" });
-        }
-        gatewayResult = await processRazorpayRefund(
-          transaction.gatewayTransactionId,
-          amount,
-          transaction.currency
-        );
-        break;
-
-      case 'paypal':
-        if (!await isPayPalEnabled()) {
-          return res.status(400).json({ message: "PayPal is not enabled" });
-        }
-        if (!transaction.gatewayTransactionId) {
-          return res.status(400).json({ message: "No PayPal capture ID found for this transaction" });
-        }
-        gatewayResult = await processPayPalRefund(
-          transaction.gatewayTransactionId,
-          amount,
-          transaction.currency
-        );
-        break;
-
-      case 'paystack':
-        if (!await isPaystackEnabled()) {
-          return res.status(400).json({ message: "Paystack is not enabled" });
-        }
-        if (!transaction.gatewayTransactionId) {
-          return res.status(400).json({ message: "No Paystack transaction reference found" });
-        }
-        gatewayResult = await processPaystackRefund(
-          transaction.gatewayTransactionId,
-          amount,
-          transaction.currency
-        );
-        break;
-
-      case 'mercadopago':
-        if (!await isMercadoPagoEnabled()) {
-          return res.status(400).json({ message: "MercadoPago is not enabled" });
-        }
-        if (!transaction.gatewayTransactionId) {
-          return res.status(400).json({ message: "No MercadoPago payment ID found for this transaction" });
-        }
-        gatewayResult = await processMercadoPagoRefund(
-          transaction.gatewayTransactionId,
-          amount,
-          transaction.currency
-        );
-        break;
-
-      default:
-        return res.status(400).json({ message: `Unsupported payment gateway: ${transaction.gateway}` });
-    }
-
-    let creditsReversed: number | null = null;
-    
-    if (transaction.type === 'credits' && transaction.creditsAwarded && gatewayResult.success) {
-      const refundRatio = amount / transactionAmount;
-      const creditsToReverse = Math.floor((transaction.creditsAwarded || 0) * refundRatio);
-      
-      if (creditsToReverse > 0) {
-        const refundResult = await applyRefund({
-          userId: user.id,
-          creditsToReverse,
-          gateway: transaction.gateway as RefundGateway,
-          gatewayRefundId: gatewayResult.gatewayRefundId || `admin_refund_${transactionId}`,
-          transactionId,
-          reason: reason || 'Admin initiated refund',
-        });
-        
-        if (refundResult.success) {
-          creditsReversed = refundResult.creditsReversed;
-          console.log(`✅ [Refund] Reversed ${creditsReversed} credits from user ${user.id}. New balance: ${refundResult.newBalance}. Transaction logged.`);
-        } else {
-          console.error(`❌ [Refund] Failed to reverse credits: ${refundResult.error}`);
-        }
-      }
-    }
-
-    const refund = await storage.createRefund({
+    const result = await processCashfreeRefund({
       transactionId,
-      userId: transaction.userId,
-      amount: amount.toString(),
-      currency: transaction.currency,
-      gateway: transaction.gateway,
-      gatewayRefundId: gatewayResult.gatewayRefundId || null,
-      reason: reason || 'admin_request',
-      initiatedBy: 'admin',
+      amount: Number(amount),
+      reason,
       adminId,
-      status: gatewayResult.success ? 'completed' : 'failed',
-      creditsReversed,
       adminNote: adminNote || null,
       customerNote: customerNote || null,
-      processedAt: gatewayResult.success ? new Date() : null,
-      metadata: gatewayResult.error ? { error: gatewayResult.error } : null,
     });
-
-    if (gatewayResult.success) {
-      const newTotalRefunded = totalRefunded + amount;
-      const newStatus = newTotalRefunded >= transactionAmount ? 'refunded' : 'partially_refunded';
-      
-      await storage.updatePaymentTransaction(transactionId, {
-        status: newStatus,
-      });
-
-      console.log(`✅ [Refund] Transaction ${transactionId} status updated to ${newStatus}`);
-      
-      // Generate refund note PDF
-      try {
-        const updatedRefund = await generateRefundNoteForRefund(refund.id);
-        console.log(`📄 [Refund] Generated refund note: ${updatedRefund.refundNoteNumber}`);
-      } catch (pdfError: any) {
-        console.error(`⚠️ [Refund] Failed to generate refund note PDF:`, pdfError.message);
-      }
-    }
-
-    if (!gatewayResult.success) {
-      console.error(`❌ [Refund] Failed to process refund:`, gatewayResult.error);
-      return res.status(500).json({ 
-        message: "Gateway refund failed", 
-        error: gatewayResult.error,
-        refund,
-      });
-    }
-
-    // Get the latest refund data with PDF info
-    const updatedRefund = await storage.getRefund(refund.id);
 
     const [adminUser] = await db.select({ id: users.id, name: users.name })
       .from(users)
@@ -395,13 +59,15 @@ router.post("/:transactionId", authenticateToken, requireRole("admin"), async (r
 
     res.json({
       message: "Refund processed successfully",
-      refund: {
-        ...(updatedRefund || refund),
-        adminUser,
-      },
-      creditsReversed,
+      refund: { ...result.refund, adminUser },
+      cfRefundId: result.cfRefundId,
+      creditNoteId: result.creditNoteId,
+      creditsReversed: result.creditsReversed,
     });
   } catch (error: any) {
+    if (error instanceof RefundValidationError) {
+      return res.status(error.status).json({ message: error.message, error: error.message });
+    }
     console.error("Error processing refund:", error);
     res.status(500).json({ message: "Failed to process refund" });
   }

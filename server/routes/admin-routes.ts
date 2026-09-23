@@ -13,7 +13,7 @@
  * You are NOT permitted to redistribute, resell, sublicense,
  * or share this source code, in whole or in part.
  * Respect the author's rights and Envato licensing terms.
- * 
+ *
  * REFACTORED: This file now uses modular route registration.
  * Individual route modules are located in ./admin/ directory.
  * ============================================================
@@ -21,10 +21,6 @@
 import { Router, Response } from 'express';
 import { checkAdminOrTeamMember, AdminRequest } from '../middleware/admin-auth';
 import { storage } from '../storage';
-import Stripe from 'stripe';
-import {
-  getStripeCurrency,
-} from '../services/stripe-service';
 
 import {
   registerUsersRoutes,
@@ -32,7 +28,7 @@ import {
   registerCreditPackagesRoutes,
   registerSettingsRoutes,
   registerConnectionsRoutes,
-  registerWebhooksSetupRoutes,
+  registerPaymentsRoutes,
   registerBrandingRoutes,
   registerSmtpRoutes,
   registerSeoRoutes,
@@ -42,17 +38,25 @@ import {
   registerSystemUpdateRoutes,
   registerCreditBackfillRoutes,
 } from './admin/index';
+import { registerInvoiceSettingsRoutes } from './admin/invoice-settings-routes';
+import { registerNotificationEventsRoutes } from './admin/notification-events-routes';
 
 const router = Router();
 
 router.use(checkAdminOrTeamMember);
 
+// Notification event toggles / log (email-engine module): /api/admin/notifications/*
+const notificationsRouter = Router();
+registerNotificationEventsRoutes(notificationsRouter);
+router.use('/notifications', notificationsRouter);
+
 registerUsersRoutes(router);
 registerPlansRoutes(router);
 registerCreditPackagesRoutes(router);
 registerSettingsRoutes(router);
+registerInvoiceSettingsRoutes(router);
+registerPaymentsRoutes(router);
 registerConnectionsRoutes(router);
-registerWebhooksSetupRoutes(router);
 registerBrandingRoutes(router);
 registerSmtpRoutes(router);
 registerSeoRoutes(router);
@@ -61,32 +65,6 @@ registerElevenlabsPoolRoutes(router);
 registerCallsModerationRoutes(router);
 registerSystemUpdateRoutes(router);
 registerCreditBackfillRoutes(router);
-
-async function getStripeClient(): Promise<Stripe | null> {
-  try {
-    const dbSetting = await storage.getGlobalSetting('stripe_secret_key');
-    const secretKey = (dbSetting?.value as string) || process.env.STRIPE_SECRET_KEY;
-    
-    if (!secretKey) {
-      return null;
-    }
-    
-    return new Stripe(secretKey, { apiVersion: '2025-10-29.clover' });
-  } catch (error) {
-    console.error('Error initializing Stripe client:', error);
-    return null;
-  }
-}
-
-async function getDefaultCurrency(): Promise<string> {
-  try {
-    const currencyConfig = await getStripeCurrency();
-    return currencyConfig.currency;
-  } catch (error) {
-    console.error('Error getting default currency:', error);
-    return 'INR';
-  }
-}
 
 router.get('/analytics', async (req: AdminRequest, res: Response) => {
   try {
@@ -104,12 +82,12 @@ router.get('/contacts', async (req: AdminRequest, res: Response) => {
     const { contacts, campaigns, users: usersTable } = await import('@shared/schema');
     const { db } = await import('../db');
     const { eq, desc } = await import('drizzle-orm');
-    
+
     // Get pagination parameters
     const page = parseInt(req.query.page as string, 10) || 1;
     const pageSize = parseInt(req.query.pageSize as string, 10) || 50;
     const offset = (page - 1) * pageSize;
-    
+
     // Fetch all contacts with campaign and user info, ordered by most recent first
     const allContacts = await db
       .select({
@@ -131,7 +109,7 @@ router.get('/contacts', async (req: AdminRequest, res: Response) => {
       .leftJoin(campaigns, eq(contacts.campaignId, campaigns.id))
       .leftJoin(usersTable, eq(campaigns.userId, usersTable.id))
       .orderBy(desc(contacts.createdAt));
-    
+
     // Deduplicate by phone number, keeping the most recent record
     const uniqueByPhone = new Map<string, typeof allContacts[0]>();
     for (const contact of allContacts) {
@@ -140,7 +118,7 @@ router.get('/contacts', async (req: AdminRequest, res: Response) => {
         uniqueByPhone.set(phoneKey, contact);
       }
     }
-    
+
     // Convert back to array and sort by createdAt desc
     const uniqueContacts = Array.from(uniqueByPhone.values())
       .sort((a, b) => {
@@ -148,11 +126,11 @@ router.get('/contacts', async (req: AdminRequest, res: Response) => {
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return dateB - dateA;
       });
-    
+
     const totalItems = uniqueContacts.length;
     const totalPages = Math.ceil(totalItems / pageSize);
     const paginatedContacts = uniqueContacts.slice(offset, offset + pageSize);
-    
+
     res.json({
       data: paginatedContacts,
       pagination: {

@@ -1,19 +1,15 @@
 'use strict';
 /**
  * ============================================================
- * Payment Engine v1.0.0
+ * Payment Engine v2.0.0 — Cashfree only (INR)
  * ============================================================
- * A comprehensive, production-ready payment system supporting
- * multiple payment gateways with webhook management, refunds,
- * disputes, subscription lifecycle, and admin controls.
- * 
- * Supported Gateways:
- * - Stripe (Global)
- * - Razorpay (India)
- * - PayPal (Global)
- * - Paystack (Africa)
- * - MercadoPago (Latin America)
- * 
+ * One-time payments for plans (per period), credit packages and
+ * phone number rentals via Cashfree Payments, with signed webhooks,
+ * status polling, refunds (credit notes) and admin controls.
+ *
+ * Legacy gateways (Stripe, Razorpay, PayPal, Paystack, MercadoPago)
+ * were removed; their historic rows stay readable via `LegacyGateway`.
+ *
  * © 2025 Zonvo AI — a brand of Bisht Technologies Private Limited
  * ============================================================
  */
@@ -21,34 +17,28 @@
 export * from './types';
 export * from './webhook-helper';
 
-export { stripeRouter } from './gateways/stripe';
-export { razorpayRouter } from './gateways/razorpay';
-export { paystackRouter } from './gateways/paystack';
-export { paypalRouter } from './gateways/paypal';
-export { mercadopagoRouter } from './gateways/mercadopago';
+export { cashfreeRouter } from './gateways/cashfree';
 
 export { invoiceService, generateInvoiceForTransaction } from './invoice-service';
 
 export { PaymentAuditService } from './audit';
 
-export const PAYMENT_ENGINE_VERSION = '1.0.0';
+export const PAYMENT_ENGINE_VERSION = '2.0.0';
 
 export function getPaymentEngineInfo() {
   return {
     version: PAYMENT_ENGINE_VERSION,
-    gateways: ['stripe', 'razorpay', 'paypal', 'paystack', 'mercadopago'],
+    gateways: ['cashfree'],
     features: [
-      'Multi-gateway support',
-      'Webhook management with DB secrets',
-      'Verify-session fallback endpoints',
-      'Refund and dispute handling',
-      'Subscription lifecycle management',
-      'Dunning for failed payments',
-      'Invoice PDF generation',
-      'Email notifications',
+      'Cashfree hosted checkout (INR)',
+      'Signed webhooks with DB secrets',
+      'Order status verification fallback',
+      'Refunds with GST credit notes',
+      'One-time-per-period subscriptions with expiry reminders',
+      'GST tax invoice PDF generation',
+      'Event-driven email notifications',
       'Admin dashboard',
       'Audit logging',
-      'Reconciliation scheduler',
     ],
   };
 }

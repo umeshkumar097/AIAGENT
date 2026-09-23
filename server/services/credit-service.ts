@@ -9,6 +9,7 @@ import { db } from '../db';
 import { users, creditTransactions, globalSettings } from '@shared/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { logger } from '../utils/logger';
+import type { AnyGateway } from '../engines/payment/types';
 
 export type CreditEngine = 'elevenlabs-twilio' | 'plivo-openai' | 'twilio-openai' | 'elevenlabs-sip' | 'openai-sip' | 'plivo-elevenlabs';
 
@@ -356,7 +357,8 @@ export async function getUserCredits(userId: string): Promise<number> {
   }
 }
 
-export type RefundGateway = 'stripe' | 'razorpay' | 'paypal' | 'paystack' | 'mercadopago';
+/** 'cashfree' for live refunds; legacy gateway names only appear on historic rows. */
+export type RefundGateway = AnyGateway;
 
 export interface RefundParams {
   userId: string;

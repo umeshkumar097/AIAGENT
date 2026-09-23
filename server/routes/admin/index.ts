@@ -4,7 +4,7 @@ export { registerPlansRoutes } from './plans-routes';
 export { registerCreditPackagesRoutes } from './credit-packages-routes';
 export { registerSettingsRoutes } from './settings-routes';
 export { registerConnectionsRoutes } from './connections-routes';
-export { registerWebhooksSetupRoutes } from './webhooks-setup-routes';
+export { registerPaymentsRoutes } from './payments-routes';
 export { registerBrandingRoutes } from './branding-routes';
 export { registerSmtpRoutes } from './smtp-routes';
 export { registerSeoRoutes } from './seo-routes';

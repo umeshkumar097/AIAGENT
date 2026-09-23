@@ -59,7 +59,21 @@ import {
   type ContentViolation, type InsertContentViolation,
   type DemoSession, type InsertDemoSession
 } from "@shared/schema";
-import { eq, sql, and, gte, lte, lt, desc, asc, isNull, isNotNull, or, inArray } from "drizzle-orm";
+import { eq, sql, and, gte, lte, lt, desc, asc, isNull, isNotNull, or, inArray, ilike, count } from "drizzle-orm";
+
+/** A drizzle database handle or an open transaction — lets callers run several storage writes atomically. */
+export type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type DbExecutor = typeof db | DbTransaction;
+
+export interface InvoiceNumbering {
+  /** 'AIC' for tax invoices, 'CN' for credit notes */
+  prefix: string;
+  /** e.g. '25-26' */
+  financialYear: string;
+  startNumber?: number;
+}
+export interface InvoiceListOptions { limit?: number; offset?: number; type?: string }
+export interface AdminInvoiceFilters extends InvoiceListOptions { userId?: string; startDate?: Date; endDate?: Date; search?: string }
 import { calculateGlobalAnalytics, calculateUserAnalytics, calculateDashboardData } from "./storage/analytics-helpers";
 
 // Effective limits type - merges plan limits with per-user subscription overrides
@@ -138,7 +152,8 @@ export interface IStorage {
   getCreditTransaction(id: string): Promise<CreditTransaction | undefined>;
   getUserCreditTransactions(userId: string): Promise<CreditTransaction[]>;
   createCreditTransaction(transaction: InsertCreditTransaction): Promise<CreditTransaction>;
-  addCreditsAtomic(userId: string, credits: number, description: string, stripePaymentId: string): Promise<void>;
+  /** Adds credits + writes the credit_transactions row atomically; `reference` is a unique idempotency key. */
+  addCreditsAtomic(userId: string, credits: number, description: string, reference: string, executor?: DbExecutor): Promise<void>;
 
   // Tools
   getTool(id: string): Promise<Tool | undefined>;
@@ -183,7 +198,6 @@ export interface IStorage {
 
   // User Subscriptions
   getUserSubscription(userId: string): Promise<any>; // Returns subscription with embedded plan or null
-  getUserSubscriptionByPaystackCode(subscriptionCode: string): Promise<UserSubscription | undefined>; // Find by Paystack subscription code
   getAllUserSubscriptions(): Promise<UserSubscription[]>; // Returns all subscriptions for webhook lookups
   createUserSubscription(subscription: InsertUserSubscription): Promise<UserSubscription>;
   updateUserSubscription(id: string, subscription: Partial<InsertUserSubscription>): Promise<void>;
@@ -272,6 +286,7 @@ export interface IStorage {
   // Payment Transactions
   getPaymentTransaction(id: string): Promise<PaymentTransaction | undefined>;
   getPaymentTransactionByGatewayId(gateway: string, gatewayTransactionId: string): Promise<PaymentTransaction | undefined>;
+  getPaymentTransactionByOrderId(gatewayOrderId: string): Promise<PaymentTransaction | undefined>;
   getUserPaymentTransactions(userId: string): Promise<PaymentTransaction[]>;
   getAllPaymentTransactions(filters?: { gateway?: string; type?: string; status?: string; startDate?: Date; endDate?: Date }): Promise<PaymentTransaction[]>;
   createPaymentTransaction(transaction: InsertPaymentTransaction): Promise<PaymentTransaction>;
@@ -298,11 +313,17 @@ export interface IStorage {
   getInvoice(id: string): Promise<Invoice | undefined>;
   getInvoiceByNumber(invoiceNumber: string): Promise<Invoice | undefined>;
   getTransactionInvoice(transactionId: string): Promise<Invoice | undefined>;
+  getTransactionCreditNotes(transactionId: string): Promise<Invoice[]>;
   getUserInvoices(userId: string): Promise<Invoice[]>;
   getAllInvoices(): Promise<Invoice[]>;
+  getUserInvoicesPaginated(userId: string, options: InvoiceListOptions): Promise<{ invoices: Invoice[]; total: number }>;
+  getAdminInvoices(filters: AdminInvoiceFilters): Promise<{ invoices: (Invoice & { userName: string | null; userEmail: string | null })[]; total: number }>;
   createInvoice(invoice: InsertInvoice): Promise<Invoice>;
+  /** Allocates the next per-FY / per-type number under an advisory lock and inserts the row in one transaction. */
+  createInvoiceWithNumber(invoice: Omit<InsertInvoice, 'invoiceNumber'>, numbering: InvoiceNumbering): Promise<Invoice>;
   updateInvoice(id: string, invoice: Partial<InsertInvoice>): Promise<void>;
-  getNextInvoiceNumber(): Promise<string>;
+  /** Next number for `<prefix>/<FY>/<0001>` (preview only — createInvoiceWithNumber allocates safely). */
+  getNextInvoiceNumber(numbering?: InvoiceNumbering): Promise<string>;
 
   // Payment Webhook Queue
   getWebhookQueueItem(id: string): Promise<PaymentWebhookQueue | undefined>;
@@ -363,6 +384,18 @@ export interface IStorage {
 
   // Calls with transcripts (for violation scanning)
   getCallsWithTranscripts(): Promise<Call[]>;
+}
+
+/**
+ * Canonical "which user_subscriptions row is the user's subscription" ordering, shared by storage,
+ * membership-service and the expiry cron: the active row with the latest currentPeriodEnd wins, else the newest row.
+ */
+export function userSubscriptionPreferenceOrder() {
+  return [
+    sql`CASE WHEN ${userSubscriptions.status} = 'active' THEN 0 ELSE 1 END`,
+    sql`CASE WHEN ${userSubscriptions.status} = 'active' THEN ${userSubscriptions.currentPeriodEnd} END DESC NULLS LAST`,
+    desc(userSubscriptions.createdAt),
+  ];
 }
 
 export class DbStorage implements IStorage {
@@ -1362,15 +1395,23 @@ export class DbStorage implements IStorage {
   }
 
   // Atomic credit purchase: creates transaction + adds credits in single DB transaction
-  async addCreditsAtomic(userId: string, credits: number, description: string, stripePaymentId: string): Promise<void> {
-    await db.transaction(async (tx) => {
-      // First create transaction record (fails on duplicate stripePaymentId)
+  async addCreditsAtomic(userId: string, credits: number, description: string, reference: string, executor?: DbExecutor): Promise<void> {
+    const run = async (tx: DbExecutor) => {
+      if (executor) {
+        // Inside a caller-owned transaction a unique violation would abort the whole transaction,
+        // so check first and surface the duplicate as a regular error instead.
+        const [dup] = await tx.select({ id: creditTransactions.id }).from(creditTransactions)
+          .where(eq(creditTransactions.stripePaymentId, reference)).limit(1);
+        if (dup) throw new Error(`duplicate credit reference ${reference}`);
+      }
+      // First create transaction record — the unique stripe_payment_id column is the idempotency key
+      // (column name is historical; it holds any gateway/order reference)
       await tx.insert(creditTransactions).values({
         userId,
         type: 'credit',
         amount: credits,
         description,
-        stripePaymentId,
+        stripePaymentId: reference,
       });
 
       // Then atomically increment user credits using SQL
@@ -1379,7 +1420,12 @@ export class DbStorage implements IStorage {
         SET credits = COALESCE(credits, 0) + ${credits}
         WHERE id = ${userId}
       `);
-    });
+    };
+    if (executor) {
+      await run(executor);
+    } else {
+      await db.transaction(async (tx) => run(tx));
+    }
   }
 
   // Tools
@@ -1575,7 +1621,7 @@ export class DbStorage implements IStorage {
       .from(userSubscriptions)
       .leftJoin(plans, eq(userSubscriptions.planId, plans.id))
       .where(eq(userSubscriptions.userId, userId))
-      .orderBy(desc(userSubscriptions.createdAt))
+      .orderBy(...userSubscriptionPreferenceOrder())
       .limit(1);
 
     if (result.length > 0 && result[0].subscription && result[0].plan) {
@@ -1598,13 +1644,6 @@ export class DbStorage implements IStorage {
 
   async getAllUserSubscriptions(): Promise<UserSubscription[]> {
     return await db.select().from(userSubscriptions);
-  }
-
-  async getUserSubscriptionByPaystackCode(subscriptionCode: string): Promise<UserSubscription | undefined> {
-    const [subscription] = await db.select().from(userSubscriptions)
-      .where(eq(userSubscriptions.paystackSubscriptionCode, subscriptionCode))
-      .limit(1);
-    return subscription;
   }
 
   async createUserSubscription(insertSubscription: InsertUserSubscription): Promise<UserSubscription> {
@@ -2115,6 +2154,14 @@ export class DbStorage implements IStorage {
     return transaction;
   }
 
+  async getPaymentTransactionByOrderId(gatewayOrderId: string): Promise<PaymentTransaction | undefined> {
+    const [transaction] = await db.select()
+      .from(paymentTransactions)
+      .where(eq(paymentTransactions.gatewayOrderId, gatewayOrderId))
+      .limit(1);
+    return transaction;
+  }
+
   async getUserPaymentTransactions(userId: string): Promise<PaymentTransaction[]> {
     return db.select()
       .from(paymentTransactions)
@@ -2300,11 +2347,21 @@ export class DbStorage implements IStorage {
     return invoice;
   }
 
+  /** The tax invoice of a transaction (credit notes share the transactionId and are excluded). */
   async getTransactionInvoice(transactionId: string): Promise<Invoice | undefined> {
     const [invoice] = await db.select()
       .from(invoices)
-      .where(eq(invoices.transactionId, transactionId));
+      .where(and(eq(invoices.transactionId, transactionId), eq(invoices.invoiceType, 'tax_invoice')))
+      .orderBy(asc(invoices.createdAt))
+      .limit(1);
     return invoice;
+  }
+
+  async getTransactionCreditNotes(transactionId: string): Promise<Invoice[]> {
+    return db.select()
+      .from(invoices)
+      .where(and(eq(invoices.transactionId, transactionId), eq(invoices.invoiceType, 'credit_note')))
+      .orderBy(asc(invoices.createdAt));
   }
 
   async getUserInvoices(userId: string): Promise<Invoice[]> {
@@ -2333,41 +2390,104 @@ export class DbStorage implements IStorage {
       .where(eq(invoices.id, id));
   }
 
-  async getNextInvoiceNumber(): Promise<string> {
-    const year = new Date().getFullYear();
-    
-    // Get configurable prefix from global_settings (default: INV)
-    const [prefixSetting] = await db.select()
-      .from(globalSettings)
-      .where(eq(globalSettings.key, 'invoice_prefix'));
-    let rawPrefix = prefixSetting?.value ? String(prefixSetting.value).replace(/"/g, '') : 'INV';
-    // Sanitize prefix: only allow alphanumeric and underscore, max 10 chars
-    const prefix = rawPrefix.replace(/[^A-Za-z0-9_]/g, '').substring(0, 10) || 'INV';
-    
-    // Get configurable starting number from global_settings (default: 1)
-    const [startSetting] = await db.select()
-      .from(globalSettings)
-      .where(eq(globalSettings.key, 'invoice_start_number'));
-    const startNumber = startSetting?.value ? parseInt(String(startSetting.value).replace(/"/g, ''), 10) || 1 : 1;
-    
-    // Find the maximum invoice number for this prefix and year
-    // Extract the numeric suffix and find the max to avoid ordering issues
-    const likePattern = `${prefix}-${year}-%`;
-    const result = await db.execute(sql`
-      SELECT MAX(CAST(SPLIT_PART(${invoices.invoiceNumber}, '-', 3) AS INTEGER)) as max_num
+  async getUserInvoicesPaginated(userId: string, options: InvoiceListOptions): Promise<{ invoices: Invoice[]; total: number }> {
+    const limit = Math.min(Math.max(options.limit ?? 20, 1), 100);
+    const offset = Math.max(options.offset ?? 0, 0);
+    const conditions = [eq(invoices.userId, userId)];
+    if (options.type) conditions.push(eq(invoices.invoiceType, options.type));
+    const where = and(...conditions);
+    const [rows, [{ value: total }]] = await Promise.all([
+      db.select().from(invoices).where(where).orderBy(desc(invoices.issuedAt), desc(invoices.createdAt)).limit(limit).offset(offset),
+      db.select({ value: count() }).from(invoices).where(where),
+    ]);
+    return { invoices: rows, total: Number(total) };
+  }
+
+  async getAdminInvoices(filters: AdminInvoiceFilters): Promise<{ invoices: (Invoice & { userName: string | null; userEmail: string | null })[]; total: number }> {
+    const limit = Math.min(Math.max(filters.limit ?? 50, 1), 200);
+    const offset = Math.max(filters.offset ?? 0, 0);
+    const conditions = [];
+    if (filters.userId) conditions.push(eq(invoices.userId, filters.userId));
+    if (filters.type) conditions.push(eq(invoices.invoiceType, filters.type));
+    if (filters.startDate) conditions.push(gte(invoices.issuedAt, filters.startDate));
+    if (filters.endDate) conditions.push(lte(invoices.issuedAt, filters.endDate));
+    if (filters.search) {
+      const pattern = `%${filters.search.replace(/[%_\\]/g, '\\$&')}%`;
+      const searchCondition = or(
+        ilike(invoices.invoiceNumber, pattern),
+        ilike(invoices.customerEmail, pattern),
+        ilike(invoices.customerName, pattern),
+      );
+      if (searchCondition) conditions.push(searchCondition);
+    }
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
+    const [rows, [{ value: total }]] = await Promise.all([
+      db.select({ invoice: invoices, userName: users.name, userEmail: users.email })
+        .from(invoices)
+        .leftJoin(users, eq(invoices.userId, users.id))
+        .where(where)
+        .orderBy(desc(invoices.issuedAt), desc(invoices.createdAt))
+        .limit(limit)
+        .offset(offset),
+      db.select({ value: count() }).from(invoices).where(where),
+    ]);
+    return {
+      invoices: rows.map(r => ({ ...r.invoice, userName: r.userName, userEmail: r.userEmail })),
+      total: Number(total),
+    };
+  }
+
+  /**
+   * Computes the next sequence for `<prefix>/<FY>/<NNNN>`. Numbering is per prefix (tax invoice prefix
+   * or 'CN' for credit notes) and per financial year. Must run inside the advisory lock to be safe.
+   */
+  private async computeNextInvoiceNumber(executor: DbExecutor, numbering: InvoiceNumbering): Promise<string> {
+    const prefix = numbering.prefix.replace(/[^A-Za-z0-9]/g, '').substring(0, 10) || 'INV';
+    const fy = numbering.financialYear;
+    const likePattern = `${prefix}/${fy}/%`;
+    const result = await executor.execute(sql`
+      SELECT MAX(CAST(SPLIT_PART(${invoices.invoiceNumber}, '/', 3) AS INTEGER)) as max_num
       FROM ${invoices}
       WHERE ${invoices.invoiceNumber} LIKE ${likePattern}
+        AND SPLIT_PART(${invoices.invoiceNumber}, '/', 3) ~ '^[0-9]+$'
     `);
-
-    // Start with configured starting number
-    let nextNum = startNumber;
     const maxNum = result.rows?.[0]?.max_num;
+    let nextNum = 1;
+    if (numbering.startNumber && numbering.startNumber > 0) nextNum = numbering.startNumber;
     if (maxNum !== null && maxNum !== undefined && !isNaN(Number(maxNum))) {
-      // Use the higher of (maxNum + 1) or startNumber to respect configured minimum
-      nextNum = Math.max(Number(maxNum) + 1, startNumber);
+      nextNum = Math.max(Number(maxNum) + 1, nextNum);
     }
+    return `${prefix}/${fy}/${String(nextNum).padStart(4, '0')}`;
+  }
 
-    return `${prefix}-${year}-${String(nextNum).padStart(5, '0')}`;
+  async getNextInvoiceNumber(numbering?: InvoiceNumbering): Promise<string> {
+    const resolved = numbering ?? await this.defaultInvoiceNumbering();
+    return this.computeNextInvoiceNumber(db, resolved);
+  }
+
+  private async defaultInvoiceNumbering(): Promise<InvoiceNumbering> {
+    const [prefixSetting] = await db.select().from(globalSettings).where(eq(globalSettings.key, 'invoice_prefix'));
+    const rawPrefix = prefixSetting?.value ? String(prefixSetting.value).replace(/"/g, '') : 'AIC';
+    const now = new Date();
+    // Indian financial year (Apr–Mar) in IST
+    const ist = new Date(now.getTime() + 330 * 60 * 1000);
+    const year = ist.getUTCFullYear();
+    const startYear = ist.getUTCMonth() + 1 >= 4 ? year : year - 1;
+    const yy = (n: number) => String(n % 100).padStart(2, '0');
+    return { prefix: rawPrefix || 'AIC', financialYear: `${yy(startYear)}-${yy(startYear + 1)}` };
+  }
+
+  async createInvoiceWithNumber(invoice: Omit<InsertInvoice, 'invoiceNumber'>, numbering: InvoiceNumbering): Promise<Invoice> {
+    const lockKey = `invoice_number:${numbering.prefix}:${numbering.financialYear}`;
+    return db.transaction(async (tx) => {
+      // Serialise number allocation per prefix+FY so concurrent purchases never collide
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`);
+      const invoiceNumber = await this.computeNextInvoiceNumber(tx, numbering);
+      const [created] = await tx.insert(invoices)
+        .values({ ...invoice, invoiceNumber } as InsertInvoice)
+        .returning();
+      return created;
+    });
   }
 
   async getNextRefundNoteNumber(): Promise<string> {
