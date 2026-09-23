@@ -56,7 +56,7 @@ async function seedPlans() {
   await db.insert(plans).values(PLANS_SEED_DATA);
   console.log(`   ✅ Inserted ${PLANS_SEED_DATA.length} subscription plans`);
   PLANS_SEED_DATA.forEach(p => {
-    console.log(`      - ${p.displayName}: $${p.monthlyPrice}/month, ${p.includedCredits} credits`);
+    console.log(`      - ${p.displayName}: ₹${p.monthlyPrice}/month, ${p.includedCredits} minutes`);
   });
 }
 
@@ -70,7 +70,7 @@ async function seedCreditPackages() {
   await db.insert(creditPackages).values(CREDIT_PACKAGES_SEED_DATA);
   console.log(`   ✅ Inserted ${CREDIT_PACKAGES_SEED_DATA.length} credit packages`);
   CREDIT_PACKAGES_SEED_DATA.forEach(pkg => {
-    console.log(`      - ${pkg.name}: ${pkg.credits} credits @ $${pkg.price}`);
+    console.log(`      - ${pkg.name}: ${pkg.credits} minutes @ ₹${pkg.price}`);
   });
 }
 

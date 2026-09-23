@@ -17,48 +17,43 @@
 import { db } from "./db";
 import { creditPackages } from "@shared/schema";
 
-// Prices are INR (Cashfree is the only gateway)
+// Prices are INR excl. GST (Cashfree is the only gateway; GST is added at checkout).
+// 1 credit = 1 call minute. Vendor cost ≈ ₹2.5/min, so the ladder runs ₹5.49 → ₹4.00 per minute.
+// Mirrors migrations/0012_pricing_sept_2026.sql (used only on fresh installs).
 const CREDIT_PACKAGES_SEED_DATA = [
   {
-    name: "Starter Pack",
-    description: "100 credits - Perfect for testing and small campaigns",
+    name: "100 minutes",
+    description: "Top-up for small campaigns — ₹5.49 per minute",
     credits: 100,
-    price: "799.00",
+    price: "549.00",
     isActive: true,
   },
   {
-    name: "Growth Pack",
-    description: "500 credits - Best value for growing teams. Save 10%!",
+    name: "500 minutes",
+    description: "Most popular top-up — ₹5.00 per minute",
     credits: 500,
-    price: "3599.00",
+    price: "2499.00",
     isActive: true,
   },
   {
-    name: "Business Pack",
-    description: "1,000 credits - Ideal for regular campaigns. Save 15%!",
+    name: "1,000 minutes",
+    description: "For regular campaigns — ₹4.50 per minute (save 10%)",
     credits: 1000,
-    price: "6799.00",
+    price: "4499.00",
     isActive: true,
   },
   {
-    name: "Professional Pack",
-    description: "2,500 credits - For power users. Save 20%!",
+    name: "2,500 minutes",
+    description: "For busy teams — ₹4.20 per minute (save 16%)",
     credits: 2500,
-    price: "15999.00",
+    price: "10499.00",
     isActive: true,
   },
   {
-    name: "Enterprise Pack",
-    description: "5,000 credits - Maximum savings for high-volume needs. Save 25%!",
+    name: "5,000 minutes",
+    description: "High volume — ₹4.00 per minute (save 20%)",
     credits: 5000,
-    price: "29999.00",
-    isActive: true,
-  },
-  {
-    name: "Mega Pack",
-    description: "10,000 credits - Best value for enterprise. Save 30%!",
-    credits: 10000,
-    price: "55999.00",
+    price: "19999.00",
     isActive: true,
   },
 ];

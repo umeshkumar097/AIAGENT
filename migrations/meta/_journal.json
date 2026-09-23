@@ -78,6 +78,20 @@
       "when": 1790141998606,
       "tag": "0010_agent_messaging_templates",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790141999606,
+      "tag": "0011_user_integrations",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790142000606,
+      "tag": "0012_pricing_sept_2026",
+      "breakpoints": true
     }
   ]
 }

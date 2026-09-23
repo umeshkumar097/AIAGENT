@@ -70,6 +70,8 @@ const MIGRATIONS = [
   resolve(rootDir, 'migrations', '0008_cashfree_billing.sql'),
   resolve(rootDir, 'migrations', '0009_cashfree_subscriptions.sql'),
   resolve(rootDir, 'migrations', '0010_agent_messaging_templates.sql'),
+  resolve(rootDir, 'migrations', '0011_user_integrations.sql'),
+  resolve(rootDir, 'migrations', '0012_pricing_sept_2026.sql'),
 ];
 
 /**

@@ -151,7 +151,7 @@ async function applyEffectInTx(tx: DbTransaction, txn: PaymentTransaction): Prom
     const activation = await activateOrExtendSubscription({
       userId: txn.userId, planId: txn.planId, billingPeriod, cashfreeOrderId: txn.gatewayOrderId || txn.id,
     }, tx);
-    const credits = await applyPlanCredits(txn.userId, txn.planId, GATEWAY, txn.id, tx);
+    const credits = await applyPlanCredits(txn.userId, txn.planId, GATEWAY, txn.id, tx, billingPeriod);
     await tx.update(paymentTransactions).set({ subscriptionId: activation.subscription.id }).where(eq(paymentTransactions.id, txn.id));
     return {
       subscriptionId: activation.subscription.id,

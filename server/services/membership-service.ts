@@ -180,7 +180,8 @@ export async function applyPlanCredits(
   planId: string,
   gateway: string,
   transactionId: string,
-  executor?: DbExecutor
+  executor?: DbExecutor,
+  billingPeriod: 'monthly' | 'yearly' = 'monthly'
 ): Promise<number> {
   const plan = await storage.getPlan(planId);
   if (!plan || !plan.includedCredits || plan.includedCredits <= 0) {
@@ -188,7 +189,8 @@ export async function applyPlanCredits(
     return 0;
   }
 
-  const creditsToAdd = plan.includedCredits;
+  // includedCredits is the monthly allowance; a yearly purchase buys twelve months of it
+  const creditsToAdd = plan.includedCredits * (billingPeriod === 'yearly' ? 12 : 1);
   const creditRefId = `plan_credits_${gateway}_${transactionId}`;
 
   try {
