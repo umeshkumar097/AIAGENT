@@ -49,7 +49,7 @@ export function createUserAddressRoutes(ctx: RouteContext): Router {
       }
       
       const { customerName, street, city, region, postalCode, isoCountry } = parsed.data;
-      
+
       const twilioAddress = await twilioService.createAddress({
         customerName,
         street,
@@ -83,6 +83,12 @@ export function createUserAddressRoutes(ctx: RouteContext): Router {
       res.status(201).json(address);
     } catch (error: any) {
       console.error("[User Addresses] Error creating address:", error);
+      // Regulatory addresses are a Twilio-only concept; Plivo (Indian) numbers use the KYC documents flow
+      if (/No Twilio credentials|Mock mode/i.test(error?.message || '')) {
+        return res.status(503).json({
+          error: "Address verification needs Twilio, which is not configured. Indian (Plivo) numbers use Settings → KYC Documents instead.",
+        });
+      }
       res.status(500).json({ error: "Failed to create address" });
     }
   });
