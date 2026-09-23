@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.json",
+  "include": ["./**/*.ts", "../vitest.config.ts"],
+  "exclude": [],
+  "compilerOptions": {
+    "target": "es2022",
+    "incremental": false,
+    "tsBuildInfoFile": null,
+    "baseUrl": "..",
+    "paths": {
+      "@/*": ["./client/src/*"],
+      "@shared/*": ["./shared/*"]
+    }
+  }
+}
