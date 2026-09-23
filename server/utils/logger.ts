@@ -62,12 +62,22 @@ class Logger {
    * @returns {string} Formatted timestamp
    */
   private getTimestamp(): string {
-    return new Date().toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true,
-    });
+    // Servers usually run on UTC; operators read logs in local time (IST by default).
+    // LOG_TIMEZONE overrides; an invalid zone falls back to the machine clock.
+    const tz = process.env.LOG_TIMEZONE || 'Asia/Kolkata';
+    try {
+      return new Date().toLocaleString('en-IN', {
+        timeZone: tz,
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      }).replace(',', '') + ' IST';
+    } catch {
+      return new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+    }
   }
 
   /**
