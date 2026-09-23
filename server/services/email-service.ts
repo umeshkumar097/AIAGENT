@@ -427,6 +427,72 @@ export class EmailService {
   private smtpConfigured: boolean = false;
   private fromAddress: string = '';
   private fromName: string = '';
+  /** 'smtp' (nodemailer) or 'resend' (HTTPS API — no open ports, no SMTP credentials) */
+  private provider: 'smtp' | 'resend' = 'smtp';
+  private resendApiKey: string = '';
+
+  getProvider(): 'smtp' | 'resend' {
+    return this.provider;
+  }
+
+  /** Validate a Resend API key without sending anything (GET /domains). */
+  static async testResendKey(apiKey: string): Promise<{ success: boolean; error?: string; domains?: { name: string; status: string }[] }> {
+    try {
+      const res = await fetch('https://api.resend.com/domains', { headers: { Authorization: `Bearer ${apiKey}` } });
+      if (res.status === 401 || res.status === 403) return { success: false, error: 'Resend rejected the API key' };
+      if (!res.ok) return { success: false, error: `Resend returned HTTP ${res.status}` };
+      const data: any = await res.json().catch(() => ({}));
+      const domains = Array.isArray(data?.data) ? data.data.map((d: any) => ({ name: String(d.name), status: String(d.status) })) : [];
+      return { success: true, domains };
+    } catch (e: any) {
+      return { success: false, error: e?.message || 'Could not reach Resend' };
+    }
+  }
+
+  private async sendViaResend(
+    from: string,
+    to: string,
+    subject: string,
+    html: string,
+    text: string,
+    attachments?: EmailAttachment[],
+    replyTo?: string
+  ): Promise<{ success: boolean; error?: string; messageId?: string }> {
+    const body: Record<string, unknown> = { from, to, subject, html, text };
+    if (replyTo) body.reply_to = replyTo;
+    if (attachments?.length) {
+      body.attachments = attachments.map(att => ({
+        filename: att.filename,
+        content: (Buffer.isBuffer(att.content) ? att.content : Buffer.from(String(att.content))).toString('base64'),
+      }));
+    }
+    let lastError = 'Unknown error';
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (attempt > 0) await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+      try {
+        const res = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${this.resendApiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (res.ok) {
+          const data: any = await res.json().catch(() => ({}));
+          logger.info(`Email sent via Resend to: ${to}`, { messageId: data?.id }, SOURCE);
+          console.log(`✅ [Email] Sent via Resend to: ${to}, Id: ${data?.id}`);
+          return { success: true, messageId: data?.id };
+        }
+        const errText = await res.text().catch(() => '');
+        lastError = `Resend HTTP ${res.status}: ${errText.slice(0, 300)}`;
+        // 4xx (other than rate limiting) will not succeed on retry
+        if (res.status < 500 && res.status !== 429) break;
+      } catch (e: any) {
+        lastError = e?.message || 'Network error';
+      }
+    }
+    logger.error(`Failed to send email via Resend to: ${to}`, lastError, SOURCE);
+    console.log(`❌ [Email] Resend failed to: ${to} - ${lastError}`);
+    return { success: false, error: lastError };
+  }
 
   constructor() {
     this.initialize();
@@ -523,6 +589,20 @@ export class EmailService {
       const passSetting = await storage.getGlobalSetting('smtp_password');
       const fromEmailSetting = await storage.getGlobalSetting('smtp_from_email');
       const fromNameSetting = await storage.getGlobalSetting('smtp_from_name');
+      const providerSetting = await storage.getGlobalSetting('email_provider');
+      const resendKeySetting = await storage.getGlobalSetting('resend_api_key');
+
+      const resendKey = this.cleanDbValue(resendKeySetting?.value as string);
+      if (this.cleanDbValue(providerSetting?.value as string) === 'resend' && resendKey) {
+        this.provider = 'resend';
+        this.resendApiKey = resendKey;
+        this.fromAddress = this.extractRawEmail(this.cleanDbValue(fromEmailSetting?.value as string)) || '';
+        this.fromName = this.cleanDbValue(fromNameSetting?.value as string) || '';
+        logger.info('Email service using Resend', { fromAddress: this.fromAddress, fromName: this.fromName }, SOURCE);
+        return true;
+      }
+      this.provider = 'smtp';
+      this.resendApiKey = '';
 
       // Clean database values to remove extra quotes
       const host = this.cleanDbValue(hostSetting?.value as string);
@@ -607,6 +687,7 @@ export class EmailService {
   }
 
   isEnabled(): boolean {
+    if (this.provider === 'resend') return !!this.resendApiKey;
     return this.smtpConfigured && this.transporter !== null;
   }
 
@@ -664,9 +745,11 @@ export class EmailService {
   ): Promise<{ success: boolean; error?: string; messageId?: string }> {
     // Check if SMTP is enabled
     if (!this.isEnabled()) {
-      const reason = !this.smtpConfigured 
-        ? 'SMTP not configured (missing SMTP_HOST, SMTP_PORT, SMTP_USER, or SMTP_PASS)' 
-        : 'Email transporter not initialized';
+      const reason = this.provider === 'resend'
+        ? 'Resend API key not configured'
+        : !this.smtpConfigured
+          ? 'SMTP not configured (missing SMTP_HOST, SMTP_PORT, SMTP_USER, or SMTP_PASS)'
+          : 'Email transporter not initialized';
       logger.warn(`[EMAIL DISABLED] Cannot send to: ${to} - ${reason}`, { subject }, SOURCE);
       console.log(`⚠️ [Email] SMTP not enabled - email to ${to} not sent. Subject: "${subject}"`);
       return { success: false, error: reason };
@@ -677,9 +760,11 @@ export class EmailService {
     // Ensure we have a valid from address with proper email format validation
     // Extract raw email in case fromAddress is still in formatted form
     const rawFromAddress = this.extractRawEmail(this.fromAddress) || this.fromAddress;
-    const fromAddress = rawFromAddress || branding.fromEmail || process.env.SMTP_USER || '';
+    const fromAddress = rawFromAddress || branding.fromEmail || (this.provider === 'smtp' ? process.env.SMTP_USER : '') || '';
     if (!fromAddress) {
-      const error = 'No from address configured (SMTP_FROM or SMTP_USER required)';
+      const error = this.provider === 'resend'
+        ? 'No from address configured (set the From email in Admin → Email; it must be on a domain verified in Resend)'
+        : 'No from address configured (SMTP_FROM or SMTP_USER required)';
       logger.error(`[EMAIL ERROR] ${error}`, undefined, SOURCE);
       console.log(`❌ [Email] ${error}`);
       return { success: false, error };
@@ -707,6 +792,11 @@ export class EmailService {
     // 365 / Exchange environments.  Generate it automatically so every email
     // type benefits without each caller needing to pass it explicitly.
     const textBody = options?.text || htmlToText(html);
+
+    if (this.provider === 'resend') {
+      console.log(`📧 [Email] Sending via Resend to: ${to}, Subject: "${subject}", From: ${fromAddress}`);
+      return this.sendViaResend(`${displayName} <${fromAddress}>`, to, subject, html, textBody, attachments, options?.replyTo);
+    }
 
     try {
       const mailOptions: SendMailOptions = {
@@ -991,6 +1081,12 @@ export class EmailService {
     if (!this.isEnabled()) {
       logger.warn('Cannot verify connection - SMTP not configured', undefined, SOURCE);
       return false;
+    }
+
+    if (this.provider === 'resend') {
+      const check = await EmailService.testResendKey(this.resendApiKey);
+      if (!check.success) logger.error('Resend API key verification failed', check.error, SOURCE);
+      return check.success;
     }
 
     try {

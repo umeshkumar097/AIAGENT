@@ -174,7 +174,7 @@ export function registerSettingsRoutes(router: Router) {
       
       const allowedCredentials = [
         'twilio_account_sid', 'twilio_auth_token', 'openai_api_key', 'elevenlabs_hmac_secret',
-        'smtp_host', 'smtp_port', 'smtp_username', 'smtp_password', 'smtp_from_email', 'smtp_from_name',
+        'smtp_host', 'smtp_port', 'smtp_username', 'smtp_password', 'smtp_from_email', 'smtp_from_name', 'email_provider', 'resend_api_key',
         'app_name', 'app_tagline', 'logo_url', 'favicon_url', 'branding_updated_at',
         'google_client_id', 'google_client_secret',
         'cashfree_enabled', 'cashfree_app_id', 'cashfree_secret_key', 'cashfree_environment',

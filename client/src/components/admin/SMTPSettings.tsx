@@ -25,6 +25,10 @@ import { useState, useEffect } from "react";
 import { Mail, Save, Loader2, CheckCircle, AlertCircle, TestTube } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+
+type EmailProvider = "smtp" | "resend";
 
 interface SMTPData {
   smtp_host: string;
@@ -34,6 +38,9 @@ interface SMTPData {
   smtp_password_masked: string;
   smtp_from_email: string;
   smtp_from_name: string;
+  email_provider?: EmailProvider;
+  resend_api_key_set?: boolean;
+  resend_api_key_masked?: string;
 }
 
 export default function SMTPSettings() {
@@ -45,7 +52,9 @@ export default function SMTPSettings() {
     smtp_username: "",
     smtp_password: "",
     smtp_from_email: "",
-    smtp_from_name: ""
+    smtp_from_name: "",
+    email_provider: "smtp" as EmailProvider,
+    resend_api_key: ""
   });
   const [hasChanges, setHasChanges] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -63,7 +72,9 @@ export default function SMTPSettings() {
         smtp_username: smtpSettings.smtp_username || "",
         smtp_password: smtpSettings.smtp_password_set ? "********" : "",
         smtp_from_email: smtpSettings.smtp_from_email || "",
-        smtp_from_name: smtpSettings.smtp_from_name || ""
+        smtp_from_name: smtpSettings.smtp_from_name || "",
+        email_provider: smtpSettings.email_provider === "resend" ? "resend" : "smtp",
+        resend_api_key: smtpSettings.resend_api_key_set ? (smtpSettings.resend_api_key_masked || "re_****") : ""
       });
     }
   }, [smtpSettings]);
@@ -105,7 +116,7 @@ export default function SMTPSettings() {
     }
   });
 
-  const handleChange = (key: keyof typeof formData, value: string | number) => {
+  const handleChange = (key: keyof typeof formData, value: string | number | EmailProvider) => {
     setFormData({ ...formData, [key]: value });
     setHasChanges(true);
     setTestResult(null);
@@ -115,7 +126,9 @@ export default function SMTPSettings() {
     // Don't send the password if it's the masked placeholder
     const dataToSend = {
       ...formData,
-      smtp_password: formData.smtp_password === "********" ? undefined : formData.smtp_password
+      smtp_password: formData.smtp_password === "********" ? undefined : formData.smtp_password,
+      // The masked key is only echoed for display — never send it back
+      resend_api_key: formData.resend_api_key.includes("****") ? undefined : formData.resend_api_key
     };
     updateSMTPMutation.mutate(dataToSend);
   };
@@ -128,13 +141,25 @@ export default function SMTPSettings() {
     testSMTPMutation.mutate(testEmail);
   };
 
-  const isFullyConfigured = smtpSettings?.smtp_host && smtpSettings?.smtp_port && smtpSettings?.smtp_username && smtpSettings?.smtp_password_set;
-  const isPartiallyConfigured = smtpSettings?.smtp_host && smtpSettings?.smtp_port;
+  const isResend = formData.email_provider === "resend";
+  const savedProvider: EmailProvider = smtpSettings?.email_provider === "resend" ? "resend" : "smtp";
+  const smtpComplete = !!(smtpSettings?.smtp_host && smtpSettings?.smtp_port && smtpSettings?.smtp_username && smtpSettings?.smtp_password_set);
+  const resendComplete = !!(smtpSettings?.resend_api_key_set && smtpSettings?.smtp_from_email);
+  const isFullyConfigured = savedProvider === "resend" ? resendComplete : smtpComplete;
+  const isPartiallyConfigured = savedProvider === "resend"
+    ? !!(smtpSettings?.resend_api_key_set || smtpSettings?.smtp_from_email)
+    : !!(smtpSettings?.smtp_host && smtpSettings?.smtp_port);
   const missingFields: string[] = [];
-  if (!smtpSettings?.smtp_host) missingFields.push(t("admin.smtp.host"));
-  if (!smtpSettings?.smtp_port) missingFields.push(t("admin.smtp.port"));
-  if (!smtpSettings?.smtp_username) missingFields.push(t("admin.smtp.username"));
-  if (!smtpSettings?.smtp_password_set) missingFields.push(t("admin.smtp.password"));
+  if (savedProvider === "resend") {
+    if (!smtpSettings?.resend_api_key_set) missingFields.push(t("admin.smtp.resendApiKey", "Resend API key"));
+    if (!smtpSettings?.smtp_from_email) missingFields.push(t("admin.smtp.fromEmail"));
+  } else {
+    if (!smtpSettings?.smtp_host) missingFields.push(t("admin.smtp.host"));
+    if (!smtpSettings?.smtp_port) missingFields.push(t("admin.smtp.port"));
+    if (!smtpSettings?.smtp_username) missingFields.push(t("admin.smtp.username"));
+    if (!smtpSettings?.smtp_password_set) missingFields.push(t("admin.smtp.password"));
+  }
+  const canTest = isResend ? !!formData.smtp_from_email : !!formData.smtp_host;
 
   if (isLoading) {
     return (
@@ -158,6 +183,50 @@ export default function SMTPSettings() {
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        <div className="space-y-2">
+          <Label>{t("admin.smtp.provider", "Email provider")}</Label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {([
+              { id: "resend" as EmailProvider, title: "Resend", desc: t("admin.smtp.resendDesc", "HTTPS API — no SMTP ports or passwords, recommended"), recommended: true },
+              { id: "smtp" as EmailProvider, title: "SMTP", desc: t("admin.smtp.smtpDesc", "Classic SMTP server with username and password"), recommended: false },
+            ]).map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => handleChange("email_provider", opt.id)}
+                className={cn(
+                  "rounded-lg border p-3 text-left transition-colors",
+                  formData.email_provider === opt.id ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
+                )}
+                data-testid={`button-email-provider-${opt.id}`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{opt.title}</span>
+                  {opt.recommended && <Badge variant="secondary">{t("admin.smtp.recommended", "Recommended")}</Badge>}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">{opt.desc}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {isResend && (
+          <div className="space-y-2">
+            <Label>{t("admin.smtp.resendApiKey", "Resend API key")}</Label>
+            <Input
+              type="password"
+              value={formData.resend_api_key}
+              onChange={(e) => handleChange("resend_api_key", e.target.value)}
+              placeholder={smtpSettings?.resend_api_key_set ? smtpSettings.resend_api_key_masked : "re_xxxxxxxxxxxxxxxx"}
+              data-testid="input-resend-api-key"
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("admin.smtp.resendHint", "Create the key at resend.com → API Keys (Sending access). The From email below must be on a domain you have verified in Resend (SPF + DKIM).")}
+            </p>
+          </div>
+        )}
+
+        {!isResend && (<>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label>{t("admin.smtp.host")}</Label>
@@ -201,6 +270,7 @@ export default function SMTPSettings() {
             />
           </div>
         </div>
+        </>)}
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
@@ -280,7 +350,8 @@ export default function SMTPSettings() {
           <Button
             variant="outline"
             onClick={handleTest}
-            disabled={testSMTPMutation.isPending || !formData.smtp_host}
+            disabled={testSMTPMutation.isPending || !canTest || hasChanges}
+            title={hasChanges ? t("admin.smtp.saveBeforeTest", "Save changes before testing") : undefined}
             data-testid="button-test-smtp"
           >
             {testSMTPMutation.isPending ? (

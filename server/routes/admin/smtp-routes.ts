@@ -3,13 +3,13 @@ import { Router, Response } from 'express';
 import { storage } from '../../storage';
 import { AdminRequest, requireAdminPermission } from '../../middleware/admin-auth';
 import nodemailer from 'nodemailer';
-import { emailService } from '../../services/email-service';
+import { emailService, EmailService } from '../../services/email-service';
 
 export function registerSmtpRoutes(router: Router) {
   router.get('/smtp', requireAdminPermission('communications', 'email_settings', 'read'), async (req: AdminRequest, res: Response) => {
     try {
-      const smtpKeys = ['smtp_host', 'smtp_port', 'smtp_username', 'smtp_password', 'smtp_from_email', 'smtp_from_name', 'smtp_secure'];
-      const smtpSettings: Record<string, any> = {};
+      const smtpKeys = ['smtp_host', 'smtp_port', 'smtp_username', 'smtp_password', 'smtp_from_email', 'smtp_from_name', 'smtp_secure', 'email_provider', 'resend_api_key'];
+      const smtpSettings: Record<string, any> = { email_provider: 'smtp', resend_api_key_set: false, resend_api_key_masked: '' };
       
       for (const key of smtpKeys) {
         const setting = await storage.getGlobalSetting(key);
@@ -17,6 +17,11 @@ export function registerSmtpRoutes(router: Router) {
           if (key === 'smtp_password') {
             // Return as smtp_password_set for frontend compatibility
             smtpSettings['smtp_password_set'] = setting.value ? true : false;
+          } else if (key === 'resend_api_key') {
+            // Never return the key itself — only whether it is set and its last 4 chars
+            const v = String(setting.value || '');
+            smtpSettings['resend_api_key_set'] = !!v;
+            smtpSettings['resend_api_key_masked'] = v ? `re_****${v.slice(-4)}` : '';
           } else {
             smtpSettings[key] = setting.value;
           }
@@ -32,7 +37,21 @@ export function registerSmtpRoutes(router: Router) {
 
   router.patch('/smtp', requireAdminPermission('communications', 'email_settings', 'update'), async (req: AdminRequest, res: Response) => {
     try {
-      const { smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name, smtp_secure } = req.body;
+      const { smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name, smtp_secure, email_provider, resend_api_key } = req.body;
+      
+      if (email_provider !== undefined) {
+        if (email_provider !== 'smtp' && email_provider !== 'resend') {
+          return res.status(400).json({ error: 'email_provider must be smtp or resend' });
+        }
+        await storage.updateGlobalSetting('email_provider', email_provider);
+      }
+      // Only store a real key — never the masked placeholder the UI echoes back
+      if (typeof resend_api_key === 'string' && resend_api_key.trim() && !resend_api_key.includes('****')) {
+        if (!/^re_[A-Za-z0-9_]+$/.test(resend_api_key.trim())) {
+          return res.status(400).json({ error: 'Invalid Resend API key format (should start with re_)' });
+        }
+        await storage.updateGlobalSetting('resend_api_key', resend_api_key.trim());
+      }
       
       if (smtp_host !== undefined) await storage.updateGlobalSetting('smtp_host', smtp_host);
       if (smtp_port !== undefined) await storage.updateGlobalSetting('smtp_port', smtp_port);
@@ -71,6 +90,26 @@ export function registerSmtpRoutes(router: Router) {
       const smtpFromEmail = await storage.getGlobalSetting('smtp_from_email');
       const smtpFromName = await storage.getGlobalSetting('smtp_from_name');
       const smtpSecure = await storage.getGlobalSetting('smtp_secure');
+      const providerSetting = await storage.getGlobalSetting('email_provider');
+      
+      if (providerSetting?.value === 'resend') {
+        // Resend: validate the key, then send the test through the same path real emails use
+        const keySetting = await storage.getGlobalSetting('resend_api_key');
+        const apiKey = String(keySetting?.value || '');
+        if (!apiKey) return res.status(400).json({ error: 'Resend API key is not configured' });
+        const check = await EmailService.testResendKey(apiKey);
+        if (!check.success) return res.status(400).json({ error: check.error });
+        await emailService.reinitializeFromDatabase();
+        const sent = await emailService.sendEmail(
+          testEmail,
+          'Resend Test Email',
+          '<p>This is a test email sent through Resend.</p><p>If you received this email, your Resend configuration is working correctly.</p>'
+        );
+        if (!sent.success) {
+          return res.status(400).json({ error: sent.error || 'Resend refused the test email — is the From domain verified in Resend?' });
+        }
+        return res.json({ success: true, message: `Test email sent via Resend to ${testEmail}`, domains: check.domains });
+      }
       
       if (!smtpHost?.value || !smtpPort?.value || !smtpUsername?.value || !smtpPassword?.value) {
         return res.status(400).json({ error: 'SMTP settings are not fully configured' });
