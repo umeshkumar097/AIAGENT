@@ -10,6 +10,7 @@ import { db } from '../db';
 import { globalSettings } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { logger } from '../utils/logger';
+import { strictRateLimiter } from '../middleware/rateLimiter';
 
 // ── All Sarvam bulbul:v3 voices ─────────────────────────────────────────────
 export const SARVAM_VOICES = [
@@ -74,7 +75,7 @@ export function registerSarvamRoutes(router: Router): void {
   });
 
   // POST /api/sarvam/preview — generate TTS preview audio
-  router.post('/api/sarvam/preview', async (req: Request, res: Response) => {
+  router.post('/api/sarvam/preview', strictRateLimiter, async (req: Request, res: Response) => {
     try {
       const { voiceId, language } = req.body;
       if (!voiceId) {

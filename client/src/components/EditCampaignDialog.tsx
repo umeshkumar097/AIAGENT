@@ -53,6 +53,11 @@ interface PlivoPhoneNumber {
   friendlyName?: string;
 }
 
+// Conversational Plivo agents (Sarvam / OpenAI) can run campaigns too — only
+// ElevenLabs-style 'incoming' agents are inbound-only.
+const isCampaignAgent = (a: { type: string; telephonyProvider: string | null }): boolean =>
+  a.type !== 'incoming' || a.telephonyProvider === 'plivo' || a.telephonyProvider === 'sarvam-plivo';
+
 const getEngineLabel = (provider: string | null): string => {
   switch (provider) {
     case 'plivo':
@@ -336,7 +341,7 @@ export function EditCampaignDialog({ open, onOpenChange, campaign }: EditCampaig
               </SelectTrigger>
               <SelectContent>
                 {agents
-                  .filter(agent => agent.type !== 'incoming')
+                  .filter(isCampaignAgent)
                   .filter(agent => {
                     // Exclude OpenAI SIP agents - they don't support outbound calls
                     if (agent.telephonyProvider === 'openai-sip') return false;
@@ -557,7 +562,7 @@ export function EditCampaignDialog({ open, onOpenChange, campaign }: EditCampaig
                     <Label htmlFor="edit-retry-max-attempts">Max Attempts</Label>
                     <Select
                       value={String(formData.retryMaxAttempts)}
-                      onValueChange={(v) => setFormData({ ...formData, retryMaxAttempts: parseInt(v) })}
+                      onValueChange={(v) => setFormData({ ...formData, retryMaxAttempts: parseInt(v, 10) })}
                     >
                       <SelectTrigger id="edit-retry-max-attempts" data-testid="select-edit-retry-max-attempts">
                         <SelectValue />
@@ -574,7 +579,7 @@ export function EditCampaignDialog({ open, onOpenChange, campaign }: EditCampaig
                     <Label htmlFor="edit-retry-interval">Retry Interval</Label>
                     <Select
                       value={String(formData.retryIntervalMinutes)}
-                      onValueChange={(v) => setFormData({ ...formData, retryIntervalMinutes: parseInt(v) })}
+                      onValueChange={(v) => setFormData({ ...formData, retryIntervalMinutes: parseInt(v, 10) })}
                     >
                       <SelectTrigger id="edit-retry-interval" data-testid="select-edit-retry-interval">
                         <SelectValue />

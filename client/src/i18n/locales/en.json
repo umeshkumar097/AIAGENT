@@ -144,6 +144,7 @@
     "settings": "Settings"
   },
   "sidebar": {
+    "settings": "Settings",
     "build": "Build",
     "evaluate": "Evaluate",
     "telephony": "Telephony",
@@ -3043,6 +3044,7 @@
     }
   },
   "voices": {
+    "previewFailed": "Voice preview failed",
     "title": "Voice Library",
     "subtitle": "Browse and preview voices for your agents",
     "subtitleLoading": "Loading voices for your agents...",
@@ -3088,6 +3090,7 @@
     "voicesWillAppear": "Voices will appear here when available"
   },
   "billing": {
+    "exportFailed": "Export failed",
     "title": "Billing & Subscription",
     "subtitle": "Manage your subscription, minutes, and billing",
     "plansPurchases": "Plans & Pack Purchases",
@@ -3169,6 +3172,8 @@
     "status": "Status"
   },
   "payment": {
+    "unverified": "Payment Not Confirmed Yet",
+    "unverifiedDescription": "We could not confirm this payment yet. If you were charged, your credits will appear once the payment is confirmed.",
     "subscriptionSuccess": "Subscription Activated!",
     "creditsSuccess": "Minutes Added!",
     "failed": "Payment Failed",
@@ -3728,6 +3733,9 @@
       "fileTooLarge": "File must be smaller than 5MB"
     },
     "smtp": {
+      "testEmailRequired": "Test email address is required",
+      "testEmailAddress": "Test Email Address",
+      "testEmailPlaceholder": "Enter email to receive test",
       "title": "SMTP Email Settings",
       "description": "Configure SMTP settings for sending emails",
       "host": "SMTP Host",
@@ -4316,6 +4324,9 @@
         "imageUploadedDesc": "Image uploaded successfully"
       },
       "structured": {
+        "productSku": "SKU",
+        "productRatingValue": "Rating Value",
+        "productRatingCount": "Rating Count",
         "title": "Structured Data (Schema.org)",
         "description": "Configure structured data to help search engines understand your content better.",
         "organization": "Organization Schema",
@@ -4703,6 +4714,8 @@
     "defaultText": "Hello! This is a preview of how I'll sound. I can adjust my tone and style based on your preferences."
   },
   "cookies": {
+    "saveFailed": "Could not save your cookie preferences",
+    "saveFailedDescription": "Please try again.",
     "title": "Cookie Preferences",
     "description": "We use cookies to enhance your browsing experience and analyze site traffic.",
     "acceptAll": "Accept All",
@@ -4735,5 +4748,112 @@
     "buyNewNumber": "Buy a New Number",
     "useAnyway": "Use Anyway"
   },
-  "billing_period": "Billing Period"
+  "billing_period": "Billing Period",
+  "agentBuilder": {
+    "title": "New agent",
+    "editTitle": "Edit agent",
+    "subtitle": "One agent for incoming calls and campaigns, running on Plivo.",
+    "back": "Back",
+    "backToAgents": "Back to agents",
+    "notFound": "Agent not found.",
+    "legacyEngine": "This agent uses a non-Plivo engine. Edit it from the Agents page.",
+    "noEngine": "Neither Sarvam nor Plivo+OpenAI is enabled. Ask your admin to enable a voice engine in Settings.",
+    "engineDisabled": "Not enabled by admin",
+    "recommended": "Recommended",
+    "basics": {
+      "title": "Name your agent",
+      "desc": "Any name you like — e.g. \"Clinic receptionist\". Only you see it."
+    },
+    "name": "Agent name",
+    "namePlaceholder": "e.g. Support — Hindi",
+    "voice": {
+      "title": "Language & voice",
+      "desc": "Pick the language your callers speak and a voice you like. We set up the right engine for it."
+    },
+    "engine": {
+      "sarvam": "Sarvam — Indian voices",
+      "sarvamDesc": "Hindi, Hinglish and 10 Indian languages. Natural Indian accent.",
+      "openai": "OpenAI Realtime",
+      "openaiDesc": "International languages, OpenAI voices."
+    },
+    "language": "Language",
+    "model": "AI model",
+    "speaker": "Voice",
+    "preview": "Preview",
+    "noVoices": "No voices available.",
+    "modelHintSarvam": "GPT-4o mini is fastest on phone calls.",
+    "modelHintOpenai": "Realtime models talk directly — no separate speech step.",
+    "advanced": "Advanced",
+    "temperature": "Creativity (temperature)",
+    "temperatureHint": "Lower = more consistent answers. 0.3–0.6 works well for phone calls.",
+    "prompt": {
+      "title": "What should it do?",
+      "desc": "Tap a job below — we write the instructions for you. Edit them in plain words, like briefing a new employee."
+    },
+    "purpose": "What will this agent do?",
+    "purposes": {
+      "support": "Customer support",
+      "sales": "Sales / follow-up",
+      "appointment": "Appointment booking",
+      "reminder": "Reminders",
+      "custom": "Custom"
+    },
+    "replacePromptConfirm": "Replace the current prompt and greeting with this template?",
+    "replacePromptTitle": "Keep your current text?",
+    "replace": "Replace",
+    "systemPrompt": "Instructions",
+    "systemPromptPlaceholder": "Who is the agent, what should it do, what should it never do…",
+    "variablesHint": "Tip: replace {{company_name}} and {{agent_name}} with your real names, or keep them — they are filled in automatically when known.",
+    "engineLine": "Voice engine",
+    "change": "Change",
+    "auto": "auto",
+    "firstMessage": "Opening line",
+    "firstMessageHint": "Said as soon as the call connects. Keep it to one short sentence.",
+    "browseTemplates": "Browse saved prompt templates",
+    "tools": {
+      "title": "Tools & knowledge",
+      "desc": "Optional. Everything here can be changed later."
+    },
+    "transfer": "Transfer to a human",
+    "transferHint": "The agent can hand the call to this number when asked.",
+    "endCall": "Let the agent end the call",
+    "endCallHint": "Hangs up politely once the conversation is done. Saves minutes.",
+    "detectLanguage": "Follow the caller's language",
+    "detectLanguageHint": "Reply in whatever language the caller speaks.",
+    "detectLanguageHintSarvam": "Hears Hindi, English and 10 Indian languages and replies in whichever the caller uses — even if they switch mid-call.",
+    "knowledge": "Knowledge base",
+    "noKnowledge": "No documents yet. Add them under Knowledge Base and they will show up here.",
+    "phone": {
+      "title": "Incoming calls",
+      "desc": "Attach a Plivo number so people can call this agent. Skip it if the agent will only run campaigns.",
+      "none": "No number for now (campaigns only)",
+      "current": "Current",
+      "empty": "No free Plivo numbers.",
+      "buy": "Get a number"
+    },
+    "summary": {
+      "title": "Summary",
+      "engine": "Voice engine",
+      "number": "Number",
+      "noNumber": "None",
+      "readyFor": "Ready for",
+      "incoming": "Incoming calls",
+      "attachNumber": "attach a number",
+      "campaigns": "Campaigns"
+    },
+    "errors": {
+      "nameRequired": "Give the agent a name.",
+      "promptRequired": "Write the instructions first.",
+      "transferNumberRequired": "Add the transfer phone number."
+    },
+    "create": "Create agent",
+    "save": "Save changes",
+    "createdTitle": "Agent created",
+    "savedTitle": "Agent updated",
+    "saveFailed": "Could not save agent",
+    "createdWithNumber": "It will answer calls on the attached number and is available for campaigns.",
+    "createdNoNumber": "It is available for campaigns. Attach a number any time to take incoming calls.",
+    "savedNoNumberTitle": "Agent saved — number not attached",
+    "numbersUnavailable": "Could not load your Plivo numbers right now — you can still save the agent and attach a number later."
+  }
 }

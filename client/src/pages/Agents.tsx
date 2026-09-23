@@ -26,7 +26,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DataPagination, usePagination } from "@/components/ui/data-pagination";
-import { Plus, Search, Trash2, Edit, Bot, Upload, Sparkles, GitBranch, CheckCircle2, XCircle, Mic, Brain, Settings2, Wrench, Check, FileText, History, Info, Copy } from "lucide-react";
+import { Plus, Search, Trash2, Edit, Bot, Upload, Sparkles, GitBranch, CheckCircle2, XCircle, Mic, Brain, Settings2, Wrench, Check, FileText, History, Info, Copy, Wand2 } from "lucide-react";
 import { AuthStorage } from "@/lib/auth-storage";
 import PromptTemplatesLibrary from "@/components/PromptTemplatesLibrary";
 import Voices from "@/pages/Voices";
@@ -64,10 +64,10 @@ import VoiceSearchPicker from "@/components/VoiceSearchPicker";
 import VoicePreviewButton from "@/components/VoicePreviewButton";
 import OpenAIVoicePreviewButton from "@/components/OpenAIVoicePreviewButton";
 import AgentCreationWizard from "@/components/AgentCreationWizard";
-import { Wand2 } from "lucide-react";
 import { SUPPORTED_LANGUAGES, getLanguageLabel, isProviderSupported } from "@/lib/languages";
 import { LanguageOptionLabel } from "@/components/LanguageProviderBadges";
 import { usePluginStatus } from "@/hooks/use-plugin-status";
+import { useLocation } from "wouter";
 
 interface SipPhoneNumber {
   id: string;
@@ -238,6 +238,7 @@ export default function Agents() {
   const [engineFilter, setEngineFilter] = useState<'all' | 'twilio' | 'plivo' | 'twilio_openai' | 'elevenlabs-sip' | 'openai-sip' | 'sarvam-plivo' | 'elevenlabs'>('all');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [, navigate] = useLocation();
   const [knowledgeUploadOpen, setKnowledgeUploadOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [deletingAgent, setDeletingAgent] = useState<Agent | null>(null);
@@ -386,7 +387,7 @@ export default function Agents() {
     const bodyComponent = template.components.find((c: any) => c.type === 'BODY');
     if (!bodyComponent?.text) return [];
     const matches = bodyComponent.text.match(/\{\{(\d+)\}\}/g) || [];
-    return matches.map((m: string) => parseInt(m.replace(/[{}]/g, '')));
+    return matches.map((m: string) => parseInt(m.replace(/[{}]/g, ''), 10));
   };
 
   const getWhatsAppTemplateHeaderInfo = (templateName: string): { format: string; hasVariable: boolean; text?: string } | null => {
@@ -718,6 +719,11 @@ export default function Agents() {
   };
 
   const handleEdit = (agent: Agent) => {
+    // Flow agents keep the dialog (they need a flowId); conversational Plivo agents use the builder
+    if (agent.type === 'incoming' && (agent.telephonyProvider === 'plivo' || agent.telephonyProvider === 'sarvam-plivo')) {
+      navigate(`/app/agents/${agent.id}/edit`);
+      return;
+    }
     setEditingAgent(agent);
     setFormData({
       type: agent.type || "incoming",
@@ -876,7 +882,7 @@ export default function Agents() {
               {t('agents.guidedWizard', 'Guided Wizard')}
             </Button>
             <Button 
-              onClick={() => setCreateDialogOpen(true)} 
+              onClick={() => navigate('/app/agents/new')} 
               disabled={createDialogOpen} 
               className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg"
               data-testid="button-create-agent"

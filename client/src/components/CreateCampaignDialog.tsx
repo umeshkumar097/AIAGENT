@@ -43,6 +43,11 @@ interface Agent {
   sipPhoneNumberId?: string | null;
 }
 
+// Conversational Plivo agents (Sarvam / OpenAI) can run campaigns too — only
+// ElevenLabs-style 'incoming' agents are inbound-only.
+const isCampaignAgent = (a: { type: string; telephonyProvider: string | null }): boolean =>
+  a.type !== 'incoming' || a.telephonyProvider === 'plivo' || a.telephonyProvider === 'sarvam-plivo';
+
 const getEngineLabel = (provider: string | null): string => {
   switch (provider) {
     case 'plivo': 
@@ -467,11 +472,11 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
                   }}
                 >
                   <SelectTrigger data-testid="select-agent">
-                    <SelectValue placeholder={agents.filter(a => a.type !== 'incoming').length === 0 ? t("campaigns.create.noAgentsAvailable") : t("campaigns.create.agentPlaceholder")} />
+                    <SelectValue placeholder={agents.filter(isCampaignAgent).length === 0 ? t("campaigns.create.noAgentsAvailable") : t("campaigns.create.agentPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
                     {agents
-                      .filter(agent => agent.type !== 'incoming')
+                      .filter(isCampaignAgent)
                       .filter(agent => {
                         // Always exclude OpenAI SIP agents - they don't support outbound calls
                         if (agent.telephonyProvider === 'openai-sip') {
@@ -490,11 +495,11 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
                       ))}
                   </SelectContent>
                 </Select>
-                {agents.filter(a => a.type !== 'incoming').length === 0 && (
+                {agents.filter(isCampaignAgent).length === 0 && (
                   <p className="text-sm text-muted-foreground">{t("campaigns.create.goToAgentsPage")}</p>
                 )}
-                {agents.filter(a => a.type !== 'incoming').length > 0 && 
-                 agents.filter(a => a.type !== 'incoming').filter(a => {
+                {agents.filter(isCampaignAgent).length > 0 && 
+                 agents.filter(isCampaignAgent).filter(a => {
                    // Same filter logic as dropdown
                    if (a.telephonyProvider === 'openai-sip') return false;
                    if (a.telephonyProvider === 'elevenlabs-sip' && !isSipPluginEnabled) return false;
@@ -790,7 +795,7 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
                         <Label htmlFor="retry-max-attempts">Max Attempts</Label>
                         <Select
                           value={String(formData.retryMaxAttempts)}
-                          onValueChange={(v) => setFormData({ ...formData, retryMaxAttempts: parseInt(v) })}
+                          onValueChange={(v) => setFormData({ ...formData, retryMaxAttempts: parseInt(v, 10) })}
                         >
                           <SelectTrigger id="retry-max-attempts" data-testid="select-retry-max-attempts">
                             <SelectValue />
@@ -807,7 +812,7 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
                         <Label htmlFor="retry-interval">Retry Interval</Label>
                         <Select
                           value={String(formData.retryIntervalMinutes)}
-                          onValueChange={(v) => setFormData({ ...formData, retryIntervalMinutes: parseInt(v) })}
+                          onValueChange={(v) => setFormData({ ...formData, retryIntervalMinutes: parseInt(v, 10) })}
                         >
                           <SelectTrigger id="retry-interval" data-testid="select-retry-interval">
                             <SelectValue />

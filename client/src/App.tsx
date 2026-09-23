@@ -16,7 +16,7 @@
  */
 import { Switch, Route, useLocation, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -29,10 +29,9 @@ import { BrandingProvider, useBranding } from "@/components/BrandingProvider";
 import { DirectionProvider } from "@/components/DirectionProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSelector } from "@/components/LanguageSelector";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { AuthStorage } from "./lib/auth-storage";
 import { TeamAuth } from "./lib/team-auth";
-import { useQuery } from "@tanstack/react-query";
 import Dashboard from "@/pages/Dashboard";
 import Campaigns from "@/pages/Campaigns";
 import CampaignDetail from "@/pages/CampaignDetail";
@@ -43,6 +42,7 @@ import Billing from "@/pages/Billing";
 import PaymentResult from "@/pages/PaymentResult";
 import KnowledgeBase from "@/pages/KnowledgeBase";
 import Agents from "@/pages/Agents";
+import AgentBuilderPage from "@/pages/AgentBuilderPage";
 import Voices from "@/pages/Voices";
 import PhoneNumbers from "@/pages/PhoneNumbers";
 import AllContacts from "@/pages/AllContacts";
@@ -89,7 +89,6 @@ import { CookieConsentBanner } from "@/components/CookieConsentBanner";
 import { AnalyticsScripts } from "@/components/AnalyticsScripts";
 import { SessionTimeoutDialog } from "@/components/SessionTimeoutDialog";
 import { useActivityTimeout } from "@/hooks/useActivityTimeout";
-import { useCallback } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { PluginRegistryProvider, usePluginRegistry } from "@/contexts/plugin-registry";
 import { PluginBootstrapper } from "@/components/plugin-bootstrapper";
@@ -343,6 +342,8 @@ function UserRouter() {
                   <Redirect to="/app/billing?tab=plans" />
                 </Route>
                 <Route path="/app/knowledge-base" component={KnowledgeBase} />
+                <Route path="/app/agents/new" component={AgentBuilderPage} />
+                <Route path="/app/agents/:id/edit" component={AgentBuilderPage} />
                 <Route path="/app/agents" component={Agents} />
                 <Route path="/app/conversations" component={PluginConversationsPage} />
                 <Route path="/app/prompt-templates" component={PromptTemplates} />
@@ -434,6 +435,8 @@ function TeamMemberRouter() {
                   <Redirect to="/app/billing?tab=plans" />
                 </Route>
                 <Route path="/app/knowledge-base" component={KnowledgeBase} />
+                <Route path="/app/agents/new" component={AgentBuilderPage} />
+                <Route path="/app/agents/:id/edit" component={AgentBuilderPage} />
                 <Route path="/app/agents" component={Agents} />
                 <Route path="/app/conversations" component={PluginConversationsPage} />
                 <Route path="/app/prompt-templates" component={PromptTemplates} />
