@@ -3055,7 +3055,7 @@ export default function Agents() {
                           <span className="text-sm font-medium">{t('agents.systemTools.enableMessagingWhatsapp', 'Enable WhatsApp Sending')}</span>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          {t('agents.systemTools.messagingWhatsappDescription', 'Allow this agent to send WhatsApp messages to callers via WhatsWay.')}
+                          {t('agents.systemTools.messagingWhatsappDescription', 'Allow this agent to send WhatsApp messages to callers via Waki.')}
                         </p>
                       </div>
                     </label>
