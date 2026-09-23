@@ -19,6 +19,7 @@ import { Campaign, campaigns, calls, contacts } from "@shared/schema";
 import { db } from '../db';
 import { eq, and, or, isNotNull, isNull, sql, lte, inArray } from 'drizzle-orm';
 import { emailService } from './email-service';
+import { dispatchEvent } from './event-dispatcher';
 import { BatchCallingService } from './batch-calling';
 
 /** Call rows still eligible for ElevenLabs batch recipient sync (final status from poll). */
@@ -216,14 +217,21 @@ export class CampaignScheduler {
         console.log(`[Campaign Scheduler] Started scheduled campaign ${campaign.id}`);
       } catch (error: any) {
         console.error(`[Campaign Scheduler] Failed to start campaign ${campaign.id}:`, error.message);
-        
+
         await db.update(campaigns)
-          .set({ 
+          .set({
             status: 'failed',
             errorMessage: error.message,
             errorCode: 'SCHEDULER_ERROR',
           })
           .where(eq(campaigns.id, campaign.id));
+
+        if (campaign.userId) {
+          await dispatchEvent('campaign_failed', {
+            userId: campaign.userId,
+            data: { campaignId: campaign.id, campaignName: campaign.name, reason: `[SCHEDULER_ERROR] ${error.message}` },
+          });
+        }
       }
     }
   }

@@ -76,14 +76,22 @@ async function checkScheduledCampaigns(): Promise<void> {
         console.log(`[SchedulerWorker] Started campaign ${campaign.id}`);
       } catch (error: any) {
         console.error(`[SchedulerWorker] Failed to start campaign ${campaign.id}:`, error.message);
-        
+
         await db.update(campaigns)
-          .set({ 
+          .set({
             status: 'failed',
             errorMessage: error.message,
             errorCode: 'SCHEDULER_ERROR',
           })
           .where(eq(campaigns.id, campaign.id));
+
+        if (campaign.userId) {
+          const { dispatchEvent } = await import('../../services/event-dispatcher');
+          await dispatchEvent('campaign_failed', {
+            userId: campaign.userId,
+            data: { campaignId: campaign.id, campaignName: campaign.name, reason: `[SCHEDULER_ERROR] ${error.message}` },
+          });
+        }
       }
     }
   } catch (error: any) {

@@ -25,7 +25,7 @@ import {
   users, plans, userSubscriptions, otpVerifications, refreshTokens,
   campaigns, contacts, calls, agents, paymentTransactions, creditTransactions
 } from "@shared/schema";
-import { NotificationService } from "../services/notification-service";
+import { dispatchEvent } from "../services/event-dispatcher";
 import { logger } from '../utils/logger';
 import { 
   createRefreshTokenData, 
@@ -387,18 +387,9 @@ export function createAuthRoutes(ctx: RouteContext): Router {
 
       const updatedUser = await storage.getUser(user.id);
 
-      await NotificationService.notifyWelcome(user.id, user.name);
-
-      try {
-        const emailResult = await emailService.sendWelcomeEmail(user.id);
-        if (emailResult.success) {
-          logger.info(`Welcome email sent successfully to user ${user.id}`, undefined, 'Auth');
-        } else {
-          logger.warn(`Welcome email not sent to user ${user.id}: ${emailResult.error}`, undefined, 'Auth');
-        }
-      } catch (emailError: any) {
-        logger.error(`Exception sending welcome email to user ${user.id}`, emailError?.message || emailError, 'Auth');
-      }
+      // Welcome: templated email + in-app notification + delivery log (never throws)
+      const welcomeResult = await dispatchEvent('welcome', { userId: user.id });
+      logger.info(`Welcome dispatched for user ${user.id}: email=${welcomeResult.email}, inApp=${welcomeResult.inApp}`, undefined, 'Auth');
 
       const accessToken = generateShortAccessToken(user.id, user.role);
       
@@ -723,6 +714,17 @@ export function createAuthRoutes(ctx: RouteContext): Router {
         name: user.name, 
         role: user.role, 
         planType: actualPlanType,
+        // Billing details for invoices (editable in Settings → Billing details)
+        billingName: user.billingName ?? null,
+        billingAddressLine1: user.billingAddressLine1 ?? null,
+        billingAddressLine2: user.billingAddressLine2 ?? null,
+        billingCity: user.billingCity ?? null,
+        billingState: user.billingState ?? null,
+        billingStateCode: user.billingStateCode ?? null,
+        billingPostalCode: user.billingPostalCode ?? null,
+        billingCountry: user.billingCountry ?? null,
+        billingPhone: user.billingPhone ?? null,
+        gstin: user.gstin ?? null,
         credits: user.credits,
         company: user.company || null,
         timezone: user.timezone || null,
@@ -783,6 +785,30 @@ export function createAuthRoutes(ctx: RouteContext): Router {
         }
       }
       
+      // Billing details (used on GST invoices) — plain strings, optional, trimmed; empty clears
+      const BILLING_FIELDS = ['billingName', 'billingAddressLine1', 'billingAddressLine2', 'billingCity', 'billingState',
+        'billingStateCode', 'billingPostalCode', 'billingCountry', 'billingPhone', 'gstin'] as const;
+      for (const field of BILLING_FIELDS) {
+        const value = req.body[field];
+        if (value === undefined) continue;
+        if (value === null || value === '') { updateData[field] = null; continue; }
+        if (typeof value !== 'string' || value.length > 200) {
+          return res.status(400).json({ error: `Invalid ${field}` });
+        }
+        updateData[field] = value.trim();
+      }
+      if (typeof updateData.gstin === 'string') {
+        updateData.gstin = updateData.gstin.toUpperCase();
+        if (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(updateData.gstin)) {
+          return res.status(400).json({ error: "Invalid GSTIN format" });
+        }
+        // GSTIN's first two digits are the state code — keep them consistent
+        updateData.billingStateCode = updateData.gstin.slice(0, 2);
+      }
+      if (typeof updateData.billingStateCode === 'string' && !/^[0-9]{2}$/.test(updateData.billingStateCode)) {
+        return res.status(400).json({ error: "billingStateCode must be a 2-digit GST state code" });
+      }
+
       if (cookieConsent !== undefined) {
         updateData.cookieConsent = Boolean(cookieConsent);
         updateData.consentTimestamp = new Date();

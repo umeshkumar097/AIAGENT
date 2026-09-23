@@ -19,7 +19,7 @@
 import nodemailer, { type Transporter, type SendMailOptions } from 'nodemailer';
 import { storage } from '../storage';
 import { logger } from '../utils/logger';
-import type { EmailTemplate } from '@shared/schema';
+import type { DispatchOptions, DispatchResult, EventKey } from './event-dispatcher';
 
 const SOURCE = 'EmailService';
 const DEFAULT_COMPANY_NAME = '';
@@ -103,34 +103,6 @@ interface EmailAttachment {
   content: Buffer | string;
 }
 
-interface PurchaseConfirmationData {
-  userName: string;
-  amount: string;
-  currency: string;
-  description: string;
-  invoiceNumber: string;
-  transactionId: string;
-}
-
-interface SubscriptionRenewalReminderData {
-  userName: string;
-  planName: string;
-  renewalDate: string;
-  amount: string;
-}
-
-interface PaymentFailedData {
-  userName: string;
-  amount: string;
-  reason: string;
-}
-
-interface LowCreditsData {
-  userName: string;
-  currentCredits: number;
-  threshold: number;
-}
-
 interface CallCreditFailedData {
   userName: string;
   creditsRequired: number;
@@ -140,42 +112,8 @@ interface CallCreditFailedData {
   durationSeconds?: number;
 }
 
-interface CampaignCompletedData {
-  userName: string;
-  campaignName: string;
-  callsCompleted: number;
-  callsSuccessful: number;
-}
-
-interface AccountSuspendedData {
-  userName: string;
-  reason: string;
-}
-
-interface AccountReactivatedData {
-  userName: string;
-  dashboardUrl: string;
-}
-
-interface MembershipUpgradeData {
-  userName: string;
-  newPlanName: string;
-  features: string[];
-}
-
 const NOTIFICATION_TYPE_MAP: Record<string, string> = {
-  welcome: 'welcomeEmail',
-  purchase_confirmation: 'purchaseConfirmation',
-  low_credits: 'lowCredits',
   call_credit_failed: 'callCreditFailed',
-  campaign_completed: 'campaignCompleted',
-  renewal_reminder: 'renewalReminder',
-  payment_failed: 'paymentFailed',
-  account_suspended: 'accountSuspended',
-  account_reactivated: 'accountReactivated',
-  membership_upgrade: 'membershipUpgrade',
-  kyc_approved: 'kycApproved',
-  kyc_rejected: 'kycRejected',
 };
 
 function getBaseEmailStyles(): string {
@@ -399,176 +337,6 @@ function wrapEmailTemplate(branding: BrandingSettings, content: string): string 
 `;
 }
 
-export function welcomeEmail(userName: string, branding: BrandingSettings): string {
-  const content = `
-    <div class="email-body">
-      <h2 class="email-title">Welcome to ${branding.appName}!</h2>
-      <p class="email-text">
-        Hi ${userName},
-      </p>
-      <p class="email-text">
-        Thank you for joining ${branding.appName}! We're excited to have you on board. Our AI-powered bulk calling platform is designed to help you automate your outreach and engage with your contacts more effectively.
-      </p>
-      <div class="email-highlight-box">
-        <p style="margin: 0 0 12px 0; font-weight: 600; color: #1e293b;">Here's what you can do with ${branding.appName}:</p>
-        <ul style="margin: 0; padding-left: 20px; color: #4b5563;">
-          <li style="margin-bottom: 8px;">Create AI-powered voice agents for automated calling</li>
-          <li style="margin-bottom: 8px;">Launch bulk calling campaigns with intelligent scheduling</li>
-          <li style="margin-bottom: 8px;">Track call analytics and performance metrics</li>
-          <li style="margin-bottom: 8px;">Integrate with your existing workflows</li>
-        </ul>
-      </div>
-      <p class="email-text">
-        Ready to get started? Log in to your dashboard and create your first AI agent.
-      </p>
-      <a href="${branding.dashboardUrl}" class="email-button">Go to Dashboard</a>
-      <p class="email-text" style="font-size: 14px; color: #6b7280;">
-        If you have any questions, our support team is here to help.
-      </p>
-    </div>
-  `;
-  return wrapEmailTemplate(branding, content);
-}
-
-export function purchaseConfirmationEmail(data: PurchaseConfirmationData, branding: BrandingSettings): string {
-  const content = `
-    <div class="email-body">
-      <h2 class="email-title">Payment Confirmed</h2>
-      <p class="email-text">
-        Hi ${data.userName},
-      </p>
-      <p class="email-text">
-        Thank you for your purchase! Your payment has been successfully processed.
-      </p>
-      <div class="email-highlight-box">
-        <table class="email-table">
-          <tr>
-            <td>Description</td>
-            <td>${data.description}</td>
-          </tr>
-          <tr>
-            <td>Invoice Number</td>
-            <td style="font-family: monospace;">${data.invoiceNumber}</td>
-          </tr>
-          <tr>
-            <td>Transaction ID</td>
-            <td style="font-family: monospace; font-size: 13px;">${data.transactionId}</td>
-          </tr>
-          <tr>
-            <td>Amount Paid</td>
-            <td>${data.currency} ${data.amount}</td>
-          </tr>
-        </table>
-      </div>
-      <div class="email-alert email-alert-success">
-        <strong>Your payment was successful!</strong> Your credits or subscription have been added to your account.
-      </div>
-      <p class="email-text">
-        You can view your transaction history and download invoices from your billing dashboard.
-      </p>
-      <a href="${branding.billingUrl}" class="email-button">View Transaction History</a>
-    </div>
-  `;
-  return wrapEmailTemplate(branding, content);
-}
-
-export function subscriptionRenewalReminderEmail(data: SubscriptionRenewalReminderData, branding: BrandingSettings): string {
-  const content = `
-    <div class="email-body">
-      <h2 class="email-title">Subscription Renewal Reminder</h2>
-      <p class="email-text">
-        Hi ${data.userName},
-      </p>
-      <p class="email-text">
-        This is a friendly reminder that your ${data.planName} subscription will renew soon.
-      </p>
-      <div class="email-highlight-box">
-        <table class="email-table">
-          <tr>
-            <td>Plan</td>
-            <td>${data.planName}</td>
-          </tr>
-          <tr>
-            <td>Renewal Date</td>
-            <td>${data.renewalDate}</td>
-          </tr>
-          <tr>
-            <td>Amount</td>
-            <td>${data.amount}</td>
-          </tr>
-        </table>
-      </div>
-      <div class="email-alert email-alert-info">
-        <strong>No action required.</strong> Your subscription will automatically renew on the date shown above.
-      </div>
-      <p class="email-text">
-        If you'd like to make changes to your subscription or update your payment method, please visit your billing settings.
-      </p>
-      <a href="${branding.billingUrl}" class="email-button">Manage Subscription</a>
-    </div>
-  `;
-  return wrapEmailTemplate(branding, content);
-}
-
-export function paymentFailedEmail(data: PaymentFailedData, branding: BrandingSettings): string {
-  const content = `
-    <div class="email-body">
-      <h2 class="email-title">Payment Failed</h2>
-      <p class="email-text">
-        Hi ${data.userName},
-      </p>
-      <p class="email-text">
-        We were unable to process your payment. Please update your payment method to continue using ${branding.appName}.
-      </p>
-      <div class="email-alert email-alert-error">
-        <strong>Payment declined:</strong> ${data.reason}
-      </div>
-      <div class="email-highlight-box">
-        <div class="email-metric">
-          <p class="email-metric-value">${data.amount}</p>
-          <p class="email-metric-label">Amount Due</p>
-        </div>
-      </div>
-      <p class="email-text">
-        Please update your payment method as soon as possible to avoid any service interruptions.
-      </p>
-      <a href="${branding.billingUrl}" class="email-button">Update Payment Method</a>
-      <p class="email-text" style="font-size: 14px; color: #6b7280; margin-top: 24px;">
-        If you believe this is an error or need assistance, please contact our support team.
-      </p>
-    </div>
-  `;
-  return wrapEmailTemplate(branding, content);
-}
-
-export function lowCreditsEmail(data: LowCreditsData, branding: BrandingSettings): string {
-  const content = `
-    <div class="email-body">
-      <h2 class="email-title">Low Credits Alert</h2>
-      <p class="email-text">
-        Hi ${data.userName},
-      </p>
-      <p class="email-text">
-        Your account credits are running low. To ensure uninterrupted service, consider purchasing more credits.
-      </p>
-      <div class="email-highlight-box">
-        <div class="email-metric">
-          <p class="email-metric-value">${data.currentCredits.toLocaleString()}</p>
-          <p class="email-metric-label">Credits Remaining</p>
-        </div>
-      </div>
-      <div class="email-alert">
-        <strong>Warning:</strong> Your credit balance is below ${data.threshold.toLocaleString()} credits. Your campaigns may be paused if you run out of credits.
-      </div>
-      <p class="email-text">
-        Top up your credits now to keep your campaigns running smoothly.
-      </p>
-      <a href="${branding.billingUrl}" class="email-button">Purchase Credits</a>
-    </div>
-  `;
-  return wrapEmailTemplate(branding, content);
-}
-
 export function callCreditFailedEmail(data: CallCreditFailedData, branding: BrandingSettings): string {
   const minutesText = data.durationSeconds && data.durationSeconds > 0
     ? `${Math.ceil(data.durationSeconds / 60)} minute${Math.ceil(data.durationSeconds / 60) === 1 ? '' : 's'}`
@@ -603,271 +371,6 @@ export function callCreditFailedEmail(data: CallCreditFailedData, branding: Bran
       <a href="${branding.billingUrl}" class="email-button">Top Up Credits</a>
       <p class="email-text" style="font-size: 14px; color: #6b7280; margin-top: 24px;">
         <a href="${data.callUrl}" style="color: #6b7280;">View call details</a>
-      </p>
-    </div>
-  `;
-  return wrapEmailTemplate(branding, content);
-}
-
-export function campaignCompletedEmail(data: CampaignCompletedData & { campaignId?: string }, branding: BrandingSettings): string {
-  const successRate = data.callsCompleted > 0 
-    ? Math.round((data.callsSuccessful / data.callsCompleted) * 100) 
-    : 0;
-  const campaignUrl = data.campaignId 
-    ? `${branding.baseUrl}/campaigns/${data.campaignId}` 
-    : branding.dashboardUrl;
-
-  const content = `
-    <div class="email-body">
-      <h2 class="email-title">Campaign Completed</h2>
-      <p class="email-text">
-        Hi ${data.userName},
-      </p>
-      <p class="email-text">
-        Great news! Your campaign "<strong>${data.campaignName}</strong>" has finished running.
-      </p>
-      <div class="email-highlight-box">
-        <table style="width: 100%; text-align: center;">
-          <tr>
-            <td style="padding: 16px;">
-              <p class="email-metric-value">${data.callsCompleted.toLocaleString()}</p>
-              <p class="email-metric-label">Calls Completed</p>
-            </td>
-            <td style="padding: 16px;">
-              <p class="email-metric-value">${data.callsSuccessful.toLocaleString()}</p>
-              <p class="email-metric-label">Successful Calls</p>
-            </td>
-            <td style="padding: 16px;">
-              <p class="email-metric-value">${successRate}%</p>
-              <p class="email-metric-label">Success Rate</p>
-            </td>
-          </tr>
-        </table>
-      </div>
-      <div class="email-alert email-alert-success">
-        <strong>Campaign completed successfully!</strong> View detailed analytics and transcripts in your dashboard.
-      </div>
-      <a href="${campaignUrl}" class="email-button">View Campaign Results</a>
-    </div>
-  `;
-  return wrapEmailTemplate(branding, content);
-}
-
-export function accountSuspendedEmail(data: AccountSuspendedData, branding: BrandingSettings): string {
-  const content = `
-    <div class="email-body">
-      <h2 class="email-title">Account Suspended</h2>
-      <p class="email-text">
-        Hi ${data.userName},
-      </p>
-      <p class="email-text">
-        Your ${branding.appName} account has been suspended.
-      </p>
-      <div class="email-alert email-alert-error">
-        <strong>Reason for suspension:</strong> ${data.reason}
-      </div>
-      <p class="email-text">
-        While your account is suspended, you will not be able to:
-      </p>
-      <ul style="color: #4b5563; margin: 0 0 24px 0; padding-left: 20px;">
-        <li style="margin-bottom: 8px;">Run or create new campaigns</li>
-        <li style="margin-bottom: 8px;">Make outbound calls</li>
-        <li style="margin-bottom: 8px;">Access certain features</li>
-      </ul>
-      <p class="email-text">
-        If you believe this suspension is in error, or if you would like to resolve the issue, please contact our support team immediately.
-      </p>
-      <a href="${branding.supportUrl}" class="email-button">Contact Support</a>
-      <p class="email-text" style="font-size: 14px; color: #6b7280; margin-top: 24px;">
-        Please respond to this notice within 7 days to avoid permanent account termination.
-      </p>
-    </div>
-  `;
-  return wrapEmailTemplate(branding, content);
-}
-
-export function accountReactivatedEmail(data: AccountReactivatedData, branding: BrandingSettings): string {
-  const content = `
-    <div class="email-body">
-      <h2 class="email-title">Account Reactivated</h2>
-      <p class="email-text">
-        Hi ${data.userName},
-      </p>
-      <p class="email-text">
-        Great news! Your ${branding.appName} account has been reactivated.
-      </p>
-      <div class="email-alert email-alert-success">
-        <strong>Your account is now active!</strong> You have full access to all features.
-      </div>
-      <p class="email-text">
-        You can now:
-      </p>
-      <ul style="color: #4b5563; margin: 0 0 24px 0; padding-left: 20px;">
-        <li style="margin-bottom: 8px;">Run and create new campaigns</li>
-        <li style="margin-bottom: 8px;">Make outbound calls</li>
-        <li style="margin-bottom: 8px;">Access all platform features</li>
-      </ul>
-      <p class="email-text">
-        Log in to your dashboard to continue where you left off.
-      </p>
-      <a href="${branding.dashboardUrl}" class="email-button">Go to Dashboard</a>
-      <p class="email-text" style="font-size: 14px; color: #6b7280; margin-top: 24px;">
-        Thank you for being a valued member of ${branding.appName}!
-      </p>
-    </div>
-  `;
-  return wrapEmailTemplate(branding, content);
-}
-
-export function membershipUpgradeEmail(data: MembershipUpgradeData, branding: BrandingSettings): string {
-  const featuresList = data.features.map(f => `<li style="margin-bottom: 8px;">${f}</li>`).join('');
-  const content = `
-    <div class="email-body">
-      <h2 class="email-title">Welcome to ${data.newPlanName}!</h2>
-      <p class="email-text">
-        Hi ${data.userName},
-      </p>
-      <p class="email-text">
-        Great news! Your account has been upgraded to the <strong>${data.newPlanName}</strong> plan.
-      </p>
-      <div class="email-alert email-alert-success">
-        <strong>Upgrade successful!</strong> You now have access to all premium features.
-      </div>
-      <div class="email-highlight-box">
-        <p style="margin: 0 0 12px 0; font-weight: 600; color: #1e293b;">Your new ${data.newPlanName} benefits include:</p>
-        <ul style="margin: 0; padding-left: 20px; color: #4b5563;">
-          ${featuresList}
-        </ul>
-      </div>
-      <p class="email-text">
-        Start using your new features right away by visiting your dashboard.
-      </p>
-      <a href="${branding.dashboardUrl}" class="email-button">Go to Dashboard</a>
-      <p class="email-text" style="font-size: 14px; color: #6b7280; margin-top: 24px;">
-        Thank you for upgrading! If you have any questions, our support team is here to help.
-      </p>
-    </div>
-  `;
-  return wrapEmailTemplate(branding, content);
-}
-
-export function kycApprovedEmail(userName: string, branding: BrandingSettings): string {
-  const content = `
-    <div class="email-body">
-      <h2 class="email-title">KYC Verification Approved</h2>
-      <p class="email-text">
-        Hi ${userName},
-      </p>
-      <p class="email-text">
-        Congratulations! Your KYC verification has been successfully approved.
-      </p>
-      <div class="email-alert email-alert-success">
-        <strong>Verification Complete!</strong> You can now purchase phone numbers on ${branding.appName}.
-      </div>
-      <p class="email-text">
-        With your verified account, you now have access to:
-      </p>
-      <ul style="color: #4b5563; margin: 0 0 24px 0; padding-left: 20px;">
-        <li style="margin-bottom: 8px;">Purchase phone numbers for your campaigns</li>
-        <li style="margin-bottom: 8px;">Full access to all platform features</li>
-        <li style="margin-bottom: 8px;">Priority support for verified users</li>
-      </ul>
-      <p class="email-text">
-        Head to your dashboard to start exploring the full capabilities of ${branding.appName}.
-      </p>
-      <a href="${branding.dashboardUrl}" class="email-button">Go to Dashboard</a>
-      <p class="email-text" style="font-size: 14px; color: #6b7280; margin-top: 24px;">
-        Thank you for completing your verification!
-      </p>
-    </div>
-  `;
-  return wrapEmailTemplate(branding, content);
-}
-
-export function kycRejectedEmail(userName: string, reason: string, branding: BrandingSettings): string {
-  const content = `
-    <div class="email-body">
-      <h2 class="email-title">KYC Verification Requires Attention</h2>
-      <p class="email-text">
-        Hi ${userName},
-      </p>
-      <p class="email-text">
-        Unfortunately, your KYC verification could not be approved at this time.
-      </p>
-      <div class="email-alert email-alert-error">
-        <strong>Reason for rejection:</strong> ${reason}
-      </div>
-      <p class="email-text">
-        Please review the reason above and take the necessary steps to resolve the issue. You can resubmit your documents after addressing the concerns.
-      </p>
-      <div class="email-highlight-box">
-        <p style="margin: 0 0 12px 0; font-weight: 600; color: #1e293b;">Next Steps:</p>
-        <ul style="margin: 0; padding-left: 20px; color: #4b5563;">
-          <li style="margin-bottom: 8px;">Review the rejection reason carefully</li>
-          <li style="margin-bottom: 8px;">Ensure your documents are clear and legible</li>
-          <li style="margin-bottom: 8px;">Upload updated documents if necessary</li>
-          <li style="margin-bottom: 8px;">Resubmit your KYC verification</li>
-        </ul>
-      </div>
-      <p class="email-text">
-        Visit your settings page to update and resubmit your KYC documents.
-      </p>
-      <a href="${branding.baseUrl}/app/settings" class="email-button">Go to Settings</a>
-      <p class="email-text" style="font-size: 14px; color: #6b7280; margin-top: 24px;">
-        If you have any questions, please contact our support team for assistance.
-      </p>
-    </div>
-  `;
-  return wrapEmailTemplate(branding, content);
-}
-
-export function otpEmail(otpCode: string, branding: BrandingSettings, name?: string, expiryMinutes: number = 5): string {
-  const content = `
-    <div class="email-body">
-      <h2 class="email-title">Verify Your Email</h2>
-      <p class="email-text">
-        ${name ? `Hi ${name},` : 'Hello,'}
-      </p>
-      <p class="email-text">
-        Thank you for signing up! Please use the verification code below to complete your registration:
-      </p>
-      <div class="email-highlight-box" style="text-align: center;">
-        <p style="font-size: 14px; color: #6b7280; margin: 0 0 12px 0;">Your Verification Code</p>
-        <p style="font-size: 42px; font-weight: 700; letter-spacing: 8px; color: #1e293b; margin: 0; font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', monospace;">${otpCode}</p>
-        <p style="font-size: 13px; color: #9ca3af; margin: 12px 0 0 0;">Valid for ${expiryMinutes} minutes</p>
-      </div>
-      <div class="email-alert">
-        <strong>Security Notice:</strong> Never share this code with anyone. ${branding.appName} will never ask for your verification code.
-      </div>
-      <p class="email-text">
-        If you didn't request this code, please ignore this email or contact our support team.
-      </p>
-      <a href="${branding.supportUrl}" class="email-button email-button-secondary">Contact Support</a>
-    </div>
-  `;
-  return wrapEmailTemplate(branding, content);
-}
-
-export function passwordResetEmail(otpCode: string, branding: BrandingSettings, name?: string, expiryMinutes: number = 5): string {
-  const content = `
-    <div class="email-body">
-      <h2 class="email-title">Reset Your Password</h2>
-      <p class="email-text">
-        ${name ? `Hi ${name},` : 'Hello,'}
-      </p>
-      <p class="email-text">
-        We received a request to reset your password. Use the verification code below to proceed:
-      </p>
-      <div class="email-highlight-box" style="text-align: center; background: #fef3c7; border-color: #f59e0b;">
-        <p style="font-size: 14px; color: #92400e; margin: 0 0 12px 0;">Password Reset Code</p>
-        <p style="font-size: 42px; font-weight: 700; letter-spacing: 8px; color: #1e293b; margin: 0; font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', monospace;">${otpCode}</p>
-        <p style="font-size: 13px; color: #b45309; margin: 12px 0 0 0;">Valid for ${expiryMinutes} minutes</p>
-      </div>
-      <div class="email-alert email-alert-error">
-        <strong>Did not request this?</strong> If you didn't request a password reset, please ignore this email. Your password will remain unchanged.
-      </div>
-      <p class="email-text">
-        For security reasons, this code will expire in ${expiryMinutes} minutes.
       </p>
     </div>
   `;
@@ -1261,126 +764,48 @@ export class EmailService {
     }
   }
 
-  async sendWelcomeEmail(userId: string): Promise<{ success: boolean; error?: string }> {
-    console.log(`📧 [Email] Preparing welcome email for user: ${userId}`);
-    
-    const eventType = NOTIFICATION_TYPE_MAP.welcome;
-    if (!(await this.isNotificationTypeEnabled(eventType))) {
-      const msg = `Welcome email disabled in settings (event type: ${eventType})`;
-      logger.info(msg, undefined, SOURCE);
-      console.log(`⚠️ [Email] ${msg}`);
-      return { success: false, error: msg };
-    }
-
-    try {
-      const user = await storage.getUser(userId);
-      if (!user) {
-        const error = `User not found for welcome email: ${userId}`;
-        logger.error(error, undefined, SOURCE);
-        console.log(`❌ [Email] ${error}`);
-        return { success: false, error };
-      }
-
-      const branding = await getBrandingSettings();
-      
-      // Try database template first
-      const dbTemplate = await this.getTemplateFromDatabase('welcome', {
-        userName: user.name,
-        companyName: branding.appName,
-        dashboardUrl: branding.dashboardUrl,
-      });
-
-      let result;
-      if (dbTemplate) {
-        console.log(`📧 [Email] Using database template for welcome email`);
-        result = await this.sendEmail(user.email, dbTemplate.subject, dbTemplate.htmlBody);
-      } else {
-        console.log(`📧 [Email] Using fallback template for welcome email`);
-        const html = welcomeEmail(user.name, branding);
-        const subject = `Welcome to ${branding.appName}!`;
-        result = await this.sendEmail(user.email, subject, html);
-      }
-
-      if (result.success) {
-        console.log(`✅ [Email] Welcome email sent to ${user.email}`);
-      } else {
-        console.log(`❌ [Email] Welcome email failed for ${user.email}: ${result.error}`);
-      }
-      
-      return result;
-    } catch (error: any) {
-      const errorMsg = error?.message || 'Unknown error';
-      logger.error(`Failed to send welcome email for user: ${userId}`, error, SOURCE);
-      console.log(`❌ [Email] Exception sending welcome email: ${errorMsg}`);
-      return { success: false, error: errorMsg };
-    }
+  /**
+   * All event emails go through the dispatcher (templated, toggled, logged).
+   * Loaded lazily so this transport module never statically depends on it.
+   */
+  private async dispatch(eventKey: EventKey, opts: DispatchOptions): Promise<DispatchResult> {
+    const { dispatchEvent } = await import('./event-dispatcher');
+    return dispatchEvent(eventKey, opts);
   }
 
-  async sendPurchaseConfirmation(transactionId: string, invoicePDF?: Buffer): Promise<boolean> {
-    const eventType = NOTIFICATION_TYPE_MAP.purchase_confirmation;
-    if (!(await this.isNotificationTypeEnabled(eventType))) {
-      logger.info(`Purchase confirmation email disabled for event type: ${eventType}`, undefined, SOURCE);
-      return false;
-    }
+  private toBool(result: DispatchResult): boolean {
+    return result.email === 'sent';
+  }
 
+  async sendWelcomeEmail(userId: string): Promise<{ success: boolean; error?: string }> {
+    const result = await this.dispatch('welcome', { userId });
+    return result.email === 'sent' ? { success: true } : { success: false, error: `welcome email ${result.email}` };
+  }
+
+  /** Purchase confirmation → purchase_completed event (optionally with the invoice PDF attached). */
+  async sendPurchaseConfirmation(transactionId: string, invoicePDF?: Buffer): Promise<boolean> {
     try {
       const transaction = await storage.getPaymentTransaction(transactionId);
       if (!transaction) {
         logger.error(`Transaction not found for purchase confirmation: ${transactionId}`, undefined, SOURCE);
         return false;
       }
-
-      const user = await storage.getUser(transaction.userId);
-      if (!user) {
-        logger.error(`User not found for purchase confirmation: ${transaction.userId}`, undefined, SOURCE);
-        return false;
-      }
-
-      const invoice = await storage.getTransactionInvoice(transactionId);
+      const invoice = await storage.getTransactionInvoice(transactionId).catch(() => undefined);
       const invoiceNumber = invoice?.invoiceNumber || 'N/A';
-
-      const branding = await getBrandingSettings();
-      
-      // Try database template first
-      const dbTemplate = await this.getTemplateFromDatabase('purchase_confirmation', {
-        userName: user.name,
-        amount: String(transaction.amount),
-        currency: transaction.currency,
-        description: transaction.description,
-        invoiceNumber,
-        transactionId: transaction.id,
-        billingUrl: branding.billingUrl,
-        companyName: branding.appName,
+      const result = await this.dispatch('purchase_completed', {
+        userId: transaction.userId,
+        data: {
+          amount: String(transaction.amount),
+          currency: transaction.currency || 'INR',
+          description: transaction.description,
+          invoiceNumber,
+          transactionId: transaction.id,
+          orderId: transaction.gatewayOrderId || '',
+          paymentMethod: transaction.paymentMethod || '',
+        },
+        attachments: invoicePDF ? [{ filename: `invoice-${invoiceNumber.replace(/[^\w.-]+/g, '_')}.pdf`, content: invoicePDF, contentType: 'application/pdf' }] : undefined,
       });
-
-      const attachments: EmailAttachment[] = [];
-      if (invoicePDF) {
-        attachments.push({
-          filename: `invoice-${invoiceNumber}.pdf`,
-          content: invoicePDF,
-        });
-      }
-
-      if (dbTemplate) {
-        const result = await this.sendEmail(user.email, dbTemplate.subject, dbTemplate.htmlBody, attachments.length > 0 ? attachments : undefined);
-        return result.success;
-      }
-
-      // Fallback to hardcoded template
-      const data: PurchaseConfirmationData = {
-        userName: user.name,
-        amount: String(transaction.amount),
-        currency: transaction.currency,
-        description: transaction.description,
-        invoiceNumber,
-        transactionId: transaction.id,
-      };
-
-      const html = purchaseConfirmationEmail(data, branding);
-      const subject = `Payment Confirmed - ${branding.appName}`;
-
-      const result = await this.sendEmail(user.email, subject, html, attachments.length > 0 ? attachments : undefined);
-      return result.success;
+      return this.toBool(result);
     } catch (error) {
       logger.error(`Failed to send purchase confirmation for transaction: ${transactionId}`, error, SOURCE);
       return false;
@@ -1388,54 +813,14 @@ export class EmailService {
   }
 
   async sendLowCreditsAlert(userId: string, currentCredits: number): Promise<boolean> {
-    const eventType = NOTIFICATION_TYPE_MAP.low_credits;
-    if (!(await this.isNotificationTypeEnabled(eventType))) {
-      logger.info(`Low credits email disabled for event type: ${eventType}`, undefined, SOURCE);
-      return false;
-    }
-
+    let threshold = 50;
     try {
-      const user = await storage.getUser(userId);
-      if (!user) {
-        logger.error(`User not found for low credits alert: ${userId}`, undefined, SOURCE);
-        return false;
-      }
-
-      const setting = await storage.getEmailNotificationSetting(eventType);
-      const threshold = setting?.thresholdValue || 100;
-
-      const branding = await getBrandingSettings();
-      
-      // Try database template first
-      const dbTemplate = await this.getTemplateFromDatabase('low_credits', {
-        userName: user.name,
-        currentCredits,
-        threshold,
-        creditsUrl: branding.billingUrl,
-        companyName: branding.appName,
-      });
-
-      if (dbTemplate) {
-        const result = await this.sendEmail(user.email, dbTemplate.subject, dbTemplate.htmlBody);
-        return result.success;
-      }
-
-      // Fallback to hardcoded template
-      const data: LowCreditsData = {
-        userName: user.name,
-        currentCredits,
-        threshold,
-      };
-
-      const html = lowCreditsEmail(data, branding);
-      const subject = `Low Credits Alert - ${branding.appName}`;
-
-      const result = await this.sendEmail(user.email, subject, html);
-      return result.success;
-    } catch (error) {
-      logger.error(`Failed to send low credits alert for user: ${userId}`, error, SOURCE);
-      return false;
+      const setting = await storage.getGlobalSetting('low_credits_threshold');
+      if (typeof setting?.value === 'number') threshold = setting.value;
+    } catch {
+      // keep default threshold
     }
+    return this.toBool(await this.dispatch('low_credits', { userId, data: { currentCredits, threshold } }));
   }
 
   async sendCallCreditFailedAlert(
@@ -1493,62 +878,21 @@ export class EmailService {
   }
 
   async sendCampaignCompleted(campaignId: string): Promise<boolean> {
-    const eventType = NOTIFICATION_TYPE_MAP.campaign_completed;
-    if (!(await this.isNotificationTypeEnabled(eventType))) {
-      logger.info(`Campaign completed email disabled for event type: ${eventType}`, undefined, SOURCE);
-      return false;
-    }
-
     try {
       const campaign = await storage.getCampaign(campaignId);
       if (!campaign) {
         logger.error(`Campaign not found for completion email: ${campaignId}`, undefined, SOURCE);
         return false;
       }
-
-      const user = await storage.getUser(campaign.userId);
-      if (!user) {
-        logger.error(`User not found for campaign completion email: ${campaign.userId}`, undefined, SOURCE);
-        return false;
-      }
-
       const calls = await storage.getCampaignCalls(campaignId);
       const callsCompleted = calls.length;
       const callsSuccessful = calls.filter(c => c.status === 'completed').length;
       const successRate = callsCompleted > 0 ? Math.round((callsSuccessful / callsCompleted) * 100) : 0;
-
-      const branding = await getBrandingSettings();
-      
-      // Try database template first
-      const dbTemplate = await this.getTemplateFromDatabase('campaign_completed', {
-        userName: user.name,
-        campaignName: campaign.name,
-        callsCompleted,
-        callsSuccessful,
-        successRate: `${successRate}%`,
-        campaignUrl: `${branding.baseUrl}/campaigns/${campaignId}`,
-        companyName: branding.appName,
+      const result = await this.dispatch('campaign_completed', {
+        userId: campaign.userId,
+        data: { campaignId, campaignName: campaign.name, callsCompleted, callsSuccessful, successRate: `${successRate}%` },
       });
-
-      if (dbTemplate) {
-        const result = await this.sendEmail(user.email, dbTemplate.subject, dbTemplate.htmlBody);
-        return result.success;
-      }
-
-      // Fallback to hardcoded template
-      const data: CampaignCompletedData & { campaignId?: string } = {
-        userName: user.name,
-        campaignName: campaign.name,
-        callsCompleted,
-        callsSuccessful,
-        campaignId,
-      };
-
-      const html = campaignCompletedEmail(data, branding);
-      const subject = `Campaign Completed: ${campaign.name} - ${branding.appName}`;
-
-      const result = await this.sendEmail(user.email, subject, html);
-      return result.success;
+      return this.toBool(result);
     } catch (error) {
       logger.error(`Failed to send campaign completed email for campaign: ${campaignId}`, error, SOURCE);
       return false;
@@ -1556,346 +900,91 @@ export class EmailService {
   }
 
   async sendPaymentFailed(userId: string, amount: string, reason: string): Promise<boolean> {
-    const eventType = NOTIFICATION_TYPE_MAP.payment_failed;
-    if (!(await this.isNotificationTypeEnabled(eventType))) {
-      logger.info(`Payment failed email disabled for event type: ${eventType}`, undefined, SOURCE);
-      return false;
-    }
-
-    try {
-      const user = await storage.getUser(userId);
-      if (!user) {
-        logger.error(`User not found for payment failed email: ${userId}`, undefined, SOURCE);
-        return false;
-      }
-
-      const branding = await getBrandingSettings();
-      
-      // Try database template first
-      const dbTemplate = await this.getTemplateFromDatabase('payment_failed', {
-        userName: user.name,
-        amount,
-        reason,
-        billingUrl: branding.billingUrl,
-        companyName: branding.appName,
-      });
-
-      if (dbTemplate) {
-        const result = await this.sendEmail(user.email, dbTemplate.subject, dbTemplate.htmlBody);
-        return result.success;
-      }
-
-      // Fallback to hardcoded template
-      const data: PaymentFailedData = {
-        userName: user.name,
-        amount,
-        reason,
-      };
-
-      const html = paymentFailedEmail(data, branding);
-      const subject = `Payment Failed - ${branding.appName}`;
-
-      const result = await this.sendEmail(user.email, subject, html);
-      return result.success;
-    } catch (error) {
-      logger.error(`Failed to send payment failed email for user: ${userId}`, error, SOURCE);
-      return false;
-    }
+    return this.toBool(await this.dispatch('payment_failed', { userId, data: { amount, reason, currency: 'INR' } }));
   }
 
   async sendAccountSuspended(userId: string, reason: string): Promise<boolean> {
-    const eventType = NOTIFICATION_TYPE_MAP.account_suspended;
-    if (!(await this.isNotificationTypeEnabled(eventType))) {
-      logger.info(`Account suspended email disabled for event type: ${eventType}`, undefined, SOURCE);
-      return false;
-    }
-
-    try {
-      const user = await storage.getUser(userId);
-      if (!user) {
-        logger.error(`User not found for account suspended email: ${userId}`, undefined, SOURCE);
-        return false;
-      }
-
-      const branding = await getBrandingSettings();
-      
-      // Try database template first
-      const dbTemplate = await this.getTemplateFromDatabase('account_suspended', {
-        userName: user.name,
-        reason,
-        supportUrl: branding.supportUrl,
-        companyName: branding.appName,
-      });
-
-      if (dbTemplate) {
-        const result = await this.sendEmail(user.email, dbTemplate.subject, dbTemplate.htmlBody);
-        return result.success;
-      }
-
-      // Fallback to hardcoded template
-      const data: AccountSuspendedData = {
-        userName: user.name,
-        reason,
-      };
-
-      const html = accountSuspendedEmail(data, branding);
-      const subject = `Account Suspended - ${branding.appName}`;
-
-      const result = await this.sendEmail(user.email, subject, html);
-      return result.success;
-    } catch (error) {
-      logger.error(`Failed to send account suspended email for user: ${userId}`, error, SOURCE);
-      return false;
-    }
+    return this.toBool(await this.dispatch('account_suspended', { userId, data: { reason } }));
   }
 
   async sendAccountReactivated(userId: string): Promise<boolean> {
-    const eventType = NOTIFICATION_TYPE_MAP.account_reactivated;
-    if (!(await this.isNotificationTypeEnabled(eventType))) {
-      logger.info(`Account reactivated email disabled for event type: ${eventType}`, undefined, SOURCE);
-      return false;
-    }
-
-    try {
-      const user = await storage.getUser(userId);
-      if (!user) {
-        logger.error(`User not found for account reactivated email: ${userId}`, undefined, SOURCE);
-        return false;
-      }
-
-      const branding = await getBrandingSettings();
-      
-      // Try database template first
-      const dbTemplate = await this.getTemplateFromDatabase('account_reactivated', {
-        userName: user.name,
-        dashboardUrl: branding.dashboardUrl,
-        companyName: branding.appName,
-      });
-
-      if (dbTemplate) {
-        const result = await this.sendEmail(user.email, dbTemplate.subject, dbTemplate.htmlBody);
-        return result.success;
-      }
-
-      // Fallback to hardcoded template
-      const data: AccountReactivatedData = {
-        userName: user.name,
-        dashboardUrl: branding.dashboardUrl,
-      };
-
-      const html = accountReactivatedEmail(data, branding);
-      const subject = `Account Reactivated - ${branding.appName}`;
-
-      const result = await this.sendEmail(user.email, subject, html);
-      return result.success;
-    } catch (error) {
-      logger.error(`Failed to send account reactivated email for user: ${userId}`, error, SOURCE);
-      return false;
-    }
+    return this.toBool(await this.dispatch('account_reactivated', { userId }));
   }
 
+  /** Legacy name: a paid plan became active → plan_activated event. */
   async sendMembershipUpgrade(userId: string, newPlanName: string): Promise<boolean> {
-    const eventType = NOTIFICATION_TYPE_MAP.membership_upgrade;
-    if (!(await this.isNotificationTypeEnabled(eventType))) {
-      logger.info(`Membership upgrade email disabled for event type: ${eventType}`, undefined, SOURCE);
-      return false;
-    }
-
-    try {
-      const user = await storage.getUser(userId);
-      if (!user) {
-        logger.error(`User not found for membership upgrade email: ${userId}`, undefined, SOURCE);
-        return false;
-      }
-
-      const branding = await getBrandingSettings();
-      
-      // Default Pro plan features
-      const proFeatures = [
-        'Unlimited AI agents',
-        'Priority support',
-        'Advanced analytics',
-        'Custom integrations',
-        'Increased API limits'
-      ];
-      
-      // Try database template first
-      const dbTemplate = await this.getTemplateFromDatabase('membership_upgrade', {
-        userName: user.name,
-        newPlanName,
-        features: proFeatures.join(', '),
-        dashboardUrl: branding.dashboardUrl,
-        companyName: branding.appName,
-      });
-
-      if (dbTemplate) {
-        const result = await this.sendEmail(user.email, dbTemplate.subject, dbTemplate.htmlBody);
-        return result.success;
-      }
-
-      // Fallback to hardcoded template
-      const data: MembershipUpgradeData = {
-        userName: user.name,
-        newPlanName,
-        features: proFeatures,
-      };
-
-      const html = membershipUpgradeEmail(data, branding);
-      const subject = `Welcome to ${newPlanName} - ${branding.appName}`;
-
-      const result = await this.sendEmail(user.email, subject, html);
-      return result.success;
-    } catch (error) {
-      logger.error(`Failed to send membership upgrade email for user: ${userId}`, error, SOURCE);
-      return false;
-    }
+    return this.toBool(await this.dispatch('plan_activated', { userId, data: { planName: newPlanName, newPlanName } }));
   }
 
+  /** Legacy name: subscription period ending soon → plan_expiring event. */
   async sendRenewalReminder(subscriptionId: string): Promise<boolean> {
-    const eventType = NOTIFICATION_TYPE_MAP.renewal_reminder;
-    if (!(await this.isNotificationTypeEnabled(eventType))) {
-      logger.info(`Renewal reminder email disabled for event type: ${eventType}`, undefined, SOURCE);
-      return false;
-    }
-
     try {
       const allSubscriptions = await storage.getAllUserSubscriptions();
       const subscription = allSubscriptions.find(s => s.id === subscriptionId);
-      
       if (!subscription) {
         logger.error(`Subscription not found for renewal reminder: ${subscriptionId}`, undefined, SOURCE);
         return false;
       }
-
-      const user = await storage.getUser(subscription.userId);
-      if (!user) {
-        logger.error(`User not found for renewal reminder: ${subscription.userId}`, undefined, SOURCE);
-        return false;
-      }
-
       const userSubscription = await storage.getUserSubscription(subscription.userId);
-      if (!userSubscription || !userSubscription.plan) {
+      const plan = userSubscription?.plan;
+      if (!plan) {
         logger.error(`Plan not found for subscription: ${subscriptionId}`, undefined, SOURCE);
         return false;
       }
-
-      const renewalDate = subscription.currentPeriodEnd 
-        ? new Date(subscription.currentPeriodEnd).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })
+      const periodEnd = subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd) : null;
+      const expiresAt = periodEnd
+        ? periodEnd.toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })
         : 'N/A';
-
-      const plan = userSubscription.plan;
+      const daysLeft = periodEnd ? Math.max(0, Math.ceil((periodEnd.getTime() - Date.now()) / 86_400_000)) : 0;
       const amount = subscription.billingPeriod === 'yearly'
-        ? `${plan.priceYearly || plan.price} ${plan.currency}`
-        : `${plan.price} ${plan.currency}`;
-
-      const branding = await getBrandingSettings();
-      
-      // Try database template first
-      const dbTemplate = await this.getTemplateFromDatabase('renewal_reminder', {
-        userName: user.name,
-        planName: plan.displayName || plan.name,
-        renewalDate,
-        amount,
-        billingUrl: branding.billingUrl,
-        companyName: branding.appName,
+        ? (plan.yearlyPrice ?? plan.monthlyPrice)
+        : plan.monthlyPrice;
+      const result = await this.dispatch('plan_expiring', {
+        userId: subscription.userId,
+        data: {
+          planName: plan.displayName || plan.name,
+          billingPeriod: subscription.billingPeriod,
+          expiresAt,
+          renewalDate: expiresAt,
+          daysLeft,
+          amount: String(amount ?? ''),
+          currency: 'INR',
+        },
       });
-
-      if (dbTemplate) {
-        const result = await this.sendEmail(user.email, dbTemplate.subject, dbTemplate.htmlBody);
-        return result.success;
-      }
-
-      // Fallback to hardcoded template
-      const data: SubscriptionRenewalReminderData = {
-        userName: user.name,
-        planName: plan.displayName || plan.name,
-        renewalDate,
-        amount,
-      };
-
-      const html = subscriptionRenewalReminderEmail(data, branding);
-      const subject = `Subscription Renewal Reminder - ${branding.appName}`;
-
-      const result = await this.sendEmail(user.email, subject, html);
-      return result.success;
+      return this.toBool(result);
     } catch (error) {
       logger.error(`Failed to send renewal reminder for subscription: ${subscriptionId}`, error, SOURCE);
       return false;
     }
   }
 
+  /** Signup OTP → email_verification event (always on; recipient may not be a user yet). */
   async sendOTPEmail(email: string, code: string, name?: string, expiryMinutes: number = 5): Promise<{ success: boolean; messageId?: string }> {
-    try {
-      const branding = await getBrandingSettings();
-      
-      // Try database template first
-      const dbTemplate = await this.getTemplateFromDatabase('otp', {
-        userName: name || '',
-        name: name || '',
-        email,
-        otpCode: code,
-        code,
-        expiryMinutes: expiryMinutes.toString(),
-        companyName: branding.appName,
-        year: new Date().getFullYear().toString(),
-      });
-
-      if (dbTemplate) {
-        const result = await this.sendEmail(email, dbTemplate.subject, dbTemplate.htmlBody);
-        logger.info(`OTP email sent to: ${email}`, undefined, SOURCE);
-        return result;
-      }
-
-      // Fallback to hardcoded template
-      const html = otpEmail(code, branding, name, expiryMinutes);
-      const subject = `Your ${branding.appName} Verification Code`;
-
-      const result = await this.sendEmail(email, subject, html);
-      logger.info(`OTP email sent to: ${email}`, undefined, SOURCE);
-      return result;
-    } catch (error) {
-      logger.error(`Failed to send OTP email to: ${email}`, error, SOURCE);
+    const result = await this.dispatch('email_verification', {
+      userId: '',
+      to: email,
+      data: { otpCode: code, code, expiryMinutes: String(expiryMinutes), userName: name || '' },
+    });
+    if (result.email !== 'sent') {
+      logger.error(`Failed to send OTP email to: ${email} (${result.email})`, undefined, SOURCE);
       throw new Error('Failed to send verification email');
     }
+    return { success: true };
   }
 
+  /** Password reset OTP → password_reset event (always on). */
   async sendPasswordResetEmail(email: string, code: string, name?: string, expiryMinutes: number = 5): Promise<{ success: boolean; messageId?: string }> {
-    try {
-      const branding = await getBrandingSettings();
-      
-      // Try database template first
-      const dbTemplate = await this.getTemplateFromDatabase('password_reset', {
-        userName: name || '',
-        name: name || '',
-        email,
-        otpCode: code,
-        code,
-        expiryMinutes: expiryMinutes.toString(),
-        companyName: branding.appName,
-        year: new Date().getFullYear().toString(),
-      });
-
-      if (dbTemplate) {
-        const result = await this.sendEmail(email, dbTemplate.subject, dbTemplate.htmlBody);
-        logger.info(`Password reset email sent to: ${email}`, undefined, SOURCE);
-        return result;
-      }
-
-      // Fallback to hardcoded template
-      const html = passwordResetEmail(code, branding, name, expiryMinutes);
-      const subject = `Reset Your ${branding.appName} Password`;
-
-      const result = await this.sendEmail(email, subject, html);
-      logger.info(`Password reset email sent to: ${email}`, undefined, SOURCE);
-      return result;
-    } catch (error) {
-      logger.error(`Failed to send password reset email to: ${email}`, error, SOURCE);
+    const user = await storage.getUserByEmail(email).catch(() => undefined);
+    const result = await this.dispatch('password_reset', {
+      userId: user?.id || '',
+      to: email,
+      data: { otpCode: code, code, expiryMinutes: String(expiryMinutes), userName: name || user?.name || '' },
+    });
+    if (result.email !== 'sent') {
+      logger.error(`Failed to send password reset email to: ${email} (${result.email})`, undefined, SOURCE);
       throw new Error('Failed to send password reset email');
     }
+    return { success: true };
   }
 
   async verifyConnection(): Promise<boolean> {
@@ -1915,57 +1004,11 @@ export class EmailService {
   }
 
   async sendKycApproved(userId: string): Promise<boolean> {
-    const eventType = NOTIFICATION_TYPE_MAP.kyc_approved;
-    if (!(await this.isNotificationTypeEnabled(eventType))) {
-      logger.info(`KYC approved email disabled for event type: ${eventType}`, undefined, SOURCE);
-      return false;
-    }
-
-    try {
-      const user = await storage.getUser(userId);
-      if (!user) {
-        logger.error(`User not found for KYC approved email: ${userId}`, undefined, SOURCE);
-        return false;
-      }
-
-      const branding = await getBrandingSettings();
-      
-      const html = kycApprovedEmail(user.name, branding);
-      const subject = `KYC Verification Approved - ${branding.appName}`;
-
-      const result = await this.sendEmail(user.email, subject, html);
-      return result.success;
-    } catch (error) {
-      logger.error(`Failed to send KYC approved email for user: ${userId}`, error, SOURCE);
-      return false;
-    }
+    return this.toBool(await this.dispatch('kyc_approved', { userId }));
   }
 
   async sendKycRejected(userId: string, reason: string): Promise<boolean> {
-    const eventType = NOTIFICATION_TYPE_MAP.kyc_rejected;
-    if (!(await this.isNotificationTypeEnabled(eventType))) {
-      logger.info(`KYC rejected email disabled for event type: ${eventType}`, undefined, SOURCE);
-      return false;
-    }
-
-    try {
-      const user = await storage.getUser(userId);
-      if (!user) {
-        logger.error(`User not found for KYC rejected email: ${userId}`, undefined, SOURCE);
-        return false;
-      }
-
-      const branding = await getBrandingSettings();
-      
-      const html = kycRejectedEmail(user.name, reason, branding);
-      const subject = `KYC Verification Requires Attention - ${branding.appName}`;
-
-      const result = await this.sendEmail(user.email, subject, html);
-      return result.success;
-    } catch (error) {
-      logger.error(`Failed to send KYC rejected email for user: ${userId}`, error, SOURCE);
-      return false;
-    }
+    return this.toBool(await this.dispatch('kyc_rejected', { userId, data: { reason } }));
   }
 }
 

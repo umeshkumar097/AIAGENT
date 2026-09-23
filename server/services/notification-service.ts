@@ -79,6 +79,34 @@ export interface NotificationOptions {
   expiresAt?: Date | null;
 }
 
+/**
+ * Default in-app presentation per dispatcher event key (icon = lucide name).
+ * Priority >= 50 also shows as a banner so urgent billing/phone issues are not missed.
+ */
+export const EVENT_NOTIFICATION_STYLE: Record<string, { icon: string; priority: number }> = {
+  welcome: { icon: 'sparkles', priority: 0 },
+  purchase_completed: { icon: 'credit-card', priority: 10 },
+  invoice_created: { icon: 'file-text', priority: 5 },
+  payment_failed: { icon: 'alert-triangle', priority: 80 },
+  refund_processed: { icon: 'rotate-ccw', priority: 20 },
+  credits_added: { icon: 'coins', priority: 10 },
+  credits_added_by_admin: { icon: 'gift', priority: 10 },
+  low_credits: { icon: 'alert-circle', priority: 60 },
+  plan_activated: { icon: 'crown', priority: 20 },
+  plan_renewed: { icon: 'refresh-cw', priority: 10 },
+  plan_expiring: { icon: 'clock', priority: 50 },
+  plan_expired: { icon: 'alert-triangle', priority: 70 },
+  phone_number_purchased: { icon: 'phone', priority: 10 },
+  phone_number_expiring: { icon: 'clock', priority: 40 },
+  phone_number_released: { icon: 'phone-off', priority: 70 },
+  phone_billing_failed: { icon: 'alert-triangle', priority: 80 },
+  campaign_completed: { icon: 'check-circle', priority: 10 },
+  campaign_failed: { icon: 'x-circle', priority: 70 },
+  kyc_approved: { icon: 'shield-check', priority: 20 },
+  kyc_rejected: { icon: 'shield-alert', priority: 60 },
+  account_reactivated: { icon: 'check-circle', priority: 20 },
+};
+
 export const NotificationService = {
   async create(options: NotificationOptions) {
     try {
@@ -96,6 +124,32 @@ export const NotificationService = {
       });
     } catch (error) {
       console.error("Failed to create notification:", error);
+    }
+  },
+
+  /**
+   * Generic in-app notification for a dispatcher event (used by event-dispatcher).
+   * Returns true when the row was created, false on failure (never throws).
+   */
+  async createForEvent(eventKey: string, userId: string, title: string, message: string, link?: string): Promise<boolean> {
+    const style = EVENT_NOTIFICATION_STYLE[eventKey] || { icon: 'bell', priority: 0 };
+    try {
+      await storage.createNotification({
+        userId,
+        type: eventKey,
+        title,
+        message,
+        link: link || null,
+        icon: style.icon,
+        displayType: style.priority >= 50 ? 'both' : 'bell',
+        priority: style.priority,
+        dismissible: true,
+        expiresAt: null,
+      });
+      return true;
+    } catch (error) {
+      console.error(`[NotificationService] Failed to create ${eventKey} notification for ${userId}:`, error);
+      return false;
     }
   },
 

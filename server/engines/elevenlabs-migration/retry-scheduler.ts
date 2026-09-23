@@ -13,6 +13,7 @@ import { eq, and, lte, isNotNull } from 'drizzle-orm';
 import { hasAnyAvailableCapacity, autoMigrateUser, getUserCurrentCredential } from './migration-service';
 import { formatErrorForLog } from './error-detector';
 import { logger } from '../../utils/logger';
+import { dispatchEvent } from '../../services/event-dispatcher';
 
 const RETRY_INTERVAL_MS = 60 * 60 * 1000;
 const MAX_RETRY_COUNT = 24;
@@ -64,6 +65,12 @@ export async function markCampaignForRetry(
           },
         })
         .where(eq(campaigns.id, campaignId));
+      if (campaign.userId) {
+        await dispatchEvent('campaign_failed', {
+          userId: campaign.userId,
+          data: { campaignId, campaignName: campaign.name, reason: `Retries exhausted (${MAX_RETRY_COUNT}): ${error}` },
+        });
+      }
       return false;
     }
 

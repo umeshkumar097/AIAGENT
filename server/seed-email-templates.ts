@@ -17,6 +17,7 @@
 
 import { db } from "./db";
 import { emailTemplates } from "@shared/schema";
+import { ALL_EVENT_KEYS, EVENT_TEMPLATE_DEFAULTS } from "./services/event-templates";
 
 function getBaseEmailStyles(): string {
   return `
@@ -228,7 +229,16 @@ function wrapEmailTemplate(content: string): string {
 </html>`;
 }
 
-const EMAIL_TEMPLATES_SEED_DATA = [
+/**
+ * Legacy seed rows (pre event-dispatcher). Kept verbatim so existing installs keep
+ * their content. Types that equal an EventKey (welcome, low_credits, campaign_completed,
+ * payment_failed, account_suspended) are used directly by the dispatcher.
+ * Types with a different legacy name (purchase_confirmation, renewal_reminder,
+ * phone_billing) are NOT renamed — the dispatcher seeds a new row for the
+ * corresponding event key (purchase_completed, plan_expiring, phone_billing_failed)
+ * instead, and the old row stays readable/editable in the admin template list.
+ */
+const LEGACY_EMAIL_TEMPLATES_SEED_DATA = [
   {
     templateType: "welcome",
     name: "Welcome Email",
@@ -746,6 +756,29 @@ If you need to reschedule or cancel your appointment, please contact us.
     isActive: true,
   },
 ];
+
+/**
+ * One seed row per dispatcher EventKey (subject + responsive HTML + text + variables),
+ * generated from the built-in defaults so the DB row and the runtime fallback never drift.
+ * Legacy rows above win when they already use the same templateType.
+ */
+const LEGACY_TYPES = new Set(LEGACY_EMAIL_TEMPLATES_SEED_DATA.map(t => t.templateType));
+const EVENT_TEMPLATES_SEED_DATA = ALL_EVENT_KEYS
+  .filter(key => !LEGACY_TYPES.has(key))
+  .map(key => {
+    const def = EVENT_TEMPLATE_DEFAULTS[key];
+    return {
+      templateType: key,
+      name: def.name,
+      subject: def.subject,
+      htmlBody: def.htmlBody,
+      textBody: def.textBody,
+      variables: def.variables,
+      isActive: true,
+    };
+  });
+
+const EMAIL_TEMPLATES_SEED_DATA = [...LEGACY_EMAIL_TEMPLATES_SEED_DATA, ...EVENT_TEMPLATES_SEED_DATA];
 
 async function seedEmailTemplates() {
   try {

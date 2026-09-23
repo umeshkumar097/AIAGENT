@@ -17,8 +17,7 @@ import { KycEngineConfig } from '../config/kyc-config';
 import type { KycStatus, KycDocumentType, KycDocument, UserKycStatus, KycSettings } from '../types';
 import * as fs from 'fs';
 import * as path from 'path';
-import { NotificationService } from '../../../services/notification-service';
-import { emailService } from '../../../services/email-service';
+import { dispatchEvent } from '../../../services/event-dispatcher';
 
 export class KycService {
   /**
@@ -274,18 +273,8 @@ export class KycService {
 
     console.log(`[KYC] Approved KYC for user: ${userId}`);
 
-    try {
-      await NotificationService.create({
-        userId,
-        type: 'kyc_approved',
-        title: 'KYC Approved',
-        message: 'Your KYC verification has been approved. You can now purchase phone numbers.',
-        link: '/app/settings',
-      });
-      await emailService.sendKycApproved(userId);
-    } catch (error) {
-      console.error('[KYC] Failed to send approval notifications:', error);
-    }
+    // kyc_approved: templated email + in-app notification + delivery log (never throws)
+    await dispatchEvent('kyc_approved', { userId });
 
     return this.getUserKycStatus(userId);
   }
@@ -314,22 +303,8 @@ export class KycService {
 
     console.log(`[KYC] Rejected KYC for user: ${userId}`);
 
-    try {
-      const rejectionMessage = reason 
-        ? `Your KYC verification was rejected. Reason: ${reason}. Please review and resubmit your documents.`
-        : 'Your KYC verification was rejected. Please review and resubmit your documents.';
-      
-      await NotificationService.create({
-        userId,
-        type: 'kyc_rejected',
-        title: 'KYC Rejected',
-        message: rejectionMessage,
-        link: '/app/settings',
-      });
-      await emailService.sendKycRejected(userId, reason || 'No reason provided');
-    } catch (error) {
-      console.error('[KYC] Failed to send rejection notifications:', error);
-    }
+    // kyc_rejected: templated email + in-app notification + delivery log (never throws)
+    await dispatchEvent('kyc_rejected', { userId, data: { reason: reason || 'No reason provided' } });
 
     return this.getUserKycStatus(userId);
   }

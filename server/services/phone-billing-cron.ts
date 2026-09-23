@@ -21,7 +21,7 @@ import { storage } from "../storage";
 import { twilioService } from "./twilio";
 import { lte, eq, sql, and } from "drizzle-orm";
 import { NotificationService } from "./notification-service";
-import { emailService } from "./email-service";
+import { dispatchEvent } from "./event-dispatcher";
 import { withRetry } from "../utils/with-retry";
 
 const BILLING_CHECK_INTERVAL = 60 * 60 * 1000; // Check every hour
@@ -170,15 +170,13 @@ async function renewPhoneNumber(phoneNumber: any, user: any, monthlyCredits: num
     // Check if user should be notified about low credits
     const updatedUser = await storage.getUser(user.id);
     if (updatedUser && await NotificationService.shouldNotifyLowCredits(updatedUser.credits || 0)) {
-      await NotificationService.notifyLowCredits(user.id, updatedUser.credits || 0);
-      
-      // Send low credits email notification
-      try {
-        await emailService.sendLowCreditsAlert(user.id, updatedUser.credits || 0);
-        console.log(`✅ [Phone Billing] Low credits email sent to user ${user.id}`);
-      } catch (emailError: any) {
-        console.error(`❌ [Phone Billing] Failed to send low credits email:`, emailError);
-      }
+      // low_credits: email (rate-guarded to once per 24h) + in-app + delivery log
+      const threshold = await NotificationService.getLowCreditsThreshold();
+      const lowCredits = await dispatchEvent('low_credits', {
+        userId: user.id,
+        data: { currentCredits: updatedUser.credits || 0, threshold },
+      });
+      console.log(`ℹ️ [Phone Billing] Low credits notice for user ${user.id}: email=${lowCredits.email}, inApp=${lowCredits.inApp}`);
     }
   } catch (error: any) {
     console.error(`❌ [Phone Billing] Failed to renew ${phoneNumber.phoneNumber}:`, error);
@@ -261,12 +259,16 @@ async function disablePhoneNumber(phoneNumber: any, user: any, monthlyCredits: n
 
     console.log(`✅ [Phone Billing] Disabled ${phoneNumber.phoneNumber} and paused campaigns`);
     
-    // Send notification about phone number being released
-    await NotificationService.notifyPhoneBillingFailed(
-      user.id,
-      phoneNumber.phoneNumber,
-      `Insufficient credits (${user.credits || 0} available, ${monthlyCredits} required)`
-    );
+    // phone_billing_failed: email + in-app + delivery log (number disabled, campaigns paused)
+    await dispatchEvent('phone_billing_failed', {
+      userId: user.id,
+      data: {
+        phoneNumber: phoneNumber.phoneNumber,
+        creditsRequired: monthlyCredits,
+        currentCredits: user.credits || 0,
+        reason: `Insufficient credits (${user.credits || 0} available, ${monthlyCredits} required)`,
+      },
+    });
   } catch (error: any) {
     console.error(`❌ [Phone Billing] Failed to disable ${phoneNumber.phoneNumber}:`, error);
   }

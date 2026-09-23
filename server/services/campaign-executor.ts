@@ -25,6 +25,21 @@ import { eq, inArray, sql, and, isNotNull, lte } from 'drizzle-orm';
 import { CampaignScheduler } from './campaign-scheduler';
 import { webhookDeliveryService } from './webhook-delivery';
 import { emailService } from './email-service';
+import { dispatchEvent } from './event-dispatcher';
+
+/** campaign_failed event (email + in-app + log) for the campaign owner; never throws. */
+async function notifyCampaignFailed(campaignId: string, reason: string): Promise<void> {
+  try {
+    const [campaign] = await db.select({ userId: campaigns.userId, name: campaigns.name }).from(campaigns).where(eq(campaigns.id, campaignId)).limit(1);
+    if (!campaign?.userId) return;
+    await dispatchEvent('campaign_failed', {
+      userId: campaign.userId,
+      data: { campaignId, campaignName: campaign.name, reason },
+    });
+  } catch (notifyError) {
+    console.error(`❌ [Campaign] Failed to dispatch campaign_failed for ${campaignId}:`, notifyError);
+  }
+}
 import { 
   isConcurrencyLimitError, 
   markCampaignForRetry, 
@@ -449,9 +464,10 @@ export class CampaignExecutor {
               console.error(`❌ [Campaign] Failed to send campaign completed email:`, emailError);
             }
           }
-        }).catch((error: any) => {
+        }).catch(async (error: any) => {
           // The batch service already marks the campaign as 'failed' in its own catch block.
           console.error(`❌ [Plivo Campaign] Background execution error for ${campaignId}:`, error);
+          await notifyCampaignFailed(campaignId, error?.message || 'Unknown error');
         });
 
         // Return immediately — campaign is now running in the background
@@ -624,9 +640,10 @@ export class CampaignExecutor {
               console.error(`❌ [Campaign] Failed to send campaign completed email:`, emailError);
             }
           }
-        }).catch((error: any) => {
+        }).catch(async (error: any) => {
           // The batch service already marks the campaign as 'failed' in its own catch block.
           console.error(`❌ [Twilio-OpenAI Campaign] Background execution error for ${campaignId}:`, error);
+          await notifyCampaignFailed(campaignId, error?.message || 'Unknown error');
         });
 
         // Return immediately — campaign is now running in the background
@@ -1271,7 +1288,10 @@ export class CampaignExecutor {
         .where(eq(campaigns.id, campaignId));
       
       console.error(`❌ [Campaign Executor] Campaign ${campaignId} failed with error: [${errorCode}] ${errorMessage}`);
-      
+
+      // Notify the owner (email + in-app + delivery log)
+      await notifyCampaignFailed(campaignId, `[${errorCode}] ${errorMessage}`);
+
       // Trigger campaign.failed webhook
       if (failedCampaign?.userId) {
         try {
