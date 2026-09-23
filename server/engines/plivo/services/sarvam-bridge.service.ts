@@ -552,6 +552,19 @@ export class SarvamBridgeService {
     return v?.gender === 'Male' ? 'male' : 'female';
   }
 
+  /** Legacy ids saved by older builds (bulbul:v2 or never valid) → the nearest bulbul:v3 speaker. */
+  private static readonly LEGACY_SPEAKERS: Record<string, string> = {
+    meera: 'priya', anushka: 'priya', maya: 'priya', maitreyi: 'roopa', kalpana: 'priya', pavithra: 'priya',
+    vinaya: 'priya', manisha: 'priya', vidya: 'priya', arya: 'priya',
+    arvind: 'shubh', aarav: 'shubh', neel: 'shubh', amol: 'shubh', abhilash: 'shubh', karun: 'shubh', hitesh: 'shubh',
+  };
+
+  static resolveSpeaker(rawVoice: string): string {
+    const id = (rawVoice || '').toLowerCase();
+    if (SARVAM_VOICES.some(v => v.id === id)) return id;
+    return SarvamBridgeService.LEGACY_SPEAKERS[id] || 'priya';
+  }
+
   // ── System prompt wrapper ─────────────────────────────────────────────────
   // Deliberately short: long rule lists (and lists of banned words) make the
   // model repeat itself and over-use fillers. Fillers are handled in audio.
@@ -1033,9 +1046,9 @@ ${knowledge}` : ''}`;
 
     const language = SarvamBridgeService.normalizeLang(agentConfig.language || 'hi-IN') || 'hi-IN';
 
-    // Any bulbul:v3 speaker from the shared list is valid; unknown/legacy ids fall back to priya
+    // Any bulbul:v3 speaker from the shared list is valid; legacy/unknown ids map to a same-gender v3 voice
     const rawVoice = (agentConfig.voice || 'priya').toLowerCase();
-    const voice = SARVAM_VOICES.some(v => v.id === rawVoice) ? rawVoice : 'priya';
+    const voice = SarvamBridgeService.resolveSpeaker(rawVoice);
     logger.info(`[SarvamBridge][${callUuid}] language=${language} voice=${voice}`);
 
     // ── Per-call state ────────────────────────────────────────────────────────

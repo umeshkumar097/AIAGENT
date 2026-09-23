@@ -13,19 +13,29 @@ import { logger } from '../utils/logger';
 import { strictRateLimiter } from '../middleware/rateLimiter';
 
 // ── All Sarvam bulbul:v3 voices ─────────────────────────────────────────────
+// bulbul:v3 speakers only (verified against docs.sarvam.ai, Sep 2026). Every speaker speaks all 11
+// supported languages; ids must be lowercase. Legacy ids (meera, anushka, arvind, …) were bulbul:v2 or
+// never existed and make the TTS API return 4xx — the bridge maps them to a same-gender v3 voice.
 export const SARVAM_VOICES = [
-  { id: 'priya',    name: 'Priya',    gender: 'Female', language: 'Hindi',    age: 'Young',       description: 'Natural & Conversational — default' },
-  { id: 'meera',    name: 'Meera',    gender: 'Female', language: 'Hindi',    age: 'Young',       description: 'Warm & Expressive' },
-  { id: 'anushka',  name: 'Anushka',  gender: 'Female', language: 'Hindi',    age: 'Young',       description: 'Cheerful & Friendly' },
-  { id: 'maya',     name: 'Maya',     gender: 'Female', language: 'Hindi',    age: 'Young',       description: 'Professional & Clear' },
-  { id: 'maitreyi', name: 'Maitreyi', gender: 'Female', language: 'Hindi',    age: 'Middle_aged', description: 'Deep & Mature' },
-  { id: 'kalpana',  name: 'Kalpana',  gender: 'Female', language: 'Tamil',    age: 'Young',       description: 'Tamil Native' },
-  { id: 'pavithra', name: 'Pavithra', gender: 'Female', language: 'Telugu',   age: 'Young',       description: 'Telugu Native' },
-  { id: 'vinaya',   name: 'Vinaya',   gender: 'Female', language: 'Kannada',  age: 'Young',       description: 'Kannada Native' },
-  { id: 'arvind',   name: 'Arvind',   gender: 'Male',   language: 'Hindi',    age: 'Young',       description: 'Clear & Authoritative' },
-  { id: 'aarav',    name: 'Aarav',    gender: 'Male',   language: 'Hindi',    age: 'Young',       description: 'Modern & Dynamic' },
-  { id: 'neel',     name: 'Neel',     gender: 'Male',   language: 'Hindi',    age: 'Young',       description: 'Professional Male' },
-  { id: 'amol',     name: 'Amol',     gender: 'Male',   language: 'Marathi',  age: 'Young',       description: 'Marathi Native' },
+  { id: 'priya',     name: 'Priya',     gender: 'Female',  language: 'All 11 languages', age: 'Adult', description: 'Natural & conversational — default' },
+  { id: 'shubh',     name: 'Shubh',     gender: 'Male',    language: 'All 11 languages', age: 'Adult', description: 'Sarvam default — top-rated across languages' },
+  { id: 'ishita',    name: 'Ishita',    gender: 'Female',  language: 'All 11 languages', age: 'Adult', description: 'Top-rated across languages' },
+  { id: 'neha',      name: 'Neha',      gender: 'Female',  language: 'All 11 languages', age: 'Adult', description: 'Clear & friendly' },
+  { id: 'ritu',      name: 'Ritu',      gender: 'Female',  language: 'All 11 languages', age: 'Adult', description: 'Warm & professional' },
+  { id: 'pooja',     name: 'Pooja',     gender: 'Female',  language: 'All 11 languages', age: 'Adult', description: 'Soft & polite' },
+  { id: 'simran',    name: 'Simran',    gender: 'Female',  language: 'All 11 languages', age: 'Adult', description: 'Bright & energetic' },
+  { id: 'kavya',     name: 'Kavya',     gender: 'Female',  language: 'All 11 languages', age: 'Adult', description: 'Calm & clear' },
+  { id: 'shreya',    name: 'Shreya',    gender: 'Female',  language: 'All 11 languages', age: 'Adult', description: 'Confident & articulate' },
+  { id: 'roopa',     name: 'Roopa',     gender: 'Female',  language: 'All 11 languages', age: 'Adult', description: 'Mature & steady' },
+  { id: 'kavitha',   name: 'Kavitha',   gender: 'Female',  language: 'All 11 languages', age: 'Adult', description: 'Gentle & natural' },
+  { id: 'aditya',    name: 'Aditya',    gender: 'Male',    language: 'All 11 languages', age: 'Adult', description: 'Clear & professional' },
+  { id: 'rahul',     name: 'Rahul',     gender: 'Male',    language: 'All 11 languages', age: 'Adult', description: 'Friendly & natural' },
+  { id: 'rohan',     name: 'Rohan',     gender: 'Male',    language: 'All 11 languages', age: 'Adult', description: 'Modern & energetic' },
+  { id: 'amit',      name: 'Amit',      gender: 'Male',    language: 'All 11 languages', age: 'Adult', description: 'Steady & confident' },
+  { id: 'dev',       name: 'Dev',       gender: 'Male',    language: 'All 11 languages', age: 'Adult', description: 'Warm & calm' },
+  { id: 'kabir',     name: 'Kabir',     gender: 'Male',    language: 'All 11 languages', age: 'Adult', description: 'Deep & composed' },
+  { id: 'manan',     name: 'Manan',     gender: 'Male',    language: 'All 11 languages', age: 'Adult', description: 'Polite & clear' },
+  { id: 'sumit',     name: 'Sumit',     gender: 'Male',    language: 'All 11 languages', age: 'Adult', description: 'Mature & authoritative' },
 ];
 
 // ── Sample preview phrases per language ─────────────────────────────────────
@@ -81,6 +91,9 @@ export function registerSarvamRoutes(router: Router): void {
       if (!voiceId) {
         return res.status(400).json({ success: false, error: 'voiceId required' });
       }
+      if (!SARVAM_VOICES.some(v => v.id === String(voiceId).toLowerCase())) {
+        return res.status(400).json({ success: false, error: `Unknown Sarvam voice "${String(voiceId).slice(0, 40)}" — pick one from the list` });
+      }
 
       const apiKey = await getSarvamApiKey();
       if (!apiKey) {
@@ -109,7 +122,18 @@ export function registerSarvamRoutes(router: Router): void {
       if (!response.ok) {
         const err = await response.text();
         logger.error('Sarvam TTS failed', { status: response.status, err }, 'SarvamRoutes');
-        return res.status(502).json({ success: false, error: 'Sarvam TTS API error' });
+        // Surface Sarvam's own reason (e.g. invalid speaker) so the UI can show something actionable
+        let detail = '';
+        try {
+          const parsed = JSON.parse(err) as { error?: { message?: string } | string; message?: string };
+          detail = typeof parsed.error === 'string' ? parsed.error : parsed.error?.message || parsed.message || '';
+        } catch {
+          detail = err.slice(0, 200);
+        }
+        return res.status(502).json({
+          success: false,
+          error: detail ? `Sarvam TTS API error (${response.status}): ${detail}` : `Sarvam TTS API error (${response.status})`,
+        });
       }
 
       const data = await response.json() as { audios?: string[] };

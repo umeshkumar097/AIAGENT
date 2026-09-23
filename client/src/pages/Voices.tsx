@@ -66,19 +66,27 @@ interface SarvamVoiceInfo {
   description: string;
 }
 
+// bulbul:v3 speakers (mirrors server/routes/sarvam-routes.ts)
 const SARVAM_VOICES: SarvamVoiceInfo[] = [
-  { id: 'priya',    name: 'Priya',    gender: 'Female', language: 'Hindi',   age: 'Young',       description: 'Natural & Conversational — default' },
-  { id: 'meera',    name: 'Meera',    gender: 'Female', language: 'Hindi',   age: 'Young',       description: 'Warm & Expressive' },
-  { id: 'anushka',  name: 'Anushka',  gender: 'Female', language: 'Hindi',   age: 'Young',       description: 'Cheerful & Friendly' },
-  { id: 'maya',     name: 'Maya',     gender: 'Female', language: 'Hindi',   age: 'Young',       description: 'Professional & Clear' },
-  { id: 'maitreyi', name: 'Maitreyi', gender: 'Female', language: 'Hindi',   age: 'Middle_aged', description: 'Deep & Mature' },
-  { id: 'kalpana',  name: 'Kalpana',  gender: 'Female', language: 'Tamil',   age: 'Young',       description: 'Tamil Native Speaker' },
-  { id: 'pavithra', name: 'Pavithra', gender: 'Female', language: 'Telugu',  age: 'Young',       description: 'Telugu Native Speaker' },
-  { id: 'vinaya',   name: 'Vinaya',   gender: 'Female', language: 'Kannada', age: 'Young',       description: 'Kannada Native Speaker' },
-  { id: 'arvind',   name: 'Arvind',   gender: 'Male',   language: 'Hindi',   age: 'Young',       description: 'Clear & Authoritative' },
-  { id: 'aarav',    name: 'Aarav',    gender: 'Male',   language: 'Hindi',   age: 'Young',       description: 'Modern & Dynamic' },
-  { id: 'neel',     name: 'Neel',     gender: 'Male',   language: 'Hindi',   age: 'Young',       description: 'Professional Male Voice' },
-  { id: 'amol',     name: 'Amol',     gender: 'Male',   language: 'Marathi', age: 'Young',       description: 'Marathi Native Speaker' },
+  { id: 'priya',     name: 'Priya',     gender: 'Female',  language: 'All 11 languages', age: 'Adult', description: 'Natural & conversational — default' },
+  { id: 'shubh',     name: 'Shubh',     gender: 'Male',    language: 'All 11 languages', age: 'Adult', description: 'Sarvam default — top-rated across languages' },
+  { id: 'ishita',    name: 'Ishita',    gender: 'Female',  language: 'All 11 languages', age: 'Adult', description: 'Top-rated across languages' },
+  { id: 'neha',      name: 'Neha',      gender: 'Female',  language: 'All 11 languages', age: 'Adult', description: 'Clear & friendly' },
+  { id: 'ritu',      name: 'Ritu',      gender: 'Female',  language: 'All 11 languages', age: 'Adult', description: 'Warm & professional' },
+  { id: 'pooja',     name: 'Pooja',     gender: 'Female',  language: 'All 11 languages', age: 'Adult', description: 'Soft & polite' },
+  { id: 'simran',    name: 'Simran',    gender: 'Female',  language: 'All 11 languages', age: 'Adult', description: 'Bright & energetic' },
+  { id: 'kavya',     name: 'Kavya',     gender: 'Female',  language: 'All 11 languages', age: 'Adult', description: 'Calm & clear' },
+  { id: 'shreya',    name: 'Shreya',    gender: 'Female',  language: 'All 11 languages', age: 'Adult', description: 'Confident & articulate' },
+  { id: 'roopa',     name: 'Roopa',     gender: 'Female',  language: 'All 11 languages', age: 'Adult', description: 'Mature & steady' },
+  { id: 'kavitha',   name: 'Kavitha',   gender: 'Female',  language: 'All 11 languages', age: 'Adult', description: 'Gentle & natural' },
+  { id: 'aditya',    name: 'Aditya',    gender: 'Male',    language: 'All 11 languages', age: 'Adult', description: 'Clear & professional' },
+  { id: 'rahul',     name: 'Rahul',     gender: 'Male',    language: 'All 11 languages', age: 'Adult', description: 'Friendly & natural' },
+  { id: 'rohan',     name: 'Rohan',     gender: 'Male',    language: 'All 11 languages', age: 'Adult', description: 'Modern & energetic' },
+  { id: 'amit',      name: 'Amit',      gender: 'Male',    language: 'All 11 languages', age: 'Adult', description: 'Steady & confident' },
+  { id: 'dev',       name: 'Dev',       gender: 'Male',    language: 'All 11 languages', age: 'Adult', description: 'Warm & calm' },
+  { id: 'kabir',     name: 'Kabir',     gender: 'Male',    language: 'All 11 languages', age: 'Adult', description: 'Deep & composed' },
+  { id: 'manan',     name: 'Manan',     gender: 'Male',    language: 'All 11 languages', age: 'Adult', description: 'Polite & clear' },
+  { id: 'sumit',     name: 'Sumit',     gender: 'Male',    language: 'All 11 languages', age: 'Adult', description: 'Mature & authoritative' },
 ];
 
 export default function Voices() {
