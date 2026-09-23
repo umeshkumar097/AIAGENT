@@ -6,6 +6,15 @@
 
 export type BuilderEngine = 'sarvam-plivo' | 'plivo';
 
+/** One positional WhatsApp body variable ({{1}}…{{n}}): collected from the caller or a fixed value. */
+export type WhatsappVariableMode = 'collect' | 'fixed';
+export interface WhatsappVariable { mode: WhatsappVariableMode; value: string }
+/** Keys "1".."n" for one template. */
+export type WhatsappTemplateVariables = Record<string, WhatsappVariable>;
+/** Keyed by template name — the format stored in agents.messagingWhatsappVariables. */
+export type WhatsappVariablesByTemplate = Record<string, WhatsappTemplateVariables>;
+export const MAX_WHATSAPP_VARIABLES = 10;
+
 export interface AgentBuilderForm {
   name: string;
   purpose: string;
@@ -24,6 +33,12 @@ export interface AgentBuilderForm {
   phoneNumberId: string;
   /** Engine follows the chosen language until the user picks one explicitly. */
   engineAuto: boolean;
+  messagingEmailEnabled: boolean;
+  messagingWhatsappEnabled: boolean;
+  /** Templates the agent may pick at runtime; empty = any active/approved template. */
+  messagingEmailTemplates: string[];
+  messagingWhatsappTemplates: string[];
+  messagingWhatsappVariables: WhatsappVariablesByTemplate;
 }
 
 export interface BuilderAgent {
@@ -42,6 +57,15 @@ export interface BuilderAgent {
   endConversationEnabled: boolean | null;
   detectLanguageEnabled: boolean | null;
   knowledgeBaseIds: string[] | null;
+  messagingEmailEnabled?: boolean | null;
+  messagingWhatsappEnabled?: boolean | null;
+  /** Legacy single-template columns (kept in sync with the first list entry). */
+  messagingEmailTemplate?: string | null;
+  messagingWhatsappTemplate?: string | null;
+  messagingEmailTemplates?: string[] | null;
+  messagingWhatsappTemplates?: string[] | null;
+  /** JSON text — new keyed format or the legacy flat map (see parseWhatsappVariables). */
+  messagingWhatsappVariables?: string | null;
 }
 
 export const DEFAULT_SARVAM_VOICE = 'priya';
@@ -166,7 +190,79 @@ export function defaultForm(): AgentBuilderForm {
     knowledgeBaseIds: [],
     phoneNumberId: '',
     engineAuto: true,
+    messagingEmailEnabled: false,
+    messagingWhatsappEnabled: false,
+    messagingEmailTemplates: [],
+    messagingWhatsappTemplates: [],
+    messagingWhatsappVariables: {},
   };
+}
+
+const LEGACY_VAR_KEY = /^(\d+|btn_.*|header_value)$/;
+
+function normaliseVariable(raw: unknown): WhatsappVariable {
+  if (typeof raw === 'string') return { mode: 'collect', value: raw };
+  if (raw && typeof raw === 'object') {
+    const v = raw as { mode?: unknown; value?: unknown };
+    return {
+      mode: v.mode === 'fixed' ? 'fixed' : 'collect',
+      value: typeof v.value === 'string' ? v.value : '',
+    };
+  }
+  return { mode: 'collect', value: '' };
+}
+
+/** Keep only positional body variables ("1".."n"), normalised. */
+function normaliseTemplateVariables(raw: unknown): WhatsappTemplateVariables {
+  const out: WhatsappTemplateVariables = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!/^\d+$/.test(key)) continue;
+    const idx = Number(key);
+    if (idx < 1 || idx > MAX_WHATSAPP_VARIABLES) continue;
+    out[key] = normaliseVariable(value);
+  }
+  return out;
+}
+
+/**
+ * Parse agents.messagingWhatsappVariables. New format: { templateName: { "1": {mode, value} } }.
+ * Legacy format (old Agents dialog): a flat map for ONE template ({ "1": …, "btn_0": …, "header_value": … })
+ * — attributed to `legacyTemplateName` (messagingWhatsappTemplate).
+ */
+export function parseWhatsappVariables(raw: string | null | undefined, legacyTemplateName?: string | null): WhatsappVariablesByTemplate {
+  if (!raw || !raw.trim()) return {};
+  let parsed: unknown;
+  try { parsed = JSON.parse(raw); } catch { return {}; }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+  const obj = parsed as Record<string, unknown>;
+  const keys = Object.keys(obj);
+  if (keys.length > 0 && keys.every(k => LEGACY_VAR_KEY.test(k))) {
+    if (!legacyTemplateName) return {};
+    const vars = normaliseTemplateVariables(obj);
+    return Object.keys(vars).length ? { [legacyTemplateName]: vars } : {};
+  }
+  const out: WhatsappVariablesByTemplate = {};
+  for (const [name, vars] of Object.entries(obj)) {
+    if (!name.trim()) continue;
+    out[name] = normaliseTemplateVariables(vars);
+  }
+  return out;
+}
+
+/** JSON text for the payload — only the selected templates, '' when there is nothing to store. */
+export function serialiseWhatsappVariables(vars: WhatsappVariablesByTemplate, selectedTemplates: string[]): string {
+  const out: WhatsappVariablesByTemplate = {};
+  for (const name of selectedTemplates) {
+    const tv = vars[name];
+    if (tv && Object.keys(tv).length > 0) out[name] = tv;
+  }
+  return Object.keys(out).length ? JSON.stringify(out) : '';
+}
+
+function templateList(list: string[] | null | undefined, legacy: string | null | undefined): string[] {
+  if (Array.isArray(list) && list.length > 0) return list.filter(x => typeof x === 'string' && x.trim());
+  return legacy && legacy.trim() ? [legacy] : [];
 }
 
 export function formFromAgent(agent: BuilderAgent, phoneNumberId = ''): AgentBuilderForm {
@@ -188,6 +284,11 @@ export function formFromAgent(agent: BuilderAgent, phoneNumberId = ''): AgentBui
     knowledgeBaseIds: agent.knowledgeBaseIds || [],
     phoneNumberId,
     engineAuto: false,
+    messagingEmailEnabled: !!agent.messagingEmailEnabled,
+    messagingWhatsappEnabled: !!agent.messagingWhatsappEnabled,
+    messagingEmailTemplates: templateList(agent.messagingEmailTemplates, agent.messagingEmailTemplate),
+    messagingWhatsappTemplates: templateList(agent.messagingWhatsappTemplates, agent.messagingWhatsappTemplate),
+    messagingWhatsappVariables: parseWhatsappVariables(agent.messagingWhatsappVariables, agent.messagingWhatsappTemplate),
   };
 }
 
@@ -208,6 +309,14 @@ export function toAgentPayload(form: AgentBuilderForm) {
     endConversationEnabled: form.endConversationEnabled,
     detectLanguageEnabled: form.detectLanguageEnabled,
     knowledgeBaseIds: form.knowledgeBaseIds,
+    messagingEmailEnabled: form.messagingEmailEnabled,
+    messagingWhatsappEnabled: form.messagingWhatsappEnabled,
+    messagingEmailTemplates: form.messagingEmailTemplates,
+    messagingWhatsappTemplates: form.messagingWhatsappTemplates,
+    // Legacy single-template columns stay in sync with the first selected template
+    messagingEmailTemplate: form.messagingEmailTemplates[0] || '',
+    messagingWhatsappTemplate: form.messagingWhatsappTemplates[0] || '',
+    messagingWhatsappVariables: serialiseWhatsappVariables(form.messagingWhatsappVariables, form.messagingWhatsappTemplates),
     // Required by the API for flow agents; harmless defaults for conversational agents
     voiceTone: 'professional',
     personality: 'helpful',

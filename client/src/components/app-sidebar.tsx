@@ -58,20 +58,21 @@ export function AppSidebar() {
     if (isMobile) setOpenMobile(false);
   };
 
+  const { isEnabled: isMessagingEnabled } = usePluginStatus('messaging') as { isEnabled: boolean };
+
   const buildItems = [
     { title: t('nav.campaigns'), url: "/app/campaigns", icon: Target, hasPlus: true },
     { title: t('nav.agents'), url: "/app/agents", icon: Bot, hasPlus: true },
     { title: t('nav.knowledgeBase'), url: "/app/knowledge-base", icon: BookOpen },
     { title: t('nav.flowBuilder'), url: "/app/flows", icon: Workflow },
     { title: t('nav.tools', 'Tools'), url: "/app/tools", icon: Wrench },
+    ...(isMessagingEnabled ? [{ title: t('nav.whatsappEmail', 'WhatsApp & Email'), url: "/app/settings?tab=messaging", icon: MessageSquare }] : []),
   ];
 
   const telephonyItems = [
     { title: t('nav.allContacts'), url: "/app/contacts", icon: UserCheck },
     { title: t('nav.phoneNumbers'), url: "/app/phone-numbers", icon: Phone },
   ];
-
-  const { isEnabled: isMessagingEnabled } = usePluginStatus('messaging') as { isEnabled: boolean };
 
   const monitorItems = [
     ...(isMessagingEnabled ? [{ title: t('nav.conversations', 'Conversations'), url: "/app/conversations", icon: MessageSquare }] : []),
@@ -102,6 +103,9 @@ export function AppSidebar() {
 
   const isActive = (url: string) => {
     if (url === "/app") return location === "/app";
+    // Items that point at a tab (e.g. /app/settings?tab=messaging): wouter's location has no query string
+    const [path, query] = url.split("?");
+    if (query) return location === path && window.location.search.includes(query);
     return location === url || location.startsWith(url + "/");
   };
 

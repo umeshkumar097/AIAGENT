@@ -338,15 +338,15 @@ export default function AdminMessagingPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="both">Both Providers</SelectItem>
-                <SelectItem value="whatsway_only">WhatsWay Only</SelectItem>
+                <SelectItem value="whatsway_only">Waki Only</SelectItem>
                 <SelectItem value="meta_only">Meta WABA Only</SelectItem>
                 <SelectItem value="disabled">Disabled</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              {waConfigForm.providerMode === 'both' && "Users can choose between WhatsWay and Meta WhatsApp Business API."}
-              {waConfigForm.providerMode === 'whatsway_only' && "Only WhatsWay is available. Meta WhatsApp settings will be hidden from users."}
-              {waConfigForm.providerMode === 'meta_only' && "Only Meta WhatsApp Business API is available. WhatsWay settings will be hidden from users."}
+              {waConfigForm.providerMode === 'both' && "Users can choose between Waki and Meta WhatsApp Business API."}
+              {waConfigForm.providerMode === 'whatsway_only' && "Only Waki is available. Meta WhatsApp settings will be hidden from users."}
+              {waConfigForm.providerMode === 'meta_only' && "Only Meta WhatsApp Business API is available. Waki settings will be hidden from users."}
               {waConfigForm.providerMode === 'disabled' && "WhatsApp messaging is disabled for all users."}
             </p>
           </div>

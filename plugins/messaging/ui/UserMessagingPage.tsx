@@ -221,7 +221,7 @@ export default function UserMessagingPage() {
   const [whatswayForm, setWhatswayForm] = useState({
     apiKey: "",
     apiSecret: "",
-    baseUrl: "https://whatsway.diploy.in",
+    baseUrl: "https://app.waki.in",
     channelId: "",
   });
 
@@ -341,7 +341,7 @@ export default function UserMessagingPage() {
       setWhatswayForm({
         apiKey: whatswaySettings.apiKey || "",
         apiSecret: whatswaySettings.apiSecret || "",
-        baseUrl: whatswaySettings.baseUrl || "https://whatsway.diploy.in",
+        baseUrl: whatswaySettings.baseUrl || "https://app.waki.in",
         channelId: whatswaySettings.channelId || "",
       });
     }
@@ -491,7 +491,7 @@ export default function UserMessagingPage() {
     onSuccess: (result: any) => {
       const data = result?.data;
       if (data?.verified) {
-        const name = data.accountName || "WhatsWay";
+        const name = data.accountName || "Waki";
         setConnectionStatus({ type: "success", message: `Connected to ${name}` });
         toast({ title: "Settings saved & verified", description: `Connected to ${name}` });
       } else {
@@ -514,7 +514,7 @@ export default function UserMessagingPage() {
       return res.json();
     },
     onSuccess: (result: any) => {
-      const name = result?.data?.name || result?.data?.businessName || "WhatsWay";
+      const name = result?.data?.name || result?.data?.businessName || "Waki";
       setConnectionStatus({ type: "success", message: `Connected to ${name}` });
       toast({ title: "Connection successful", description: `Connected to ${name}` });
     },
@@ -873,7 +873,7 @@ export default function UserMessagingPage() {
             <CardHeader className="flex flex-row items-center justify-between gap-2">
               <div>
                 <CardTitle>{t("messaging.email.title", "Email Templates")}</CardTitle>
-                <CardDescription>{t("messaging.email.description", "Create and manage email templates that your AI agents can send during calls.")}</CardDescription>
+                <CardDescription>{t("messaging.email.description", "Create and manage email templates that your AI agents can send during calls. Emails are sent from the platform's email system; replies go to your account email.")}</CardDescription>
               </div>
               <Button
                 onClick={openNewTemplate}
@@ -965,21 +965,21 @@ export default function UserMessagingPage() {
         </TabsContent>
 
         <TabsContent value="whatsapp" className="space-y-4">
+          {/* Provider selector — hidden entirely when the admin allows Waki only */}
+          {providerConfig?.providerMode !== 'whatsway_only' && (
           <div className="flex items-center gap-2 flex-wrap">
-            {providerConfig?.providerMode !== 'whatsway_only' && (
-              <Button
-                variant={whatsappProvider === "meta" ? "default" : "outline"}
-                style={whatsappProvider === "meta" ? { backgroundColor: '#25D366', borderColor: '#25D366', color: '#fff' } : undefined}
-                onClick={() => setWhatsappProvider("meta")}
-                data-testid="button-provider-meta"
-              >
-                <MessageCircle className="w-4 h-4 mr-2" />
-                Meta WhatsApp Business
-                {metaWaSettings?.isActive && (
-                  <Badge variant="secondary" className="ml-2 bg-green-600 text-white border-green-600">Active</Badge>
-                )}
-              </Button>
-            )}
+            <Button
+              variant={whatsappProvider === "meta" ? "default" : "outline"}
+              style={whatsappProvider === "meta" ? { backgroundColor: '#25D366', borderColor: '#25D366', color: '#fff' } : undefined}
+              onClick={() => setWhatsappProvider("meta")}
+              data-testid="button-provider-meta"
+            >
+              <MessageCircle className="w-4 h-4 mr-2" />
+              Meta WhatsApp Business
+              {metaWaSettings?.isActive && (
+                <Badge variant="secondary" className="ml-2 bg-green-600 text-white border-green-600">Active</Badge>
+              )}
+            </Button>
             {providerConfig?.providerMode !== 'meta_only' && (
               <Button
                 variant={whatsappProvider === "whatsway" ? "default" : "outline"}
@@ -987,13 +987,14 @@ export default function UserMessagingPage() {
                 data-testid="button-provider-whatsway"
               >
                 <MessageCircle className="w-4 h-4 mr-2" />
-                WhatsWay
+                Waki
                 {whatswaySettings?.isActive && (
                   <Badge variant="secondary" className="ml-2 bg-green-600 text-white border-green-600">Active</Badge>
                 )}
               </Button>
             )}
           </div>
+          )}
 
           {whatsappProvider === "meta" && (
             <>
@@ -1343,8 +1344,8 @@ export default function UserMessagingPage() {
             <>
               <Card>
                 <CardHeader>
-                  <CardTitle>{t("messaging.whatsapp.settingsTitle", "WhatsWay Settings")}</CardTitle>
-                  <CardDescription>{t("messaging.whatsapp.settingsDescription", "Configure your WhatsWay API credentials to enable WhatsApp messaging.")}</CardDescription>
+                  <CardTitle>{t("messaging.whatsapp.settingsTitle", "Waki Settings")}</CardTitle>
+                  <CardDescription>{t("messaging.whatsapp.settingsDescription", "Connect your Waki account to send WhatsApp templates from your agents. Get your API key & secret from app.waki.in → Settings → API Keys and the Channel ID from the channel page. Need a plan? waki.in")}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid gap-4 sm:grid-cols-2">
@@ -1355,7 +1356,7 @@ export default function UserMessagingPage() {
                         type="password"
                         value={whatswayForm.apiKey}
                         onChange={(e) => setWhatswayForm({ ...whatswayForm, apiKey: e.target.value })}
-                        placeholder="Enter your WhatsWay API key"
+                        placeholder={t("messaging.whatsapp.apiKeyPlaceholder", "Enter your Waki API key")}
                         data-testid="input-whatsway-api-key"
                       />
                     </div>
@@ -1366,7 +1367,7 @@ export default function UserMessagingPage() {
                         type="password"
                         value={whatswayForm.apiSecret}
                         onChange={(e) => setWhatswayForm({ ...whatswayForm, apiSecret: e.target.value })}
-                        placeholder="Enter your WhatsWay API secret"
+                        placeholder={t("messaging.whatsapp.apiSecretPlaceholder", "Enter your Waki API secret")}
                         data-testid="input-whatsway-api-secret"
                       />
                     </div>
@@ -1378,11 +1379,11 @@ export default function UserMessagingPage() {
                         id="waBaseUrl"
                         value={whatswayForm.baseUrl}
                         onChange={(e) => setWhatswayForm({ ...whatswayForm, baseUrl: e.target.value })}
-                        placeholder="https://whatsway.diploy.in"
+                        placeholder="https://app.waki.in"
                         data-testid="input-whatsway-base-url"
                       />
                       <p className="text-xs text-muted-foreground">
-                        {t("messaging.whatsapp.baseUrlHint", "The base URL of your WhatsWay instance.")}
+                        {t("messaging.whatsapp.baseUrlHint", "Leave as https://app.waki.in unless Waki support gives you a different URL.")}
                       </p>
                     </div>
                     <div className="space-y-2">
@@ -1391,11 +1392,11 @@ export default function UserMessagingPage() {
                         id="waChannelId"
                         value={whatswayForm.channelId}
                         onChange={(e) => setWhatswayForm({ ...whatswayForm, channelId: e.target.value })}
-                        placeholder="Enter your WhatsWay Channel ID"
+                        placeholder={t("messaging.whatsapp.channelIdPlaceholder", "Enter your Waki Channel ID")}
                         data-testid="input-whatsway-channel-id"
                       />
                       <p className="text-xs text-muted-foreground">
-                        {t("messaging.whatsapp.channelIdHint", "Required by WhatsWay API. Find it in your WhatsWay dashboard under channel settings.")}
+                        {t("messaging.whatsapp.channelIdHint", "Required by the Waki API. Copy it from the channel page in app.waki.in.")}
                       </p>
                     </div>
                   </div>
@@ -1443,7 +1444,7 @@ export default function UserMessagingPage() {
                   <CardHeader className="flex flex-row items-center justify-between gap-2">
                     <div>
                       <CardTitle>{t("messaging.whatsapp.templatesTitle", "Approved Templates")}</CardTitle>
-                      <CardDescription>{t("messaging.whatsapp.templatesDescription", "Templates approved in your WhatsWay account that agents can use.")}</CardDescription>
+                      <CardDescription>{t("messaging.whatsapp.templatesDescription", "Templates approved in your Waki account that agents can use.")}</CardDescription>
                     </div>
                     <Button
                       size="icon"
@@ -1454,7 +1455,7 @@ export default function UserMessagingPage() {
                         const count = Array.isArray(templates) ? templates.length : 0;
                         toast({
                           title: count > 0 ? `${count} template${count > 1 ? 's' : ''} synced` : "No templates found",
-                          description: count > 0 ? "WhatsApp templates refreshed successfully." : "No approved templates found in your WhatsWay account.",
+                          description: count > 0 ? "WhatsApp templates refreshed successfully." : "No approved templates found in your Waki account.",
                         });
                       }}
                       disabled={waTemplatesLoading}
@@ -1471,7 +1472,7 @@ export default function UserMessagingPage() {
                     ) : !Array.isArray(whatswayTemplates) || whatswayTemplates.length === 0 ? (
                       <div className="text-center py-8 text-muted-foreground">
                         <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                        <p>{t("messaging.whatsapp.noTemplates", "No approved templates found. Create templates in your WhatsWay dashboard.")}</p>
+                        <p>{t("messaging.whatsapp.noTemplates", "No approved templates found. Create and get templates approved in app.waki.in.")}</p>
                       </div>
                     ) : (
                       <Table>
@@ -1833,7 +1834,7 @@ export default function UserMessagingPage() {
                     const bodyComp = (tmpl.components || []).find((c: any) => c.type === 'BODY' || c.type === 'body');
                     const bodyText = bodyComp?.text || '';
                     const rawMatches = bodyText.match(/\{\{(\d+)\}\}/g) || [];
-                    const uniqueIndexes = [...new Set(rawMatches.map((m: string) => parseInt(m.replace(/[{}]/g, ''))))].sort((a, b) => a - b);
+                    const uniqueIndexes = [...new Set(rawMatches.map((m: string) => parseInt(m.replace(/[{}]/g, ''), 10)))].sort((a, b) => a - b);
                     setBodyVariables(new Array(uniqueIndexes.length).fill(''));
                     const buttonsComp = (tmpl.components || []).find((c: any) => c.type === 'BUTTONS' || c.type === 'buttons');
                     const dynBtns: Record<number, string> = {};
@@ -1891,7 +1892,7 @@ export default function UserMessagingPage() {
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Button URL Parameters</Label>
                 {Object.entries(buttonVariables).map(([idxStr, val]) => {
-                  const idx = parseInt(idxStr);
+                  const idx = parseInt(idxStr, 10);
                   const buttonsComp = selectedTestTemplate?.components?.find((c: any) => c.type === 'BUTTONS' || c.type === 'buttons');
                   const btn = buttonsComp?.buttons?.[idx];
                   return (

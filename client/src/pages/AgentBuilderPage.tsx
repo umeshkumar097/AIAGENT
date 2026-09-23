@@ -14,11 +14,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Bot, Check, Loader2, Megaphone, PhoneIncoming } from "lucide-react";
+import { ArrowLeft, Bot, Check, Loader2, Mail, Megaphone, MessageSquare, PhoneIncoming } from "lucide-react";
 import EngineVoiceSection, { type ChatModel, type OpenAIVoice, type SarvamVoice } from "@/components/agent-builder/EngineVoiceSection";
 import PromptSection from "@/components/agent-builder/PromptSection";
 import ToolsSection, { type KnowledgeItem } from "@/components/agent-builder/ToolsSection";
 import PhoneSection, { type AvailableNumber, type CurrentConnection } from "@/components/agent-builder/PhoneSection";
+import MessagingSection from "@/components/agent-builder/MessagingSection";
+import { usePluginStatus } from "@/hooks/use-plugin-status";
 import {
   DEFAULT_OPENAI_VOICE, DEFAULT_REALTIME_MODEL, SARVAM_LANGUAGES,
   defaultForm, formFromAgent, toAgentPayload, validateForm,
@@ -52,6 +54,7 @@ export default function AgentBuilderPage() {
   const { data: chatModels = [] } = useQuery<ChatModel[]>({ queryKey: ["/api/llm-models/available"], staleTime: 300000 });
   const { data: knowledgeBase = [] } = useQuery<KnowledgeItem[]>({ queryKey: ["/api/rag-knowledge"] });
   const { data: connections, isLoading: numbersLoading, error: connectionsError } = useQuery<ConnectionsResponse>({ queryKey: ["/api/plivo/incoming-connections"] });
+  const { isEnabled: messagingPluginEnabled } = usePluginStatus('messaging') as { isEnabled: boolean };
   // Key parts join into the URL (/api/agents/<id>) and stay under the "/api/agents" prefix for invalidation
   const { data: agentRaw, isLoading: agentLoading, error: agentError } = useQuery<BuilderAgent | { agent: BuilderAgent }>({
     queryKey: ["/api/agents", id],
@@ -182,6 +185,9 @@ export default function AgentBuilderPage() {
   const voiceLabel = form.engine === 'sarvam-plivo'
     ? sarvamRes?.voices.find(v => v.id === form.voice)?.name || form.voice
     : openaiRes?.voices.find(v => v.id === form.voice)?.name || form.voice;
+  const templateCount = (n: number) => n === 0
+    ? t('agentBuilder.summary.anyTemplate', 'Any template')
+    : t('agentBuilder.summary.templateCount', '{{count}} templates', { count: n });
   const numberLabel = form.phoneNumberId
     ? (connections?.availablePhoneNumbers.find(n => n.id === form.phoneNumberId)?.phoneNumber || current?.phoneNumber || '')
     : null;
@@ -261,7 +267,9 @@ export default function AgentBuilderPage() {
           />
           <PromptSection form={form} onChange={onChange} />
           <ToolsSection form={form} onChange={onChange} knowledgeBase={knowledgeBase} />
+          {messagingPluginEnabled && <MessagingSection form={form} onChange={onChange} />}
           <PhoneSection
+            step={messagingPluginEnabled ? 6 : 5}
             form={form}
             onChange={onChange}
             numbers={connections?.availablePhoneNumbers || []}
@@ -282,11 +290,23 @@ export default function AgentBuilderPage() {
                 <SummaryRow label={t('agentBuilder.speaker', 'Speaker')} value={voiceLabel} />
                 <SummaryRow label={t('agentBuilder.model', 'AI model')} value={form.model} />
                 <SummaryRow label={t('agentBuilder.summary.number', 'Number')} value={numberLabel || t('agentBuilder.summary.noNumber', 'None')} />
+                {messagingPluginEnabled && form.messagingWhatsappEnabled && (
+                  <SummaryRow label={t('agentBuilder.summary.whatsapp', 'WhatsApp')} value={templateCount(form.messagingWhatsappTemplates.length)} />
+                )}
+                {messagingPluginEnabled && form.messagingEmailEnabled && (
+                  <SummaryRow label={t('agentBuilder.summary.email', 'Email')} value={templateCount(form.messagingEmailTemplates.length)} />
+                )}
               </dl>
               <div className="space-y-1.5 border-t pt-3">
                 <p className="text-xs font-medium text-muted-foreground">{t('agentBuilder.summary.readyFor', 'Ready for')}</p>
                 <ReadyRow ok={!!form.phoneNumberId} icon={<PhoneIncoming className="h-4 w-4" />} label={t('agentBuilder.summary.incoming', 'Incoming calls')} hint={form.phoneNumberId ? undefined : t('agentBuilder.summary.attachNumber', 'attach a number')} />
                 <ReadyRow ok icon={<Megaphone className="h-4 w-4" />} label={t('agentBuilder.summary.campaigns', 'Campaigns')} />
+                {messagingPluginEnabled && form.messagingWhatsappEnabled && (
+                  <ReadyRow ok icon={<MessageSquare className="h-4 w-4" />} label={t('agentBuilder.summary.whatsappReady', 'WhatsApp templates')} />
+                )}
+                {messagingPluginEnabled && form.messagingEmailEnabled && (
+                  <ReadyRow ok icon={<Mail className="h-4 w-4" />} label={t('agentBuilder.summary.emailReady', 'Email templates')} />
+                )}
               </div>
               {validationMsg && <p className="text-xs text-muted-foreground">{validationMsg}</p>}
               {submitButton}

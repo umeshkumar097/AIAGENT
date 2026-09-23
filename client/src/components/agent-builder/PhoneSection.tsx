@@ -20,9 +20,11 @@ interface Props {
   numbers: AvailableNumber[];
   current: CurrentConnection | null;
   isLoading: boolean;
+  /** Step number shown in the title (the messaging step before it is optional). */
+  step?: number;
 }
 
-export default function PhoneSection({ form, onChange, numbers, current, isLoading }: Props) {
+export default function PhoneSection({ form, onChange, numbers, current, isLoading, step = 6 }: Props) {
   const { t } = useTranslation();
   const options: AvailableNumber[] = [
     ...(current ? [{ id: current.phoneNumberId, phoneNumber: current.phoneNumber, friendlyName: current.friendlyName, country: '', isConflicted: false, conflictReason: null }] : []),
@@ -32,7 +34,7 @@ export default function PhoneSection({ form, onChange, numbers, current, isLoadi
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">5 · {t('agentBuilder.phone.title', 'Incoming calls')}</CardTitle>
+        <CardTitle className="text-base">{step} · {t('agentBuilder.phone.title', 'Incoming calls')}</CardTitle>
         <CardDescription>
           {t('agentBuilder.phone.desc', 'Attach a Plivo number so people can call this agent. Skip it if the agent will only run campaigns.')}
         </CardDescription>

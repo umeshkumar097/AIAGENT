@@ -124,7 +124,7 @@ function blockToHtml(block: EmailBlock): string {
       return `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
         <tr>
           <td width="${s.leftWidth || "50"}%" style="padding:8px;vertical-align:top;color:${s.color || "#555555"};font-size:${s.fontSize || "16"}px;font-family:Arial,sans-serif;">${s.leftContent || ""}</td>
-          <td width="${100 - parseInt(s.leftWidth || "50")}%" style="padding:8px;vertical-align:top;color:${s.color || "#555555"};font-size:${s.fontSize || "16"}px;font-family:Arial,sans-serif;">${s.rightContent || ""}</td>
+          <td width="${100 - parseInt(s.leftWidth || "50", 10)}%" style="padding:8px;vertical-align:top;color:${s.color || "#555555"};font-size:${s.fontSize || "16"}px;font-family:Arial,sans-serif;">${s.rightContent || ""}</td>
         </tr>
       </table>`;
     default:
@@ -398,7 +398,7 @@ function BlockPreview({ block }: { block: EmailBlock }) {
   const s = block.settings;
   switch (block.type) {
     case "heading":
-      return <div style={{ textAlign: s.align as any, color: s.color, fontSize: `${Math.min(parseInt(s.fontSize) || 28, 32)}px`, fontWeight: 700, padding: "4px 0" }}>{s.text || "Heading"}</div>;
+      return <div style={{ textAlign: s.align as any, color: s.color, fontSize: `${Math.min(parseInt(s.fontSize, 10) || 28, 32)}px`, fontWeight: 700, padding: "4px 0" }}>{s.text || "Heading"}</div>;
     case "text":
       return <div style={{ textAlign: s.align as any, color: s.color, fontSize: `${s.fontSize || 16}px`, lineHeight: 1.5, padding: "4px 0" }}>{s.text || "Text content"}</div>;
     case "image":
