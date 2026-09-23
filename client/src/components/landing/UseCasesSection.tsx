@@ -150,7 +150,11 @@ export function UseCasesSection() {
               icon={useCase.icon}
               flag={useCase.flag}
               title={t(`landing.useCasesSection.cases.${useCase.key}.title`)}
-              description={t(`landing.useCasesSection.cases.${useCase.key}.description`)}
+              description={
+                useCase.key === "saas"
+                  ? t("landing.useCasesSection.cases.saas.descriptionV2", "An AI sales agent qualifies SaaS trial sign-ups, answers product questions and hands hot leads to the sales team.")
+                  : t(`landing.useCasesSection.cases.${useCase.key}.description`)
+              }
               industry={t(`landing.useCasesSection.cases.${useCase.key}.industry`)}
               language={t(`landing.useCasesSection.cases.${useCase.key}.language`)}
               functionLabel={t(`landing.useCasesSection.cases.${useCase.key}.function`)}

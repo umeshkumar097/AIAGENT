@@ -122,7 +122,7 @@ function getDefaultStructuredData(siteName: string): SoftwareApplicationSchema {
     offers: {
       "@type": "Offer",
       price: "0",
-      priceCurrency: "USD",
+      priceCurrency: "INR",
       name: "Free Tier",
       description: "Get started with AI voice agents for free"
     },

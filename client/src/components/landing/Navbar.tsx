@@ -22,6 +22,7 @@ import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBranding } from "@/components/BrandingProvider";
 import { AuthStorage } from "@/lib/auth-storage";
+import { navigateToApp, getStartedPath } from "@/components/landing/AppLink";
 import { LandingLanguageSelector } from "@/components/LandingLanguageSelector";
 
 // Route theme map: determines if page hero is dark or light background
@@ -81,7 +82,6 @@ export function Navbar() {
   const currentLogo = resolveLogo();
   const needsLightText = isScrolled || pageTheme === "dark";
   const isAuthenticated = AuthStorage.isAuthenticated();
-  const isAdmin = AuthStorage.isAdmin();
 
   const restoreBodyOverflow = useCallback(() => {
     document.body.style.overflow = previousOverflow.current || "unset";
@@ -164,20 +164,12 @@ export function Navbar() {
 
   const handleSignIn = () => {
     setIsMobileMenuOpen(false);
-    if (isAuthenticated) {
-      window.location.href = isAdmin ? "/admin" : "/app";
-    } else {
-      setLocation("/login");
-    }
+    navigateToApp(isAuthenticated ? getStartedPath() : "/login", setLocation);
   };
 
   const handleGetStarted = () => {
     setIsMobileMenuOpen(false);
-    if (isAuthenticated) {
-      window.location.href = isAdmin ? "/admin" : "/app";
-    } else {
-      setLocation("/login");
-    }
+    navigateToApp(getStartedPath(), setLocation);
   };
 
   return (

@@ -7,7 +7,8 @@
 import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import { Check, User, Calendar, MessageSquare, Phone, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
+import { AppLink } from "@/components/landing/AppLink";
+import { useTrustCopy } from "@/components/landing/useTrustCopy";
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -253,6 +254,7 @@ interface FeatureCardProps {
 
 const FeatureCard = ({ title, description, bullets, mockup, imagePosition }: FeatureCardProps) => {
   const { t } = useTranslation();
+  const trust = useTrustCopy();
   const isLeft = imagePosition === "left";
   
   return (
@@ -287,22 +289,22 @@ const FeatureCard = ({ title, description, bullets, mockup, imagePosition }: Fea
               </ul>
 
               <div className="space-y-4">
-                <Link href="/login">
+                <AppLink to="/register">
                   <Button 
                     className="bg-transparent hover:bg-brand/10 text-brand font-semibold border-2 border-brand/30 hover:border-brand rounded-lg px-6"
                     data-testid={`button-feature-cta-${title.toLowerCase().replace(/\s+/g, "-")}`}
                   >
                     {t('landing.featureSection.getStarted')}
                   </Button>
-                </Link>
+                </AppLink>
                 <div className="flex items-center gap-4 text-sm text-gray-500">
                   <div className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-brand" />
-                    <span>{t('landing.featureSection.freeTrial')}</span>
+                    <span>{trust.freeMinutes}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-brand" />
-                    <span>{t('landing.featureSection.freeCredit')}</span>
+                    <span>{trust.noCard}</span>
                   </div>
                 </div>
               </div>

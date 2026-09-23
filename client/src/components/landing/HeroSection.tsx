@@ -2,8 +2,8 @@ import { motion, useReducedMotion, useInView } from "framer-motion";
 import { Check, ChevronDown, Phone, Headphones, MessageSquare, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRef, useState, useEffect } from "react";
-import { Link } from "wouter";
-import { AuthStorage } from "@/lib/auth-storage";
+import { AppLink, getStartedPath } from "@/components/landing/AppLink";
+import { useTrustCopy } from "@/components/landing/useTrustCopy";
 import { DemoCallingWidget } from "@/components/landing/DemoCallingWidget";
 import { useTranslation } from 'react-i18next';
 const heroCardSales = "/images/hero-card-sales.png";
@@ -143,9 +143,8 @@ const itemVariants = {
 
 export function HeroSection() {
   const { t } = useTranslation();
+  const trust = useTrustCopy();
   const shouldReduceMotion = useReducedMotion();
-  const isAuthenticated = AuthStorage.isAuthenticated();
-  const isAdmin = AuthStorage.isAdmin();
   const sectionRef = useRef(null);
   const isInView = useInView(sectionRef, { once: true });
 
@@ -161,13 +160,6 @@ export function HeroSection() {
       top: window.innerHeight - 80,
       behavior: "smooth",
     });
-  };
-
-  const getDashboardLink = () => {
-    if (isAuthenticated) {
-      return isAdmin ? "/admin" : "/app";
-    }
-    return "/login";
   };
 
   return (
@@ -227,7 +219,7 @@ export function HeroSection() {
               variants={itemVariants}
               className="flex justify-start pt-4"
             >
-              <Link href={getDashboardLink()}>
+              <AppLink to={getStartedPath()}>
                 <Button
                   size="lg"
                   className="rounded-full shadow-blue-500/25 shadow-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white border-0 font-semibold px-8 transition-all hover:scale-105"
@@ -235,7 +227,7 @@ export function HeroSection() {
                 >
                   {t('landing.hero.getStarted')}
                 </Button>
-              </Link>
+              </AppLink>
             </motion.div>
 
             <motion.div
@@ -243,8 +235,8 @@ export function HeroSection() {
               className="flex flex-col sm:flex-row items-start sm:items-center justify-start gap-4 sm:gap-8 pt-2"
               data-testid="hero-trust-badges"
             >
-            <TrustBadge text={t('landing.hero.freeTrial')} />
-            <TrustBadge text={t('landing.hero.freeCredit')} />
+            <TrustBadge text={trust.freeMinutes} />
+            <TrustBadge text={trust.noCard} />
             </motion.div>
           </motion.div>
 

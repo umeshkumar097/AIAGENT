@@ -7,7 +7,8 @@
 import { motion, useInView } from "framer-motion";
 import { MessageSquare, PhoneForwarded, Webhook, Mail, MessageCircle, Calendar, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
+import { AppLink } from "@/components/landing/AppLink";
+import { useTrustCopy } from "@/components/landing/useTrustCopy";
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -38,6 +39,7 @@ const ActionCard = ({ icon, title, delay }: ActionCardProps) => (
 
 export function ActionCardsSection() {
   const { t } = useTranslation();
+  const trust = useTrustCopy();
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true });
 
@@ -107,22 +109,22 @@ export function ActionCardsSection() {
           transition={{ duration: 0.6, delay: 0.4 }}
           className="text-center mt-12"
         >
-          <Link href="/login">
+          <AppLink to="/register">
             <Button 
               className="bg-brand text-brand-foreground font-semibold border-0 h-12 px-8 rounded-full shadow-lg shadow-brand/25"
               data-testid="button-actions-get-started"
             >
               {t('landing.actionCards.getStarted')}
             </Button>
-          </Link>
+          </AppLink>
           <div className="flex items-center justify-center gap-6 mt-4 text-sm text-gray-500">
             <div className="flex items-center gap-2">
               <Check className="h-4 w-4 text-brand" />
-              <span>{t('landing.actionCards.freeTrial')}</span>
+              <span>{trust.freeMinutes}</span>
             </div>
             <div className="flex items-center gap-2">
               <Check className="h-4 w-4 text-brand" />
-              <span>{t('landing.actionCards.freeCredit')}</span>
+              <span>{trust.noCard}</span>
             </div>
           </div>
         </motion.div>

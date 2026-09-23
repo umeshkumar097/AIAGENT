@@ -829,6 +829,92 @@ ${allUrls.map(u => {
   });
 
   // ============================================
+  // PUBLIC PRICING (marketing site)
+  // ============================================
+
+  // Active plans + credit packages with the GST mode, for the public pricing page. Only the
+  // fields the marketing pages need are exposed (no LLM/engine internals). Cached 60 s.
+  const PUBLIC_PRICING_CACHE_TTL_MS = 60 * 1000;
+  let publicPricingCache: { data: Record<string, unknown>; expiresAt: number } | null = null;
+
+  router.get("/api/public/pricing", async (_req: Request, res: Response) => {
+    try {
+      const now = Date.now();
+      if (publicPricingCache && publicPricingCache.expiresAt > now) {
+        res.setHeader('Cache-Control', 'public, max-age=60');
+        return res.json(publicPricingCache.data);
+      }
+
+      const [allPlans, allPackages, seller] = await Promise.all([
+        storage.getAllPlans(),
+        storage.getAllCreditPackages(),
+        getSellerInfo(),
+      ]);
+
+      const toNumber = (value: unknown): number => {
+        const n = typeof value === 'number' ? value : parseFloat(String(value ?? '0'));
+        return Number.isFinite(n) ? n : 0;
+      };
+
+      const plansOut = allPlans
+        .filter((p) => p.isActive)
+        .map((p) => ({
+          id: p.id,
+          name: p.name,
+          displayName: p.displayName,
+          description: p.description,
+          monthlyPrice: toNumber(p.monthlyPrice),
+          yearlyPrice: p.yearlyPrice === null || p.yearlyPrice === undefined ? null : toNumber(p.yearlyPrice),
+          includedCredits: p.includedCredits,
+          maxAgents: p.maxAgents,
+          maxCampaigns: p.maxCampaigns,
+          maxContactsPerCampaign: p.maxContactsPerCampaign,
+          maxWebhooks: p.maxWebhooks,
+          maxKnowledgeBases: p.maxKnowledgeBases,
+          maxFlows: p.maxFlows,
+          maxPhoneNumbers: p.maxPhoneNumbers,
+          maxWidgets: p.maxWidgets,
+          canChooseLlm: p.canChooseLlm,
+          canPurchaseNumbers: p.canPurchaseNumbers,
+          restApiEnabled: p.restApiEnabled,
+          sipEnabled: p.sipEnabled,
+          teamManagementEnabled: p.teamManagementEnabled,
+          maxTeamMembers: p.maxTeamMembers,
+          features: p.features && typeof p.features === 'object' ? p.features : {},
+        }))
+        .sort((a, b) => a.monthlyPrice - b.monthlyPrice || a.includedCredits - b.includedCredits);
+
+      const packagesOut = allPackages
+        .filter((pkg) => pkg.isActive)
+        .map((pkg) => ({
+          id: pkg.id,
+          name: pkg.name,
+          description: pkg.description ?? null,
+          credits: pkg.credits,
+          price: toNumber(pkg.price),
+        }))
+        .sort((a, b) => a.credits - b.credits || a.price - b.price);
+
+      const data = {
+        currency: 'INR',
+        currencySymbol: '₹',
+        gstRate: seller.gstRate,
+        pricesIncludeGst: seller.pricesIncludeGst,
+        creditsPerMinute: 1,
+        plans: plansOut,
+        packages: packagesOut,
+      };
+      publicPricingCache = { data, expiresAt: now + PUBLIC_PRICING_CACHE_TTL_MS };
+
+      res.setHeader('Cache-Control', 'public, max-age=60');
+      res.json(data);
+    } catch (error) {
+      console.error('Error fetching public pricing:', error);
+      res.status(503).json({ error: 'Pricing is temporarily unavailable' });
+    }
+  });
+
+  // ============================================
   // PUBLIC SEO/ANALYTICS ROUTES
   // ============================================
 

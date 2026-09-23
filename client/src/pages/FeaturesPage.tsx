@@ -33,6 +33,7 @@ import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { SEOHead } from "@/components/landing/SEOHead";
 import { Link } from "wouter";
+import { AppLink } from "@/components/landing/AppLink";
 import { useBranding } from "@/components/BrandingProvider";
 import { useSeoSettings } from "@/hooks/useSeoSettings";
 import { useTranslation } from "react-i18next";
@@ -231,7 +232,7 @@ export default function FeaturesPage() {
                 {t('landing.featuresPage.hero.subtitle')}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="/login">
+                <AppLink to="/register">
                   <Button 
                     className="bg-brand text-brand-foreground font-medium border-0 h-12 px-8 text-base shadow-lg"
                     data-testid="button-hero-trial"
@@ -239,7 +240,7 @@ export default function FeaturesPage() {
                     {t('landing.featuresPage.hero.startFreeTrial')}
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>
-                </Link>
+                </AppLink>
                 <Link href="/contact">
                   <Button 
                     variant="outline" 
@@ -570,7 +571,7 @@ export default function FeaturesPage() {
                 {t('landing.featuresPage.cta.subtitle')}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="/login">
+                <AppLink to="/register">
                   <Button 
                     className="bg-white text-foreground hover:bg-gray-100 font-semibold h-14 px-8 text-lg shadow-lg border-0"
                     data-testid="button-cta-trial"
@@ -578,7 +579,7 @@ export default function FeaturesPage() {
                     {t('landing.featuresPage.cta.startFreeTrial')}
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>
-                </Link>
+                </AppLink>
                 <Link href="/contact">
                   <Button 
                     variant="outline" 

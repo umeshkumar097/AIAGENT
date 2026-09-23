@@ -19,9 +19,11 @@ import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { SEOHead } from "@/components/landing/SEOHead";
 import { Link } from "wouter";
+import { AppLink } from "@/components/landing/AppLink";
 import { useBranding } from "@/components/BrandingProvider";
 import { useSeoSettings } from "@/hooks/useSeoSettings";
 import { useTranslation } from "react-i18next";
+import { useTrustCopy } from "@/components/landing/useTrustCopy";
 
 interface UseCaseProps {
   icon: React.ReactNode;
@@ -113,12 +115,12 @@ const UseCase = ({ icon, title, subtitle, description, features, stats, gradient
           ))}
         </ul>
 
-        <Link href="/login">
+        <AppLink to="/register">
           <Button className="cta-button text-white font-medium border-0 mt-4">
             {getStartedText}
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
-        </Link>
+        </AppLink>
       </div>
 
       <div className={reverse ? 'lg:order-1' : 'lg:order-2'}>
@@ -152,6 +154,7 @@ export default function UseCasesPage() {
   const { branding } = useBranding();
   const { data: seoSettings } = useSeoSettings();
   const { t } = useTranslation();
+  const trust = useTrustCopy();
 
   const useCases: UseCaseProps[] = [
     {
@@ -623,12 +626,12 @@ export default function UseCasesPage() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="/login">
+                <AppLink to="/register">
                   <Button size="lg" className="cta-button text-white font-medium border-0 h-14 px-8 text-lg">
                     {t('landing.useCasesPage.ctaSection.startFreeTrial')}
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>
-                </Link>
+                </AppLink>
                 <Link href="/pricing">
                   <Button size="lg" variant="outline" className="h-14 px-8 text-lg border-white/20 text-white hover:bg-white/10">
                     {t('landing.useCasesPage.ctaSection.viewPricing')}
@@ -637,7 +640,7 @@ export default function UseCasesPage() {
               </div>
 
               <p className="text-sm text-zinc-500">
-                {t('landing.useCasesPage.ctaSection.trustMessage')}
+                {trust.trustLine}
               </p>
             </motion.div>
           </div>

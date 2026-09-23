@@ -11,7 +11,7 @@ export default function PricingPage() {
   const { data: seoSettings } = useSeoSettings();
 
   const seoTitle = `Pricing | ${seoSettings?.defaultTitle || "AI Voice Agents"}`;
-  const seoDescription = "Transparent volume pricing for AI calling operations. Scale infinitely with no hidden fees.";
+  const seoDescription = "AI calling plans in INR with included call minutes, yearly discounts and pay-as-you-go top-ups. Prices exclude GST.";
 
   return (
     <div className="min-h-screen bg-[#050505] text-white flex flex-col font-sans selection:bg-[#27D3C9]/30">

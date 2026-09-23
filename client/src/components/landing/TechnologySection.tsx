@@ -10,7 +10,8 @@ import {
   Check, Sparkles, Volume2, MessageSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
+import { AppLink } from "@/components/landing/AppLink";
+import { useTrustCopy } from "@/components/landing/useTrustCopy";
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -43,6 +44,7 @@ const TechFeature = ({ icon, title, description, delay }: TechFeatureProps) => (
 
 export function TechnologySection() {
   const { t } = useTranslation();
+  const trust = useTrustCopy();
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true });
 
@@ -124,22 +126,22 @@ export function TechnologySection() {
               </li>
             </ul>
 
-            <Link href="/login">
+            <AppLink to="/register">
               <Button 
                 className="bg-brand text-brand-foreground font-semibold border-0 h-12 px-8 rounded-full shadow-lg shadow-brand/25"
                 data-testid="button-tech-get-started"
               >
                 {t('landing.technology.getStarted')}
               </Button>
-            </Link>
+            </AppLink>
             <div className="flex items-center gap-6 mt-4 text-sm text-gray-500">
               <div className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-brand" />
-                <span>{t('landing.technology.freeTrial')}</span>
+                <span>{trust.freeMinutes}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-brand" />
-                <span>{t('landing.technology.freeCredit')}</span>
+                <span>{trust.noCard}</span>
               </div>
             </div>
           </motion.div>

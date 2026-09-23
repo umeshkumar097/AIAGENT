@@ -20,6 +20,8 @@ import { Button } from "@/components/ui/button";
 import { useMemo, useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
+import { navigateToApp, getStartedPath } from "@/components/landing/AppLink";
+import { useTrustCopy } from "@/components/landing/useTrustCopy";
 
 interface FloatingParticleProps {
   index: number;
@@ -116,8 +118,10 @@ export function CTASection() {
   const particleCount = 20;
   const { t } = useTranslation();
 
+  const trust = useTrustCopy();
+
   const handleNavigate = () => {
-    setLocation("/login");
+    navigateToApp(getStartedPath(), setLocation);
   };
 
   return (
@@ -187,7 +191,7 @@ export function CTASection() {
             className="text-white/80 text-sm"
             data-testid="cta-trust-message"
           >
-            {t('landing.cta.trustMessage')}
+            {trust.trustLine}
           </motion.p>
         </motion.div>
       </div>
