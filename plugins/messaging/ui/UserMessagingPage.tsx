@@ -216,7 +216,7 @@ export default function UserMessagingPage() {
     };
   }, [templateDialog, editingTemplate]);
 
-  const [whatsappProvider, setWhatsappProvider] = useState<"whatsway" | "meta">("meta");
+  const [whatsappProvider, setWhatsappProvider] = useState<"whatsway" | "meta">("whatsway");
 
   const [whatswayForm, setWhatswayForm] = useState({
     apiKey: "",
@@ -357,17 +357,24 @@ export default function UserMessagingPage() {
     }
   }, [metaWaSettings]);
 
+  // Waki is the product's WhatsApp channel. Meta (Facebook Embedded Signup / Cloud API) is only offered
+  // when the admin has actually set it up or the user already connected it — otherwise its
+  // "Connect WhatsApp" button cannot work and only confuses.
+  const metaAvailable =
+    providerConfig?.providerMode === 'meta_only' ||
+    (providerConfig?.providerMode !== 'whatsway_only' &&
+      (!!providerConfig?.embeddedSignupEnabled || !!metaWaSettings?.isActive));
+  const showProviderSelector = metaAvailable && providerConfig?.providerMode !== 'meta_only';
+
   useEffect(() => {
     if (providerConfig?.providerMode === 'meta_only') {
       setWhatsappProvider("meta");
-    } else if (providerConfig?.providerMode === 'whatsway_only') {
+    } else if (!metaAvailable || whatswaySettings?.isActive) {
       setWhatsappProvider("whatsway");
     } else if (metaWaSettings?.isActive) {
       setWhatsappProvider("meta");
-    } else if (whatswaySettings?.isActive) {
-      setWhatsappProvider("whatsway");
     }
-  }, [metaWaSettings, whatswaySettings, providerConfig]);
+  }, [metaWaSettings, whatswaySettings, providerConfig, metaAvailable]);
 
   useEffect(() => {
     if (!providerConfig?.metaAppId || !providerConfig?.embeddedSignupEnabled) return;
@@ -965,8 +972,8 @@ export default function UserMessagingPage() {
         </TabsContent>
 
         <TabsContent value="whatsapp" className="space-y-4">
-          {/* Provider selector — hidden entirely when the admin allows Waki only */}
-          {providerConfig?.providerMode !== 'whatsway_only' && (
+          {/* Provider selector — only when Meta is genuinely available next to Waki */}
+          {showProviderSelector && (
           <div className="flex items-center gap-2 flex-wrap">
             <Button
               variant={whatsappProvider === "meta" ? "default" : "outline"}
