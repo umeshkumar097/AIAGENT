@@ -81,6 +81,15 @@ async function getOpenAIApiKey(): Promise<string> {
   if (process.env.OPENAI_API_KEY) {
     return process.env.OPENAI_API_KEY;
   }
+
+  // Calls run on the OpenAI credential pool (Admin → OpenAI credentials); use it for embeddings too
+  try {
+    const { OpenAIPoolService } = await import('../engines/plivo/services/openai-pool.service');
+    const cred = await OpenAIPoolService.getLeastLoadedCredential();
+    if (cred?.apiKey) return cred.apiKey;
+  } catch {
+    // pool unavailable — fall through to the error below
+  }
   
   throw new Error("OPENAI_API_KEY is required for RAG knowledge system. Configure it in Admin Settings or as an environment variable.");
 }
@@ -100,7 +109,7 @@ async function getOpenAIClient(): Promise<OpenAI> {
 /**
  * Calculate cosine similarity between two vectors
  */
-function cosineSimilarity(a: number[], b: number[]): number {
+export function cosineSimilarity(a: number[], b: number[]): number {
   if (a.length !== b.length) {
     throw new Error("Vectors must have same length");
   }
@@ -164,7 +173,7 @@ function chunkText(text: string, maxChars: number = MAX_CHUNK_CHARS, overlapChar
 /**
  * Generate embedding for text using OpenAI
  */
-async function generateEmbedding(text: string): Promise<number[]> {
+export async function generateEmbedding(text: string): Promise<number[]> {
   const openai = await getOpenAIClient();
   
   const response = await openai.embeddings.create({
@@ -337,6 +346,39 @@ export class RAGKnowledgeService {
     }
   }
   
+  /**
+   * Chunks with embeddings for in-memory search (one load per call on the Sarvam pipeline).
+   */
+  static async loadChunksForSearch(
+    knowledgeBaseIds: string[],
+    userId: string,
+    limit: number
+  ): Promise<Array<{ text: string; embedding: number[] }>> {
+    if (knowledgeBaseIds.length === 0) return [];
+    const rows = await db
+      .select({ text: knowledgeChunks.chunkText, embedding: knowledgeChunks.embedding })
+      .from(knowledgeChunks)
+      .where(and(inArray(knowledgeChunks.knowledgeBaseId, knowledgeBaseIds), eq(knowledgeChunks.userId, userId)))
+      .limit(limit);
+    return rows
+      .filter(row => Array.isArray(row.embedding) && (row.embedding as unknown[]).length > 0)
+      .map(row => ({ text: row.text, embedding: row.embedding as number[] }));
+  }
+
+  /**
+   * Re-runs chunking + embeddings for an item from its stored content (failed runs, items created
+   * before RAG existed). Existing chunks and queue rows are dropped first so the status is fresh.
+   */
+  static async reprocessKnowledgeItem(
+    knowledgeBaseId: string,
+    userId: string,
+    content: string,
+    metadata?: Record<string, any>
+  ): Promise<{ success: boolean; chunksCreated: number; error?: string }> {
+    await this.deleteKnowledgeChunks(knowledgeBaseId, userId);
+    return this.processKnowledgeItem(knowledgeBaseId, userId, content, metadata);
+  }
+
   /**
    * Search knowledge base using semantic similarity
    */

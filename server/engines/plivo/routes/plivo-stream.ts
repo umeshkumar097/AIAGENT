@@ -343,6 +343,8 @@ async function initializeSession(
           openaiModel:        agents.openaiModel,
           llmModel:           agents.llmModel,
           detectLanguageEnabled: agents.detectLanguageEnabled,
+          knowledgeBaseIds:   agents.knowledgeBaseIds,
+          userId:             agents.userId,
         })
         .from(agents)
         .where(eq(agents.id, call.agentId))
@@ -391,6 +393,8 @@ async function initializeSession(
             // call.openaiModel is a Realtime model id and must not be used here.
             openaiModel:  agent.llmModel || agent.openaiModel || 'gpt-4o-mini',
             detectLanguage: !!agent.detectLanguageEnabled,
+            knowledgeBaseIds: agent.knowledgeBaseIds || null,
+            userId: agent.userId,
           },
           call.id
         );

@@ -8,6 +8,7 @@ import axios from 'axios';
 import { PlivoCallService } from './plivo-call.service';
 import { SARVAM_VOICES } from '../../../routes/sarvam-routes';
 import { SarvamTtsStream } from './sarvam-tts-stream';
+import { SarvamKnowledge } from './sarvam-knowledge';
 
 // Persistent HTTPS agent for reusing connection keep-alive (reduces 120ms handshake overhead per TTS request)
 const keepAliveAgent = new https.Agent({
@@ -55,6 +56,10 @@ export interface SarvamAgentConfig {
   openaiModel?:  string;
   /** Follow the caller's language (STT language_code=auto + prompt rule) */
   detectLanguage?: boolean;
+  /** Knowledge base items attached to the agent (retrieved per turn, injected into the prompt) */
+  knowledgeBaseIds?: string[] | null;
+  /** Owner of the knowledge base items */
+  userId?: string;
 }
 
 // ── Per-call latency profiler ────────────────────────────────────────────────
@@ -487,7 +492,7 @@ export class SarvamBridgeService {
   // ── System prompt wrapper ─────────────────────────────────────────────────
   // Deliberately short: long rule lists (and lists of banned words) make the
   // model repeat itself and over-use fillers. Fillers are handled in audio.
-  private static buildWrapper(systemPrompt: string, voice: string, language: string, detectLanguage = false): string {
+  private static buildWrapper(systemPrompt: string, voice: string, language: string, detectLanguage = false, knowledge: string | null = null): string {
     const langNames: Record<string, string> = {
       'hi': 'Hindi/Hinglish', 'en': 'English', 'bn': 'Bengali', 'ta': 'Tamil',
       'te': 'Telugu', 'kn': 'Kannada', 'ml': 'Malayalam', 'mr': 'Marathi',
@@ -519,7 +524,10 @@ ${languageRule}${genderRule}
 - When the conversation is complete or the caller says goodbye, say a short goodbye and call end_call.
 
 Your role & goal:
-${systemPrompt}`;
+${systemPrompt}${knowledge ? `
+
+Knowledge base — facts for this call. Answer from these when relevant, in your own short spoken words (never read them out verbatim). If the caller asks something these do not cover, say you will check and get back to them — never guess:
+${knowledge}` : ''}`;
   }
 
   // ── TTS: WebSocket stream first, REST fallback ─────────────────────────────
@@ -643,9 +651,10 @@ ${systemPrompt}`;
     signal: AbortSignal,
     perf: PerfTimer,
     openaiModel?: string,
-    detectLanguage = false
+    detectLanguage = false,
+    knowledge: string | null = null
   ): Promise<string> {
-    const naturalWrapper = SarvamBridgeService.buildWrapper(systemPrompt, voice, language, detectLanguage);
+    const naturalWrapper = SarvamBridgeService.buildWrapper(systemPrompt, voice, language, detectLanguage, knowledge);
     const messages = [{ role: 'system' as const, content: naturalWrapper }, ...history.slice(-HISTORY_MAX_MESSAGES)];
 
     perf.mark('GPT_START');
@@ -945,6 +954,9 @@ ${systemPrompt}`;
 
     const transcriptLines: string[] = [];
     const chatHistory: { role: 'user' | 'assistant'; content: string }[] = [];
+    // Chunks load in the background while the greeting plays; the first caller turn finds them ready
+    const knowledge = SarvamKnowledge.create(callUuid, agentConfig.userId, agentConfig.knowledgeBaseIds);
+    if (knowledge) void knowledge.preload();
     (plivoWs as any).sarvamTranscriptLines = transcriptLines;
     (plivoWs as any).sarvamCallStartTime   = Date.now();
 
@@ -1131,7 +1143,11 @@ ${systemPrompt}`;
             }
           };
 
-          SarvamBridgeService.streamGPTAndSpeak(
+          const kbLookup: Promise<string | null> = knowledge
+            ? knowledge.retrieve(transcript, ctrl.signal).then(ctx => { perf.mark('KB_DONE'); perf.log('STT_FINAL', 'KB_DONE'); return ctx; })
+            : Promise.resolve(null);
+
+          kbLookup.then(kbContext => SarvamBridgeService.streamGPTAndSpeak(
             callUuid, plivoWs,
             agentConfig.openaiApiKey,
             agentConfig.systemPrompt,
@@ -1139,8 +1155,9 @@ ${systemPrompt}`;
             sarvamApiKey, activeLang, voice,
             ctrl.signal, perf,
             agentConfig.openaiModel,
-            !!agentConfig.detectLanguage
-          ).then(reply => {
+            !!agentConfig.detectLanguage,
+            kbContext
+          )).then(reply => {
             if ((plivoWs as any).sarvamTurnId !== turnId) { recordInterrupted(); return; }
             spokenByTurn.delete(turnId);
             if (reply) {

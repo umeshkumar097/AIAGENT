@@ -273,8 +273,11 @@ export function createRAGKnowledgeRoutes(authenticateToken: any): Router {
             ...item,
             ragStatus: status?.status || (chunkCount > 0 ? 'completed' : 'pending'),
             ragProgress: status?.progress || (chunkCount > 0 ? 100 : 0),
+            ragError: status?.error || null,
             chunkCount,
             isRAGEnabled: chunkCount > 0,
+            // Items without stored text (legacy ElevenLabs uploads) cannot be indexed again
+            canReprocess: !!item.content && item.content.trim().length > 0,
           };
         })
       );
@@ -553,6 +556,32 @@ export function createRAGKnowledgeRoutes(authenticateToken: any): Router {
     } catch (error: any) {
       console.error("[RAG Routes] Status check error:", error);
       res.status(500).json({ error: "Failed to get status" });
+    }
+  });
+
+  /**
+   * Re-index an item from its stored content (failed / never-processed items)
+   */
+  router.post("/:id/reprocess", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const item = await storage.getKnowledgeBaseItem(req.params.id);
+      if (!item || item.userId !== req.userId) {
+        return res.status(404).json({ error: "Knowledge base item not found" });
+      }
+      if (!item.content || item.content.trim().length === 0) {
+        return res.status(400).json({ error: "This item has no stored text to index. Delete it and add it again." });
+      }
+      const current = await RAGKnowledgeService.getProcessingStatus(item.id);
+      if (current?.status === 'processing') {
+        return res.status(409).json({ error: "This item is already being processed" });
+      }
+      const meta = (item.metadata && typeof item.metadata === 'object') ? (item.metadata as Record<string, any>) : {};
+      RAGKnowledgeService.reprocessKnowledgeItem(item.id, req.userId!, item.content, { source: item.type, ...meta })
+        .catch(err => console.error("[RAG Routes] Reprocess error:", err));
+      res.json({ success: true, ragStatus: 'processing' });
+    } catch (error: any) {
+      console.error("[RAG Routes] Reprocess request error:", error);
+      res.status(500).json({ error: "Failed to reprocess knowledge item" });
     }
   });
 

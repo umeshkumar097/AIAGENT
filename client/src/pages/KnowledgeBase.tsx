@@ -79,8 +79,10 @@ interface KnowledgeBaseItem {
   createdAt: string;
   ragStatus?: 'pending' | 'processing' | 'completed' | 'failed';
   ragProgress?: number;
+  ragError?: string | null;
   chunkCount?: number;
   isRAGEnabled?: boolean;
+  canReprocess?: boolean;
 }
 
 interface StorageUsage {
@@ -245,6 +247,20 @@ export default function KnowledgeBase() {
         description: error.message || t('knowledgeBase.toast.textFailedDesc'),
         variant: "destructive",
       });
+    },
+  });
+
+  const reprocessMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest('POST', `/api/rag-knowledge/${id}/reprocess`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/rag-knowledge'] });
+      toast({ title: t('knowledgeBase.toast.reprocessing', 'Indexing started. This document will be ready in a moment.') });
+    },
+    onError: (error: any) => {
+      toast({ title: t('knowledgeBase.toast.reprocessFailed', 'Could not re-index'), description: error.message, variant: 'destructive' });
     },
   });
 
@@ -743,14 +759,36 @@ export default function KnowledgeBase() {
                       {new Date(item.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeletingItem(item)}
-                        data-testid={`button-delete-${item.id}`}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        {(item.ragStatus === 'failed' || item.ragStatus === 'pending') && item.canReprocess && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => reprocessMutation.mutate(item.id)}
+                                disabled={reprocessMutation.isPending}
+                                data-testid={`button-reprocess-${item.id}`}
+                              >
+                                <RefreshCw className={`h-4 w-4 ${reprocessMutation.isPending ? 'animate-spin' : ''}`} />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {item.ragError
+                                ? `${t('knowledgeBase.tooltips.reprocess', 'Re-index this document')} — ${item.ragError}`
+                                : t('knowledgeBase.tooltips.reprocess', 'Re-index this document')}
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setDeletingItem(item)}
+                          data-testid={`button-delete-${item.id}`}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

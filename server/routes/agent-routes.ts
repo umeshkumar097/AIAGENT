@@ -1106,7 +1106,14 @@ export function createAgentRoutes(ctx: RouteContext): Router {
         storageSize,
       });
 
-      res.json(item);
+      // Index the text so Plivo/Sarvam agents can actually retrieve it on calls
+      if (content && String(content).trim().length > 0) {
+        const { RAGKnowledgeService } = await import('../services/rag-knowledge');
+        RAGKnowledgeService.processKnowledgeItem(item.id, req.userId!, String(content), { source: type })
+          .catch(err => console.error("[KnowledgeBase] Background indexing error:", err));
+      }
+
+      res.json({ ...item, ragStatus: content ? 'processing' : 'pending' });
     } catch (error: any) {
       console.error("Create knowledge base item error:", error);
       res.status(500).json({ error: "Failed to create knowledge base item" });
@@ -1238,6 +1245,10 @@ export function createAgentRoutes(ctx: RouteContext): Router {
         metadata: null,
         storageSize: text.length,
       });
+
+      const { RAGKnowledgeService } = await import('../services/rag-knowledge');
+      RAGKnowledgeService.processKnowledgeItem(item.id, req.userId!, text, { source: 'text' })
+        .catch(err => console.error("[KnowledgeBase] Background indexing error:", err));
 
       res.json(item);
     } catch (error: any) {

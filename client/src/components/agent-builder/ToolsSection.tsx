@@ -6,7 +6,14 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { AgentBuilderForm } from "./types";
 
-export interface KnowledgeItem { id: string; title: string; type: string }
+export interface KnowledgeItem {
+  id: string;
+  title: string;
+  type: string;
+  /** From /api/rag-knowledge — only 'completed' items can be used on calls */
+  ragStatus?: 'pending' | 'processing' | 'completed' | 'failed';
+  chunkCount?: number;
+}
 
 interface Props {
   form: AgentBuilderForm;
@@ -88,17 +95,26 @@ export default function ToolsSection({ form, onChange, knowledgeBase }: Props) {
             <p className="text-xs text-muted-foreground">{t('agentBuilder.noKnowledge', 'No documents yet. Add them under Knowledge Base and they will show up here.')}</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {knowledgeBase.map(kb => (
-                <label key={kb.id} className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer hover:bg-muted/40">
-                  <Checkbox
-                    checked={form.knowledgeBaseIds.includes(kb.id)}
-                    onCheckedChange={(v) => toggleKb(kb.id, v === true)}
-                    data-testid={`kb-${kb.id}`}
-                  />
-                  <span className="truncate">{kb.title}</span>
-                  <span className="ml-auto text-[10px] uppercase text-muted-foreground">{kb.type}</span>
-                </label>
-              ))}
+              {knowledgeBase.map(kb => {
+                const ready = kb.ragStatus === 'completed' || (kb.chunkCount ?? 0) > 0;
+                const statusLabel = ready
+                  ? null
+                  : kb.ragStatus === 'failed'
+                    ? t('agentBuilder.kbFailed', 'indexing failed')
+                    : t('agentBuilder.kbProcessing', 'indexing…');
+                return (
+                  <label key={kb.id} className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer hover:bg-muted/40">
+                    <Checkbox
+                      checked={form.knowledgeBaseIds.includes(kb.id)}
+                      onCheckedChange={(v) => toggleKb(kb.id, v === true)}
+                      data-testid={`kb-${kb.id}`}
+                    />
+                    <span className="truncate">{kb.title}</span>
+                    {statusLabel && <span className="text-[10px] text-amber-600 dark:text-amber-400 whitespace-nowrap">{statusLabel}</span>}
+                    <span className="ml-auto text-[10px] uppercase text-muted-foreground">{kb.type}</span>
+                  </label>
+                );
+              })}
             </div>
           )}
         </div>

@@ -50,7 +50,7 @@ export default function AgentBuilderPage() {
   const { data: openaiRes } = useQuery<{ voices: OpenAIVoice[] }>({ queryKey: ["/api/plivo/openai/voices"], staleTime: 300000 });
   const { data: realtimeRes } = useQuery<{ models: string[] }>({ queryKey: ["/api/plivo/openai/models"], staleTime: 300000 });
   const { data: chatModels = [] } = useQuery<ChatModel[]>({ queryKey: ["/api/llm-models/available"], staleTime: 300000 });
-  const { data: knowledgeBase = [] } = useQuery<KnowledgeItem[]>({ queryKey: ["/api/knowledge-base"] });
+  const { data: knowledgeBase = [] } = useQuery<KnowledgeItem[]>({ queryKey: ["/api/rag-knowledge"] });
   const { data: connections, isLoading: numbersLoading, error: connectionsError } = useQuery<ConnectionsResponse>({ queryKey: ["/api/plivo/incoming-connections"] });
   // Key parts join into the URL (/api/agents/<id>) and stay under the "/api/agents" prefix for invalidation
   const { data: agentRaw, isLoading: agentLoading, error: agentError } = useQuery<BuilderAgent | { agent: BuilderAgent }>({
