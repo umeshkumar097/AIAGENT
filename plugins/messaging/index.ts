@@ -5,6 +5,8 @@ import userMessagingRoutes from './routes/user-messaging.routes';
 import adminMessagingRoutes from './routes/admin-messaging.routes';
 import webhookMessagingRoutes from './routes/webhook-messaging.routes';
 import metaWebhookRoutes from './routes/meta-webhook.routes';
+import wakiWebhookRoutes from './routes/waki-webhook.routes';
+import autoReplyRoutes from './routes/auto-reply.routes';
 
 export { EmailTemplateService, emailTemplateService } from './services/email-template.service';
 export { WhatswayService, whatswayService } from './services/whatsway.service';
@@ -12,6 +14,8 @@ export { MetaWhatsAppService, metaWhatsAppService } from './services/meta-whatsa
 export { MessagingLogService, messagingLogService } from './services/messaging-log.service';
 export { WhatsAppConversationService, whatsAppConversationService } from './services/whatsapp-conversation.service';
 export { MetaWhatsAppAdminService, metaWhatsAppAdminService } from './services/meta-whatsapp-admin.service';
+export { WhatsAppAutoReplyService, whatsAppAutoReplyService } from './services/whatsapp-auto-reply.service';
+export { WhatsAppAutoReplySettingsService, whatsAppAutoReplySettingsService } from './services/whatsapp-auto-reply-settings.service';
 
 export * from './types';
 
@@ -20,6 +24,7 @@ export const PLUGIN_NAME = 'messaging';
 
 export function createUserMessagingRouter(): Router {
   const router = Router();
+  router.use('/auto-reply', autoReplyRoutes);
   router.use('/', userMessagingRoutes);
   return router;
 }
@@ -34,6 +39,7 @@ export function createWebhookMessagingRouter(): Router {
   const router = Router();
   router.use('/', webhookMessagingRoutes);
   router.use('/meta', metaWebhookRoutes);
+  router.use('/waki', wakiWebhookRoutes);
   return router;
 }
 
@@ -61,12 +67,14 @@ export function registerMessagingRoutes(
   console.log('  - /api/messaging/whatsway/* (Waki, user auth)');
   console.log('  - /api/messaging/meta-whatsapp/* (user auth)');
   console.log('  - /api/messaging/conversations (user auth)');
+  console.log('  - /api/messaging/auto-reply/* (user auth)');
   console.log('  - /api/messaging/logs (user auth)');
   console.log('  - /api/admin/messaging/* (admin auth)');
   console.log('  - /api/admin/messaging/whatsapp-config (admin auth)');
   console.log('  - /api/webhooks/messaging/send-email (webhook)');
   console.log('  - /api/webhooks/messaging/send-whatsapp (webhook)');
   console.log('  - /api/webhooks/messaging/meta/webhook (Meta webhook)');
+  console.log('  - /api/webhooks/messaging/waki/:secret (Waki inbound webhook)');
   console.log('[Messaging] Plugin initialized');
 }
 

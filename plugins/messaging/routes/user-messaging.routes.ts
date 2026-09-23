@@ -6,6 +6,7 @@ import { metaWhatsAppService } from '../services/meta-whatsapp.service';
 import { metaWhatsAppAdminService } from '../services/meta-whatsapp-admin.service';
 import { whatsAppConversationService } from '../services/whatsapp-conversation.service';
 import { messagingLogService } from '../services/messaging-log.service';
+import { whatsAppAutoReplySettingsService } from '../services/whatsapp-auto-reply-settings.service';
 
 async function getActiveWhatsAppProvider(userId: string): Promise<'meta' | 'whatsway' | null> {
   const [metaSettings, whatswaySettings] = await Promise.all([
@@ -842,7 +843,7 @@ router.patch('/conversations/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: 'Conversation not found' });
     }
 
-    const { status, autoReplyEnabled, assignedAgentId } = req.body;
+    const { status, autoReplyEnabled, assignedAgentId, needsAttention } = req.body;
 
     if (status !== undefined) {
       const validStatuses = ['active', 'closed', 'archived'];
@@ -853,7 +854,19 @@ router.patch('/conversations/:id', async (req: Request, res: Response) => {
     }
 
     if (autoReplyEnabled !== undefined) {
-      await whatsAppConversationService.setAutoReply(userId, req.params.id, autoReplyEnabled, assignedAgentId);
+      const agentId = autoReplyEnabled ? (assignedAgentId || conversation.assignedAgentId || undefined) : (assignedAgentId ?? conversation.assignedAgentId ?? undefined);
+      if (autoReplyEnabled && !agentId) {
+        return res.status(400).json({ success: false, error: 'Pick an agent to auto-reply with.' });
+      }
+      if (agentId && !(await whatsAppAutoReplySettingsService.agentBelongsToUser(userId, agentId))) {
+        return res.status(400).json({ success: false, error: 'Agent not found.' });
+      }
+      await whatsAppConversationService.setAutoReply(userId, req.params.id, Boolean(autoReplyEnabled), agentId);
+      if (autoReplyEnabled) await whatsAppConversationService.setNeedsAttention(userId, req.params.id, false);
+    }
+
+    if (needsAttention !== undefined) {
+      await whatsAppConversationService.setNeedsAttention(userId, req.params.id, Boolean(needsAttention));
     }
 
     const updated = await whatsAppConversationService.getConversation(userId, req.params.id);

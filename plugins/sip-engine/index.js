@@ -11,11 +11,21 @@ var __export = (target, all) => {
 // shared/schema.ts
 var schema_exports = {};
 __export(schema_exports, {
+  AGENT_CALL_OUTCOMES: () => AGENT_CALL_OUTCOMES,
   AI_CATEGORY_COLORS: () => AI_CATEGORY_COLORS,
   AI_CATEGORY_LABELS: () => AI_CATEGORY_LABELS,
   AI_CATEGORY_PRIORITY: () => AI_CATEGORY_PRIORITY,
   AI_LEAD_CATEGORIES: () => AI_LEAD_CATEGORIES,
   API_SCOPES: () => API_SCOPES,
+  AgentActionsConfigSchema: () => AgentActionsConfigSchema,
+  AgentApiToolSchema: () => AgentApiToolSchema,
+  CALL_OUTCOMES: () => CALL_OUTCOMES,
+  FINAL_CALL_OUTCOMES: () => FINAL_CALL_OUTCOMES,
+  INTEGRATION_PROVIDERS: () => INTEGRATION_PROVIDERS,
+  RETRY_OUTCOMES: () => RETRY_OUTCOMES,
+  RetryRuleSchema: () => RetryRuleSchema,
+  RetryRulesSchema: () => RetryRulesSchema,
+  SYSTEM_CALL_OUTCOMES: () => SYSTEM_CALL_OUTCOMES,
   agentVersions: () => agentVersions,
   agents: () => agents,
   analyticsScripts: () => analyticsScripts,
@@ -41,6 +51,7 @@ __export(schema_exports, {
   crmCategoryPreferences: () => crmCategoryPreferences,
   demoSessions: () => demoSessions,
   determineAICategory: () => determineAICategory,
+  doNotCallNumbers: () => doNotCallNumbers,
   elevenLabsCredentials: () => elevenLabsCredentials,
   emailNotificationSettings: () => emailNotificationSettings,
   emailTemplates: () => emailTemplates,
@@ -72,6 +83,7 @@ __export(schema_exports, {
   insertCreditTransactionSchema: () => insertCreditTransactionSchema,
   insertCrmCategoryPreferencesSchema: () => insertCrmCategoryPreferencesSchema,
   insertDemoSessionSchema: () => insertDemoSessionSchema,
+  insertDoNotCallNumberSchema: () => insertDoNotCallNumberSchema,
   insertElevenLabsCredentialSchema: () => insertElevenLabsCredentialSchema,
   insertEmailNotificationSettingsSchema: () => insertEmailNotificationSettingsSchema,
   insertEmailTemplateSchema: () => insertEmailTemplateSchema,
@@ -113,6 +125,7 @@ __export(schema_exports, {
   insertPlivoPhonePricingSchema: () => insertPlivoPhonePricingSchema,
   insertPromptTemplateSchema: () => insertPromptTemplateSchema,
   insertRefundSchema: () => insertRefundSchema,
+  insertScheduledCallbackSchema: () => insertScheduledCallbackSchema,
   insertSeoSettingsSchema: () => insertSeoSettingsSchema,
   insertSipCallSchema: () => insertSipCallSchema,
   insertSipPhoneNumberSchema: () => insertSipPhoneNumberSchema,
@@ -125,6 +138,7 @@ __export(schema_exports, {
   insertUsageRecordSchema: () => insertUsageRecordSchema,
   insertUserAddressSchema: () => insertUserAddressSchema,
   insertUserFeedbackSchema: () => insertUserFeedbackSchema,
+  insertUserIntegrationSchema: () => insertUserIntegrationSchema,
   insertUserKnowledgeStorageLimitSchema: () => insertUserKnowledgeStorageLimitSchema,
   insertUserKycDocumentSchema: () => insertUserKycDocumentSchema,
   insertUserSchema: () => insertUserSchema,
@@ -134,6 +148,7 @@ __export(schema_exports, {
   insertWebhookSchema: () => insertWebhookSchema,
   insertWebsiteWidgetSchema: () => insertWebsiteWidgetSchema,
   insertWidgetCallSessionSchema: () => insertWidgetCallSessionSchema,
+  integrationSyncLogs: () => integrationSyncLogs,
   invoices: () => invoices,
   knowledgeBase: () => knowledgeBase,
   knowledgeChunks: () => knowledgeChunks,
@@ -163,6 +178,7 @@ __export(schema_exports, {
   promptTemplates: () => promptTemplates,
   refreshTokens: () => refreshTokens,
   refunds: () => refunds,
+  scheduledCallbacks: () => scheduledCallbacks,
   seoSettings: () => seoSettings,
   sipCalls: () => sipCalls,
   sipPhoneNumbers: () => sipPhoneNumbers,
@@ -175,6 +191,7 @@ __export(schema_exports, {
   usageRecords: () => usageRecords,
   userAddresses: () => userAddresses,
   userFeedback: () => userFeedback,
+  userIntegrations: () => userIntegrations,
   userKnowledgeStorageLimits: () => userKnowledgeStorageLimits,
   userKycDocuments: () => userKycDocuments,
   userSubscriptions: () => userSubscriptions,
@@ -191,6 +208,14 @@ import { sql } from "drizzle-orm";
 import { pgTable, text, varchar, integer, timestamp, boolean, jsonb, decimal, doublePrecision, serial, date, time, unique, uniqueIndex, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+function isValidTimeZone(tz) {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
 function determineAICategory(lead) {
   if (lead.hasAppointment) return AI_LEAD_CATEGORIES.APPOINTMENT_BOOKED;
   if (lead.hasFormSubmission) return AI_LEAD_CATEGORIES.FORM_SUBMITTED;
@@ -203,7 +228,7 @@ function determineAICategory(lead) {
   if (lead.sentiment === "positive") return AI_LEAD_CATEGORIES.WARM;
   return null;
 }
-var users, otpVerifications, refreshTokens, elevenLabsCredentials, syncedVoices, agents, knowledgeBase, incomingAgents, phoneNumbers, incomingConnections, campaigns, contacts, calls, creditTransactions, tools, voices, plans, globalSettings, llmModels, supportedLanguages, creditPackages, userSubscriptions, phoneNumberRentals, usageRecords, legacyWebhooks, legacyWebhookDeliveries, notifications, emailTemplates, promptTemplates, agentVersions, auditLogs, platformLanguages, insertUserSchema, insertElevenLabsCredentialSchema, insertSyncedVoiceSchema, insertAgentSchema, insertKnowledgeBaseSchema, insertIncomingAgentSchema, insertPromptTemplateSchema, insertAgentVersionSchema, insertIncomingConnectionSchema, insertCampaignSchema, insertContactSchema, insertCallSchema, insertCreditTransactionSchema, insertToolSchema, insertVoiceSchema, insertPlanSchema, insertGlobalSettingsSchema, insertLlmModelSchema, insertSupportedLanguageSchema, insertPlatformLanguageSchema, insertCreditPackageSchema, insertUserSubscriptionSchema, insertPhoneNumberSchema, insertUsageRecordSchema, insertLegacyWebhookSchema, insertLegacyWebhookDeliverySchema, insertPhoneNumberRentalSchema, insertNotificationSchema, insertEmailTemplateSchema, twilioCountries, insertTwilioCountrySchema, userKnowledgeStorageLimits, knowledgeChunks, knowledgeProcessingQueue, insertUserKnowledgeStorageLimitSchema, insertKnowledgeChunkSchema, insertKnowledgeProcessingQueueSchema, flows, insertFlowSchema, createFlowSchema, flowExecutions, insertFlowExecutionSchema, flowTestQueue, insertFlowTestQueueSchema, webhookSubscriptions, webhooks, insertWebhookSchema, createWebhookSchema, webhookDeliveryLogs, webhookLogs, insertWebhookLogSchema, appointments, insertAppointmentSchema, createAppointmentSchema, appointmentSettings, insertAppointmentSettingsSchema, createAppointmentSettingsSchema, forms, insertFormSchema, createFormSchema, formFields, insertFormFieldSchema, formSubmissions, insertFormSubmissionSchema, seoSettings, insertSeoSettingsSchema, analyticsScripts, insertAnalyticsScriptSchema, paymentTransactions, insertPaymentTransactionSchema, refunds, insertRefundSchema, invoices, insertInvoiceSchema, paymentWebhookQueue, insertPaymentWebhookQueueSchema, emailNotificationSettings, insertEmailNotificationSettingsSchema, bannedWords, insertBannedWordSchema, contentViolations, insertContentViolationSchema, openaiCredentials, insertOpenaiCredentialSchema, plivoCredentials, insertPlivoCredentialSchema, plivoPhoneNumbers, insertPlivoPhoneNumberSchema, plivoCalls, insertPlivoCallSchema, campaignJobs, insertCampaignJobSchema, plivoPhonePricing, insertPlivoPhonePricingSchema, userKycDocuments, insertUserKycDocumentSchema, twilioOpenaiCalls, insertTwilioOpenaiCallSchema, demoSessions, insertDemoSessionSchema, leadStages, insertLeadStageSchema, leads, insertLeadSchema, AI_LEAD_CATEGORIES, AI_CATEGORY_LABELS, AI_CATEGORY_COLORS, AI_CATEGORY_PRIORITY, leadNotes, insertLeadNoteSchema, leadActivities, insertLeadActivitySchema, crmCategoryPreferences, insertCrmCategoryPreferencesSchema, websiteWidgets, insertWebsiteWidgetSchema, widgetCallSessions, insertWidgetCallSessionSchema, API_SCOPES, apiKeys, insertApiKeySchema, apiAuditLogs, insertApiAuditLogSchema, apiRateLimits, sipTrunks, insertSipTrunkSchema, sipPhoneNumbers, insertSipPhoneNumberSchema, sipCalls, insertSipCallSchema, userAddresses, insertUserAddressSchema, userFeedback, insertUserFeedbackSchema, googleCalendarCredentials, insertGoogleCalendarCredentialSchema, googleSheetsCredentials, insertGoogleSheetsCredentialSchema, phoneReleaseRetryQueue, insertPhoneReleaseRetryQueueSchema, notificationEvents, insertNotificationEventSchema;
+var users, otpVerifications, refreshTokens, elevenLabsCredentials, syncedVoices, agents, knowledgeBase, incomingAgents, phoneNumbers, incomingConnections, campaigns, contacts, calls, creditTransactions, tools, voices, plans, globalSettings, llmModels, supportedLanguages, creditPackages, userSubscriptions, phoneNumberRentals, usageRecords, legacyWebhooks, legacyWebhookDeliveries, notifications, emailTemplates, promptTemplates, agentVersions, auditLogs, platformLanguages, insertUserSchema, insertElevenLabsCredentialSchema, insertSyncedVoiceSchema, insertAgentSchema, insertKnowledgeBaseSchema, insertIncomingAgentSchema, insertPromptTemplateSchema, insertAgentVersionSchema, insertIncomingConnectionSchema, insertCampaignSchema, insertContactSchema, insertCallSchema, insertCreditTransactionSchema, insertToolSchema, insertVoiceSchema, insertPlanSchema, insertGlobalSettingsSchema, insertLlmModelSchema, insertSupportedLanguageSchema, insertPlatformLanguageSchema, insertCreditPackageSchema, insertUserSubscriptionSchema, insertPhoneNumberSchema, insertUsageRecordSchema, insertLegacyWebhookSchema, insertLegacyWebhookDeliverySchema, insertPhoneNumberRentalSchema, insertNotificationSchema, insertEmailTemplateSchema, twilioCountries, insertTwilioCountrySchema, userKnowledgeStorageLimits, knowledgeChunks, knowledgeProcessingQueue, insertUserKnowledgeStorageLimitSchema, insertKnowledgeChunkSchema, insertKnowledgeProcessingQueueSchema, AGENT_CALL_OUTCOMES, SYSTEM_CALL_OUTCOMES, CALL_OUTCOMES, FINAL_CALL_OUTCOMES, RETRY_OUTCOMES, RetryRuleSchema, RetryRulesSchema, HHMM_RE, TOOL_NAME_RE, PARAM_NAME_RE, HEADER_KEY_RE, AgentApiToolSchema, OWNER_ALERT_TRIGGERS, OWNER_ALERT_FIELD_RE, EMAIL_LIST_RE, AgentActionsConfigSchema, flows, insertFlowSchema, createFlowSchema, flowExecutions, insertFlowExecutionSchema, flowTestQueue, insertFlowTestQueueSchema, webhookSubscriptions, webhooks, insertWebhookSchema, createWebhookSchema, webhookDeliveryLogs, webhookLogs, insertWebhookLogSchema, appointments, insertAppointmentSchema, createAppointmentSchema, appointmentSettings, insertAppointmentSettingsSchema, createAppointmentSettingsSchema, forms, insertFormSchema, createFormSchema, formFields, insertFormFieldSchema, formSubmissions, insertFormSubmissionSchema, seoSettings, insertSeoSettingsSchema, analyticsScripts, insertAnalyticsScriptSchema, paymentTransactions, insertPaymentTransactionSchema, refunds, insertRefundSchema, invoices, insertInvoiceSchema, paymentWebhookQueue, insertPaymentWebhookQueueSchema, emailNotificationSettings, insertEmailNotificationSettingsSchema, bannedWords, insertBannedWordSchema, contentViolations, insertContentViolationSchema, openaiCredentials, insertOpenaiCredentialSchema, plivoCredentials, insertPlivoCredentialSchema, plivoPhoneNumbers, insertPlivoPhoneNumberSchema, plivoCalls, insertPlivoCallSchema, scheduledCallbacks, insertScheduledCallbackSchema, doNotCallNumbers, insertDoNotCallNumberSchema, campaignJobs, insertCampaignJobSchema, plivoPhonePricing, insertPlivoPhonePricingSchema, userKycDocuments, insertUserKycDocumentSchema, twilioOpenaiCalls, insertTwilioOpenaiCallSchema, demoSessions, insertDemoSessionSchema, leadStages, insertLeadStageSchema, leads, insertLeadSchema, AI_LEAD_CATEGORIES, AI_CATEGORY_LABELS, AI_CATEGORY_COLORS, AI_CATEGORY_PRIORITY, leadNotes, insertLeadNoteSchema, leadActivities, insertLeadActivitySchema, crmCategoryPreferences, insertCrmCategoryPreferencesSchema, websiteWidgets, insertWebsiteWidgetSchema, widgetCallSessions, insertWidgetCallSessionSchema, API_SCOPES, apiKeys, insertApiKeySchema, apiAuditLogs, insertApiAuditLogSchema, apiRateLimits, sipTrunks, insertSipTrunkSchema, sipPhoneNumbers, insertSipPhoneNumberSchema, sipCalls, insertSipCallSchema, userAddresses, insertUserAddressSchema, userFeedback, insertUserFeedbackSchema, googleCalendarCredentials, insertGoogleCalendarCredentialSchema, googleSheetsCredentials, insertGoogleSheetsCredentialSchema, INTEGRATION_PROVIDERS, userIntegrations, insertUserIntegrationSchema, integrationSyncLogs, phoneReleaseRetryQueue, insertPhoneReleaseRetryQueueSchema, notificationEvents, insertNotificationEventSchema;
 var init_schema = __esm({
   "shared/schema.ts"() {
     "use strict";
@@ -571,6 +596,8 @@ var init_schema = __esm({
       // Retry contacts that were busy
       retryOnFailed: boolean("retry_on_failed").default(false),
       // Retry contacts that failed (technical error)
+      // Per-outcome smart retry (no_answer / busy / failed / voicemail); null → derived from the legacy columns above
+      retryRules: jsonb("retry_rules").$type(),
       batchJobHistory: jsonb("batch_job_history").default([]),
       // Array of {batchJobId, pass, contactCount, createdAt}
       currentRetryPass: integer("current_retry_pass").default(0),
@@ -1236,6 +1263,119 @@ var init_schema = __esm({
       createdAt: true,
       updatedAt: true
     });
+    AGENT_CALL_OUTCOMES = [
+      "interested",
+      "not_interested",
+      "callback_requested",
+      "wrong_number",
+      "already_customer",
+      "do_not_call",
+      "no_decision"
+    ];
+    SYSTEM_CALL_OUTCOMES = [
+      "voicemail",
+      "no_answer",
+      "busy",
+      "failed",
+      "transferred",
+      "appointment_booked"
+    ];
+    CALL_OUTCOMES = [
+      { id: "interested", label: "Interested", kind: "agent" },
+      { id: "not_interested", label: "Not interested", kind: "agent" },
+      { id: "callback_requested", label: "Callback requested", kind: "agent" },
+      { id: "wrong_number", label: "Wrong number", kind: "agent" },
+      { id: "already_customer", label: "Already a customer", kind: "agent" },
+      { id: "do_not_call", label: "Do not call", kind: "agent" },
+      { id: "no_decision", label: "No decision", kind: "agent" },
+      { id: "voicemail", label: "Voicemail", kind: "system" },
+      { id: "no_answer", label: "No answer", kind: "system" },
+      { id: "busy", label: "Busy", kind: "system" },
+      { id: "failed", label: "Failed", kind: "system" },
+      { id: "transferred", label: "Transferred", kind: "system" },
+      { id: "appointment_booked", label: "Appointment booked", kind: "system" }
+    ];
+    FINAL_CALL_OUTCOMES = [
+      "do_not_call",
+      "wrong_number",
+      "not_interested",
+      "interested",
+      "appointment_booked",
+      "already_customer"
+    ];
+    RETRY_OUTCOMES = ["no_answer", "busy", "failed", "voicemail"];
+    RetryRuleSchema = z.object({
+      enabled: z.boolean(),
+      delayMinutes: z.number().int().min(5).max(10080),
+      maxAttempts: z.number().int().min(0).max(10)
+    });
+    RetryRulesSchema = z.object({
+      no_answer: RetryRuleSchema,
+      busy: RetryRuleSchema,
+      failed: RetryRuleSchema,
+      voicemail: RetryRuleSchema
+    }).strict();
+    HHMM_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+    TOOL_NAME_RE = /^[a-z0-9_]{2,30}$/;
+    PARAM_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]{0,39}$/;
+    HEADER_KEY_RE = /^[A-Za-z0-9-]{1,64}$/;
+    AgentApiToolSchema = z.object({
+      id: z.string().min(1).max(40),
+      name: z.string().regex(TOOL_NAME_RE, "Tool name must be 2-30 lowercase letters, digits or underscores"),
+      description: z.string().trim().min(1).max(500),
+      url: z.string().trim().max(2e3).refine((u) => /^https:\/\//i.test(u), "URL must start with https://"),
+      method: z.enum(["GET", "POST"]),
+      headers: z.record(z.string().regex(HEADER_KEY_RE), z.string().max(2e3)).optional(),
+      params: z.array(z.object({
+        name: z.string().regex(PARAM_NAME_RE),
+        type: z.enum(["string", "number"]),
+        description: z.string().trim().max(300),
+        required: z.boolean()
+      })).max(10),
+      bodyTemplate: z.string().max(4e3).optional(),
+      responsePath: z.string().max(200).optional(),
+      timeoutMs: z.number().int().min(1e3).max(12e3).optional()
+    }).refine((t) => Object.keys(t.headers || {}).length <= 10, { message: "At most 10 headers" });
+    OWNER_ALERT_TRIGGERS = ["interested", "appointment_booked", "callback_requested", "transferred", "do_not_call", "all"];
+    OWNER_ALERT_FIELD_RE = /^(caller_name|caller_phone|outcome|summary|appointment|callback|agent_name|call_time|duration|call_link|text:[\s\S]{0,200})$/;
+    EMAIL_LIST_RE = /^[^\s@,]+@[^\s@,]+\.[^\s@,]+(\s*,\s*[^\s@,]+@[^\s@,]+\.[^\s@,]+){0,2}$/;
+    AgentActionsConfigSchema = z.object({
+      voicemail: z.object({
+        action: z.enum(["hangup", "leave_message"]),
+        message: z.string().trim().max(400).optional()
+      }).refine((v) => v.action !== "leave_message" || !!v.message?.trim(), { message: "A voicemail message is required", path: ["message"] }).optional(),
+      ownerAlerts: z.object({
+        enabled: z.boolean(),
+        triggers: z.array(z.enum(OWNER_ALERT_TRIGGERS)).max(6),
+        email: z.string().trim().max(320).refine((e) => e === "" || EMAIL_LIST_RE.test(e), "Up to 3 comma-separated email addresses").optional(),
+        whatsappPhone: z.string().trim().max(20).refine((p) => p === "" || /^\+?[\d\s-]{8,20}$/.test(p), "Invalid WhatsApp number").optional(),
+        whatsappTemplate: z.string().trim().max(120).optional(),
+        whatsappVariables: z.record(z.string().regex(/^[1-9]\d{0,2}$/), z.string().max(210).regex(OWNER_ALERT_FIELD_RE, "Unknown field")).optional()
+      }).optional(),
+      appointments: z.object({
+        durationMinutes: z.number().int().min(5).max(240),
+        timeZone: z.string().refine(isValidTimeZone, "Invalid IANA time zone"),
+        workingHours: z.object({
+          start: z.string().regex(HHMM_RE, "Use HH:MM"),
+          end: z.string().regex(HHMM_RE, "Use HH:MM")
+        }).refine((h) => h.start < h.end, { message: "Working hours must end after they start" }),
+        workingDays: z.array(z.number().int().min(0).max(6)).max(7),
+        confirmVia: z.array(z.enum(["whatsapp", "email"])).max(2),
+        serviceName: z.string().trim().max(120).optional()
+      }).optional(),
+      saveLead: z.object({
+        fields: z.array(z.object({
+          key: z.string().regex(PARAM_NAME_RE),
+          label: z.string().trim().min(1).max(80),
+          required: z.boolean()
+        })).max(8)
+      }).optional(),
+      callback: z.object({
+        enabled: z.boolean(),
+        maxDaysAhead: z.number().int().min(1).max(60)
+      }).optional(),
+      apiTools: z.array(AgentApiToolSchema).max(10).optional()
+    }).strict();
     flows = pgTable("flows", {
       id: varchar("id").primaryKey(),
       userId: varchar("user_id").notNull(),
@@ -1949,6 +2089,52 @@ var init_schema = __esm({
       id: true,
       createdAt: true
     });
+    scheduledCallbacks = pgTable("scheduled_callbacks", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+      agentId: varchar("agent_id").references(() => agents.id, { onDelete: "set null" }),
+      sourceCallId: varchar("source_call_id"),
+      // plivo_calls.id of the call that booked it
+      plivoPhoneNumberId: varchar("plivo_phone_number_id"),
+      contactName: text("contact_name"),
+      contactPhone: text("contact_phone").notNull(),
+      reason: text("reason"),
+      scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
+      timeZone: text("time_zone").notNull().default("Asia/Kolkata"),
+      status: text("status").notNull().default("pending"),
+      // pending | calling | completed | failed | cancelled
+      attempts: integer("attempts").notNull().default(0),
+      lastError: text("last_error"),
+      resultCallId: varchar("result_call_id"),
+      createdAt: timestamp("created_at").notNull().defaultNow(),
+      updatedAt: timestamp("updated_at").notNull().defaultNow()
+    }, (table) => ({
+      scheduledCallbacksDueIdx: index("scheduled_callbacks_status_scheduled_at_idx").on(table.status, table.scheduledAt),
+      scheduledCallbacksUserIdx: index("scheduled_callbacks_user_created_idx").on(table.userId, table.createdAt)
+    }));
+    insertScheduledCallbackSchema = createInsertSchema(scheduledCallbacks).omit({
+      id: true,
+      createdAt: true,
+      updatedAt: true
+    });
+    doNotCallNumbers = pgTable("do_not_call_numbers", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+      phone: text("phone").notNull(),
+      // normalised: +<digits>
+      reason: text("reason").notNull().default("manual"),
+      // caller_request | manual | import | complaint
+      source: text("source").notNull().default("manual"),
+      // agent | manual | upload | api
+      callId: varchar("call_id"),
+      // plivo_calls.id when added during a call
+      note: text("note"),
+      createdAt: timestamp("created_at").notNull().defaultNow()
+    }, (table) => ({
+      doNotCallUserPhoneUnique: uniqueIndex("do_not_call_numbers_user_phone_unique").on(table.userId, table.phone),
+      doNotCallUserIdx: index("do_not_call_numbers_user_id_idx").on(table.userId)
+    }));
+    insertDoNotCallNumberSchema = createInsertSchema(doNotCallNumbers).omit({ id: true, createdAt: true });
     campaignJobs = pgTable("campaign_jobs", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
       campaignId: varchar("campaign_id").notNull(),
@@ -2665,6 +2851,53 @@ var init_schema = __esm({
       createdAt: true,
       updatedAt: true
     });
+    INTEGRATION_PROVIDERS = ["gohighlevel", "salesforce", "zoho", "calcom", "zapier", "pabbly"];
+    userIntegrations = pgTable("user_integrations", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+      provider: text("provider").notNull(),
+      // IntegrationProvider
+      status: text("status").notNull().default("connected"),
+      // 'connected' | 'error' | 'disconnected'
+      accessToken: text("access_token"),
+      refreshToken: text("refresh_token"),
+      tokenExpiry: timestamp("token_expiry"),
+      /** Salesforce instance_url / Zoho api_domain / GoHighLevel API base */
+      instanceUrl: text("instance_url"),
+      /** GoHighLevel locationId, Salesforce org id, Zoho org, Cal.com user id */
+      externalAccountId: text("external_account_id"),
+      accountName: text("account_name"),
+      /** Provider options: zapier/pabbly { webhooks:[{url,events[]}] }, calcom { apiKey, eventTypeId, timeZone }, gohighlevel { calendarId }, … */
+      config: jsonb("config").$type(),
+      lastSyncAt: timestamp("last_sync_at"),
+      lastError: text("last_error"),
+      createdAt: timestamp("created_at").notNull().defaultNow(),
+      updatedAt: timestamp("updated_at").notNull().defaultNow()
+    }, (table) => ({
+      userIntegrationsUserProviderIdx: uniqueIndex("user_integrations_user_provider_idx").on(table.userId, table.provider)
+    }));
+    insertUserIntegrationSchema = createInsertSchema(userIntegrations).omit({ id: true, createdAt: true, updatedAt: true });
+    integrationSyncLogs = pgTable("integration_sync_logs", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+      provider: text("provider").notNull(),
+      event: text("event").notNull(),
+      // lead.upserted | appointment.booked | form.submitted | call.completed | test …
+      action: text("action").notNull(),
+      // e.g. 'lead.create', 'contact.upsert', 'booking.create', 'webhook.post'
+      status: text("status").notNull(),
+      // 'success' | 'failed' | 'skipped'
+      /** Local record the push was about (lead id, appointment id, call id) */
+      sourceId: varchar("source_id"),
+      /** Provider-side id (Lead Id, contact id, booking uid, …) */
+      externalId: text("external_id"),
+      error: text("error"),
+      payload: jsonb("payload").$type(),
+      createdAt: timestamp("created_at").notNull().defaultNow()
+    }, (table) => ({
+      integrationSyncLogsUserProviderIdx: index("integration_sync_logs_user_provider_idx").on(table.userId, table.provider, table.createdAt),
+      integrationSyncLogsSourceIdx: index("integration_sync_logs_source_idx").on(table.provider, table.sourceId)
+    }));
     phoneReleaseRetryQueue = pgTable("phone_release_retry_queue", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
       phoneNumberId: varchar("phone_number_id").notNull(),

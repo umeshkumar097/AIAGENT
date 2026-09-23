@@ -3,6 +3,8 @@ import crypto from 'crypto';
 import { whatsAppConversationService } from '../services/whatsapp-conversation.service';
 import { metaWhatsAppAdminService } from '../services/meta-whatsapp-admin.service';
 import { metaWhatsAppService } from '../services/meta-whatsapp.service';
+import { extractMessageContent } from '../services/whatsapp-inbound-parser';
+import { whatsAppAutoReplyService } from '../services/whatsapp-auto-reply.service';
 const router = Router();
 
 function getConversationService() {
@@ -25,87 +27,6 @@ function verifySignature(rawBody: Buffer | string, signatureHeader: string, appS
   } catch {
     return false;
   }
-}
-
-function extractMessageContent(message: any): { content: string; messageType: string; mediaUrl: string | null; mediaMimeType: string | null; metadata: Record<string, any> } {
-  const type = message.type || 'unknown';
-  let content = '';
-  let messageType = type;
-  let mediaUrl: string | null = null;
-  let mediaMimeType: string | null = null;
-  let metadata: Record<string, any> = {};
-
-  switch (type) {
-    case 'text':
-      content = message.text?.body || '';
-      break;
-    case 'image':
-      content = message.image?.caption || '[Image]';
-      mediaUrl = message.image?.id || null;
-      mediaMimeType = message.image?.mime_type || 'image/jpeg';
-      metadata = { mediaId: message.image?.id, sha256: message.image?.sha256 };
-      break;
-    case 'video':
-      content = message.video?.caption || '[Video]';
-      mediaUrl = message.video?.id || null;
-      mediaMimeType = message.video?.mime_type || 'video/mp4';
-      metadata = { mediaId: message.video?.id };
-      break;
-    case 'audio':
-      content = '[Audio]';
-      mediaUrl = message.audio?.id || null;
-      mediaMimeType = message.audio?.mime_type || 'audio/ogg';
-      metadata = { mediaId: message.audio?.id };
-      break;
-    case 'document':
-      content = message.document?.filename || '[Document]';
-      mediaUrl = message.document?.id || null;
-      mediaMimeType = message.document?.mime_type || 'application/octet-stream';
-      metadata = { mediaId: message.document?.id, filename: message.document?.filename };
-      break;
-    case 'sticker':
-      content = '[Sticker]';
-      mediaUrl = message.sticker?.id || null;
-      mediaMimeType = message.sticker?.mime_type || 'image/webp';
-      metadata = { mediaId: message.sticker?.id };
-      break;
-    case 'reaction':
-      content = message.reaction?.emoji || '';
-      messageType = 'reaction';
-      metadata = { reactedMessageId: message.reaction?.message_id };
-      break;
-    case 'button':
-      content = message.button?.text || '';
-      messageType = 'button';
-      metadata = { payload: message.button?.payload };
-      break;
-    case 'interactive':
-      if (message.interactive?.type === 'button_reply') {
-        content = message.interactive.button_reply?.title || '';
-        metadata = { buttonId: message.interactive.button_reply?.id };
-      } else if (message.interactive?.type === 'list_reply') {
-        content = message.interactive.list_reply?.title || '';
-        metadata = { listId: message.interactive.list_reply?.id, description: message.interactive.list_reply?.description };
-      } else {
-        content = '[Interactive]';
-      }
-      break;
-    case 'location':
-      content = `[Location: ${message.location?.latitude}, ${message.location?.longitude}]`;
-      metadata = { latitude: message.location?.latitude, longitude: message.location?.longitude, name: message.location?.name, address: message.location?.address };
-      break;
-    case 'contacts':
-      const firstContact = message.contacts?.[0];
-      content = firstContact?.name?.formatted_name || '[Contact]';
-      metadata = { contacts: message.contacts };
-      messageType = 'contacts';
-      break;
-    default:
-      content = `[${type}]`;
-      messageType = 'unknown';
-  }
-
-  return { content, messageType, mediaUrl, mediaMimeType, metadata };
 }
 
 router.get('/webhook', async (req: Request, res: Response) => {
@@ -231,18 +152,19 @@ async function processInboundMessages(value: any): Promise<void> {
         continue;
       }
 
-      const conversation = await convService.getOrCreateConversation(
+      let conversation = await convService.getOrCreateConversation(
         userId,
         message.from,
         contactName,
         contactWaId
       );
+      conversation = await whatsAppAutoReplyService.applyUserDefaults(userId, conversation);
 
       await convService.refreshWindow(conversation.id);
 
       const { content, messageType, mediaUrl, mediaMimeType, metadata } = extractMessageContent(message);
 
-      await convService.addMessage({
+      const stored = await convService.addMessage({
         conversationId: conversation.id,
         userId,
         direction: 'inbound',
@@ -258,6 +180,10 @@ async function processInboundMessages(value: any): Promise<void> {
       meta.markMessageRead(userId, message.id).catch(() => {});
 
       console.log(`[Meta Webhook] Inbound message from ${message.from} stored (${message.id})`);
+
+      const tsSeconds = Number(message.timestamp);
+      const receivedAt = Number.isFinite(tsSeconds) && tsSeconds > 0 ? new Date(tsSeconds * 1000) : new Date();
+      void whatsAppAutoReplyService.handleInbound({ userId, conversation, message: stored, provider: 'meta', receivedAt });
     } catch (error: any) {
       console.error(`[Meta Webhook] Error processing message ${message.id}:`, error.message);
     }

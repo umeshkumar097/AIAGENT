@@ -78,6 +78,7 @@ interface Conversation {
   status: string;
   autoReplyEnabled: boolean;
   assignedAgentId: string | null;
+  needsAttention?: boolean;
   windowExpiresAt: string | null;
   unreadCount: number;
   lastMessageAt: string;
@@ -687,9 +688,11 @@ export default function WhatsAppConversationsPage() {
   });
 
   const updateConvMutation = useMutation({
-    mutationFn: async (data: { status?: string; autoReplyEnabled?: boolean; assignedAgentId?: string | null }) => {
+    mutationFn: async (data: { status?: string; autoReplyEnabled?: boolean; assignedAgentId?: string | null; needsAttention?: boolean }) => {
       const res = await apiRequest("PATCH", `/api/messaging/conversations/${selectedId}`, data);
-      return res.json();
+      const json = await res.json();
+      if (json && json.success === false) throw new Error(json.error || "Update failed");
+      return json;
     },
     onSuccess: () => {
       toast({ title: "Conversation updated" });
@@ -895,11 +898,22 @@ export default function WhatsAppConversationsPage() {
                       <p className={`text-xs truncate ${hasUnread ? 'text-foreground font-medium' : 'text-muted-foreground'}`} data-testid={`text-conv-preview-${conv.id}`}>
                         {conv.lastMessagePreview || "No messages"}
                       </p>
-                      {hasUnread && (
-                        <span className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-green-500 text-white text-xs font-medium flex items-center justify-center" data-testid={`badge-conv-unread-${conv.id}`}>
-                          {conv.unreadCount}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-1 shrink-0">
+                        {conv.needsAttention && (
+                          <span className="h-5 px-1.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 text-[10px] font-medium flex items-center gap-0.5" title="Customer asked for a human" data-testid={`badge-conv-attention-${conv.id}`}>
+                            <AlertTriangle className="w-3 h-3" />
+                            Needs you
+                          </span>
+                        )}
+                        {!conv.needsAttention && conv.autoReplyEnabled && (
+                          <Bot className="w-3.5 h-3.5 text-[#06cf9c]" aria-label="AI auto-reply on" data-testid={`icon-conv-bot-${conv.id}`} />
+                        )}
+                        {hasUnread && (
+                          <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-green-500 text-white text-xs font-medium flex items-center justify-center" data-testid={`badge-conv-unread-${conv.id}`}>
+                            {conv.unreadCount}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -949,6 +963,26 @@ export default function WhatsAppConversationsPage() {
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
+                {selected.needsAttention && (
+                  <Badge
+                    variant="outline"
+                    className="text-xs border-amber-500/30 text-amber-700 dark:text-amber-400 bg-amber-500/10"
+                    data-testid="badge-chat-attention"
+                  >
+                    <AlertTriangle className="w-3 h-3 mr-1" />
+                    Needs a human
+                  </Badge>
+                )}
+                {!selected.needsAttention && selected.autoReplyEnabled && (
+                  <Badge
+                    variant="outline"
+                    className="text-xs border-[#06cf9c]/40 text-[#0b8f6c] dark:text-[#06cf9c] bg-[#06cf9c]/10"
+                    data-testid="badge-chat-auto-reply"
+                  >
+                    <Bot className="w-3 h-3 mr-1" />
+                    AI replying
+                  </Badge>
+                )}
                 <Badge
                   variant="outline"
                   className={`text-xs ${windowState.open
@@ -967,6 +1001,54 @@ export default function WhatsAppConversationsPage() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent align="end" className="w-72 space-y-3">
+                    <div className="space-y-2" data-testid="section-auto-reply">
+                      <div className="flex items-center justify-between gap-2">
+                        <Label htmlFor="conv-auto-reply" className="text-sm flex items-center gap-1.5">
+                          <Bot className="w-4 h-4 text-[#06cf9c]" />
+                          Auto-reply with agent
+                        </Label>
+                        <Switch
+                          id="conv-auto-reply"
+                          checked={selected.autoReplyEnabled}
+                          disabled={updateConvMutation.isPending || (!selected.autoReplyEnabled && !selected.assignedAgentId && agents.length === 0)}
+                          onCheckedChange={(checked) => {
+                            const agentId = selected.assignedAgentId || agents[0]?.id || null;
+                            if (checked && !agentId) {
+                              toast({ title: "Create an agent first", variant: "destructive" });
+                              return;
+                            }
+                            updateConvMutation.mutate({ autoReplyEnabled: checked, assignedAgentId: agentId });
+                          }}
+                          data-testid="switch-conv-auto-reply"
+                        />
+                      </div>
+                      <Select
+                        value={selected.assignedAgentId || ""}
+                        onValueChange={(value) => updateConvMutation.mutate({ autoReplyEnabled: selected.autoReplyEnabled, assignedAgentId: value })}
+                        disabled={agents.length === 0}
+                      >
+                        <SelectTrigger className="h-8 text-xs" data-testid="select-conv-agent">
+                          <SelectValue placeholder={agents.length === 0 ? "No agents yet" : "Choose an agent"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {agents.map((agent) => (
+                            <SelectItem key={agent.id} value={agent.id}>{agent.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {selected.needsAttention && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full border-amber-500/40"
+                          onClick={() => updateConvMutation.mutate({ needsAttention: false })}
+                          data-testid="button-conv-mark-handled"
+                        >
+                          <AlertTriangle className="w-3.5 h-3.5 mr-1.5 text-amber-600" />
+                          Mark as handled
+                        </Button>
+                      )}
+                    </div>
                     <div>
                       {selected.status === 'active' ? (
                         <Button

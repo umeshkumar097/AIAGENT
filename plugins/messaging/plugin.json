@@ -2,7 +2,7 @@
   "name": "messaging",
   "displayName": "Messaging Plugin",
   "version": "1.0.3",
-  "description": "Email and WhatsApp messaging integration for AI agents. Emails go out through the platform email system (Resend/SMTP) and WhatsApp template messages through Waki, during or after calls.",
+  "description": "Email and WhatsApp messaging integration for AI agents. Emails go out through the platform email system (Resend/SMTP), WhatsApp template messages through Waki, and inbound WhatsApp chats are answered by the assigned agent (OpenAI + knowledge base) with human handoff.",
   "author": "AgentLabs",
   "license": "Commercial",
   "homepage": "https://agentlabs.io/plugins/messaging",
@@ -18,7 +18,8 @@
       "migrations/002_meta_whatsapp.sql",
       "migrations/003_whatsapp_conversations.sql",
       "migrations/004_logs_content.sql",
-      "migrations/005_design_json_and_meta.sql"
+      "migrations/005_design_json_and_meta.sql",
+      "migrations/006_auto_reply.sql"
     ],
     "tables": [
       "user_email_templates",
@@ -28,7 +29,8 @@
       "whatsapp_conversations",
       "whatsapp_messages",
       "meta_whatsapp_admin_config",
-      "messaging_plugin_meta"
+      "messaging_plugin_meta",
+      "whatsapp_auto_reply_settings"
     ]
   },
   "routes": {
@@ -50,6 +52,10 @@
         "description": "WhatsApp conversation inbox (user auth)"
       },
       {
+        "path": "/api/messaging/auto-reply",
+        "description": "WhatsApp AI auto-reply defaults + inbound webhook secret (user auth)"
+      },
+      {
         "path": "/api/messaging/logs",
         "description": "Messaging logs"
       },
@@ -68,6 +74,10 @@
       {
         "path": "/api/webhooks/messaging/meta/webhook",
         "description": "Meta WhatsApp Cloud API inbound webhook"
+      },
+      {
+        "path": "/api/webhooks/messaging/waki/:secret",
+        "description": "Waki (WhatsWay-compatible) inbound WhatsApp webhook"
       }
     ]
   },

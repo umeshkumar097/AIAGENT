@@ -118,10 +118,26 @@ export interface WhatsAppConversation {
   status: ConversationStatus;
   assignedAgentId: string | null;
   autoReplyEnabled: boolean;
+  /** Set on AI handoff; cleared by the user from the inbox. */
+  needsAttention: boolean;
+  /** Inbound message id the last AI reply answered (one AI reply per inbound message). */
+  lastAiReplySourceId: string | null;
   windowExpiresAt: Date | null;
   unreadCount: number;
   lastMessageAt: Date;
   lastMessagePreview: string;
+  createdAt: Date;
+  updatedAt: Date;
+  /** True when the upsert inserted the row (first message from this contact). */
+  isNew?: boolean;
+}
+
+/** User-level WhatsApp auto-reply defaults (whatsapp_auto_reply_settings). */
+export interface WhatsAppAutoReplySettings {
+  userId: string;
+  defaultWhatsappAgentId: string | null;
+  whatsappAutoReplyDefault: boolean;
+  webhookSecret: string;
   createdAt: Date;
   updatedAt: Date;
 }

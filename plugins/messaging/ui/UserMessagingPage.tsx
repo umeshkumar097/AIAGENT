@@ -40,6 +40,7 @@ import {
   Info,
 } from "lucide-react";
 import UnlayerEmailEditor, { type UnlayerEditorHandle } from "./UnlayerEmailEditor";
+import AutoReplySettingsCard from "./AutoReplySettingsCard";
 
 const apiRequest = (typeof window !== 'undefined' && (window as any).apiRequest)
   ? (window as any).apiRequest
@@ -972,6 +973,8 @@ export default function UserMessagingPage() {
         </TabsContent>
 
         <TabsContent value="whatsapp" className="space-y-4">
+          <AutoReplySettingsCard />
+
           {/* Provider selector — only when Meta is genuinely available next to Waki */}
           {showProviderSelector && (
           <div className="flex items-center gap-2 flex-wrap">

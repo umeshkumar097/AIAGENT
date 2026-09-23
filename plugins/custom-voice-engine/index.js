@@ -11,11 +11,21 @@ var __export = (target, all) => {
 // shared/schema.ts
 var schema_exports = {};
 __export(schema_exports, {
+  AGENT_CALL_OUTCOMES: () => AGENT_CALL_OUTCOMES,
   AI_CATEGORY_COLORS: () => AI_CATEGORY_COLORS,
   AI_CATEGORY_LABELS: () => AI_CATEGORY_LABELS,
   AI_CATEGORY_PRIORITY: () => AI_CATEGORY_PRIORITY,
   AI_LEAD_CATEGORIES: () => AI_LEAD_CATEGORIES,
   API_SCOPES: () => API_SCOPES,
+  AgentActionsConfigSchema: () => AgentActionsConfigSchema,
+  AgentApiToolSchema: () => AgentApiToolSchema,
+  CALL_OUTCOMES: () => CALL_OUTCOMES,
+  FINAL_CALL_OUTCOMES: () => FINAL_CALL_OUTCOMES,
+  INTEGRATION_PROVIDERS: () => INTEGRATION_PROVIDERS,
+  RETRY_OUTCOMES: () => RETRY_OUTCOMES,
+  RetryRuleSchema: () => RetryRuleSchema,
+  RetryRulesSchema: () => RetryRulesSchema,
+  SYSTEM_CALL_OUTCOMES: () => SYSTEM_CALL_OUTCOMES,
   agentVersions: () => agentVersions,
   agents: () => agents,
   analyticsScripts: () => analyticsScripts,
@@ -41,6 +51,7 @@ __export(schema_exports, {
   crmCategoryPreferences: () => crmCategoryPreferences,
   demoSessions: () => demoSessions,
   determineAICategory: () => determineAICategory,
+  doNotCallNumbers: () => doNotCallNumbers,
   elevenLabsCredentials: () => elevenLabsCredentials,
   emailNotificationSettings: () => emailNotificationSettings,
   emailTemplates: () => emailTemplates,
@@ -72,6 +83,7 @@ __export(schema_exports, {
   insertCreditTransactionSchema: () => insertCreditTransactionSchema,
   insertCrmCategoryPreferencesSchema: () => insertCrmCategoryPreferencesSchema,
   insertDemoSessionSchema: () => insertDemoSessionSchema,
+  insertDoNotCallNumberSchema: () => insertDoNotCallNumberSchema,
   insertElevenLabsCredentialSchema: () => insertElevenLabsCredentialSchema,
   insertEmailNotificationSettingsSchema: () => insertEmailNotificationSettingsSchema,
   insertEmailTemplateSchema: () => insertEmailTemplateSchema,
@@ -113,6 +125,7 @@ __export(schema_exports, {
   insertPlivoPhonePricingSchema: () => insertPlivoPhonePricingSchema,
   insertPromptTemplateSchema: () => insertPromptTemplateSchema,
   insertRefundSchema: () => insertRefundSchema,
+  insertScheduledCallbackSchema: () => insertScheduledCallbackSchema,
   insertSeoSettingsSchema: () => insertSeoSettingsSchema,
   insertSipCallSchema: () => insertSipCallSchema,
   insertSipPhoneNumberSchema: () => insertSipPhoneNumberSchema,
@@ -125,6 +138,7 @@ __export(schema_exports, {
   insertUsageRecordSchema: () => insertUsageRecordSchema,
   insertUserAddressSchema: () => insertUserAddressSchema,
   insertUserFeedbackSchema: () => insertUserFeedbackSchema,
+  insertUserIntegrationSchema: () => insertUserIntegrationSchema,
   insertUserKnowledgeStorageLimitSchema: () => insertUserKnowledgeStorageLimitSchema,
   insertUserKycDocumentSchema: () => insertUserKycDocumentSchema,
   insertUserSchema: () => insertUserSchema,
@@ -134,6 +148,7 @@ __export(schema_exports, {
   insertWebhookSchema: () => insertWebhookSchema,
   insertWebsiteWidgetSchema: () => insertWebsiteWidgetSchema,
   insertWidgetCallSessionSchema: () => insertWidgetCallSessionSchema,
+  integrationSyncLogs: () => integrationSyncLogs,
   invoices: () => invoices,
   knowledgeBase: () => knowledgeBase,
   knowledgeChunks: () => knowledgeChunks,
@@ -163,6 +178,7 @@ __export(schema_exports, {
   promptTemplates: () => promptTemplates,
   refreshTokens: () => refreshTokens,
   refunds: () => refunds,
+  scheduledCallbacks: () => scheduledCallbacks,
   seoSettings: () => seoSettings,
   sipCalls: () => sipCalls,
   sipPhoneNumbers: () => sipPhoneNumbers,
@@ -175,6 +191,7 @@ __export(schema_exports, {
   usageRecords: () => usageRecords,
   userAddresses: () => userAddresses,
   userFeedback: () => userFeedback,
+  userIntegrations: () => userIntegrations,
   userKnowledgeStorageLimits: () => userKnowledgeStorageLimits,
   userKycDocuments: () => userKycDocuments,
   userSubscriptions: () => userSubscriptions,
@@ -191,6 +208,14 @@ import { sql } from "drizzle-orm";
 import { pgTable, text, varchar, integer, timestamp, boolean, jsonb, decimal, doublePrecision, serial, date, time, unique, uniqueIndex, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+function isValidTimeZone(tz) {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
 function determineAICategory(lead) {
   if (lead.hasAppointment) return AI_LEAD_CATEGORIES.APPOINTMENT_BOOKED;
   if (lead.hasFormSubmission) return AI_LEAD_CATEGORIES.FORM_SUBMITTED;
@@ -203,7 +228,7 @@ function determineAICategory(lead) {
   if (lead.sentiment === "positive") return AI_LEAD_CATEGORIES.WARM;
   return null;
 }
-var users, otpVerifications, refreshTokens, elevenLabsCredentials, syncedVoices, agents, knowledgeBase, incomingAgents, phoneNumbers, incomingConnections, campaigns, contacts, calls, creditTransactions, tools, voices, plans, globalSettings, llmModels, supportedLanguages, creditPackages, userSubscriptions, phoneNumberRentals, usageRecords, legacyWebhooks, legacyWebhookDeliveries, notifications, emailTemplates, promptTemplates, agentVersions, auditLogs, platformLanguages, insertUserSchema, insertElevenLabsCredentialSchema, insertSyncedVoiceSchema, insertAgentSchema, insertKnowledgeBaseSchema, insertIncomingAgentSchema, insertPromptTemplateSchema, insertAgentVersionSchema, insertIncomingConnectionSchema, insertCampaignSchema, insertContactSchema, insertCallSchema, insertCreditTransactionSchema, insertToolSchema, insertVoiceSchema, insertPlanSchema, insertGlobalSettingsSchema, insertLlmModelSchema, insertSupportedLanguageSchema, insertPlatformLanguageSchema, insertCreditPackageSchema, insertUserSubscriptionSchema, insertPhoneNumberSchema, insertUsageRecordSchema, insertLegacyWebhookSchema, insertLegacyWebhookDeliverySchema, insertPhoneNumberRentalSchema, insertNotificationSchema, insertEmailTemplateSchema, twilioCountries, insertTwilioCountrySchema, userKnowledgeStorageLimits, knowledgeChunks, knowledgeProcessingQueue, insertUserKnowledgeStorageLimitSchema, insertKnowledgeChunkSchema, insertKnowledgeProcessingQueueSchema, flows, insertFlowSchema, createFlowSchema, flowExecutions, insertFlowExecutionSchema, flowTestQueue, insertFlowTestQueueSchema, webhookSubscriptions, webhooks, insertWebhookSchema, createWebhookSchema, webhookDeliveryLogs, webhookLogs, insertWebhookLogSchema, appointments, insertAppointmentSchema, createAppointmentSchema, appointmentSettings, insertAppointmentSettingsSchema, createAppointmentSettingsSchema, forms, insertFormSchema, createFormSchema, formFields, insertFormFieldSchema, formSubmissions, insertFormSubmissionSchema, seoSettings, insertSeoSettingsSchema, analyticsScripts, insertAnalyticsScriptSchema, paymentTransactions, insertPaymentTransactionSchema, refunds, insertRefundSchema, invoices, insertInvoiceSchema, paymentWebhookQueue, insertPaymentWebhookQueueSchema, emailNotificationSettings, insertEmailNotificationSettingsSchema, bannedWords, insertBannedWordSchema, contentViolations, insertContentViolationSchema, openaiCredentials, insertOpenaiCredentialSchema, plivoCredentials, insertPlivoCredentialSchema, plivoPhoneNumbers, insertPlivoPhoneNumberSchema, plivoCalls, insertPlivoCallSchema, campaignJobs, insertCampaignJobSchema, plivoPhonePricing, insertPlivoPhonePricingSchema, userKycDocuments, insertUserKycDocumentSchema, twilioOpenaiCalls, insertTwilioOpenaiCallSchema, demoSessions, insertDemoSessionSchema, leadStages, insertLeadStageSchema, leads, insertLeadSchema, AI_LEAD_CATEGORIES, AI_CATEGORY_LABELS, AI_CATEGORY_COLORS, AI_CATEGORY_PRIORITY, leadNotes, insertLeadNoteSchema, leadActivities, insertLeadActivitySchema, crmCategoryPreferences, insertCrmCategoryPreferencesSchema, websiteWidgets, insertWebsiteWidgetSchema, widgetCallSessions, insertWidgetCallSessionSchema, API_SCOPES, apiKeys, insertApiKeySchema, apiAuditLogs, insertApiAuditLogSchema, apiRateLimits, sipTrunks, insertSipTrunkSchema, sipPhoneNumbers, insertSipPhoneNumberSchema, sipCalls, insertSipCallSchema, userAddresses, insertUserAddressSchema, userFeedback, insertUserFeedbackSchema, googleCalendarCredentials, insertGoogleCalendarCredentialSchema, googleSheetsCredentials, insertGoogleSheetsCredentialSchema, phoneReleaseRetryQueue, insertPhoneReleaseRetryQueueSchema, notificationEvents, insertNotificationEventSchema;
+var users, otpVerifications, refreshTokens, elevenLabsCredentials, syncedVoices, agents, knowledgeBase, incomingAgents, phoneNumbers, incomingConnections, campaigns, contacts, calls, creditTransactions, tools, voices, plans, globalSettings, llmModels, supportedLanguages, creditPackages, userSubscriptions, phoneNumberRentals, usageRecords, legacyWebhooks, legacyWebhookDeliveries, notifications, emailTemplates, promptTemplates, agentVersions, auditLogs, platformLanguages, insertUserSchema, insertElevenLabsCredentialSchema, insertSyncedVoiceSchema, insertAgentSchema, insertKnowledgeBaseSchema, insertIncomingAgentSchema, insertPromptTemplateSchema, insertAgentVersionSchema, insertIncomingConnectionSchema, insertCampaignSchema, insertContactSchema, insertCallSchema, insertCreditTransactionSchema, insertToolSchema, insertVoiceSchema, insertPlanSchema, insertGlobalSettingsSchema, insertLlmModelSchema, insertSupportedLanguageSchema, insertPlatformLanguageSchema, insertCreditPackageSchema, insertUserSubscriptionSchema, insertPhoneNumberSchema, insertUsageRecordSchema, insertLegacyWebhookSchema, insertLegacyWebhookDeliverySchema, insertPhoneNumberRentalSchema, insertNotificationSchema, insertEmailTemplateSchema, twilioCountries, insertTwilioCountrySchema, userKnowledgeStorageLimits, knowledgeChunks, knowledgeProcessingQueue, insertUserKnowledgeStorageLimitSchema, insertKnowledgeChunkSchema, insertKnowledgeProcessingQueueSchema, AGENT_CALL_OUTCOMES, SYSTEM_CALL_OUTCOMES, CALL_OUTCOMES, FINAL_CALL_OUTCOMES, RETRY_OUTCOMES, RetryRuleSchema, RetryRulesSchema, HHMM_RE, TOOL_NAME_RE, PARAM_NAME_RE, HEADER_KEY_RE, AgentApiToolSchema, OWNER_ALERT_TRIGGERS, OWNER_ALERT_FIELD_RE, EMAIL_LIST_RE, AgentActionsConfigSchema, flows, insertFlowSchema, createFlowSchema, flowExecutions, insertFlowExecutionSchema, flowTestQueue, insertFlowTestQueueSchema, webhookSubscriptions, webhooks, insertWebhookSchema, createWebhookSchema, webhookDeliveryLogs, webhookLogs, insertWebhookLogSchema, appointments, insertAppointmentSchema, createAppointmentSchema, appointmentSettings, insertAppointmentSettingsSchema, createAppointmentSettingsSchema, forms, insertFormSchema, createFormSchema, formFields, insertFormFieldSchema, formSubmissions, insertFormSubmissionSchema, seoSettings, insertSeoSettingsSchema, analyticsScripts, insertAnalyticsScriptSchema, paymentTransactions, insertPaymentTransactionSchema, refunds, insertRefundSchema, invoices, insertInvoiceSchema, paymentWebhookQueue, insertPaymentWebhookQueueSchema, emailNotificationSettings, insertEmailNotificationSettingsSchema, bannedWords, insertBannedWordSchema, contentViolations, insertContentViolationSchema, openaiCredentials, insertOpenaiCredentialSchema, plivoCredentials, insertPlivoCredentialSchema, plivoPhoneNumbers, insertPlivoPhoneNumberSchema, plivoCalls, insertPlivoCallSchema, scheduledCallbacks, insertScheduledCallbackSchema, doNotCallNumbers, insertDoNotCallNumberSchema, campaignJobs, insertCampaignJobSchema, plivoPhonePricing, insertPlivoPhonePricingSchema, userKycDocuments, insertUserKycDocumentSchema, twilioOpenaiCalls, insertTwilioOpenaiCallSchema, demoSessions, insertDemoSessionSchema, leadStages, insertLeadStageSchema, leads, insertLeadSchema, AI_LEAD_CATEGORIES, AI_CATEGORY_LABELS, AI_CATEGORY_COLORS, AI_CATEGORY_PRIORITY, leadNotes, insertLeadNoteSchema, leadActivities, insertLeadActivitySchema, crmCategoryPreferences, insertCrmCategoryPreferencesSchema, websiteWidgets, insertWebsiteWidgetSchema, widgetCallSessions, insertWidgetCallSessionSchema, API_SCOPES, apiKeys, insertApiKeySchema, apiAuditLogs, insertApiAuditLogSchema, apiRateLimits, sipTrunks, insertSipTrunkSchema, sipPhoneNumbers, insertSipPhoneNumberSchema, sipCalls, insertSipCallSchema, userAddresses, insertUserAddressSchema, userFeedback, insertUserFeedbackSchema, googleCalendarCredentials, insertGoogleCalendarCredentialSchema, googleSheetsCredentials, insertGoogleSheetsCredentialSchema, INTEGRATION_PROVIDERS, userIntegrations, insertUserIntegrationSchema, integrationSyncLogs, phoneReleaseRetryQueue, insertPhoneReleaseRetryQueueSchema, notificationEvents, insertNotificationEventSchema;
 var init_schema = __esm({
   "shared/schema.ts"() {
     "use strict";
@@ -571,6 +596,8 @@ var init_schema = __esm({
       // Retry contacts that were busy
       retryOnFailed: boolean("retry_on_failed").default(false),
       // Retry contacts that failed (technical error)
+      // Per-outcome smart retry (no_answer / busy / failed / voicemail); null → derived from the legacy columns above
+      retryRules: jsonb("retry_rules").$type(),
       batchJobHistory: jsonb("batch_job_history").default([]),
       // Array of {batchJobId, pass, contactCount, createdAt}
       currentRetryPass: integer("current_retry_pass").default(0),
@@ -1236,6 +1263,119 @@ var init_schema = __esm({
       createdAt: true,
       updatedAt: true
     });
+    AGENT_CALL_OUTCOMES = [
+      "interested",
+      "not_interested",
+      "callback_requested",
+      "wrong_number",
+      "already_customer",
+      "do_not_call",
+      "no_decision"
+    ];
+    SYSTEM_CALL_OUTCOMES = [
+      "voicemail",
+      "no_answer",
+      "busy",
+      "failed",
+      "transferred",
+      "appointment_booked"
+    ];
+    CALL_OUTCOMES = [
+      { id: "interested", label: "Interested", kind: "agent" },
+      { id: "not_interested", label: "Not interested", kind: "agent" },
+      { id: "callback_requested", label: "Callback requested", kind: "agent" },
+      { id: "wrong_number", label: "Wrong number", kind: "agent" },
+      { id: "already_customer", label: "Already a customer", kind: "agent" },
+      { id: "do_not_call", label: "Do not call", kind: "agent" },
+      { id: "no_decision", label: "No decision", kind: "agent" },
+      { id: "voicemail", label: "Voicemail", kind: "system" },
+      { id: "no_answer", label: "No answer", kind: "system" },
+      { id: "busy", label: "Busy", kind: "system" },
+      { id: "failed", label: "Failed", kind: "system" },
+      { id: "transferred", label: "Transferred", kind: "system" },
+      { id: "appointment_booked", label: "Appointment booked", kind: "system" }
+    ];
+    FINAL_CALL_OUTCOMES = [
+      "do_not_call",
+      "wrong_number",
+      "not_interested",
+      "interested",
+      "appointment_booked",
+      "already_customer"
+    ];
+    RETRY_OUTCOMES = ["no_answer", "busy", "failed", "voicemail"];
+    RetryRuleSchema = z.object({
+      enabled: z.boolean(),
+      delayMinutes: z.number().int().min(5).max(10080),
+      maxAttempts: z.number().int().min(0).max(10)
+    });
+    RetryRulesSchema = z.object({
+      no_answer: RetryRuleSchema,
+      busy: RetryRuleSchema,
+      failed: RetryRuleSchema,
+      voicemail: RetryRuleSchema
+    }).strict();
+    HHMM_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+    TOOL_NAME_RE = /^[a-z0-9_]{2,30}$/;
+    PARAM_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]{0,39}$/;
+    HEADER_KEY_RE = /^[A-Za-z0-9-]{1,64}$/;
+    AgentApiToolSchema = z.object({
+      id: z.string().min(1).max(40),
+      name: z.string().regex(TOOL_NAME_RE, "Tool name must be 2-30 lowercase letters, digits or underscores"),
+      description: z.string().trim().min(1).max(500),
+      url: z.string().trim().max(2e3).refine((u) => /^https:\/\//i.test(u), "URL must start with https://"),
+      method: z.enum(["GET", "POST"]),
+      headers: z.record(z.string().regex(HEADER_KEY_RE), z.string().max(2e3)).optional(),
+      params: z.array(z.object({
+        name: z.string().regex(PARAM_NAME_RE),
+        type: z.enum(["string", "number"]),
+        description: z.string().trim().max(300),
+        required: z.boolean()
+      })).max(10),
+      bodyTemplate: z.string().max(4e3).optional(),
+      responsePath: z.string().max(200).optional(),
+      timeoutMs: z.number().int().min(1e3).max(12e3).optional()
+    }).refine((t) => Object.keys(t.headers || {}).length <= 10, { message: "At most 10 headers" });
+    OWNER_ALERT_TRIGGERS = ["interested", "appointment_booked", "callback_requested", "transferred", "do_not_call", "all"];
+    OWNER_ALERT_FIELD_RE = /^(caller_name|caller_phone|outcome|summary|appointment|callback|agent_name|call_time|duration|call_link|text:[\s\S]{0,200})$/;
+    EMAIL_LIST_RE = /^[^\s@,]+@[^\s@,]+\.[^\s@,]+(\s*,\s*[^\s@,]+@[^\s@,]+\.[^\s@,]+){0,2}$/;
+    AgentActionsConfigSchema = z.object({
+      voicemail: z.object({
+        action: z.enum(["hangup", "leave_message"]),
+        message: z.string().trim().max(400).optional()
+      }).refine((v) => v.action !== "leave_message" || !!v.message?.trim(), { message: "A voicemail message is required", path: ["message"] }).optional(),
+      ownerAlerts: z.object({
+        enabled: z.boolean(),
+        triggers: z.array(z.enum(OWNER_ALERT_TRIGGERS)).max(6),
+        email: z.string().trim().max(320).refine((e) => e === "" || EMAIL_LIST_RE.test(e), "Up to 3 comma-separated email addresses").optional(),
+        whatsappPhone: z.string().trim().max(20).refine((p) => p === "" || /^\+?[\d\s-]{8,20}$/.test(p), "Invalid WhatsApp number").optional(),
+        whatsappTemplate: z.string().trim().max(120).optional(),
+        whatsappVariables: z.record(z.string().regex(/^[1-9]\d{0,2}$/), z.string().max(210).regex(OWNER_ALERT_FIELD_RE, "Unknown field")).optional()
+      }).optional(),
+      appointments: z.object({
+        durationMinutes: z.number().int().min(5).max(240),
+        timeZone: z.string().refine(isValidTimeZone, "Invalid IANA time zone"),
+        workingHours: z.object({
+          start: z.string().regex(HHMM_RE, "Use HH:MM"),
+          end: z.string().regex(HHMM_RE, "Use HH:MM")
+        }).refine((h) => h.start < h.end, { message: "Working hours must end after they start" }),
+        workingDays: z.array(z.number().int().min(0).max(6)).max(7),
+        confirmVia: z.array(z.enum(["whatsapp", "email"])).max(2),
+        serviceName: z.string().trim().max(120).optional()
+      }).optional(),
+      saveLead: z.object({
+        fields: z.array(z.object({
+          key: z.string().regex(PARAM_NAME_RE),
+          label: z.string().trim().min(1).max(80),
+          required: z.boolean()
+        })).max(8)
+      }).optional(),
+      callback: z.object({
+        enabled: z.boolean(),
+        maxDaysAhead: z.number().int().min(1).max(60)
+      }).optional(),
+      apiTools: z.array(AgentApiToolSchema).max(10).optional()
+    }).strict();
     flows = pgTable("flows", {
       id: varchar("id").primaryKey(),
       userId: varchar("user_id").notNull(),
@@ -1949,6 +2089,52 @@ var init_schema = __esm({
       id: true,
       createdAt: true
     });
+    scheduledCallbacks = pgTable("scheduled_callbacks", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+      agentId: varchar("agent_id").references(() => agents.id, { onDelete: "set null" }),
+      sourceCallId: varchar("source_call_id"),
+      // plivo_calls.id of the call that booked it
+      plivoPhoneNumberId: varchar("plivo_phone_number_id"),
+      contactName: text("contact_name"),
+      contactPhone: text("contact_phone").notNull(),
+      reason: text("reason"),
+      scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
+      timeZone: text("time_zone").notNull().default("Asia/Kolkata"),
+      status: text("status").notNull().default("pending"),
+      // pending | calling | completed | failed | cancelled
+      attempts: integer("attempts").notNull().default(0),
+      lastError: text("last_error"),
+      resultCallId: varchar("result_call_id"),
+      createdAt: timestamp("created_at").notNull().defaultNow(),
+      updatedAt: timestamp("updated_at").notNull().defaultNow()
+    }, (table) => ({
+      scheduledCallbacksDueIdx: index("scheduled_callbacks_status_scheduled_at_idx").on(table.status, table.scheduledAt),
+      scheduledCallbacksUserIdx: index("scheduled_callbacks_user_created_idx").on(table.userId, table.createdAt)
+    }));
+    insertScheduledCallbackSchema = createInsertSchema(scheduledCallbacks).omit({
+      id: true,
+      createdAt: true,
+      updatedAt: true
+    });
+    doNotCallNumbers = pgTable("do_not_call_numbers", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+      phone: text("phone").notNull(),
+      // normalised: +<digits>
+      reason: text("reason").notNull().default("manual"),
+      // caller_request | manual | import | complaint
+      source: text("source").notNull().default("manual"),
+      // agent | manual | upload | api
+      callId: varchar("call_id"),
+      // plivo_calls.id when added during a call
+      note: text("note"),
+      createdAt: timestamp("created_at").notNull().defaultNow()
+    }, (table) => ({
+      doNotCallUserPhoneUnique: uniqueIndex("do_not_call_numbers_user_phone_unique").on(table.userId, table.phone),
+      doNotCallUserIdx: index("do_not_call_numbers_user_id_idx").on(table.userId)
+    }));
+    insertDoNotCallNumberSchema = createInsertSchema(doNotCallNumbers).omit({ id: true, createdAt: true });
     campaignJobs = pgTable("campaign_jobs", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
       campaignId: varchar("campaign_id").notNull(),
@@ -2665,6 +2851,53 @@ var init_schema = __esm({
       createdAt: true,
       updatedAt: true
     });
+    INTEGRATION_PROVIDERS = ["gohighlevel", "salesforce", "zoho", "calcom", "zapier", "pabbly"];
+    userIntegrations = pgTable("user_integrations", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+      provider: text("provider").notNull(),
+      // IntegrationProvider
+      status: text("status").notNull().default("connected"),
+      // 'connected' | 'error' | 'disconnected'
+      accessToken: text("access_token"),
+      refreshToken: text("refresh_token"),
+      tokenExpiry: timestamp("token_expiry"),
+      /** Salesforce instance_url / Zoho api_domain / GoHighLevel API base */
+      instanceUrl: text("instance_url"),
+      /** GoHighLevel locationId, Salesforce org id, Zoho org, Cal.com user id */
+      externalAccountId: text("external_account_id"),
+      accountName: text("account_name"),
+      /** Provider options: zapier/pabbly { webhooks:[{url,events[]}] }, calcom { apiKey, eventTypeId, timeZone }, gohighlevel { calendarId }, … */
+      config: jsonb("config").$type(),
+      lastSyncAt: timestamp("last_sync_at"),
+      lastError: text("last_error"),
+      createdAt: timestamp("created_at").notNull().defaultNow(),
+      updatedAt: timestamp("updated_at").notNull().defaultNow()
+    }, (table) => ({
+      userIntegrationsUserProviderIdx: uniqueIndex("user_integrations_user_provider_idx").on(table.userId, table.provider)
+    }));
+    insertUserIntegrationSchema = createInsertSchema(userIntegrations).omit({ id: true, createdAt: true, updatedAt: true });
+    integrationSyncLogs = pgTable("integration_sync_logs", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+      provider: text("provider").notNull(),
+      event: text("event").notNull(),
+      // lead.upserted | appointment.booked | form.submitted | call.completed | test …
+      action: text("action").notNull(),
+      // e.g. 'lead.create', 'contact.upsert', 'booking.create', 'webhook.post'
+      status: text("status").notNull(),
+      // 'success' | 'failed' | 'skipped'
+      /** Local record the push was about (lead id, appointment id, call id) */
+      sourceId: varchar("source_id"),
+      /** Provider-side id (Lead Id, contact id, booking uid, …) */
+      externalId: text("external_id"),
+      error: text("error"),
+      payload: jsonb("payload").$type(),
+      createdAt: timestamp("created_at").notNull().defaultNow()
+    }, (table) => ({
+      integrationSyncLogsUserProviderIdx: index("integration_sync_logs_user_provider_idx").on(table.userId, table.provider, table.createdAt),
+      integrationSyncLogsSourceIdx: index("integration_sync_logs_source_idx").on(table.provider, table.sourceId)
+    }));
     phoneReleaseRetryQueue = pgTable("phone_release_retry_queue", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
       phoneNumberId: varchar("phone_number_id").notNull(),
@@ -7099,13 +7332,2750 @@ var init_crm_storage = __esm({
   }
 });
 
+// server/engines/payment/types.ts
+var GLOBAL_SETTINGS_KEYS;
+var init_types = __esm({
+  "server/engines/payment/types.ts"() {
+    "use strict";
+    GLOBAL_SETTINGS_KEYS = {
+      CASHFREE_ENABLED: "cashfree_enabled",
+      CASHFREE_APP_ID: "cashfree_app_id",
+      CASHFREE_SECRET_KEY: "cashfree_secret_key",
+      CASHFREE_ENVIRONMENT: "cashfree_environment",
+      CASHFREE_LAST_WEBHOOK_AT: "cashfree_last_webhook_at",
+      ELEVENLABS_HMAC_SECRET: "elevenlabs_hmac_secret",
+      ELEVENLABS_LAST_WEBHOOK_AT: "elevenlabs_last_webhook_at"
+    };
+  }
+});
+
+// server/engines/payment/webhook-helper.ts
+function stripProtocol(url) {
+  return url.replace(/^https?:\/\//, "");
+}
+function getValidatedFrontendUrl() {
+  if (process.env.NODE_ENV === "production") {
+    if (process.env.APP_DOMAIN) {
+      const domain = stripProtocol(process.env.APP_DOMAIN);
+      return `https://${domain}`;
+    }
+    if (process.env.APP_URL) {
+      return process.env.APP_URL;
+    }
+    console.error("[CONFIG ERROR] Production requires APP_DOMAIN or APP_URL to be set");
+    return "http://localhost:5000";
+  }
+  if (process.env.APP_DOMAIN) {
+    const domain = stripProtocol(process.env.APP_DOMAIN);
+    return `https://${domain}`;
+  }
+  return process.env.APP_URL || "http://localhost:5000";
+}
+var FRONTEND_URL, LAST_WEBHOOK_KEYS;
+var init_webhook_helper = __esm({
+  "server/engines/payment/webhook-helper.ts"() {
+    "use strict";
+    init_storage();
+    init_types();
+    FRONTEND_URL = getValidatedFrontendUrl();
+    LAST_WEBHOOK_KEYS = {
+      cashfree: GLOBAL_SETTINGS_KEYS.CASHFREE_LAST_WEBHOOK_AT,
+      elevenlabs: GLOBAL_SETTINGS_KEYS.ELEVENLABS_LAST_WEBHOOK_AT
+    };
+  }
+});
+
+// server/integrations/app-keys.ts
+async function getSettingString(key) {
+  try {
+    const setting = await storage.getGlobalSetting(key);
+    const value = setting?.value;
+    if (value == null) return null;
+    const text2 = String(value).trim();
+    return text2 || null;
+  } catch (err) {
+    console.error(`[Integrations] Failed to read setting ${key}:`, err.message);
+    return null;
+  }
+}
+async function getOAuthAppKeys(prefix) {
+  const idKey = `${prefix}_client_id`;
+  const secretKey = `${prefix}_client_secret`;
+  const [clientId, clientSecret] = await Promise.all([getSettingString(idKey), getSettingString(secretKey)]);
+  const missing = [!clientId && idKey, !clientSecret && secretKey].filter((k) => !!k);
+  if (missing.length || !clientId || !clientSecret) return { clientId: null, clientSecret: null, missing };
+  return { clientId, clientSecret, missing: [] };
+}
+async function getZohoAccountsDomain() {
+  const value = await getSettingString("zoho_accounts_domain");
+  return value && ZOHO_ACCOUNTS_DOMAINS.includes(value) ? value : ZOHO_ACCOUNTS_DOMAINS[0];
+}
+async function getSalesforceLoginUrl() {
+  const value = await getSettingString("salesforce_login_url");
+  return value && SALESFORCE_LOGIN_URLS.includes(value) ? value : SALESFORCE_LOGIN_URLS[0];
+}
+function inboundTriggerUrl() {
+  return `${FRONTEND_URL}/api/external/trigger-call`;
+}
+async function requireOAuthKeys(prefix, displayName) {
+  const keys = await getOAuthAppKeys(prefix);
+  if (keys.clientId && keys.clientSecret) return { clientId: keys.clientId, clientSecret: keys.clientSecret };
+  throw new Error(`${displayName} app keys are not configured (${keys.missing.join(", ")})`);
+}
+var ZOHO_ACCOUNTS_DOMAINS, SALESFORCE_LOGIN_URLS;
+var init_app_keys = __esm({
+  "server/integrations/app-keys.ts"() {
+    "use strict";
+    init_storage();
+    init_webhook_helper();
+    ZOHO_ACCOUNTS_DOMAINS = [
+      "https://accounts.zoho.in",
+      "https://accounts.zoho.com",
+      "https://accounts.zoho.eu",
+      "https://accounts.zoho.com.au",
+      "https://accounts.zoho.jp",
+      "https://accounts.zoho.com.cn"
+    ];
+    SALESFORCE_LOGIN_URLS = ["https://login.salesforce.com", "https://test.salesforce.com"];
+  }
+});
+
+// server/integrations/http.ts
+function truncate(text2, max = 300) {
+  const single = text2.replace(/\s+/g, " ").trim();
+  return single.length > max ? `${single.slice(0, max)}\u2026` : single;
+}
+async function fetchWithTimeout(url, init = {}, timeoutMs = DEFAULT_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (err) {
+    if (err.name === "AbortError") {
+      throw new Error(`Request to ${new URL(url).host} timed out after ${timeoutMs} ms`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+async function requestJson(url, init = {}, timeoutMs = DEFAULT_TIMEOUT_MS) {
+  const resp = await fetchWithTimeout(url, init, timeoutMs);
+  const text2 = await resp.text();
+  let data = null;
+  if (text2) {
+    try {
+      data = JSON.parse(text2);
+    } catch {
+      data = null;
+    }
+  }
+  return { ok: resp.ok, status: resp.status, data, text: text2 };
+}
+function describeFailure(what, res) {
+  const body = res.data && typeof res.data === "object" ? JSON.stringify(res.data) : res.text;
+  return `${what} failed (HTTP ${res.status}): ${truncate(body || "empty response")}`;
+}
+function jsonHeaders(extra = {}) {
+  return { "Content-Type": "application/json", Accept: "application/json", ...extra };
+}
+var DEFAULT_TIMEOUT_MS, FORM_HEADERS;
+var init_http = __esm({
+  "server/integrations/http.ts"() {
+    "use strict";
+    DEFAULT_TIMEOUT_MS = 1e4;
+    FORM_HEADERS = { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" };
+  }
+});
+
+// server/integrations/types.ts
+function errorMessage(err) {
+  if (err instanceof Error) return err.message;
+  return typeof err === "string" ? err : "Unknown error";
+}
+var ProviderAuthError;
+var init_types2 = __esm({
+  "server/integrations/types.ts"() {
+    "use strict";
+    ProviderAuthError = class extends Error {
+      constructor(message) {
+        super(message);
+        this.name = "ProviderAuthError";
+      }
+    };
+  }
+});
+
+// server/integrations/token-store.ts
+import { and as and7, desc as desc5, eq as eq15, gt, inArray as inArray7 } from "drizzle-orm";
+async function listIntegrationRows(userId) {
+  return db.select().from(userIntegrations).where(eq15(userIntegrations.userId, userId));
+}
+async function updateIntegrationRow(id, values) {
+  const [row] = await db.update(userIntegrations).set({ ...values, updatedAt: /* @__PURE__ */ new Date() }).where(eq15(userIntegrations.id, id)).returning();
+  return row ?? null;
+}
+async function markIntegrationError(id, error, status) {
+  await updateIntegrationRow(id, { lastError: error.slice(0, 1e3), ...status ? { status } : {} });
+}
+async function markIntegrationSynced(id, lastError) {
+  await updateIntegrationRow(id, { lastSyncAt: /* @__PURE__ */ new Date(), lastError: lastError ? lastError.slice(0, 1e3) : null });
+}
+function tokenExpired(row) {
+  return !!row.tokenExpiry && row.tokenExpiry.getTime() - REFRESH_SKEW_MS < Date.now();
+}
+async function refreshIntegrationToken(row, provider) {
+  if (!provider.refresh) throw new ProviderAuthError(`${provider.displayName} token expired and cannot be refreshed`);
+  try {
+    const result = await provider.refresh(row);
+    const updated = await updateIntegrationRow(row.id, {
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken ?? row.refreshToken,
+      tokenExpiry: result.expiresIn ? new Date(Date.now() + result.expiresIn * 1e3) : row.tokenExpiry,
+      instanceUrl: result.instanceUrl ?? row.instanceUrl,
+      status: "connected"
+    });
+    return updated ?? { ...row, accessToken: result.accessToken };
+  } catch (err) {
+    const message = `Token refresh failed: ${errorMessage(err)}`;
+    await markIntegrationError(row.id, message, "error");
+    throw new ProviderAuthError(message);
+  }
+}
+async function withValidToken(row, provider) {
+  if (!row.accessToken) throw new ProviderAuthError(`${provider.displayName} is not connected`);
+  return tokenExpired(row) ? refreshIntegrationToken(row, provider) : row;
+}
+async function authorizedRequest(row, provider, build, timeoutMs) {
+  let current = await withValidToken(row, provider);
+  let req = build(current);
+  let res = await requestJson(req.url, req.init, timeoutMs);
+  if (res.status === 401 && provider.refresh) {
+    current = await refreshIntegrationToken(current, provider);
+    req = build(current);
+    res = await requestJson(req.url, req.init, timeoutMs);
+  }
+  if (res.status === 401) throw new ProviderAuthError(`${provider.displayName} rejected the access token; please reconnect`);
+  return res;
+}
+async function logSync(entry) {
+  try {
+    await db.insert(integrationSyncLogs).values({
+      userId: entry.userId,
+      provider: entry.provider,
+      event: entry.event,
+      action: entry.action,
+      status: entry.status,
+      sourceId: entry.sourceId ?? null,
+      externalId: entry.externalId ?? null,
+      error: entry.error ? entry.error.slice(0, 1e3) : null,
+      payload: entry.payload ?? null
+    });
+  } catch (err) {
+    console.error("[Integrations] Failed to write sync log:", errorMessage(err));
+  }
+}
+async function logSyncResults(userId, provider, event, results) {
+  for (const r of results) {
+    await logSync({ userId, provider, event, ...r });
+  }
+}
+async function findExternalId(provider, sourceId, action, userId) {
+  const [row] = await db.select({ externalId: integrationSyncLogs.externalId }).from(integrationSyncLogs).where(and7(
+    ...userId ? [eq15(integrationSyncLogs.userId, userId)] : [],
+    eq15(integrationSyncLogs.provider, provider),
+    eq15(integrationSyncLogs.sourceId, sourceId),
+    eq15(integrationSyncLogs.action, action),
+    eq15(integrationSyncLogs.status, "success")
+  )).orderBy(desc5(integrationSyncLogs.createdAt)).limit(1);
+  return row?.externalId ?? null;
+}
+async function wasRecentlySynced(userId, provider, event, sourceId, windowMs) {
+  const [row] = await db.select({ id: integrationSyncLogs.id }).from(integrationSyncLogs).where(and7(
+    eq15(integrationSyncLogs.userId, userId),
+    eq15(integrationSyncLogs.provider, provider),
+    eq15(integrationSyncLogs.event, event),
+    eq15(integrationSyncLogs.sourceId, sourceId),
+    inArray7(integrationSyncLogs.status, ["success", "skipped"]),
+    gt(integrationSyncLogs.createdAt, new Date(Date.now() - windowMs))
+  )).limit(1);
+  return !!row;
+}
+var REFRESH_SKEW_MS;
+var init_token_store = __esm({
+  "server/integrations/token-store.ts"() {
+    "use strict";
+    init_db();
+    init_schema();
+    init_http();
+    init_types2();
+    REFRESH_SKEW_MS = 6e4;
+  }
+});
+
+// server/integrations/normalize.ts
+function asObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : null;
+}
+function str(value) {
+  if (value == null) return null;
+  const text2 = String(value).trim();
+  return text2 ? text2 : null;
+}
+function digitsOnly(phone) {
+  return (phone || "").replace(/\D/g, "");
+}
+function splitName(name) {
+  const parts = (name || "").trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return { firstName: null, lastName: null };
+  if (parts.length === 1) return { firstName: parts[0], lastName: null };
+  return { firstName: parts.slice(0, -1).join(" "), lastName: parts[parts.length - 1] };
+}
+function isValidTimeZone2(tz) {
+  if (!tz) return false;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
+function tzOffsetMs(date2, timeZone) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  }).formatToParts(date2);
+  const get = (type) => Number(parts.find((p) => p.type === type)?.value ?? "0");
+  const asUtc = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour") % 24, get("minute"), get("second"));
+  return asUtc - Math.floor(date2.getTime() / 1e3) * 1e3;
+}
+function zonedDateTimeToUtc(date2, time2, timeZone) {
+  const [y, m, d] = date2.split("-").map(Number);
+  const [hh, mm = 0, ss = 0] = time2.split(":").map(Number);
+  if ([y, m, d, hh, mm, ss].some((n) => !Number.isFinite(n))) return null;
+  const tz = isValidTimeZone2(timeZone) ? timeZone : DEFAULT_TIMEZONE;
+  const wall = Date.UTC(y, m - 1, d, hh, mm, ss);
+  let utc = wall - tzOffsetMs(new Date(wall), tz);
+  const secondPass = tzOffsetMs(new Date(utc), tz);
+  if (wall - secondPass !== utc) utc = wall - secondPass;
+  return new Date(utc);
+}
+function formatIsoWithOffset(date2, timeZone) {
+  const tz = isValidTimeZone2(timeZone) ? timeZone : "UTC";
+  const offsetMin = Math.round(tzOffsetMs(date2, tz) / 6e4);
+  const local = new Date(date2.getTime() + offsetMin * 6e4).toISOString().slice(0, 19);
+  const sign = offsetMin < 0 ? "-" : "+";
+  const abs = Math.abs(offsetMin);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${local}${sign}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`;
+}
+function leadFromRowLike(lead) {
+  return {
+    id: str(lead.id),
+    firstName: str(lead.firstName),
+    lastName: str(lead.lastName),
+    phone: str(lead.phone),
+    email: str(lead.email),
+    company: str(lead.company),
+    summary: str(lead.aiSummary),
+    nextAction: str(lead.aiNextAction),
+    sentiment: str(lead.sentiment),
+    category: str(lead.aiCategory),
+    score: typeof lead.leadScore === "number" ? lead.leadScore : null,
+    origin: "call"
+  };
+}
+function findResponse(responses, pattern) {
+  for (const [key, value] of Object.entries(responses)) {
+    if (pattern.test(key) && str(value)) return str(value);
+  }
+  return null;
+}
+function leadFromSubmission(submission) {
+  const responses = asObject(submission.responses) ?? {};
+  const name = str(submission.contactName) ?? findResponse(responses, /name/i);
+  const phone = str(submission.contactPhone) ?? findResponse(responses, /phone|mobile/i);
+  const email = str(submission.contactEmail) ?? findResponse(responses, /e-?mail/i);
+  if (!phone && !email) return null;
+  const lines = Object.entries(responses).map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : String(v)}`);
+  const formName = str(submission.formName) ?? "form";
+  return {
+    ...splitName(name),
+    id: str(submission.id),
+    phone,
+    email,
+    company: findResponse(responses, /company|organi[sz]ation|business/i),
+    summary: `Form "${formName}" submitted${lines.length ? `:
+${lines.join("\n")}` : ""}`,
+    nextAction: "Review submitted form data and follow up",
+    sentiment: null,
+    category: "form_submitted",
+    score: null,
+    origin: "form"
+  };
+}
+function leadFromEvent(data) {
+  const lead = asObject(data.lead);
+  if (lead && (str(lead.phone) || str(lead.email))) return leadFromRowLike(lead);
+  const submission = asObject(data.submission);
+  if (submission) return leadFromSubmission(submission);
+  const contact = asObject(data.contact);
+  if (contact && (str(contact.phone) || str(contact.email))) {
+    return { ...splitName(str(contact.name)), id: str(contact.id), phone: str(contact.phone), email: str(contact.email), company: str(contact.company), summary: null, nextAction: null, sentiment: null, category: null, score: null, origin: "form" };
+  }
+  return null;
+}
+function callFromEvent(data) {
+  const call = asObject(data.call);
+  if (!call) return null;
+  return {
+    id: str(call.id),
+    direction: str(call.direction) ?? str(call.callDirection),
+    duration: typeof call.duration === "number" ? call.duration : null,
+    summary: str(call.summary) ?? str(call.aiSummary),
+    transcript: str(call.transcript)
+  };
+}
+function callNoteText(data, lead) {
+  const call = callFromEvent(data);
+  const summary = lead?.summary ?? call?.summary;
+  if (!call && !summary) return null;
+  const lines = [];
+  if (summary) lines.push(summary);
+  if (lead?.nextAction) lines.push(`Next action: ${lead.nextAction}`);
+  if (lead?.sentiment) lines.push(`Sentiment: ${lead.sentiment}`);
+  if (call?.duration != null) lines.push(`Call duration: ${call.duration}s${call.direction ? ` (${call.direction})` : ""}`);
+  if (call?.transcript) lines.push(`
+Transcript:
+${call.transcript.slice(0, 2e4)}`);
+  return lines.length ? lines.join("\n") : null;
+}
+function appointmentFromEvent(data, fallbackTimeZone) {
+  const appt = asObject(data.appointment);
+  if (!appt) return null;
+  const contact = asObject(data.contact) ?? {};
+  const date2 = str(appt.scheduledDate) ?? str(appt.date) ?? str(data.newDate);
+  const rawTime = str(appt.scheduledTime) ?? str(appt.time) ?? str(data.newTime);
+  if (!date2 || !rawTime) return null;
+  const time2 = rawTime.slice(0, 8);
+  const timeZone = isValidTimeZone2(str(appt.timezone)) ? str(appt.timezone) : fallbackTimeZone;
+  const duration = Number(appt.duration);
+  const durationMinutes = Number.isFinite(duration) && duration > 0 ? duration : 30;
+  const startUtc = zonedDateTimeToUtc(date2, time2, timeZone);
+  return {
+    id: str(appt.id) ?? str(appt.appointmentId),
+    title: str(appt.type) ?? str(appt.serviceName) ?? "Appointment",
+    date: date2,
+    time: time2,
+    timeZone,
+    durationMinutes,
+    notes: str(appt.notes),
+    status: str(appt.status),
+    contact: {
+      name: str(contact.name) ?? str(appt.contactName),
+      phone: str(contact.phone) ?? str(appt.contactPhone),
+      email: str(contact.email) ?? str(appt.contactEmail)
+    },
+    startUtc,
+    endUtc: startUtc ? new Date(startUtc.getTime() + durationMinutes * 6e4) : null
+  };
+}
+function eventSourceId(event, data) {
+  const lead = asObject(data.lead);
+  const appt = asObject(data.appointment);
+  const submission = asObject(data.submission);
+  const call = asObject(data.call);
+  const campaign = asObject(data.campaign);
+  const flow = asObject(data.flow);
+  if (event === "lead.upserted") return str(lead?.id);
+  if (event.startsWith("appointment.")) return str(appt?.id) ?? str(appt?.appointmentId);
+  if (event.startsWith("form.")) return str(submission?.id) ?? str(lead?.id);
+  if (event.startsWith("campaign.")) return str(campaign?.id) ?? str(data.campaignId);
+  if (event.startsWith("flow.")) return str(flow?.id) ?? str(call?.id);
+  return str(call?.id) ?? str(data.callId);
+}
+var DEFAULT_TIMEZONE;
+var init_normalize = __esm({
+  "server/integrations/normalize.ts"() {
+    "use strict";
+    DEFAULT_TIMEZONE = "Asia/Kolkata";
+  }
+});
+
+// server/integrations/providers/zoho.ts
+function apiDomainFor(accountsDomain) {
+  return accountsDomain.replace("accounts.zoho", "www.zohoapis");
+}
+async function tokenRequest(params) {
+  const [accounts, keys] = await Promise.all([getZohoAccountsDomain(), requireOAuthKeys("zoho", "Zoho CRM")]);
+  const res = await requestJson(`${accounts}/oauth/v2/token`, {
+    method: "POST",
+    headers: FORM_HEADERS,
+    body: new URLSearchParams({ client_id: keys.clientId, client_secret: keys.clientSecret, ...params })
+  });
+  const token = res.data?.access_token;
+  if (!res.ok || !token) throw new Error(`Zoho token request failed: ${res.data?.error ?? truncate(res.text)}`);
+  return { ...res.data, access_token: token };
+}
+function api(row, path2, init = {}) {
+  return authorizedRequest(row, zohoProvider, (r) => ({
+    url: `${r.instanceUrl || "https://www.zohoapis.in"}/crm/v2${path2}`,
+    init: { ...init, headers: jsonHeaders({ Authorization: `Zoho-oauthtoken ${r.accessToken}` }) }
+  }));
+}
+async function writeRecord(row, method, path2, record, droppable) {
+  const res = await api(row, path2, { method, body: JSON.stringify({ data: [record] }) });
+  const result = res.data?.data?.[0];
+  if (res.ok && result?.code === "SUCCESS") return result.details?.id ?? "";
+  const badField = result?.details?.api_name;
+  if (result?.code === "INVALID_DATA" && badField && droppable.includes(badField) && badField in record) {
+    const { [badField]: _dropped, ...rest } = record;
+    return writeRecord(row, method, path2, rest, droppable.filter((f) => f !== badField));
+  }
+  throw new Error(result?.message ? `Zoho ${result.code}: ${result.message}` : describeFailure("Zoho request", res));
+}
+async function findLeadId(row, contact) {
+  const queries = [
+    contact.phone ? `phone=${encodeURIComponent(contact.phone)}` : null,
+    contact.email ? `email=${encodeURIComponent(contact.email)}` : null
+  ].filter((q) => !!q);
+  for (const query of queries) {
+    const res = await api(row, `/Leads/search?${query}`);
+    if (res.status === 204) continue;
+    if (!res.ok) throw new Error(describeFailure("Zoho lead search", res));
+    const id = res.data?.data?.[0]?.id;
+    if (id) return id;
+  }
+  return null;
+}
+function leadRecord(lead) {
+  const record = { Last_Name: lead.lastName ?? lead.firstName ?? "Unknown" };
+  if (lead.lastName && lead.firstName) record.First_Name = lead.firstName;
+  if (lead.phone) record.Phone = lead.phone;
+  if (lead.email) record.Email = lead.email;
+  if (lead.company) record.Company = lead.company;
+  if (lead.summary) record.Description = lead.summary.slice(0, TEXT_LIMIT);
+  return record;
+}
+async function handleLead(row, data, ctx) {
+  const lead = leadFromEvent(data);
+  if (!lead) return [{ action: "lead.upsert", status: "skipped", sourceId: ctx.sourceId, error: "Payload has no phone or email" }];
+  const results = [];
+  const existingId = await findLeadId(row, lead);
+  let zohoId;
+  if (existingId) {
+    await writeRecord(row, "PUT", `/Leads/${existingId}`, leadRecord(lead), []);
+    zohoId = existingId;
+    results.push({ action: "lead.update", status: "success", sourceId: lead.id, externalId: zohoId });
+  } else {
+    zohoId = await writeRecord(row, "POST", "/Leads", { ...leadRecord(lead), Lead_Source: LEAD_SOURCE }, ["Lead_Source"]);
+    results.push({ action: "lead.create", status: "success", sourceId: lead.id, externalId: zohoId });
+  }
+  const note = lead.origin === "call" ? callNoteText(data, lead) : null;
+  if (note && zohoId) {
+    const noteId = await writeRecord(row, "POST", `/Leads/${zohoId}/Notes`, { Note_Title: "Call summary", Note_Content: note.slice(0, TEXT_LIMIT) }, []);
+    results.push({ action: "note.create", status: "success", sourceId: lead.id, externalId: noteId });
+  }
+  return results;
+}
+async function handleAppointment(row, data, ctx) {
+  const appt = appointmentFromEvent(data, DEFAULT_TIMEZONE);
+  if (!appt?.startUtc || !appt.endUtc) {
+    return [{ action: "event.create", status: "skipped", sourceId: ctx.sourceId, error: "Appointment has no usable date/time" }];
+  }
+  const leadId = await findLeadId(row, appt.contact);
+  if (!leadId) return [{ action: "event.create", status: "skipped", sourceId: appt.id, error: "No Zoho lead matches the appointment contact" }];
+  const record = {
+    Event_Title: `${appt.title} \u2014 ${appt.contact.name ?? appt.contact.phone ?? "contact"}`,
+    Start_DateTime: formatIsoWithOffset(appt.startUtc, appt.timeZone),
+    End_DateTime: formatIsoWithOffset(appt.endUtc, appt.timeZone),
+    Participants: [{ type: "lead", participant: leadId }]
+  };
+  if (appt.notes) record.Description = appt.notes.slice(0, TEXT_LIMIT);
+  const eventId = await writeRecord(row, "POST", "/Events", record, ["Participants"]);
+  return [{ action: "event.create", status: "success", sourceId: appt.id, externalId: eventId }];
+}
+var SCOPES, LEAD_EVENTS, LEAD_SOURCE, TEXT_LIMIT, zohoProvider;
+var init_zoho = __esm({
+  "server/integrations/providers/zoho.ts"() {
+    "use strict";
+    init_app_keys();
+    init_http();
+    init_token_store();
+    init_normalize();
+    init_types2();
+    SCOPES = "ZohoCRM.modules.ALL,ZohoCRM.users.READ";
+    LEAD_EVENTS = /* @__PURE__ */ new Set(["lead.upserted", "form.submitted", "form.lead_created"]);
+    LEAD_SOURCE = "Zonvo AI";
+    TEXT_LIMIT = 32e3;
+    zohoProvider = {
+      key: "zoho",
+      displayName: "Zoho CRM",
+      kind: "oauth",
+      appKeys: ["zoho_client_id", "zoho_client_secret"],
+      async getAuthUrl(redirectUri, state) {
+        const [accounts, keys] = await Promise.all([getZohoAccountsDomain(), requireOAuthKeys("zoho", "Zoho CRM")]);
+        const params = new URLSearchParams({
+          scope: SCOPES,
+          client_id: keys.clientId,
+          response_type: "code",
+          access_type: "offline",
+          prompt: "consent",
+          redirect_uri: redirectUri,
+          state
+        });
+        return `${accounts}/oauth/v2/auth?${params.toString()}`;
+      },
+      async exchangeCode(code, redirectUri) {
+        const token = await tokenRequest({ grant_type: "authorization_code", code, redirect_uri: redirectUri });
+        return {
+          accessToken: token.access_token,
+          refreshToken: token.refresh_token ?? null,
+          expiresIn: token.expires_in ?? 3600,
+          instanceUrl: token.api_domain ?? apiDomainFor(await getZohoAccountsDomain())
+        };
+      },
+      async refresh(row) {
+        if (!row.refreshToken) throw new Error("No refresh token stored");
+        const token = await tokenRequest({ grant_type: "refresh_token", refresh_token: row.refreshToken });
+        return { accessToken: token.access_token, expiresIn: token.expires_in ?? 3600, instanceUrl: token.api_domain ?? null };
+      },
+      async revoke(row) {
+        if (!row.refreshToken) return;
+        const accounts = await getZohoAccountsDomain();
+        await requestJson(`${accounts}/oauth/v2/token/revoke?token=${encodeURIComponent(row.refreshToken)}`, { method: "POST" });
+      },
+      async validate(row) {
+        try {
+          const res = await api(row, "/users?type=CurrentUser");
+          if (!res.ok) return { ok: false, error: describeFailure("Zoho user lookup", res) };
+          const user = res.data?.users?.[0];
+          return { ok: true, accountName: user ? [user.full_name, user.email].filter(Boolean).join(" \xB7 ") : null, externalAccountId: user?.id ?? null };
+        } catch (err) {
+          return { ok: false, error: errorMessage(err) };
+        }
+      },
+      publicConfig() {
+        return {};
+      },
+      supports(event) {
+        return LEAD_EVENTS.has(event) || event === "appointment.booked";
+      },
+      handle(row, event, data, ctx) {
+        return event === "appointment.booked" ? handleAppointment(row, data, ctx) : handleLead(row, data, ctx);
+      }
+    };
+  }
+});
+
+// server/integrations/providers/salesforce.ts
+async function tokenRequest2(params) {
+  const [loginUrl, keys] = await Promise.all([getSalesforceLoginUrl(), requireOAuthKeys("salesforce", "Salesforce")]);
+  const res = await requestJson(`${loginUrl}/services/oauth2/token`, {
+    method: "POST",
+    headers: FORM_HEADERS,
+    body: new URLSearchParams({ client_id: keys.clientId, client_secret: keys.clientSecret, ...params })
+  });
+  const token = res.data?.access_token;
+  if (!res.ok || !token) throw new Error(`Salesforce token request failed: ${res.data?.error_description ?? res.data?.error ?? truncate(res.text)}`);
+  return { ...res.data, access_token: token };
+}
+function instanceUrlOf(row) {
+  if (!row.instanceUrl) throw new Error("Salesforce instance URL missing; please reconnect");
+  return row.instanceUrl.replace(/\/$/, "");
+}
+function api2(row, path2, init = {}) {
+  return authorizedRequest(row, salesforceProvider, (r) => ({
+    url: `${instanceUrlOf(r)}/services/data/${API_VERSION}${path2}`,
+    init: { ...init, headers: jsonHeaders({ Authorization: `Bearer ${r.accessToken}` }) }
+  }));
+}
+function sfErrors(res) {
+  return Array.isArray(res.data) ? res.data : [];
+}
+function sfFailure(what, res) {
+  const messages = sfErrors(res).map((e) => `${e.errorCode ?? "ERROR"}: ${e.message ?? ""}`);
+  return new Error(messages.length ? `Salesforce ${what} failed: ${messages.join("; ")}` : describeFailure(`Salesforce ${what}`, res));
+}
+async function createRecord(row, sobject, body, droppable) {
+  const res = await api2(row, `/sobjects/${sobject}`, { method: "POST", body: JSON.stringify(body) });
+  if (res.ok && res.data?.id) return res.data.id;
+  const badField = sfErrors(res).flatMap((e) => e.fields ?? []).find((f) => droppable.includes(f) && f in body);
+  if (badField) {
+    const { [badField]: _dropped, ...rest } = body;
+    return createRecord(row, sobject, rest, droppable.filter((f) => f !== badField));
+  }
+  throw sfFailure(`${sobject} create`, res);
+}
+async function updateRecord(row, sobject, id, body) {
+  const res = await api2(row, `/sobjects/${sobject}/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(body) });
+  if (!res.ok) throw sfFailure(`${sobject} update`, res);
+}
+function soql(value) {
+  return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+}
+async function findLeadId2(row, contact) {
+  const conditions = [];
+  if (contact.phone) conditions.push(`Phone = '${soql(contact.phone)}'`, `MobilePhone = '${soql(contact.phone)}'`);
+  if (contact.email) conditions.push(`Email = '${soql(contact.email)}'`);
+  if (!conditions.length) return null;
+  const query = `SELECT Id FROM Lead WHERE IsConverted = false AND (${conditions.join(" OR ")}) ORDER BY CreatedDate DESC LIMIT 1`;
+  const res = await api2(row, `/query?q=${encodeURIComponent(query)}`);
+  if (!res.ok) throw sfFailure("lead query", res);
+  return res.data?.records?.[0]?.Id ?? null;
+}
+function leadRecord2(lead, forUpdate) {
+  const record = { LastName: lead.lastName ?? lead.firstName ?? "Unknown" };
+  if (lead.lastName && lead.firstName) record.FirstName = lead.firstName;
+  if (lead.company) record.Company = lead.company;
+  else if (!forUpdate) record.Company = "Unknown";
+  if (lead.phone) record.Phone = lead.phone;
+  if (lead.email) record.Email = lead.email;
+  if (lead.summary) record.Description = lead.summary.slice(0, TEXT_LIMIT2);
+  return record;
+}
+async function handleLead2(row, data, ctx) {
+  const lead = leadFromEvent(data);
+  if (!lead) return [{ action: "lead.upsert", status: "skipped", sourceId: ctx.sourceId, error: "Payload has no phone or email" }];
+  const results = [];
+  let leadId = await findLeadId2(row, lead);
+  if (leadId) {
+    await updateRecord(row, "Lead", leadId, leadRecord2(lead, true));
+    results.push({ action: "lead.update", status: "success", sourceId: lead.id, externalId: leadId });
+  } else {
+    leadId = await createRecord(row, "Lead", { ...leadRecord2(lead, false), LeadSource: LEAD_SOURCE2 }, ["LeadSource"]);
+    results.push({ action: "lead.create", status: "success", sourceId: lead.id, externalId: leadId });
+  }
+  const note = lead.origin === "call" ? callNoteText(data, lead) : null;
+  if (note) {
+    const taskId = await createRecord(row, "Task", {
+      Subject: "AI call",
+      Description: note.slice(0, TEXT_LIMIT2),
+      WhoId: leadId,
+      Status: "Completed",
+      TaskSubtype: "Call",
+      ActivityDate: (/* @__PURE__ */ new Date()).toISOString().slice(0, 10)
+    }, ["TaskSubtype", "Status"]);
+    results.push({ action: "task.create", status: "success", sourceId: lead.id, externalId: taskId });
+  }
+  return results;
+}
+async function handleAppointment2(row, data, ctx) {
+  const appt = appointmentFromEvent(data, DEFAULT_TIMEZONE);
+  if (!appt?.startUtc || !appt.endUtc) {
+    return [{ action: "event.create", status: "skipped", sourceId: ctx.sourceId, error: "Appointment has no usable date/time" }];
+  }
+  const leadId = await findLeadId2(row, appt.contact);
+  if (!leadId) return [{ action: "event.create", status: "skipped", sourceId: appt.id, error: "No Salesforce lead matches the appointment contact" }];
+  const body = {
+    Subject: `${appt.title} \u2014 ${appt.contact.name ?? appt.contact.phone ?? "contact"}`,
+    StartDateTime: appt.startUtc.toISOString(),
+    EndDateTime: appt.endUtc.toISOString(),
+    DurationInMinutes: appt.durationMinutes,
+    WhoId: leadId
+  };
+  if (appt.notes) body.Description = appt.notes.slice(0, TEXT_LIMIT2);
+  const eventId = await createRecord(row, "Event", body, []);
+  return [{ action: "event.create", status: "success", sourceId: appt.id, externalId: eventId }];
+}
+function orgIdFromIdentity(identityUrl) {
+  const match = identityUrl?.match(/\/id\/([^/]+)\/[^/]+$/);
+  return match?.[1] ?? null;
+}
+var API_VERSION, SCOPES2, LEAD_EVENTS2, LEAD_SOURCE2, TEXT_LIMIT2, salesforceProvider;
+var init_salesforce = __esm({
+  "server/integrations/providers/salesforce.ts"() {
+    "use strict";
+    init_app_keys();
+    init_http();
+    init_token_store();
+    init_normalize();
+    init_types2();
+    API_VERSION = "v60.0";
+    SCOPES2 = "api refresh_token offline_access";
+    LEAD_EVENTS2 = /* @__PURE__ */ new Set(["lead.upserted", "form.submitted", "form.lead_created"]);
+    LEAD_SOURCE2 = "Zonvo AI";
+    TEXT_LIMIT2 = 32e3;
+    salesforceProvider = {
+      key: "salesforce",
+      displayName: "Salesforce",
+      kind: "oauth",
+      appKeys: ["salesforce_client_id", "salesforce_client_secret"],
+      async getAuthUrl(redirectUri, state) {
+        const [loginUrl, keys] = await Promise.all([getSalesforceLoginUrl(), requireOAuthKeys("salesforce", "Salesforce")]);
+        const params = new URLSearchParams({ response_type: "code", client_id: keys.clientId, redirect_uri: redirectUri, scope: SCOPES2, state });
+        return `${loginUrl}/services/oauth2/authorize?${params.toString()}`;
+      },
+      async exchangeCode(code, redirectUri) {
+        const token = await tokenRequest2({ grant_type: "authorization_code", code, redirect_uri: redirectUri });
+        if (!token.instance_url) throw new Error("Salesforce did not return an instance URL");
+        return {
+          accessToken: token.access_token,
+          refreshToken: token.refresh_token ?? null,
+          expiresIn: null,
+          instanceUrl: token.instance_url,
+          externalAccountId: orgIdFromIdentity(token.id)
+        };
+      },
+      async refresh(row) {
+        if (!row.refreshToken) throw new Error("No refresh token stored");
+        const token = await tokenRequest2({ grant_type: "refresh_token", refresh_token: row.refreshToken });
+        return { accessToken: token.access_token, instanceUrl: token.instance_url ?? null, expiresIn: null };
+      },
+      async revoke(row) {
+        if (!row.refreshToken) return;
+        const loginUrl = await getSalesforceLoginUrl();
+        await requestJson(`${loginUrl}/services/oauth2/revoke`, { method: "POST", headers: FORM_HEADERS, body: new URLSearchParams({ token: row.refreshToken }) });
+      },
+      async validate(row) {
+        try {
+          const res = await authorizedRequest(row, salesforceProvider, (r) => ({
+            url: `${instanceUrlOf(r)}/services/oauth2/userinfo`,
+            init: { headers: jsonHeaders({ Authorization: `Bearer ${r.accessToken}` }) }
+          }));
+          if (!res.ok) return { ok: false, error: describeFailure("Salesforce userinfo", res) };
+          const info = res.data ?? {};
+          return {
+            ok: true,
+            accountName: [info.name, info.preferred_username ?? info.email].filter(Boolean).join(" \xB7 ") || null,
+            externalAccountId: info.organization_id ?? row.externalAccountId ?? null
+          };
+        } catch (err) {
+          return { ok: false, error: errorMessage(err) };
+        }
+      },
+      publicConfig(row) {
+        return { instanceUrl: row?.instanceUrl ?? null };
+      },
+      supports(event) {
+        return LEAD_EVENTS2.has(event) || event === "appointment.booked";
+      },
+      handle(row, event, data, ctx) {
+        return event === "appointment.booked" ? handleAppointment2(row, data, ctx) : handleLead2(row, data, ctx);
+      }
+    };
+  }
+});
+
+// server/integrations/providers/gohighlevel.ts
+function ghlMessage(res) {
+  const message = res.data && typeof res.data === "object" ? res.data.message : void 0;
+  return Array.isArray(message) ? message.join("; ") : message ?? truncate(res.text);
+}
+async function tokenRequest3(params) {
+  const keys = await requireOAuthKeys("ghl", "GoHighLevel");
+  const res = await requestJson(`${BASE}/oauth/token`, {
+    method: "POST",
+    headers: FORM_HEADERS,
+    body: new URLSearchParams({ client_id: keys.clientId, client_secret: keys.clientSecret, user_type: "Location", ...params })
+  });
+  const token = res.data?.access_token;
+  if (!res.ok || !token) throw new Error(`GoHighLevel token request failed: ${ghlMessage(res)}`);
+  return { ...res.data, access_token: token };
+}
+function locationIdOf(row) {
+  if (!row.externalAccountId) throw new Error("GoHighLevel location id missing; please reconnect");
+  return row.externalAccountId;
+}
+function api3(row, path2, init = {}, version = VERSION) {
+  return authorizedRequest(row, gohighlevelProvider, (r) => ({
+    url: `${BASE}${path2}`,
+    init: { ...init, headers: jsonHeaders({ Authorization: `Bearer ${r.accessToken}`, Version: version }) }
+  }));
+}
+async function upsertContact(row, contact) {
+  if (!contact.phone && !contact.email) throw new Error("Contact has no phone or email");
+  const body = { locationId: locationIdOf(row), source: "Zonvo AI" };
+  if (contact.firstName) body.firstName = contact.firstName;
+  if (contact.lastName) body.lastName = contact.lastName;
+  if (contact.phone) body.phone = contact.phone;
+  if (contact.email) body.email = contact.email;
+  const res = await api3(row, "/contacts/upsert", { method: "POST", body: JSON.stringify(body) });
+  const id = res.data?.contact?.id;
+  if (!res.ok || !id) throw new Error(`GoHighLevel contact upsert failed: ${ghlMessage(res)}`);
+  return { id, created: res.data?.new === true };
+}
+async function addNote(row, contactId, text2) {
+  const res = await api3(row, `/contacts/${encodeURIComponent(contactId)}/notes`, { method: "POST", body: JSON.stringify({ body: text2.slice(0, 2e4) }) });
+  if (!res.ok) throw new Error(`GoHighLevel note failed: ${ghlMessage(res)}`);
+  return res.data?.note?.id ?? null;
+}
+async function handleLead3(row, data, ctx) {
+  const lead = leadFromEvent(data);
+  if (!lead) return [{ action: "contact.upsert", status: "skipped", sourceId: ctx.sourceId, error: "Payload has no phone or email" }];
+  const contact = await upsertContact(row, lead);
+  const results = [{ action: "contact.upsert", status: "success", sourceId: lead.id, externalId: contact.id, payload: { created: contact.created } }];
+  const note = callNoteText(data, lead);
+  if (note) {
+    const noteId = await addNote(row, contact.id, note);
+    results.push({ action: "note.create", status: "success", sourceId: lead.id, externalId: noteId });
+  }
+  return results;
+}
+async function handleAppointment3(row, data, ctx) {
+  const appt = appointmentFromEvent(data, DEFAULT_TIMEZONE);
+  if (!appt?.startUtc || !appt.endUtc) {
+    return [{ action: "appointment.create", status: "skipped", sourceId: ctx.sourceId, error: "Appointment has no usable date/time" }];
+  }
+  if (!appt.contact.phone && !appt.contact.email) {
+    return [{ action: "appointment.create", status: "skipped", sourceId: appt.id, error: "Appointment contact has no phone or email" }];
+  }
+  const contact = await upsertContact(row, { ...splitName(appt.contact.name), phone: appt.contact.phone, email: appt.contact.email });
+  const results = [{ action: "contact.upsert", status: "success", sourceId: appt.id, externalId: contact.id }];
+  const calendarId = str(asObject(row.config)?.calendarId);
+  if (!calendarId) {
+    results.push({ action: "appointment.create", status: "skipped", sourceId: appt.id, error: "No GoHighLevel calendar selected" });
+    return results;
+  }
+  const body = {
+    calendarId,
+    locationId: locationIdOf(row),
+    contactId: contact.id,
+    startTime: formatIsoWithOffset(appt.startUtc, appt.timeZone),
+    endTime: formatIsoWithOffset(appt.endUtc, appt.timeZone),
+    title: `${appt.title} \u2014 ${appt.contact.name ?? appt.contact.phone ?? "contact"}`,
+    appointmentStatus: "confirmed",
+    ignoreDateRange: true,
+    ignoreFreeSlotValidation: true
+  };
+  const res = await api3(row, "/calendars/events/appointments", { method: "POST", body: JSON.stringify(body) }, CALENDAR_VERSION);
+  if (!res.ok || !res.data?.id) throw new Error(`GoHighLevel appointment failed: ${ghlMessage(res)}`);
+  results.push({ action: "appointment.create", status: "success", sourceId: appt.id, externalId: res.data.id, payload: { calendarId, startTime: body.startTime } });
+  return results;
+}
+var BASE, AUTH_URL, SCOPES3, VERSION, CALENDAR_VERSION, LEAD_EVENTS3, gohighlevelProvider;
+var init_gohighlevel = __esm({
+  "server/integrations/providers/gohighlevel.ts"() {
+    "use strict";
+    init_app_keys();
+    init_http();
+    init_token_store();
+    init_normalize();
+    init_types2();
+    BASE = "https://services.leadconnectorhq.com";
+    AUTH_URL = "https://marketplace.gohighlevel.com/oauth/chooselocation";
+    SCOPES3 = "contacts.readonly contacts.write calendars.readonly calendars/events.write locations.readonly";
+    VERSION = "2021-07-28";
+    CALENDAR_VERSION = "2021-04-15";
+    LEAD_EVENTS3 = /* @__PURE__ */ new Set(["lead.upserted", "form.submitted", "form.lead_created"]);
+    gohighlevelProvider = {
+      key: "gohighlevel",
+      displayName: "GoHighLevel",
+      kind: "oauth",
+      appKeys: ["ghl_client_id", "ghl_client_secret"],
+      async getAuthUrl(redirectUri, state) {
+        const keys = await requireOAuthKeys("ghl", "GoHighLevel");
+        const params = new URLSearchParams({ response_type: "code", redirect_uri: redirectUri, client_id: keys.clientId, scope: SCOPES3, state });
+        return `${AUTH_URL}?${params.toString()}`;
+      },
+      async exchangeCode(code, redirectUri) {
+        const token = await tokenRequest3({ grant_type: "authorization_code", code, redirect_uri: redirectUri });
+        if (!token.locationId) {
+          throw new Error("GoHighLevel returned an agency-level token. Install the app on a sub-account (location) and try again.");
+        }
+        return {
+          accessToken: token.access_token,
+          refreshToken: token.refresh_token ?? null,
+          expiresIn: token.expires_in ?? 86400,
+          externalAccountId: token.locationId
+        };
+      },
+      async refresh(row) {
+        if (!row.refreshToken) throw new Error("No refresh token stored");
+        const token = await tokenRequest3({ grant_type: "refresh_token", refresh_token: row.refreshToken });
+        return { accessToken: token.access_token, refreshToken: token.refresh_token ?? null, expiresIn: token.expires_in ?? 86400 };
+      },
+      async validate(row) {
+        try {
+          const locationId = locationIdOf(row);
+          const res = await api3(row, `/locations/${encodeURIComponent(locationId)}`);
+          if (!res.ok) return { ok: false, error: describeFailure("GoHighLevel location lookup", res) };
+          return { ok: true, accountName: res.data?.location?.name ?? null, externalAccountId: locationId };
+        } catch (err) {
+          return { ok: false, error: errorMessage(err) };
+        }
+      },
+      async options(row) {
+        const res = await api3(row, `/calendars/?locationId=${encodeURIComponent(locationIdOf(row))}`, {}, CALENDAR_VERSION);
+        if (!res.ok) throw new Error(describeFailure("GoHighLevel calendars", res));
+        return { calendars: (res.data?.calendars ?? []).map((c) => ({ id: c.id, name: c.name })) };
+      },
+      async applyConfig(input, existing) {
+        const calendarId = str(input.calendarId);
+        return { config: { ...asObject(existing?.config) ?? {}, calendarId } };
+      },
+      publicConfig(row) {
+        return { calendarId: str(asObject(row?.config)?.calendarId), locationId: row?.externalAccountId ?? null };
+      },
+      supports(event) {
+        return LEAD_EVENTS3.has(event) || event === "appointment.booked";
+      },
+      handle(row, event, data, ctx) {
+        return event === "appointment.booked" ? handleAppointment3(row, data, ctx) : handleLead3(row, data, ctx);
+      }
+    };
+  }
+});
+
+// server/integrations/providers/calcom.ts
+function configOf(row) {
+  const config = asObject(row?.config) ?? {};
+  const eventTypeId = Number(config.eventTypeId);
+  const timeZone = str(config.timeZone);
+  return {
+    eventTypeId: Number.isInteger(eventTypeId) && eventTypeId > 0 ? eventTypeId : null,
+    timeZone: isValidTimeZone2(timeZone) ? timeZone : DEFAULT_TIMEZONE
+  };
+}
+function calMessage(res) {
+  const data = res.data && typeof res.data === "object" ? res.data : null;
+  return data?.error?.message ?? data?.message ?? truncate(res.text);
+}
+async function api4(row, path2, init = {}, version) {
+  if (!row.accessToken) throw new ProviderAuthError("Cal.com API key is not set");
+  const res = await requestJson(`${BASE2}${path2}`, {
+    ...init,
+    headers: jsonHeaders({ Authorization: `Bearer ${row.accessToken}`, ...version ? { "cal-api-version": version } : {} })
+  });
+  if (res.status === 401) throw new ProviderAuthError("Cal.com rejected the API key; please enter a new one");
+  return res;
+}
+function e164(phone) {
+  if (!phone) return null;
+  const digits = digitsOnly(phone);
+  return digits.length >= 8 ? `+${digits}` : null;
+}
+async function createBooking(row, appt, eventTypeId) {
+  if (!appt.startUtc) throw new Error("Appointment has no usable date/time");
+  const phone = e164(appt.contact.phone);
+  const metadata = { source: "zonvo-ai" };
+  if (appt.id) metadata.appointmentId = appt.id;
+  const body = {
+    start: appt.startUtc.toISOString(),
+    eventTypeId,
+    attendee: {
+      name: appt.contact.name ?? appt.contact.phone ?? "Guest",
+      email: appt.contact.email ?? `${digitsOnly(appt.contact.phone) || "guest"}@${FALLBACK_EMAIL_DOMAIN}`,
+      timeZone: appt.timeZone,
+      language: "en",
+      ...phone ? { phoneNumber: phone } : {}
+    },
+    metadata
+  };
+  const res = await api4(row, "/bookings", { method: "POST", body: JSON.stringify(body) }, BOOKINGS_VERSION);
+  const uid = res.data?.data?.uid;
+  if (!res.ok || !uid) throw new Error(`Cal.com booking failed: ${calMessage(res)}`);
+  return uid;
+}
+async function cancelBooking(row, uid, reason) {
+  const res = await api4(row, `/bookings/${encodeURIComponent(uid)}/cancel`, { method: "POST", body: JSON.stringify({ cancellationReason: reason }) }, BOOKINGS_VERSION);
+  if (!res.ok) throw new Error(`Cal.com cancel failed: ${calMessage(res)}`);
+}
+async function handleBooked(row, appt, ctx) {
+  const { eventTypeId } = configOf(row);
+  if (!eventTypeId) return [{ action: "booking.create", status: "skipped", sourceId: ctx.sourceId, error: "No Cal.com event type selected" }];
+  if (!appt?.startUtc) return [{ action: "booking.create", status: "skipped", sourceId: ctx.sourceId, error: "Appointment has no usable date/time" }];
+  const uid = await createBooking(row, appt, eventTypeId);
+  return [{ action: "booking.create", status: "success", sourceId: appt.id, externalId: uid, payload: { start: appt.startUtc.toISOString() } }];
+}
+async function handleCancelled(row, appt, data, ctx) {
+  const sourceId = appt?.id ?? ctx.sourceId;
+  const uid = sourceId ? await ctx.findExternalId("booking.create", sourceId) : null;
+  if (!uid) return [{ action: "booking.cancel", status: "skipped", sourceId, error: "No Cal.com booking recorded for this appointment" }];
+  await cancelBooking(row, uid, str(data.cancelReason) ?? "Cancelled in Zonvo");
+  return [{ action: "booking.cancel", status: "success", sourceId, externalId: uid }];
+}
+async function handleRescheduled(row, appt, ctx) {
+  const sourceId = appt?.id ?? ctx.sourceId;
+  const results = [];
+  const uid = sourceId ? await ctx.findExternalId("booking.create", sourceId) : null;
+  if (uid) {
+    try {
+      await cancelBooking(row, uid, "Rescheduled in Zonvo");
+      results.push({ action: "booking.cancel", status: "success", sourceId, externalId: uid });
+    } catch (err) {
+      results.push({ action: "booking.cancel", status: "failed", sourceId, externalId: uid, error: errorMessage(err) });
+    }
+  }
+  results.push(...await handleBooked(row, appt, ctx));
+  return results;
+}
+var BASE2, EVENT_TYPES_VERSION, BOOKINGS_VERSION, APPOINTMENT_EVENTS, FALLBACK_EMAIL_DOMAIN, calcomProvider;
+var init_calcom = __esm({
+  "server/integrations/providers/calcom.ts"() {
+    "use strict";
+    init_http();
+    init_normalize();
+    init_types2();
+    BASE2 = "https://api.cal.com/v2";
+    EVENT_TYPES_VERSION = "2024-06-14";
+    BOOKINGS_VERSION = "2026-02-25";
+    APPOINTMENT_EVENTS = /* @__PURE__ */ new Set(["appointment.booked", "appointment.cancelled", "appointment.rescheduled"]);
+    FALLBACK_EMAIL_DOMAIN = "noemail.zonvo.tech";
+    calcomProvider = {
+      key: "calcom",
+      displayName: "Cal.com",
+      kind: "apikey",
+      appKeys: [],
+      async validate(row) {
+        try {
+          const res = await api4(row, "/me");
+          if (!res.ok) return { ok: false, error: describeFailure("Cal.com profile lookup", res) };
+          const me = res.data?.data ?? {};
+          return {
+            ok: true,
+            accountName: [me.name ?? me.username, me.email].filter(Boolean).join(" \xB7 ") || null,
+            externalAccountId: me.id != null ? String(me.id) : null
+          };
+        } catch (err) {
+          return { ok: false, error: errorMessage(err) };
+        }
+      },
+      async options(row) {
+        const res = await api4(row, "/event-types", {}, EVENT_TYPES_VERSION);
+        if (!res.ok) throw new Error(describeFailure("Cal.com event types", res));
+        const raw = res.data?.data;
+        const list = Array.isArray(raw) ? raw : asObject(raw)?.eventTypes ?? [];
+        const eventTypes = list.map((item) => asObject(item)).filter((item) => !!item).map((item) => ({ id: Number(item.id), title: str(item.title) ?? "", lengthInMinutes: Number(item.lengthInMinutes ?? item.length) || null }));
+        return { eventTypes };
+      },
+      async applyConfig(input, existing) {
+        const apiKey = str(input.apiKey);
+        if (apiKey && !apiKey.startsWith("cal_")) return { config: {}, error: "Cal.com API keys start with cal_" };
+        if (!apiKey && !existing?.accessToken) return { config: {}, error: "Cal.com API key is required" };
+        const rawEventType = input.eventTypeId;
+        const eventTypeId = rawEventType == null || rawEventType === "" ? null : Number(rawEventType);
+        if (eventTypeId !== null && (!Number.isInteger(eventTypeId) || eventTypeId <= 0)) return { config: {}, error: "eventTypeId must be a positive integer" };
+        const timeZone = str(input.timeZone) ?? DEFAULT_TIMEZONE;
+        if (!isValidTimeZone2(timeZone)) return { config: {}, error: `Unknown time zone: ${timeZone}` };
+        return { config: { eventTypeId, timeZone }, accessToken: apiKey ?? void 0 };
+      },
+      publicConfig(row) {
+        return { apiKeySet: !!row?.accessToken, ...configOf(row) };
+      },
+      supports(event) {
+        return APPOINTMENT_EVENTS.has(event);
+      },
+      async handle(row, event, data, ctx) {
+        const appt = appointmentFromEvent(data, configOf(row).timeZone);
+        if (event === "appointment.cancelled") return handleCancelled(row, appt, data, ctx);
+        if (event === "appointment.rescheduled") return handleRescheduled(row, appt, ctx);
+        return handleBooked(row, appt, ctx);
+      }
+    };
+  }
+});
+
+// server/utils/url-validator.ts
+import { URL as URL2 } from "url";
+import dns from "dns";
+import { promisify } from "util";
+import net from "net";
+function mappedIPv4(ip) {
+  const dotted = ip.match(/^(?:0*:)*ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i);
+  if (dotted) return dotted[1];
+  const hex = ip.match(/^(?:0*:)*ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i);
+  if (hex) {
+    const hi = parseInt(hex[1], 16);
+    const lo = parseInt(hex[2], 16);
+    return `${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`;
+  }
+  return null;
+}
+function isPrivateIP(ip) {
+  if (net.isIPv4(ip)) {
+    const parts = ip.split(".").map(Number);
+    if (parts[0] === 10) return true;
+    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+    if (parts[0] === 192 && parts[1] === 168) return true;
+    if (parts[0] === 127) return true;
+    if (parts[0] === 169 && parts[1] === 254) return true;
+    if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) return true;
+    if (parts[0] === 0) return true;
+    if (parts[0] >= 224) return true;
+  }
+  if (net.isIPv6(ip)) {
+    const mapped = mappedIPv4(ip);
+    if (mapped) return isPrivateIP(mapped);
+    const lower = ip.toLowerCase();
+    if (lower === "::1" || lower === "::" || /^f[cd]/.test(lower) || /^fe[89ab]/.test(lower)) return true;
+  }
+  return false;
+}
+async function validateWebhookUrl(url) {
+  try {
+    const parsed = new URL2(url);
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      return { valid: false, error: "Only HTTP and HTTPS URLs are allowed" };
+    }
+    const hostname = parsed.hostname.replace(/^\[|\]$/g, "");
+    if (BLOCKED_HOSTNAMES.includes(hostname)) {
+      return { valid: false, error: "Webhook URL must not point to a local or internal address" };
+    }
+    if (net.isIP(hostname)) {
+      if (isPrivateIP(hostname)) {
+        return { valid: false, error: "Webhook URL must not point to a private IP address" };
+      }
+    } else {
+      try {
+        const answers = await dnsLookup(hostname, { all: true });
+        if (!answers.length || answers.some((a) => isPrivateIP(a.address))) {
+          return { valid: false, error: "Webhook URL resolves to a private IP address" };
+        }
+      } catch {
+        return { valid: false, error: "Could not resolve webhook URL hostname" };
+      }
+    }
+    return { valid: true };
+  } catch {
+    return { valid: false, error: "Invalid URL format" };
+  }
+}
+var dnsLookup, BLOCKED_HOSTNAMES;
+var init_url_validator = __esm({
+  "server/utils/url-validator.ts"() {
+    "use strict";
+    dnsLookup = promisify(dns.lookup);
+    BLOCKED_HOSTNAMES = [
+      "localhost",
+      "127.0.0.1",
+      "[::1]",
+      "0.0.0.0",
+      "169.254.169.254",
+      "metadata.google.internal"
+    ];
+  }
+});
+
+// server/services/webhook-test-service.ts
+import crypto from "crypto";
+function generateComprehensiveTestPayload(eventType = "webhook.test") {
+  const timestamp2 = (/* @__PURE__ */ new Date()).toISOString();
+  const baseData = {
+    test: true,
+    environment: "test",
+    webhookVersion: "1.0"
+  };
+  switch (eventType) {
+    case "call.started":
+      return {
+        event: "call.started",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          call: {
+            id: `call_test_${crypto.randomUUID().substring(0, 8)}`,
+            conversationId: `conv_test_${crypto.randomUUID().substring(0, 8)}`,
+            callSid: `CA${crypto.randomBytes(16).toString("hex")}`,
+            direction: "outbound",
+            status: "in-progress",
+            startedAt: timestamp2,
+            fromNumber: "+15555551234",
+            toNumber: "+15555559876"
+          },
+          contact: {
+            id: `contact_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "John Doe",
+            phone: "+15555559876",
+            email: "john.doe@example.com"
+          },
+          campaign: {
+            id: `campaign_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Test Campaign"
+          },
+          agent: {
+            id: `agent_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Test Agent",
+            type: "natural"
+          }
+        }
+      };
+    case "call.completed":
+      return {
+        event: "call.completed",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          call: {
+            id: `call_test_${crypto.randomUUID().substring(0, 8)}`,
+            conversationId: `conv_test_${crypto.randomUUID().substring(0, 8)}`,
+            callSid: `CA${crypto.randomBytes(16).toString("hex")}`,
+            direction: "outbound",
+            status: "completed",
+            startedAt: new Date(Date.now() - 12e4).toISOString(),
+            endedAt: timestamp2,
+            duration: 120,
+            durationMinutes: 2,
+            fromNumber: "+15555551234",
+            toNumber: "+15555559876",
+            recordingUrl: "https://api.twilio.com/recordings/test-recording.mp3"
+          },
+          contact: {
+            id: `contact_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Jane Smith",
+            phone: "+15555559876",
+            email: "jane.smith@example.com",
+            company: "Acme Corp"
+          },
+          campaign: {
+            id: `campaign_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Sales Outreach Q1"
+          },
+          agent: {
+            id: `agent_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Sales Agent",
+            type: "natural"
+          },
+          analysis: {
+            classification: "Warm Lead",
+            sentiment: "positive",
+            summary: "The caller expressed interest in our product and requested a follow-up meeting. They mentioned budget approval is pending.",
+            transcript: [
+              { role: "agent", text: "Hello, this is Sarah from Acme. How are you today?" },
+              { role: "user", text: "Hi Sarah, I'm doing well. I was actually looking into your services." },
+              { role: "agent", text: "That's great to hear! What specific services are you interested in?" },
+              { role: "user", text: "We need help with our customer outreach program." },
+              { role: "agent", text: "I'd love to schedule a detailed demo. Would next Tuesday work for you?" },
+              { role: "user", text: "Yes, that works. Let me give you my email." }
+            ],
+            keyInsights: [
+              "Interested in customer outreach services",
+              "Budget approval pending",
+              "Demo scheduled for next week"
+            ],
+            nextActions: [
+              "Send calendar invite for demo",
+              "Prepare custom proposal",
+              "Follow up on budget timeline"
+            ]
+          },
+          collectedData: {
+            product_interest: "customer outreach",
+            budget_status: "pending approval",
+            meeting_scheduled: true,
+            preferred_contact: "email"
+          }
+        }
+      };
+    case "call.failed":
+      return {
+        event: "call.failed",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          call: {
+            id: `call_test_${crypto.randomUUID().substring(0, 8)}`,
+            conversationId: `conv_test_${crypto.randomUUID().substring(0, 8)}`,
+            callSid: `CA${crypto.randomBytes(16).toString("hex")}`,
+            direction: "outbound",
+            status: "failed",
+            startedAt: new Date(Date.now() - 3e4).toISOString(),
+            endedAt: timestamp2,
+            duration: 30,
+            fromNumber: "+15555551234",
+            toNumber: "+15555559876"
+          },
+          contact: {
+            id: `contact_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Robert Johnson",
+            phone: "+15555559876",
+            email: "robert.johnson@example.com"
+          },
+          campaign: {
+            id: `campaign_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Re-engagement Campaign"
+          },
+          error: {
+            code: "NO_ANSWER",
+            reason: "Call was not answered after multiple rings",
+            retryable: true,
+            suggestedAction: "Schedule retry in 2 hours"
+          },
+          analysis: {
+            classification: "No Answer",
+            summary: "Call was not answered. Voicemail was not detected."
+          }
+        }
+      };
+    case "call.transferred":
+      return {
+        event: "call.transferred",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          call: {
+            id: `call_test_${crypto.randomUUID().substring(0, 8)}`,
+            conversationId: `conv_test_${crypto.randomUUID().substring(0, 8)}`,
+            callSid: `CA${crypto.randomBytes(16).toString("hex")}`,
+            direction: "inbound",
+            status: "transferred",
+            startedAt: new Date(Date.now() - 18e4).toISOString(),
+            transferredAt: timestamp2,
+            duration: 180,
+            fromNumber: "+15555559876",
+            toNumber: "+15555551234"
+          },
+          contact: {
+            id: `contact_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Emily Chen",
+            phone: "+15555559876",
+            email: "emily.chen@example.com"
+          },
+          transfer: {
+            reason: "Customer requested human agent",
+            transferTo: "+15555550000",
+            transferType: "warm",
+            agentName: "Customer Support Team",
+            department: "Support"
+          },
+          analysis: {
+            summary: "Customer had a billing inquiry that required human assistance. AI collected initial information before transferring.",
+            preTransferContext: {
+              issue_type: "billing",
+              account_number: "ACC-12345",
+              issue_description: "Discrepancy in monthly invoice"
+            }
+          }
+        }
+      };
+    case "campaign.started":
+      return {
+        event: "campaign.started",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          campaign: {
+            id: `campaign_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Product Launch Outreach",
+            description: "Outreach campaign for new product launch",
+            status: "running",
+            startedAt: timestamp2,
+            totalContacts: 500,
+            completedCalls: 0,
+            remainingCalls: 500,
+            estimatedDuration: "4 hours"
+          },
+          agent: {
+            id: `agent_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Product Launch Agent",
+            type: "natural"
+          },
+          schedule: {
+            timezone: "America/New_York",
+            callWindow: {
+              start: "09:00",
+              end: "17:00"
+            },
+            daysOfWeek: ["monday", "tuesday", "wednesday", "thursday", "friday"]
+          }
+        }
+      };
+    case "campaign.completed":
+      return {
+        event: "campaign.completed",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          campaign: {
+            id: `campaign_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Q1 Sales Outreach",
+            description: "Quarterly sales outreach campaign",
+            status: "completed",
+            startedAt: new Date(Date.now() - 144e5).toISOString(),
+            completedAt: timestamp2,
+            totalContacts: 500,
+            completedCalls: 487,
+            failedCalls: 13
+          },
+          statistics: {
+            totalDuration: 14400,
+            averageCallDuration: 95,
+            successRate: 0.974,
+            answeredRate: 0.68,
+            classifications: {
+              "Hot Lead": 45,
+              "Warm Lead": 120,
+              "Cold Lead": 80,
+              "Not Interested": 90,
+              "Callback Requested": 65,
+              "No Answer": 87
+            },
+            appointmentsBooked: 23,
+            formsCompleted: 156,
+            transfersCompleted: 12
+          },
+          topPerformingSegments: [
+            { segment: "Tech Industry", conversionRate: 0.32 },
+            { segment: "Enterprise", conversionRate: 0.28 },
+            { segment: "Mid-Market", conversionRate: 0.22 }
+          ]
+        }
+      };
+    case "campaign.paused":
+      return {
+        event: "campaign.paused",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          campaign: {
+            id: `campaign_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Holiday Promotion",
+            description: "Holiday season promotional campaign",
+            status: "paused",
+            startedAt: new Date(Date.now() - 72e5).toISOString(),
+            pausedAt: timestamp2,
+            totalContacts: 1e3,
+            completedCalls: 234,
+            remainingCalls: 766
+          },
+          pauseReason: "Scheduled maintenance window",
+          resumeScheduledAt: new Date(Date.now() + 36e5).toISOString(),
+          statistics: {
+            callsBeforePause: 234,
+            successRate: 0.89,
+            averageCallDuration: 78
+          }
+        }
+      };
+    case "campaign.resumed":
+      return {
+        event: "campaign.resumed",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          campaign: {
+            id: `campaign_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Holiday Promotion",
+            description: "Holiday season promotional campaign",
+            status: "running",
+            startedAt: new Date(Date.now() - 72e5).toISOString(),
+            pausedAt: new Date(Date.now() - 36e5).toISOString(),
+            resumedAt: timestamp2,
+            totalContacts: 1e3,
+            completedCalls: 234,
+            remainingCalls: 766
+          },
+          resumeReason: "Maintenance completed",
+          statistics: {
+            callsBeforeResume: 234,
+            successRate: 0.89
+          }
+        }
+      };
+    case "campaign.failed":
+      return {
+        event: "campaign.failed",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          campaign: {
+            id: `campaign_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Failed Campaign",
+            description: "Campaign that encountered an error",
+            status: "failed",
+            startedAt: new Date(Date.now() - 18e5).toISOString(),
+            failedAt: timestamp2,
+            totalContacts: 500,
+            completedCalls: 45,
+            failedCalls: 12
+          },
+          error: {
+            code: "INSUFFICIENT_CREDITS",
+            message: "Campaign stopped due to insufficient credits",
+            details: "User credit balance reached zero during execution"
+          }
+        }
+      };
+    case "campaign.cancelled":
+      return {
+        event: "campaign.cancelled",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          campaign: {
+            id: `campaign_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Cancelled Campaign",
+            description: "Campaign manually cancelled by user",
+            status: "cancelled",
+            startedAt: new Date(Date.now() - 36e5).toISOString(),
+            cancelledAt: timestamp2,
+            totalContacts: 500,
+            completedCalls: 123,
+            remainingCalls: 377
+          },
+          cancelReason: "User requested cancellation"
+        }
+      };
+    case "call.ringing":
+      return {
+        event: "call.ringing",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          call: {
+            id: `call_test_${crypto.randomUUID().substring(0, 8)}`,
+            callSid: `CA${crypto.randomBytes(16).toString("hex")}`,
+            direction: "outbound",
+            status: "ringing",
+            startedAt: timestamp2,
+            fromNumber: "+15555551234",
+            toNumber: "+15555559876"
+          },
+          contact: {
+            id: `contact_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "John Doe",
+            phone: "+15555559876"
+          },
+          campaign: {
+            id: `campaign_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Test Campaign"
+          }
+        }
+      };
+    case "call.answered":
+      return {
+        event: "call.answered",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          call: {
+            id: `call_test_${crypto.randomUUID().substring(0, 8)}`,
+            callSid: `CA${crypto.randomBytes(16).toString("hex")}`,
+            direction: "outbound",
+            status: "in-progress",
+            startedAt: new Date(Date.now() - 1e4).toISOString(),
+            answeredAt: timestamp2,
+            fromNumber: "+15555551234",
+            toNumber: "+15555559876"
+          },
+          contact: {
+            id: `contact_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "John Doe",
+            phone: "+15555559876"
+          },
+          campaign: {
+            id: `campaign_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Test Campaign"
+          }
+        }
+      };
+    case "call.no_answer":
+      return {
+        event: "call.no_answer",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          call: {
+            id: `call_test_${crypto.randomUUID().substring(0, 8)}`,
+            callSid: `CA${crypto.randomBytes(16).toString("hex")}`,
+            direction: "outbound",
+            status: "no-answer",
+            startedAt: new Date(Date.now() - 3e4).toISOString(),
+            endedAt: timestamp2,
+            duration: 30,
+            fromNumber: "+15555551234",
+            toNumber: "+15555559876"
+          },
+          contact: {
+            id: `contact_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "John Doe",
+            phone: "+15555559876"
+          },
+          campaign: {
+            id: `campaign_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Test Campaign"
+          }
+        }
+      };
+    case "call.busy":
+      return {
+        event: "call.busy",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          call: {
+            id: `call_test_${crypto.randomUUID().substring(0, 8)}`,
+            callSid: `CA${crypto.randomBytes(16).toString("hex")}`,
+            direction: "outbound",
+            status: "busy",
+            startedAt: new Date(Date.now() - 5e3).toISOString(),
+            endedAt: timestamp2,
+            duration: 5,
+            fromNumber: "+15555551234",
+            toNumber: "+15555559876"
+          },
+          contact: {
+            id: `contact_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "John Doe",
+            phone: "+15555559876"
+          },
+          campaign: {
+            id: `campaign_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Test Campaign"
+          }
+        }
+      };
+    case "call.voicemail":
+      return {
+        event: "call.voicemail",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          call: {
+            id: `call_test_${crypto.randomUUID().substring(0, 8)}`,
+            callSid: `CA${crypto.randomBytes(16).toString("hex")}`,
+            direction: "outbound",
+            status: "voicemail",
+            startedAt: new Date(Date.now() - 45e3).toISOString(),
+            endedAt: timestamp2,
+            duration: 45,
+            fromNumber: "+15555551234",
+            toNumber: "+15555559876",
+            voicemailDetected: true
+          },
+          contact: {
+            id: `contact_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "John Doe",
+            phone: "+15555559876"
+          },
+          campaign: {
+            id: `campaign_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Test Campaign"
+          }
+        }
+      };
+    case "inbound_call.received":
+      return {
+        event: "inbound_call.received",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          call: {
+            id: `call_test_${crypto.randomUUID().substring(0, 8)}`,
+            callSid: `CA${crypto.randomBytes(16).toString("hex")}`,
+            direction: "inbound",
+            status: "ringing",
+            receivedAt: timestamp2,
+            fromNumber: "+15555559876",
+            toNumber: "+15555551234"
+          },
+          agent: {
+            id: `agent_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Inbound Support Agent",
+            type: "incoming"
+          },
+          phoneNumber: {
+            id: `phone_test_${crypto.randomUUID().substring(0, 8)}`,
+            number: "+15555551234",
+            country: "US"
+          }
+        }
+      };
+    case "inbound_call.answered":
+      return {
+        event: "inbound_call.answered",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          call: {
+            id: `call_test_${crypto.randomUUID().substring(0, 8)}`,
+            callSid: `CA${crypto.randomBytes(16).toString("hex")}`,
+            direction: "inbound",
+            status: "in-progress",
+            receivedAt: new Date(Date.now() - 5e3).toISOString(),
+            answeredAt: timestamp2,
+            fromNumber: "+15555559876",
+            toNumber: "+15555551234"
+          },
+          agent: {
+            id: `agent_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Inbound Support Agent",
+            type: "incoming"
+          }
+        }
+      };
+    case "inbound_call.completed":
+      return {
+        event: "inbound_call.completed",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          call: {
+            id: `call_test_${crypto.randomUUID().substring(0, 8)}`,
+            callSid: `CA${crypto.randomBytes(16).toString("hex")}`,
+            direction: "inbound",
+            status: "completed",
+            receivedAt: new Date(Date.now() - 3e5).toISOString(),
+            answeredAt: new Date(Date.now() - 295e3).toISOString(),
+            endedAt: timestamp2,
+            duration: 300,
+            durationMinutes: 5,
+            fromNumber: "+15555559876",
+            toNumber: "+15555551234"
+          },
+          agent: {
+            id: `agent_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Inbound Support Agent",
+            type: "incoming"
+          },
+          analysis: {
+            classification: "Support Request",
+            sentiment: "neutral",
+            summary: "Customer called for product support"
+          }
+        }
+      };
+    case "inbound_call.missed":
+      return {
+        event: "inbound_call.missed",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          call: {
+            id: `call_test_${crypto.randomUUID().substring(0, 8)}`,
+            callSid: `CA${crypto.randomBytes(16).toString("hex")}`,
+            direction: "inbound",
+            status: "missed",
+            receivedAt: new Date(Date.now() - 3e4).toISOString(),
+            missedAt: timestamp2,
+            fromNumber: "+15555559876",
+            toNumber: "+15555551234"
+          },
+          agent: {
+            id: `agent_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Inbound Support Agent",
+            type: "incoming"
+          },
+          reason: "No answer - call timed out"
+        }
+      };
+    case "flow.started":
+      return {
+        event: "flow.started",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          flow: {
+            id: `flow_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Customer Support Flow",
+            version: 1
+          },
+          call: {
+            id: `call_test_${crypto.randomUUID().substring(0, 8)}`,
+            callSid: `CA${crypto.randomBytes(16).toString("hex")}`
+          },
+          startNode: {
+            id: "node_start",
+            type: "start"
+          }
+        }
+      };
+    case "flow.completed":
+      return {
+        event: "flow.completed",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          flow: {
+            id: `flow_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Customer Support Flow",
+            version: 1
+          },
+          call: {
+            id: `call_test_${crypto.randomUUID().substring(0, 8)}`,
+            callSid: `CA${crypto.randomBytes(16).toString("hex")}`
+          },
+          endNode: {
+            id: "node_end",
+            type: "end_call"
+          },
+          nodesExecuted: 5,
+          flowDuration: 180
+        }
+      };
+    case "flow.failed":
+      return {
+        event: "flow.failed",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          flow: {
+            id: `flow_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Customer Support Flow",
+            version: 1
+          },
+          call: {
+            id: `call_test_${crypto.randomUUID().substring(0, 8)}`,
+            callSid: `CA${crypto.randomBytes(16).toString("hex")}`
+          },
+          failedNode: {
+            id: "node_api_call",
+            type: "api_call"
+          },
+          error: {
+            code: "API_TIMEOUT",
+            message: "External API call timed out"
+          }
+        }
+      };
+    case "appointment.booked":
+      return {
+        event: "appointment.booked",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          appointment: {
+            id: `apt_test_${crypto.randomUUID().substring(0, 8)}`,
+            type: "Product Demo",
+            status: "confirmed",
+            scheduledDate: new Date(Date.now() + 864e5 * 3).toISOString().split("T")[0],
+            scheduledTime: "14:00",
+            timezone: "America/New_York",
+            duration: 30,
+            location: "Virtual - Zoom",
+            notes: "Customer interested in enterprise features"
+          },
+          contact: {
+            id: `contact_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Michael Brown",
+            phone: "+15555559876",
+            email: "michael.brown@example.com",
+            company: "Brown Industries",
+            title: "Director of Operations"
+          },
+          call: {
+            id: `call_test_${crypto.randomUUID().substring(0, 8)}`,
+            conversationId: `conv_test_${crypto.randomUUID().substring(0, 8)}`,
+            duration: 145
+          },
+          campaign: {
+            id: `campaign_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Demo Scheduling Campaign"
+          },
+          bookedBy: {
+            agentId: `agent_test_${crypto.randomUUID().substring(0, 8)}`,
+            agentName: "Appointment Setter AI"
+          }
+        }
+      };
+    case "appointment.confirmed":
+      return {
+        event: "appointment.confirmed",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          appointment: {
+            id: `apt_test_${crypto.randomUUID().substring(0, 8)}`,
+            type: "Product Demo",
+            status: "confirmed",
+            scheduledDate: new Date(Date.now() + 864e5 * 2).toISOString().split("T")[0],
+            scheduledTime: "10:00",
+            timezone: "America/New_York",
+            duration: 30,
+            confirmedAt: timestamp2
+          },
+          contact: {
+            id: `contact_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Michael Brown",
+            phone: "+15555559876",
+            email: "michael.brown@example.com"
+          },
+          confirmationMethod: "sms_reply"
+        }
+      };
+    case "appointment.cancelled":
+      return {
+        event: "appointment.cancelled",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          appointment: {
+            id: `apt_test_${crypto.randomUUID().substring(0, 8)}`,
+            type: "Consultation",
+            status: "cancelled",
+            scheduledDate: new Date(Date.now() + 864e5).toISOString().split("T")[0],
+            scheduledTime: "15:00",
+            timezone: "America/New_York",
+            cancelledAt: timestamp2
+          },
+          contact: {
+            id: `contact_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Jane Smith",
+            phone: "+15555559876",
+            email: "jane.smith@example.com"
+          },
+          cancelReason: "Customer requested cancellation",
+          cancelledBy: "customer"
+        }
+      };
+    case "appointment.rescheduled":
+      return {
+        event: "appointment.rescheduled",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          appointment: {
+            id: `apt_test_${crypto.randomUUID().substring(0, 8)}`,
+            type: "Product Demo",
+            status: "rescheduled",
+            originalDate: new Date(Date.now() + 864e5).toISOString().split("T")[0],
+            originalTime: "10:00",
+            newDate: new Date(Date.now() + 864e5 * 3).toISOString().split("T")[0],
+            newTime: "14:00",
+            timezone: "America/New_York",
+            rescheduledAt: timestamp2
+          },
+          contact: {
+            id: `contact_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Michael Brown",
+            phone: "+15555559876",
+            email: "michael.brown@example.com"
+          },
+          rescheduleReason: "Conflict with another meeting",
+          rescheduledBy: "customer"
+        }
+      };
+    case "appointment.completed":
+      return {
+        event: "appointment.completed",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          appointment: {
+            id: `apt_test_${crypto.randomUUID().substring(0, 8)}`,
+            type: "Product Demo",
+            status: "completed",
+            scheduledDate: (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
+            scheduledTime: "10:00",
+            timezone: "America/New_York",
+            duration: 30,
+            completedAt: timestamp2
+          },
+          contact: {
+            id: `contact_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Michael Brown",
+            phone: "+15555559876",
+            email: "michael.brown@example.com"
+          },
+          outcome: {
+            status: "successful",
+            notes: "Customer was impressed with demo, requested follow-up"
+          }
+        }
+      };
+    case "appointment.no_show":
+      return {
+        event: "appointment.no_show",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          appointment: {
+            id: `apt_test_${crypto.randomUUID().substring(0, 8)}`,
+            type: "Consultation",
+            status: "no_show",
+            scheduledDate: (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
+            scheduledTime: "14:00",
+            timezone: "America/New_York",
+            markedNoShowAt: timestamp2
+          },
+          contact: {
+            id: `contact_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Robert Wilson",
+            phone: "+15555559876",
+            email: "robert.wilson@example.com"
+          },
+          followUpAction: "Attempt to reschedule"
+        }
+      };
+    case "form.submitted":
+      return {
+        event: "form.submitted",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          form: {
+            id: `form_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Lead Qualification Form",
+            submittedAt: timestamp2
+          },
+          submission: {
+            id: `submission_test_${crypto.randomUUID().substring(0, 8)}`,
+            fields: {
+              full_name: "Sarah Williams",
+              email: "sarah.williams@example.com",
+              phone: "+15555559876",
+              company: "Williams & Associates",
+              company_size: "50-100 employees",
+              annual_revenue: "$5M - $10M",
+              current_solution: "Manual outreach",
+              pain_points: "Time-consuming, inconsistent results",
+              budget_range: "$1,000 - $5,000/month",
+              decision_timeline: "1-3 months",
+              preferred_contact_method: "Email",
+              additional_notes: "Looking to scale outreach efforts for Q2"
+            },
+            completionTime: 180,
+            completionPercentage: 100
+          },
+          contact: {
+            id: `contact_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Sarah Williams",
+            phone: "+15555559876",
+            email: "sarah.williams@example.com"
+          },
+          call: {
+            id: `call_test_${crypto.randomUUID().substring(0, 8)}`,
+            conversationId: `conv_test_${crypto.randomUUID().substring(0, 8)}`,
+            duration: 210
+          },
+          campaign: {
+            id: `campaign_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Lead Qualification Campaign"
+          },
+          qualification: {
+            score: 85,
+            grade: "A",
+            recommended_action: "Schedule demo call"
+          }
+        }
+      };
+    case "form.lead_created":
+      return {
+        event: "form.lead_created",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          lead: {
+            id: `lead_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "David Johnson",
+            email: "david.johnson@example.com",
+            phone: "+15555559876",
+            company: "Johnson Enterprises",
+            source: "AI Voice Agent",
+            status: "new",
+            createdAt: timestamp2
+          },
+          form: {
+            id: `form_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Lead Capture Form"
+          },
+          call: {
+            id: `call_test_${crypto.randomUUID().substring(0, 8)}`,
+            duration: 180
+          },
+          qualification: {
+            score: 75,
+            grade: "B",
+            tags: ["enterprise", "demo-requested"]
+          }
+        }
+      };
+    case "webhook.test":
+    default:
+      return {
+        event: "webhook.test",
+        timestamp: timestamp2,
+        data: {
+          ...baseData,
+          message: "This is a comprehensive test webhook from your platform",
+          sampleEvents: WEBHOOK_EVENT_TYPES.filter((e) => e !== "webhook.test"),
+          documentation: "Each event type contains detailed structured data. Subscribe to specific events to receive real-time notifications.",
+          contact: {
+            id: `contact_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Test User",
+            phone: "+15555551234",
+            email: "test@example.com",
+            company: "Test Company Inc."
+          },
+          call: {
+            id: `call_test_${crypto.randomUUID().substring(0, 8)}`,
+            conversationId: `conv_test_${crypto.randomUUID().substring(0, 8)}`,
+            callSid: `CA${crypto.randomBytes(16).toString("hex")}`,
+            status: "completed",
+            duration: 120,
+            durationMinutes: 2,
+            classification: "Warm Lead",
+            sentiment: "positive",
+            transcript: "Sample transcript of the conversation...",
+            summary: "Test call completed successfully with positive outcome.",
+            recordingUrl: "https://example.com/recordings/test.mp3"
+          },
+          campaign: {
+            id: `campaign_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Test Campaign",
+            status: "running"
+          },
+          agent: {
+            id: `agent_test_${crypto.randomUUID().substring(0, 8)}`,
+            name: "Test Agent",
+            type: "natural"
+          },
+          collectedData: {
+            product_interest: "AI Voice Agents",
+            budget: "$5,000/month",
+            timeline: "Q1 2025",
+            decision_maker: true
+          }
+        }
+      };
+  }
+}
+var WEBHOOK_EVENT_TYPES, WebhookTestService, webhookTestService;
+var init_webhook_test_service = __esm({
+  "server/services/webhook-test-service.ts"() {
+    "use strict";
+    init_storage();
+    init_url_validator();
+    WEBHOOK_EVENT_TYPES = [
+      // Campaign events
+      "campaign.started",
+      "campaign.paused",
+      "campaign.resumed",
+      "campaign.completed",
+      "campaign.failed",
+      "campaign.cancelled",
+      // Call events (outbound)
+      "call.started",
+      "call.ringing",
+      "call.answered",
+      "call.completed",
+      "call.failed",
+      "call.transferred",
+      "call.no_answer",
+      "call.busy",
+      "call.voicemail",
+      // Call events (inbound)
+      "inbound_call.received",
+      "inbound_call.answered",
+      "inbound_call.completed",
+      "inbound_call.missed",
+      // Flow events
+      "flow.started",
+      "flow.completed",
+      "flow.failed",
+      // Appointment events
+      "appointment.booked",
+      "appointment.confirmed",
+      "appointment.cancelled",
+      "appointment.rescheduled",
+      "appointment.completed",
+      "appointment.no_show",
+      // Form events
+      "form.submitted",
+      "form.lead_created",
+      // Callback events (agent-scheduled call backs)
+      "callback.scheduled",
+      // System
+      "webhook.test"
+    ];
+    WebhookTestService = class {
+      generateSignature(payload, secret, timestamp2) {
+        const signaturePayload = timestamp2 + payload;
+        return crypto.createHmac("sha256", secret).update(signaturePayload).digest("hex");
+      }
+      buildHeaders(webhook, payload, timestamp2) {
+        const signature = this.generateSignature(payload, webhook.secret, timestamp2);
+        const headers = {
+          "Content-Type": "application/json",
+          "User-Agent": "Platform-Webhook/1.0",
+          "X-Webhook-Signature": signature,
+          "X-Webhook-Timestamp": timestamp2,
+          "X-Webhook-Event": "webhook.test",
+          "X-Webhook-Delivery": crypto.randomUUID()
+        };
+        if (webhook.authType === "bearer" && webhook.authCredentials) {
+          const creds = webhook.authCredentials;
+          if (creds.token) {
+            headers["Authorization"] = `Bearer ${creds.token}`;
+          }
+        } else if (webhook.authType === "basic" && webhook.authCredentials) {
+          const creds = webhook.authCredentials;
+          if (creds.username) {
+            const basicAuth = Buffer.from(`${creds.username}:${creds.password || ""}`).toString("base64");
+            headers["Authorization"] = `Basic ${basicAuth}`;
+          }
+        }
+        if (webhook.headers) {
+          Object.assign(headers, webhook.headers);
+        }
+        return headers;
+      }
+      async testWebhook(webhookId, userId) {
+        console.log(`\u{1F9EA} [WebhookTest] Testing webhook ${webhookId}`);
+        const webhook = await storage.getWebhook(webhookId);
+        if (!webhook) {
+          console.log(`\u274C [WebhookTest] Webhook ${webhookId} not found in database`);
+          return {
+            success: false,
+            responseTime: 0,
+            error: "Webhook not found. It may have been deleted.",
+            message: "Webhook not found"
+          };
+        }
+        if (webhook.userId !== userId) {
+          console.log(`\u274C [WebhookTest] Access denied for webhook ${webhookId}`);
+          return {
+            success: false,
+            responseTime: 0,
+            error: "Access denied",
+            message: "You do not have permission to test this webhook"
+          };
+        }
+        const testPayload = generateComprehensiveTestPayload("webhook.test");
+        const timestamp2 = testPayload.timestamp;
+        const payloadString = JSON.stringify(testPayload);
+        const headers = this.buildHeaders(webhook, payloadString, timestamp2);
+        const startTime = Date.now();
+        let result;
+        try {
+          console.log(`\u{1F4E4} [WebhookTest] Sending to ${webhook.url}`);
+          const urlCheck = await validateWebhookUrl(webhook.url);
+          if (!urlCheck.valid) {
+            console.warn(`\u{1F6AB} [WebhookTest] SSRF blocked: ${urlCheck.error} for URL ${webhook.url}`);
+            return {
+              success: false,
+              responseTime: 0,
+              error: urlCheck.error,
+              message: urlCheck.error || "Blocked by security policy"
+            };
+          }
+          const response = await fetch(webhook.url, {
+            method: webhook.method || "POST",
+            headers,
+            body: payloadString,
+            signal: AbortSignal.timeout(3e4),
+            redirect: "error"
+          });
+          const responseTime = Date.now() - startTime;
+          let responseBody = "";
+          try {
+            responseBody = await response.text();
+            if (responseBody.length > 2e3) {
+              responseBody = responseBody.substring(0, 2e3) + "...[truncated]";
+            }
+          } catch {
+            responseBody = "Unable to read response body";
+          }
+          if (response.ok) {
+            console.log(`\u2705 [WebhookTest] Success - Status: ${response.status}, Time: ${responseTime}ms`);
+            result = {
+              success: true,
+              status: response.status,
+              responseTime,
+              responseBody,
+              message: "Test webhook sent successfully"
+            };
+          } else {
+            console.log(`\u26A0\uFE0F [WebhookTest] Failed - Status: ${response.status}, Time: ${responseTime}ms`);
+            result = {
+              success: false,
+              status: response.status,
+              responseTime,
+              responseBody,
+              error: `Webhook endpoint returned ${response.status}: ${response.statusText}`,
+              message: "Webhook endpoint returned an error"
+            };
+          }
+        } catch (error) {
+          const responseTime = Date.now() - startTime;
+          const errorMessage2 = error.name === "TimeoutError" ? "Request timed out after 30 seconds" : error.message || "Unknown error";
+          console.error(`\u274C [WebhookTest] Error: ${errorMessage2}`);
+          result = {
+            success: false,
+            responseTime,
+            error: errorMessage2,
+            message: "Failed to send test webhook"
+          };
+        }
+        await this.logDelivery(webhook, testPayload, result);
+        return result;
+      }
+      async logDelivery(webhook, payload, result) {
+        try {
+          const existingWebhook = await storage.getWebhook(webhook.id);
+          if (!existingWebhook) {
+            console.log(`\u26A0\uFE0F [WebhookTest] Webhook ${webhook.id} no longer exists, skipping log`);
+            return;
+          }
+          const logData = {
+            webhookId: webhook.id,
+            event: "webhook.test",
+            payload,
+            success: result.success,
+            httpStatus: result.status || null,
+            responseBody: result.responseBody || null,
+            responseTime: result.responseTime || null,
+            error: result.error || null,
+            attemptNumber: 1,
+            maxAttempts: 1,
+            nextRetryAt: null
+          };
+          await storage.createWebhookLog(logData);
+          console.log(`\u{1F4DD} [WebhookTest] Logged delivery for webhook ${webhook.id}`);
+        } catch (error) {
+          console.error(`\u26A0\uFE0F [WebhookTest] Failed to log delivery (non-fatal):`, error);
+        }
+      }
+    };
+    webhookTestService = new WebhookTestService();
+  }
+});
+
+// server/integrations/providers/webhook-forwarder.ts
+import { createHmac } from "crypto";
+function targetsOf(row) {
+  const raw = asObject(row?.config)?.webhooks;
+  if (!Array.isArray(raw)) return [];
+  return raw.map((item) => asObject(item)).filter((item) => !!item && !!str(item.url)).map((item) => ({
+    url: str(item.url),
+    events: Array.isArray(item.events) ? item.events.filter((e) => typeof e === "string") : []
+  }));
+}
+async function parseTargets(input) {
+  const raw = input.webhooks;
+  if (!Array.isArray(raw)) return { webhooks: [], error: "webhooks must be an array" };
+  if (raw.length > MAX_WEBHOOKS) return { webhooks: [], error: `At most ${MAX_WEBHOOKS} webhook URLs are allowed` };
+  const webhooks2 = [];
+  for (const item of raw) {
+    const entry = asObject(item);
+    const url = str(entry?.url);
+    if (!url) return { webhooks: [], error: "Each webhook needs a url" };
+    let parsed;
+    try {
+      parsed = new URL(url);
+    } catch {
+      return { webhooks: [], error: `Invalid URL: ${url}` };
+    }
+    if (parsed.protocol !== "https:") return { webhooks: [], error: `Webhook URLs must use https: ${url}` };
+    const check = await validateWebhookUrl(url);
+    if (!check.valid) return { webhooks: [], error: `${check.error}: ${url}` };
+    const events = Array.isArray(entry?.events) ? entry.events.filter((e) => typeof e === "string") : [];
+    const unknown = events.filter((e) => !FORWARDABLE_EVENTS.includes(e));
+    if (unknown.length) return { webhooks: [], error: `Unknown event(s): ${unknown.join(", ")}` };
+    if (!webhooks2.some((w) => w.url === url)) webhooks2.push({ url, events: Array.from(new Set(events)) });
+  }
+  return { webhooks: webhooks2 };
+}
+function signedHeaders(row, event, body) {
+  return {
+    "Content-Type": "application/json",
+    "User-Agent": "Zonvo-Integrations/1.0",
+    "X-Zonvo-Event": event,
+    "X-Zonvo-Signature": `sha256=${createHmac("sha256", row.id).update(body).digest("hex")}`
+  };
+}
+async function post(url, body, headers) {
+  let outcome = { ok: false, attempts: 0 };
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const resp = await fetchWithTimeout(url, { method: "POST", headers, body, redirect: "manual" }, TIMEOUT_MS);
+      const redirected = resp.status >= 300 && resp.status < 400;
+      const ok = resp.ok && !redirected;
+      outcome = { ok, httpStatus: resp.status, attempts: attempt, error: ok ? void 0 : redirected ? `HTTP ${resp.status} redirect not followed` : `HTTP ${resp.status}` };
+      if (ok || resp.status < 500) return outcome;
+    } catch (err) {
+      outcome = { ok: false, attempts: attempt, error: errorMessage(err) };
+    }
+  }
+  return outcome;
+}
+function subscribed(target, event) {
+  return target.events.length === 0 || target.events.includes(event);
+}
+function createWebhookProvider(key, displayName) {
+  return {
+    key,
+    displayName,
+    kind: "webhook",
+    appKeys: [],
+    async applyConfig(input) {
+      const parsed = await parseTargets(input);
+      if (parsed.error) return { config: {}, error: parsed.error };
+      return { config: { webhooks: parsed.webhooks } };
+    },
+    publicConfig(row) {
+      return { webhooks: targetsOf(row), inboundUrl: inboundTriggerUrl(), signingSecret: row?.id ?? null };
+    },
+    async validate(row) {
+      const targets = targetsOf(row);
+      if (!targets.length) return { ok: false, error: "No webhook URLs configured" };
+      return { ok: true, accountName: `${targets.length} webhook${targets.length === 1 ? "" : "s"}` };
+    },
+    async test(row) {
+      const targets = targetsOf(row);
+      if (!targets.length) return { ok: false, error: "No webhook URLs configured" };
+      const body = JSON.stringify(generateComprehensiveTestPayload("webhook.test"));
+      const headers = signedHeaders(row, "webhook.test", body);
+      const results = await Promise.all(targets.map(async (t) => {
+        const outcome = await post(t.url, body, headers);
+        return { url: t.url, ok: outcome.ok, httpStatus: outcome.httpStatus, error: outcome.error };
+      }));
+      const failed = results.find((r) => !r.ok);
+      return { ok: !failed, results, error: failed ? `${failed.url}: ${failed.error}` : void 0 };
+    },
+    supports(event, row) {
+      return event !== "webhook.test" && targetsOf(row).some((t) => subscribed(t, event));
+    },
+    async handle(row, event, data, ctx) {
+      const body = JSON.stringify({ event, timestamp: (/* @__PURE__ */ new Date()).toISOString(), data });
+      const headers = signedHeaders(row, event, body);
+      const targets = targetsOf(row).filter((t) => subscribed(t, event));
+      return Promise.all(targets.map(async (t) => {
+        const outcome = await post(t.url, body, headers);
+        return {
+          action: "webhook.post",
+          status: outcome.ok ? "success" : "failed",
+          sourceId: ctx.sourceId,
+          error: outcome.error ?? null,
+          payload: { url: t.url, httpStatus: outcome.httpStatus ?? null, attempts: outcome.attempts }
+        };
+      }));
+    }
+  };
+}
+var MAX_WEBHOOKS, TIMEOUT_MS, MAX_ATTEMPTS, FORWARDABLE_EVENTS;
+var init_webhook_forwarder = __esm({
+  "server/integrations/providers/webhook-forwarder.ts"() {
+    "use strict";
+    init_webhook_test_service();
+    init_url_validator();
+    init_app_keys();
+    init_http();
+    init_normalize();
+    init_types2();
+    MAX_WEBHOOKS = 5;
+    TIMEOUT_MS = 8e3;
+    MAX_ATTEMPTS = 2;
+    FORWARDABLE_EVENTS = ["lead.upserted", ...WEBHOOK_EVENT_TYPES.filter((e) => e !== "webhook.test")];
+  }
+});
+
+// server/integrations/providers/zapier.ts
+var zapierProvider;
+var init_zapier = __esm({
+  "server/integrations/providers/zapier.ts"() {
+    "use strict";
+    init_webhook_forwarder();
+    zapierProvider = createWebhookProvider("zapier", "Zapier");
+  }
+});
+
+// server/integrations/providers/pabbly.ts
+var pabblyProvider;
+var init_pabbly = __esm({
+  "server/integrations/providers/pabbly.ts"() {
+    "use strict";
+    init_webhook_forwarder();
+    pabblyProvider = createWebhookProvider("pabbly", "Pabbly Connect");
+  }
+});
+
+// server/integrations/providers/index.ts
+function isProviderKey(value) {
+  return INTEGRATION_PROVIDERS.includes(value);
+}
+function getProvider(key) {
+  return isProviderKey(key) ? PROVIDERS[key] : null;
+}
+var PROVIDERS;
+var init_providers = __esm({
+  "server/integrations/providers/index.ts"() {
+    "use strict";
+    init_schema();
+    init_zoho();
+    init_salesforce();
+    init_gohighlevel();
+    init_calcom();
+    init_zapier();
+    init_pabbly();
+    PROVIDERS = {
+      gohighlevel: gohighlevelProvider,
+      salesforce: salesforceProvider,
+      zoho: zohoProvider,
+      calcom: calcomProvider,
+      zapier: zapierProvider,
+      pabbly: pabblyProvider
+    };
+  }
+});
+
+// server/integrations/hub.ts
+import { eq as eq16 } from "drizzle-orm";
+function invalidateIntegrationCache(userId) {
+  rowCache.delete(userId);
+}
+async function connectedRows(userId) {
+  const cached = rowCache.get(userId);
+  if (cached && Date.now() - cached.at < ROW_CACHE_TTL_MS) return cached.rows;
+  const rows = (await listIntegrationRows(userId)).filter((r) => r.status === "connected");
+  rowCache.set(userId, { at: Date.now(), rows });
+  return rows;
+}
+function publicLead(lead) {
+  const source = lead;
+  const out = {};
+  for (const key of LEAD_PUBLIC_FIELDS) out[key] = source[key] ?? null;
+  return out;
+}
+async function appointmentPayloadForLead(lead, callId) {
+  const details = asObject(lead.appointmentDetails);
+  const apptId = str(details?.appointmentId);
+  let row;
+  if (apptId) [row] = await db.select().from(appointments).where(eq16(appointments.id, apptId)).limit(1);
+  if (!row && callId) [row] = await db.select().from(appointments).where(eq16(appointments.callId, callId)).limit(1);
+  if (row) {
+    if (row.status === "cancelled") return null;
+    return {
+      appointment: {
+        id: row.id,
+        type: row.serviceName,
+        status: row.status,
+        scheduledDate: row.appointmentDate,
+        scheduledTime: row.appointmentTime,
+        duration: row.duration,
+        notes: row.notes
+      },
+      contact: { name: row.contactName, phone: row.contactPhone, email: row.contactEmail, company: lead.company },
+      call: row.callId ? { id: row.callId } : null,
+      lead: { id: lead.id }
+    };
+  }
+  const date2 = str(details?.date);
+  const time2 = str(details?.time);
+  if (!date2 || !time2) return null;
+  return {
+    appointment: { id: `lead-${lead.id}`, type: str(details?.serviceName), status: "scheduled", scheduledDate: date2, scheduledTime: time2, duration: Number(details?.duration) || 30, notes: null },
+    contact: { name: str(details?.contactName) ?? ([lead.firstName, lead.lastName].filter(Boolean).join(" ") || null), phone: str(details?.contactPhone) ?? lead.phone, email: lead.email, company: lead.company },
+    call: callId ? { id: callId } : null,
+    lead: { id: lead.id }
+  };
+}
+var ROW_CACHE_TTL_MS, DEDUPE_WINDOW_MS, LOG, LEAD_PUBLIC_FIELDS, rowCache, IntegrationHub, integrationHub;
+var init_hub = __esm({
+  "server/integrations/hub.ts"() {
+    "use strict";
+    init_db();
+    init_schema();
+    init_providers();
+    init_token_store();
+    init_normalize();
+    init_types2();
+    ROW_CACHE_TTL_MS = 1e4;
+    DEDUPE_WINDOW_MS = 5 * 6e4;
+    LOG = "[Integrations]";
+    LEAD_PUBLIC_FIELDS = [
+      "id",
+      "firstName",
+      "lastName",
+      "phone",
+      "email",
+      "company",
+      "stage",
+      "leadScore",
+      "aiSummary",
+      "aiNextAction",
+      "sentiment",
+      "aiCategory",
+      "hasAppointment",
+      "hasFormSubmission",
+      "hasTransfer",
+      "hasCallback",
+      "appointmentDate",
+      "appointmentDetails",
+      "formData",
+      "transferredTo",
+      "tags",
+      "sourceType",
+      "campaignId",
+      "totalCalls",
+      "lastCallAt",
+      "createdAt",
+      "updatedAt"
+    ];
+    rowCache = /* @__PURE__ */ new Map();
+    IntegrationHub = class {
+      /** Fire-and-forget: routes an app event to every connected provider for the user. Never throws. */
+      dispatch(userId, event, data) {
+        if (!userId || event === "webhook.test") return;
+        this.run(userId, event, data).catch((err) => console.error(`${LOG} dispatch ${event} failed:`, errorMessage(err)));
+      }
+      async run(userId, event, data) {
+        const rows = await connectedRows(userId);
+        if (!rows.length) return;
+        const sourceId = eventSourceId(event, data);
+        await Promise.allSettled(rows.map((row) => this.runProvider(row, event, data, sourceId)));
+      }
+      async runProvider(row, event, data, sourceId) {
+        const provider = getProvider(row.provider);
+        if (!provider || !provider.supports(event, row)) return;
+        if (sourceId && await wasRecentlySynced(row.userId, row.provider, event, sourceId, DEDUPE_WINDOW_MS)) return;
+        const ctx = {
+          userId: row.userId,
+          sourceId,
+          findExternalId: (action, id) => findExternalId(row.provider, id, action, row.userId)
+        };
+        try {
+          const results = await provider.handle(row, event, data, ctx);
+          await logSyncResults(row.userId, row.provider, event, results);
+          const failed = results.find((r) => r.status === "failed");
+          if (results.some((r) => r.status === "success")) await markIntegrationSynced(row.id, failed?.error ?? null);
+          else if (failed) await markIntegrationError(row.id, failed.error ?? "Sync failed");
+        } catch (err) {
+          const message = errorMessage(err);
+          console.error(`${LOG} ${row.provider} ${event} failed for user ${row.userId}: ${message}`);
+          await logSync({ userId: row.userId, provider: row.provider, event, action: "handle", status: "failed", sourceId, error: message });
+          const authFailure = err instanceof ProviderAuthError;
+          await markIntegrationError(row.id, message, authFailure ? "error" : void 0);
+          if (authFailure) invalidateIntegrationCache(row.userId);
+        }
+      }
+      /** Called by the CRM lead processor after a lead row was created/updated from a call. Never throws. */
+      async onLeadUpserted(userId, lead, context) {
+        try {
+          const rows = await connectedRows(userId);
+          if (!rows.length) return;
+          const call = context.callData;
+          this.dispatch(userId, "lead.upserted", {
+            lead: publicLead(lead),
+            created: context.created,
+            call: call ? {
+              id: call.id,
+              direction: call.callDirection ?? null,
+              duration: call.duration ?? null,
+              summary: call.aiSummary ?? null,
+              transcript: call.transcript ?? null,
+              from: call.fromNumber ?? null,
+              to: call.toNumber ?? null,
+              engine: call.engine ?? null,
+              campaignId: call.campaignId ?? null
+            } : null
+          });
+          if (lead.hasAppointment) {
+            const payload = await appointmentPayloadForLead(lead, call?.id ?? null);
+            if (payload) this.dispatch(userId, "appointment.booked", payload);
+          }
+        } catch (err) {
+          console.error(`${LOG} onLeadUpserted failed for user ${userId}:`, errorMessage(err));
+        }
+      }
+    };
+    integrationHub = new IntegrationHub();
+  }
+});
+
 // server/engines/crm/lead-processor.service.ts
 var lead_processor_service_exports = {};
 __export(lead_processor_service_exports, {
   CRMLeadProcessor: () => CRMLeadProcessor,
   default: () => lead_processor_service_default
 });
-import { eq as eq15, and as and7, sql as sql19 } from "drizzle-orm";
+import { eq as eq17, and as and8, sql as sql19 } from "drizzle-orm";
 var CRMLeadProcessor, lead_processor_service_default;
 var init_lead_processor_service = __esm({
   "server/engines/crm/lead-processor.service.ts"() {
@@ -7113,6 +10083,7 @@ var init_lead_processor_service = __esm({
     init_db();
     init_schema();
     init_crm_storage();
+    init_hub();
     CRMLeadProcessor = class {
       static LOG_PREFIX = "[CRM Lead Processor]";
       // Minimum quality thresholds
@@ -7162,11 +10133,11 @@ var init_lead_processor_service = __esm({
         if (cleaned.startsWith("client:") || cleaned.startsWith("sip:") || cleaned.startsWith("agent:") || cleaned.includes("@")) {
           return false;
         }
-        const digitsOnly = phone.replace(/\D/g, "");
-        if (digitsOnly.length < 5 || digitsOnly.length > 15) {
+        const digitsOnly2 = phone.replace(/\D/g, "");
+        if (digitsOnly2.length < 5 || digitsOnly2.length > 15) {
           return false;
         }
-        const digitRatio = digitsOnly.length / cleaned.replace(/\s/g, "").length;
+        const digitRatio = digitsOnly2.length / cleaned.replace(/\s/g, "").length;
         if (digitRatio < 0.5) {
           return false;
         }
@@ -7179,14 +10150,14 @@ var init_lead_processor_service = __esm({
       static normalizePhone(phone) {
         let normalized = phone.trim();
         normalized = normalized.replace(/^(whatsapp:|tel:|phone:)/i, "");
-        const digitsOnly = normalized.replace(/[^\d]/g, "");
+        const digitsOnly2 = normalized.replace(/[^\d]/g, "");
         const hadPlus = normalized.startsWith("+");
-        if (digitsOnly.length >= 10) {
-          return "+" + digitsOnly;
-        } else if (digitsOnly.length >= 5) {
-          return hadPlus ? "+" + digitsOnly : digitsOnly;
+        if (digitsOnly2.length >= 10) {
+          return "+" + digitsOnly2;
+        } else if (digitsOnly2.length >= 5) {
+          return hadPlus ? "+" + digitsOnly2 : digitsOnly2;
         }
-        return digitsOnly || normalized;
+        return digitsOnly2 || normalized;
       }
       /**
        * Check if a call meets minimum quality standards for lead creation
@@ -7244,6 +10215,7 @@ var init_lead_processor_service = __esm({
           if (existingLead) {
             const updatedLead = await this.updateExistingLead(existingLead, callData, qualification);
             if (updatedLead) {
+              void integrationHub.onLeadUpserted(callData.userId, updatedLead, { created: false, callData });
               const categoryChanged = existingLead.aiCategory !== updatedLead.aiCategory;
               console.log(`${this.LOG_PREFIX} Updated existing lead ${updatedLead.id} - aiCategory: ${existingLead.aiCategory || "none"} -> ${updatedLead.aiCategory || qualification.category}${categoryChanged ? " (changed)" : ""}`);
               return {
@@ -7259,6 +10231,7 @@ var init_lead_processor_service = __esm({
             return { leadId: null, qualification };
           }
           console.log(`${this.LOG_PREFIX} Created lead ${lead.id} with category: ${qualification.category}`);
+          void integrationHub.onLeadUpserted(callData.userId, lead, { created: true, callData });
           try {
             await CRMStorage.createActivity({
               userId: callData.userId,
@@ -7445,7 +10418,7 @@ var init_lead_processor_service = __esm({
               bookedAt: appt.createdAt?.toISOString()
             };
           };
-          const byCallId = await db.select().from(appointments).where(eq15(appointments.callId, callData.id)).limit(1);
+          const byCallId = await db.select().from(appointments).where(eq17(appointments.callId, callData.id)).limit(1);
           if (byCallId.length > 0) {
             return formatAppt(byCallId[0], "callId");
           }
@@ -7453,8 +10426,8 @@ var init_lead_processor_service = __esm({
           if (!phone) return null;
           const normalizedPhone = phone.replace(/\D/g, "").slice(-10);
           if (normalizedPhone.length < 7) return null;
-          const byPhone = await db.select().from(appointments).where(and7(
-            eq15(appointments.userId, callData.userId),
+          const byPhone = await db.select().from(appointments).where(and8(
+            eq17(appointments.userId, callData.userId),
             sql19`${appointments.createdAt} > NOW() - INTERVAL '30 minutes'`,
             sql19`RIGHT(REGEXP_REPLACE(${appointments.contactPhone}, '[^0-9]', '', 'g'), 10) = ${normalizedPhone}`
           )).limit(1);
@@ -7515,33 +10488,33 @@ var init_lead_processor_service = __esm({
         const phoneNumber = this.resolveLeadPhone(callData);
         const hasValidPhone = phoneNumber && phoneNumber !== "Unknown";
         if (callData.engine === "elevenlabs-twilio") {
-          const [existingByCallId] = await db.select().from(leads).where(and7(
-            eq15(leads.userId, callData.userId),
-            eq15(leads.callId, callData.id)
+          const [existingByCallId] = await db.select().from(leads).where(and8(
+            eq17(leads.userId, callData.userId),
+            eq17(leads.callId, callData.id)
           )).limit(1);
           if (existingByCallId) return existingByCallId;
         }
         if (callData.campaignId && hasValidPhone) {
-          const [existingByCampaign] = await db.select().from(leads).where(and7(
-            eq15(leads.userId, callData.userId),
-            eq15(leads.phone, phoneNumber),
-            eq15(leads.campaignId, callData.campaignId)
+          const [existingByCampaign] = await db.select().from(leads).where(and8(
+            eq17(leads.userId, callData.userId),
+            eq17(leads.phone, phoneNumber),
+            eq17(leads.campaignId, callData.campaignId)
           )).limit(1);
           if (existingByCampaign) return existingByCampaign;
         }
         if (callData.incomingConnectionId && hasValidPhone) {
-          const [existingByConnection] = await db.select().from(leads).where(and7(
-            eq15(leads.userId, callData.userId),
-            eq15(leads.phone, phoneNumber),
-            eq15(leads.incomingConnectionId, callData.incomingConnectionId)
+          const [existingByConnection] = await db.select().from(leads).where(and8(
+            eq17(leads.userId, callData.userId),
+            eq17(leads.phone, phoneNumber),
+            eq17(leads.incomingConnectionId, callData.incomingConnectionId)
           )).limit(1);
           if (existingByConnection) return existingByConnection;
         }
         if (hasValidPhone && !callData.campaignId) {
-          const [existingByPhone] = await db.select().from(leads).where(and7(
-            eq15(leads.userId, callData.userId),
-            eq15(leads.phone, phoneNumber),
-            eq15(leads.sourceType, "incoming")
+          const [existingByPhone] = await db.select().from(leads).where(and8(
+            eq17(leads.userId, callData.userId),
+            eq17(leads.phone, phoneNumber),
+            eq17(leads.sourceType, "incoming")
           )).limit(1);
           return existingByPhone || null;
         }
@@ -7672,7 +10645,7 @@ var init_lead_processor_service = __esm({
        * Process a call from the ElevenLabs-Twilio engine (calls table)
        */
       static async processElevenLabsTwilioCall(callId) {
-        const [call] = await db.select().from(calls).where(eq15(calls.id, callId)).limit(1);
+        const [call] = await db.select().from(calls).where(eq17(calls.id, callId)).limit(1);
         if (!call || !call.userId) {
           console.log(`${this.LOG_PREFIX} Call not found or no user: ${callId}`);
           return null;
@@ -7711,7 +10684,7 @@ var init_lead_processor_service = __esm({
        * Process a call from the Plivo+OpenAI engine (plivo_calls table)
        */
       static async processPlivoOpenAICall(callId) {
-        const [call] = await db.select().from(plivoCalls).where(eq15(plivoCalls.id, callId)).limit(1);
+        const [call] = await db.select().from(plivoCalls).where(eq17(plivoCalls.id, callId)).limit(1);
         if (!call || !call.userId) {
           console.log(`${this.LOG_PREFIX} Plivo call not found or no user: ${callId}`);
           return null;
@@ -7750,7 +10723,7 @@ var init_lead_processor_service = __esm({
        * Process a call from the Twilio+OpenAI engine (twilio_openai_calls table)
        */
       static async processTwilioOpenAICall(callId) {
-        const [call] = await db.select().from(twilioOpenaiCalls).where(eq15(twilioOpenaiCalls.id, callId)).limit(1);
+        const [call] = await db.select().from(twilioOpenaiCalls).where(eq17(twilioOpenaiCalls.id, callId)).limit(1);
         if (!call || !call.userId) {
           console.log(`${this.LOG_PREFIX} Twilio-OpenAI call not found or no user: ${callId}`);
           return null;
@@ -7789,7 +10762,7 @@ var init_lead_processor_service = __esm({
        * Process a call from the SIP engine (sip_calls table)
        */
       static async processSipCall(callId) {
-        const [call] = await db.select().from(sipCalls).where(eq15(sipCalls.id, callId)).limit(1);
+        const [call] = await db.select().from(sipCalls).where(eq17(sipCalls.id, callId)).limit(1);
         if (!call || !call.userId) {
           console.log(`${this.LOG_PREFIX} SIP call not found or no user: ${callId}`);
           return null;
@@ -8636,8 +11609,8 @@ function createAdminStorageRouter() {
             console.warn("[VE Admin Storage] S3 client module not found, using HTTP check fallback");
             const host = endpoint ? new URL(endpoint).host : provider === "do_spaces" ? `${bucket}.${region}.digitaloceanspaces.com` : provider === "wasabi" ? `${bucket}.s3.${region}.wasabisys.com` : `${bucket}.s3.${region}.amazonaws.com`;
             try {
-              const dns = await import("dns").then((m) => m.promises);
-              await dns.lookup(host);
+              const dns2 = await import("dns").then((m) => m.promises);
+              await dns2.lookup(host);
               return res.json({
                 success: true,
                 message: `Credentials configured. Host "${host}" is resolvable (AWS SDK is not installed on the server to perform full bucket API test).`
@@ -13884,10 +16857,10 @@ function registerAiVoiceEngineRoutes(app, options) {
       const getContainerIp = () => {
         const interfaces = os.networkInterfaces();
         for (const name of Object.keys(interfaces)) {
-          for (const net of interfaces[name] || []) {
-            if (net.family === "IPv4" && !net.internal) {
-              if (net.address.startsWith("10.") || net.address.startsWith("172.") || net.address.startsWith("192.168.")) {
-                return net.address;
+          for (const net2 of interfaces[name] || []) {
+            if (net2.family === "IPv4" && !net2.internal) {
+              if (net2.address.startsWith("10.") || net2.address.startsWith("172.") || net2.address.startsWith("192.168.")) {
+                return net2.address;
               }
             }
           }

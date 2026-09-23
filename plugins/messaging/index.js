@@ -11,11 +11,21 @@ var __export = (target, all) => {
 // shared/schema.ts
 var schema_exports = {};
 __export(schema_exports, {
+  AGENT_CALL_OUTCOMES: () => AGENT_CALL_OUTCOMES,
   AI_CATEGORY_COLORS: () => AI_CATEGORY_COLORS,
   AI_CATEGORY_LABELS: () => AI_CATEGORY_LABELS,
   AI_CATEGORY_PRIORITY: () => AI_CATEGORY_PRIORITY,
   AI_LEAD_CATEGORIES: () => AI_LEAD_CATEGORIES,
   API_SCOPES: () => API_SCOPES,
+  AgentActionsConfigSchema: () => AgentActionsConfigSchema,
+  AgentApiToolSchema: () => AgentApiToolSchema,
+  CALL_OUTCOMES: () => CALL_OUTCOMES,
+  FINAL_CALL_OUTCOMES: () => FINAL_CALL_OUTCOMES,
+  INTEGRATION_PROVIDERS: () => INTEGRATION_PROVIDERS,
+  RETRY_OUTCOMES: () => RETRY_OUTCOMES,
+  RetryRuleSchema: () => RetryRuleSchema,
+  RetryRulesSchema: () => RetryRulesSchema,
+  SYSTEM_CALL_OUTCOMES: () => SYSTEM_CALL_OUTCOMES,
   agentVersions: () => agentVersions,
   agents: () => agents,
   analyticsScripts: () => analyticsScripts,
@@ -41,6 +51,7 @@ __export(schema_exports, {
   crmCategoryPreferences: () => crmCategoryPreferences,
   demoSessions: () => demoSessions,
   determineAICategory: () => determineAICategory,
+  doNotCallNumbers: () => doNotCallNumbers,
   elevenLabsCredentials: () => elevenLabsCredentials,
   emailNotificationSettings: () => emailNotificationSettings,
   emailTemplates: () => emailTemplates,
@@ -72,6 +83,7 @@ __export(schema_exports, {
   insertCreditTransactionSchema: () => insertCreditTransactionSchema,
   insertCrmCategoryPreferencesSchema: () => insertCrmCategoryPreferencesSchema,
   insertDemoSessionSchema: () => insertDemoSessionSchema,
+  insertDoNotCallNumberSchema: () => insertDoNotCallNumberSchema,
   insertElevenLabsCredentialSchema: () => insertElevenLabsCredentialSchema,
   insertEmailNotificationSettingsSchema: () => insertEmailNotificationSettingsSchema,
   insertEmailTemplateSchema: () => insertEmailTemplateSchema,
@@ -113,6 +125,7 @@ __export(schema_exports, {
   insertPlivoPhonePricingSchema: () => insertPlivoPhonePricingSchema,
   insertPromptTemplateSchema: () => insertPromptTemplateSchema,
   insertRefundSchema: () => insertRefundSchema,
+  insertScheduledCallbackSchema: () => insertScheduledCallbackSchema,
   insertSeoSettingsSchema: () => insertSeoSettingsSchema,
   insertSipCallSchema: () => insertSipCallSchema,
   insertSipPhoneNumberSchema: () => insertSipPhoneNumberSchema,
@@ -125,6 +138,7 @@ __export(schema_exports, {
   insertUsageRecordSchema: () => insertUsageRecordSchema,
   insertUserAddressSchema: () => insertUserAddressSchema,
   insertUserFeedbackSchema: () => insertUserFeedbackSchema,
+  insertUserIntegrationSchema: () => insertUserIntegrationSchema,
   insertUserKnowledgeStorageLimitSchema: () => insertUserKnowledgeStorageLimitSchema,
   insertUserKycDocumentSchema: () => insertUserKycDocumentSchema,
   insertUserSchema: () => insertUserSchema,
@@ -134,6 +148,7 @@ __export(schema_exports, {
   insertWebhookSchema: () => insertWebhookSchema,
   insertWebsiteWidgetSchema: () => insertWebsiteWidgetSchema,
   insertWidgetCallSessionSchema: () => insertWidgetCallSessionSchema,
+  integrationSyncLogs: () => integrationSyncLogs,
   invoices: () => invoices,
   knowledgeBase: () => knowledgeBase,
   knowledgeChunks: () => knowledgeChunks,
@@ -163,6 +178,7 @@ __export(schema_exports, {
   promptTemplates: () => promptTemplates,
   refreshTokens: () => refreshTokens,
   refunds: () => refunds,
+  scheduledCallbacks: () => scheduledCallbacks,
   seoSettings: () => seoSettings,
   sipCalls: () => sipCalls,
   sipPhoneNumbers: () => sipPhoneNumbers,
@@ -175,6 +191,7 @@ __export(schema_exports, {
   usageRecords: () => usageRecords,
   userAddresses: () => userAddresses,
   userFeedback: () => userFeedback,
+  userIntegrations: () => userIntegrations,
   userKnowledgeStorageLimits: () => userKnowledgeStorageLimits,
   userKycDocuments: () => userKycDocuments,
   userSubscriptions: () => userSubscriptions,
@@ -191,6 +208,14 @@ import { sql } from "drizzle-orm";
 import { pgTable, text, varchar, integer, timestamp, boolean, jsonb, decimal, doublePrecision, serial, date, time, unique, uniqueIndex, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+function isValidTimeZone(tz) {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
 function determineAICategory(lead) {
   if (lead.hasAppointment) return AI_LEAD_CATEGORIES.APPOINTMENT_BOOKED;
   if (lead.hasFormSubmission) return AI_LEAD_CATEGORIES.FORM_SUBMITTED;
@@ -203,7 +228,7 @@ function determineAICategory(lead) {
   if (lead.sentiment === "positive") return AI_LEAD_CATEGORIES.WARM;
   return null;
 }
-var users, otpVerifications, refreshTokens, elevenLabsCredentials, syncedVoices, agents, knowledgeBase, incomingAgents, phoneNumbers, incomingConnections, campaigns, contacts, calls, creditTransactions, tools, voices, plans, globalSettings, llmModels, supportedLanguages, creditPackages, userSubscriptions, phoneNumberRentals, usageRecords, legacyWebhooks, legacyWebhookDeliveries, notifications, emailTemplates, promptTemplates, agentVersions, auditLogs, platformLanguages, insertUserSchema, insertElevenLabsCredentialSchema, insertSyncedVoiceSchema, insertAgentSchema, insertKnowledgeBaseSchema, insertIncomingAgentSchema, insertPromptTemplateSchema, insertAgentVersionSchema, insertIncomingConnectionSchema, insertCampaignSchema, insertContactSchema, insertCallSchema, insertCreditTransactionSchema, insertToolSchema, insertVoiceSchema, insertPlanSchema, insertGlobalSettingsSchema, insertLlmModelSchema, insertSupportedLanguageSchema, insertPlatformLanguageSchema, insertCreditPackageSchema, insertUserSubscriptionSchema, insertPhoneNumberSchema, insertUsageRecordSchema, insertLegacyWebhookSchema, insertLegacyWebhookDeliverySchema, insertPhoneNumberRentalSchema, insertNotificationSchema, insertEmailTemplateSchema, twilioCountries, insertTwilioCountrySchema, userKnowledgeStorageLimits, knowledgeChunks, knowledgeProcessingQueue, insertUserKnowledgeStorageLimitSchema, insertKnowledgeChunkSchema, insertKnowledgeProcessingQueueSchema, flows, insertFlowSchema, createFlowSchema, flowExecutions, insertFlowExecutionSchema, flowTestQueue, insertFlowTestQueueSchema, webhookSubscriptions, webhooks, insertWebhookSchema, createWebhookSchema, webhookDeliveryLogs, webhookLogs, insertWebhookLogSchema, appointments, insertAppointmentSchema, createAppointmentSchema, appointmentSettings, insertAppointmentSettingsSchema, createAppointmentSettingsSchema, forms, insertFormSchema, createFormSchema, formFields, insertFormFieldSchema, formSubmissions, insertFormSubmissionSchema, seoSettings, insertSeoSettingsSchema, analyticsScripts, insertAnalyticsScriptSchema, paymentTransactions, insertPaymentTransactionSchema, refunds, insertRefundSchema, invoices, insertInvoiceSchema, paymentWebhookQueue, insertPaymentWebhookQueueSchema, emailNotificationSettings, insertEmailNotificationSettingsSchema, bannedWords, insertBannedWordSchema, contentViolations, insertContentViolationSchema, openaiCredentials, insertOpenaiCredentialSchema, plivoCredentials, insertPlivoCredentialSchema, plivoPhoneNumbers, insertPlivoPhoneNumberSchema, plivoCalls, insertPlivoCallSchema, campaignJobs, insertCampaignJobSchema, plivoPhonePricing, insertPlivoPhonePricingSchema, userKycDocuments, insertUserKycDocumentSchema, twilioOpenaiCalls, insertTwilioOpenaiCallSchema, demoSessions, insertDemoSessionSchema, leadStages, insertLeadStageSchema, leads, insertLeadSchema, AI_LEAD_CATEGORIES, AI_CATEGORY_LABELS, AI_CATEGORY_COLORS, AI_CATEGORY_PRIORITY, leadNotes, insertLeadNoteSchema, leadActivities, insertLeadActivitySchema, crmCategoryPreferences, insertCrmCategoryPreferencesSchema, websiteWidgets, insertWebsiteWidgetSchema, widgetCallSessions, insertWidgetCallSessionSchema, API_SCOPES, apiKeys, insertApiKeySchema, apiAuditLogs, insertApiAuditLogSchema, apiRateLimits, sipTrunks, insertSipTrunkSchema, sipPhoneNumbers, insertSipPhoneNumberSchema, sipCalls, insertSipCallSchema, userAddresses, insertUserAddressSchema, userFeedback, insertUserFeedbackSchema, googleCalendarCredentials, insertGoogleCalendarCredentialSchema, googleSheetsCredentials, insertGoogleSheetsCredentialSchema, phoneReleaseRetryQueue, insertPhoneReleaseRetryQueueSchema, notificationEvents, insertNotificationEventSchema;
+var users, otpVerifications, refreshTokens, elevenLabsCredentials, syncedVoices, agents, knowledgeBase, incomingAgents, phoneNumbers, incomingConnections, campaigns, contacts, calls, creditTransactions, tools, voices, plans, globalSettings, llmModels, supportedLanguages, creditPackages, userSubscriptions, phoneNumberRentals, usageRecords, legacyWebhooks, legacyWebhookDeliveries, notifications, emailTemplates, promptTemplates, agentVersions, auditLogs, platformLanguages, insertUserSchema, insertElevenLabsCredentialSchema, insertSyncedVoiceSchema, insertAgentSchema, insertKnowledgeBaseSchema, insertIncomingAgentSchema, insertPromptTemplateSchema, insertAgentVersionSchema, insertIncomingConnectionSchema, insertCampaignSchema, insertContactSchema, insertCallSchema, insertCreditTransactionSchema, insertToolSchema, insertVoiceSchema, insertPlanSchema, insertGlobalSettingsSchema, insertLlmModelSchema, insertSupportedLanguageSchema, insertPlatformLanguageSchema, insertCreditPackageSchema, insertUserSubscriptionSchema, insertPhoneNumberSchema, insertUsageRecordSchema, insertLegacyWebhookSchema, insertLegacyWebhookDeliverySchema, insertPhoneNumberRentalSchema, insertNotificationSchema, insertEmailTemplateSchema, twilioCountries, insertTwilioCountrySchema, userKnowledgeStorageLimits, knowledgeChunks, knowledgeProcessingQueue, insertUserKnowledgeStorageLimitSchema, insertKnowledgeChunkSchema, insertKnowledgeProcessingQueueSchema, AGENT_CALL_OUTCOMES, SYSTEM_CALL_OUTCOMES, CALL_OUTCOMES, FINAL_CALL_OUTCOMES, RETRY_OUTCOMES, RetryRuleSchema, RetryRulesSchema, HHMM_RE, TOOL_NAME_RE, PARAM_NAME_RE, HEADER_KEY_RE, AgentApiToolSchema, OWNER_ALERT_TRIGGERS, OWNER_ALERT_FIELD_RE, EMAIL_LIST_RE, AgentActionsConfigSchema, flows, insertFlowSchema, createFlowSchema, flowExecutions, insertFlowExecutionSchema, flowTestQueue, insertFlowTestQueueSchema, webhookSubscriptions, webhooks, insertWebhookSchema, createWebhookSchema, webhookDeliveryLogs, webhookLogs, insertWebhookLogSchema, appointments, insertAppointmentSchema, createAppointmentSchema, appointmentSettings, insertAppointmentSettingsSchema, createAppointmentSettingsSchema, forms, insertFormSchema, createFormSchema, formFields, insertFormFieldSchema, formSubmissions, insertFormSubmissionSchema, seoSettings, insertSeoSettingsSchema, analyticsScripts, insertAnalyticsScriptSchema, paymentTransactions, insertPaymentTransactionSchema, refunds, insertRefundSchema, invoices, insertInvoiceSchema, paymentWebhookQueue, insertPaymentWebhookQueueSchema, emailNotificationSettings, insertEmailNotificationSettingsSchema, bannedWords, insertBannedWordSchema, contentViolations, insertContentViolationSchema, openaiCredentials, insertOpenaiCredentialSchema, plivoCredentials, insertPlivoCredentialSchema, plivoPhoneNumbers, insertPlivoPhoneNumberSchema, plivoCalls, insertPlivoCallSchema, scheduledCallbacks, insertScheduledCallbackSchema, doNotCallNumbers, insertDoNotCallNumberSchema, campaignJobs, insertCampaignJobSchema, plivoPhonePricing, insertPlivoPhonePricingSchema, userKycDocuments, insertUserKycDocumentSchema, twilioOpenaiCalls, insertTwilioOpenaiCallSchema, demoSessions, insertDemoSessionSchema, leadStages, insertLeadStageSchema, leads, insertLeadSchema, AI_LEAD_CATEGORIES, AI_CATEGORY_LABELS, AI_CATEGORY_COLORS, AI_CATEGORY_PRIORITY, leadNotes, insertLeadNoteSchema, leadActivities, insertLeadActivitySchema, crmCategoryPreferences, insertCrmCategoryPreferencesSchema, websiteWidgets, insertWebsiteWidgetSchema, widgetCallSessions, insertWidgetCallSessionSchema, API_SCOPES, apiKeys, insertApiKeySchema, apiAuditLogs, insertApiAuditLogSchema, apiRateLimits, sipTrunks, insertSipTrunkSchema, sipPhoneNumbers, insertSipPhoneNumberSchema, sipCalls, insertSipCallSchema, userAddresses, insertUserAddressSchema, userFeedback, insertUserFeedbackSchema, googleCalendarCredentials, insertGoogleCalendarCredentialSchema, googleSheetsCredentials, insertGoogleSheetsCredentialSchema, INTEGRATION_PROVIDERS, userIntegrations, insertUserIntegrationSchema, integrationSyncLogs, phoneReleaseRetryQueue, insertPhoneReleaseRetryQueueSchema, notificationEvents, insertNotificationEventSchema;
 var init_schema = __esm({
   "shared/schema.ts"() {
     "use strict";
@@ -571,6 +596,8 @@ var init_schema = __esm({
       // Retry contacts that were busy
       retryOnFailed: boolean("retry_on_failed").default(false),
       // Retry contacts that failed (technical error)
+      // Per-outcome smart retry (no_answer / busy / failed / voicemail); null → derived from the legacy columns above
+      retryRules: jsonb("retry_rules").$type(),
       batchJobHistory: jsonb("batch_job_history").default([]),
       // Array of {batchJobId, pass, contactCount, createdAt}
       currentRetryPass: integer("current_retry_pass").default(0),
@@ -1236,6 +1263,119 @@ var init_schema = __esm({
       createdAt: true,
       updatedAt: true
     });
+    AGENT_CALL_OUTCOMES = [
+      "interested",
+      "not_interested",
+      "callback_requested",
+      "wrong_number",
+      "already_customer",
+      "do_not_call",
+      "no_decision"
+    ];
+    SYSTEM_CALL_OUTCOMES = [
+      "voicemail",
+      "no_answer",
+      "busy",
+      "failed",
+      "transferred",
+      "appointment_booked"
+    ];
+    CALL_OUTCOMES = [
+      { id: "interested", label: "Interested", kind: "agent" },
+      { id: "not_interested", label: "Not interested", kind: "agent" },
+      { id: "callback_requested", label: "Callback requested", kind: "agent" },
+      { id: "wrong_number", label: "Wrong number", kind: "agent" },
+      { id: "already_customer", label: "Already a customer", kind: "agent" },
+      { id: "do_not_call", label: "Do not call", kind: "agent" },
+      { id: "no_decision", label: "No decision", kind: "agent" },
+      { id: "voicemail", label: "Voicemail", kind: "system" },
+      { id: "no_answer", label: "No answer", kind: "system" },
+      { id: "busy", label: "Busy", kind: "system" },
+      { id: "failed", label: "Failed", kind: "system" },
+      { id: "transferred", label: "Transferred", kind: "system" },
+      { id: "appointment_booked", label: "Appointment booked", kind: "system" }
+    ];
+    FINAL_CALL_OUTCOMES = [
+      "do_not_call",
+      "wrong_number",
+      "not_interested",
+      "interested",
+      "appointment_booked",
+      "already_customer"
+    ];
+    RETRY_OUTCOMES = ["no_answer", "busy", "failed", "voicemail"];
+    RetryRuleSchema = z.object({
+      enabled: z.boolean(),
+      delayMinutes: z.number().int().min(5).max(10080),
+      maxAttempts: z.number().int().min(0).max(10)
+    });
+    RetryRulesSchema = z.object({
+      no_answer: RetryRuleSchema,
+      busy: RetryRuleSchema,
+      failed: RetryRuleSchema,
+      voicemail: RetryRuleSchema
+    }).strict();
+    HHMM_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+    TOOL_NAME_RE = /^[a-z0-9_]{2,30}$/;
+    PARAM_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]{0,39}$/;
+    HEADER_KEY_RE = /^[A-Za-z0-9-]{1,64}$/;
+    AgentApiToolSchema = z.object({
+      id: z.string().min(1).max(40),
+      name: z.string().regex(TOOL_NAME_RE, "Tool name must be 2-30 lowercase letters, digits or underscores"),
+      description: z.string().trim().min(1).max(500),
+      url: z.string().trim().max(2e3).refine((u) => /^https:\/\//i.test(u), "URL must start with https://"),
+      method: z.enum(["GET", "POST"]),
+      headers: z.record(z.string().regex(HEADER_KEY_RE), z.string().max(2e3)).optional(),
+      params: z.array(z.object({
+        name: z.string().regex(PARAM_NAME_RE),
+        type: z.enum(["string", "number"]),
+        description: z.string().trim().max(300),
+        required: z.boolean()
+      })).max(10),
+      bodyTemplate: z.string().max(4e3).optional(),
+      responsePath: z.string().max(200).optional(),
+      timeoutMs: z.number().int().min(1e3).max(12e3).optional()
+    }).refine((t) => Object.keys(t.headers || {}).length <= 10, { message: "At most 10 headers" });
+    OWNER_ALERT_TRIGGERS = ["interested", "appointment_booked", "callback_requested", "transferred", "do_not_call", "all"];
+    OWNER_ALERT_FIELD_RE = /^(caller_name|caller_phone|outcome|summary|appointment|callback|agent_name|call_time|duration|call_link|text:[\s\S]{0,200})$/;
+    EMAIL_LIST_RE = /^[^\s@,]+@[^\s@,]+\.[^\s@,]+(\s*,\s*[^\s@,]+@[^\s@,]+\.[^\s@,]+){0,2}$/;
+    AgentActionsConfigSchema = z.object({
+      voicemail: z.object({
+        action: z.enum(["hangup", "leave_message"]),
+        message: z.string().trim().max(400).optional()
+      }).refine((v) => v.action !== "leave_message" || !!v.message?.trim(), { message: "A voicemail message is required", path: ["message"] }).optional(),
+      ownerAlerts: z.object({
+        enabled: z.boolean(),
+        triggers: z.array(z.enum(OWNER_ALERT_TRIGGERS)).max(6),
+        email: z.string().trim().max(320).refine((e) => e === "" || EMAIL_LIST_RE.test(e), "Up to 3 comma-separated email addresses").optional(),
+        whatsappPhone: z.string().trim().max(20).refine((p) => p === "" || /^\+?[\d\s-]{8,20}$/.test(p), "Invalid WhatsApp number").optional(),
+        whatsappTemplate: z.string().trim().max(120).optional(),
+        whatsappVariables: z.record(z.string().regex(/^[1-9]\d{0,2}$/), z.string().max(210).regex(OWNER_ALERT_FIELD_RE, "Unknown field")).optional()
+      }).optional(),
+      appointments: z.object({
+        durationMinutes: z.number().int().min(5).max(240),
+        timeZone: z.string().refine(isValidTimeZone, "Invalid IANA time zone"),
+        workingHours: z.object({
+          start: z.string().regex(HHMM_RE, "Use HH:MM"),
+          end: z.string().regex(HHMM_RE, "Use HH:MM")
+        }).refine((h) => h.start < h.end, { message: "Working hours must end after they start" }),
+        workingDays: z.array(z.number().int().min(0).max(6)).max(7),
+        confirmVia: z.array(z.enum(["whatsapp", "email"])).max(2),
+        serviceName: z.string().trim().max(120).optional()
+      }).optional(),
+      saveLead: z.object({
+        fields: z.array(z.object({
+          key: z.string().regex(PARAM_NAME_RE),
+          label: z.string().trim().min(1).max(80),
+          required: z.boolean()
+        })).max(8)
+      }).optional(),
+      callback: z.object({
+        enabled: z.boolean(),
+        maxDaysAhead: z.number().int().min(1).max(60)
+      }).optional(),
+      apiTools: z.array(AgentApiToolSchema).max(10).optional()
+    }).strict();
     flows = pgTable("flows", {
       id: varchar("id").primaryKey(),
       userId: varchar("user_id").notNull(),
@@ -1949,6 +2089,52 @@ var init_schema = __esm({
       id: true,
       createdAt: true
     });
+    scheduledCallbacks = pgTable("scheduled_callbacks", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+      agentId: varchar("agent_id").references(() => agents.id, { onDelete: "set null" }),
+      sourceCallId: varchar("source_call_id"),
+      // plivo_calls.id of the call that booked it
+      plivoPhoneNumberId: varchar("plivo_phone_number_id"),
+      contactName: text("contact_name"),
+      contactPhone: text("contact_phone").notNull(),
+      reason: text("reason"),
+      scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
+      timeZone: text("time_zone").notNull().default("Asia/Kolkata"),
+      status: text("status").notNull().default("pending"),
+      // pending | calling | completed | failed | cancelled
+      attempts: integer("attempts").notNull().default(0),
+      lastError: text("last_error"),
+      resultCallId: varchar("result_call_id"),
+      createdAt: timestamp("created_at").notNull().defaultNow(),
+      updatedAt: timestamp("updated_at").notNull().defaultNow()
+    }, (table) => ({
+      scheduledCallbacksDueIdx: index("scheduled_callbacks_status_scheduled_at_idx").on(table.status, table.scheduledAt),
+      scheduledCallbacksUserIdx: index("scheduled_callbacks_user_created_idx").on(table.userId, table.createdAt)
+    }));
+    insertScheduledCallbackSchema = createInsertSchema(scheduledCallbacks).omit({
+      id: true,
+      createdAt: true,
+      updatedAt: true
+    });
+    doNotCallNumbers = pgTable("do_not_call_numbers", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+      phone: text("phone").notNull(),
+      // normalised: +<digits>
+      reason: text("reason").notNull().default("manual"),
+      // caller_request | manual | import | complaint
+      source: text("source").notNull().default("manual"),
+      // agent | manual | upload | api
+      callId: varchar("call_id"),
+      // plivo_calls.id when added during a call
+      note: text("note"),
+      createdAt: timestamp("created_at").notNull().defaultNow()
+    }, (table) => ({
+      doNotCallUserPhoneUnique: uniqueIndex("do_not_call_numbers_user_phone_unique").on(table.userId, table.phone),
+      doNotCallUserIdx: index("do_not_call_numbers_user_id_idx").on(table.userId)
+    }));
+    insertDoNotCallNumberSchema = createInsertSchema(doNotCallNumbers).omit({ id: true, createdAt: true });
     campaignJobs = pgTable("campaign_jobs", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
       campaignId: varchar("campaign_id").notNull(),
@@ -2665,6 +2851,53 @@ var init_schema = __esm({
       createdAt: true,
       updatedAt: true
     });
+    INTEGRATION_PROVIDERS = ["gohighlevel", "salesforce", "zoho", "calcom", "zapier", "pabbly"];
+    userIntegrations = pgTable("user_integrations", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+      provider: text("provider").notNull(),
+      // IntegrationProvider
+      status: text("status").notNull().default("connected"),
+      // 'connected' | 'error' | 'disconnected'
+      accessToken: text("access_token"),
+      refreshToken: text("refresh_token"),
+      tokenExpiry: timestamp("token_expiry"),
+      /** Salesforce instance_url / Zoho api_domain / GoHighLevel API base */
+      instanceUrl: text("instance_url"),
+      /** GoHighLevel locationId, Salesforce org id, Zoho org, Cal.com user id */
+      externalAccountId: text("external_account_id"),
+      accountName: text("account_name"),
+      /** Provider options: zapier/pabbly { webhooks:[{url,events[]}] }, calcom { apiKey, eventTypeId, timeZone }, gohighlevel { calendarId }, … */
+      config: jsonb("config").$type(),
+      lastSyncAt: timestamp("last_sync_at"),
+      lastError: text("last_error"),
+      createdAt: timestamp("created_at").notNull().defaultNow(),
+      updatedAt: timestamp("updated_at").notNull().defaultNow()
+    }, (table) => ({
+      userIntegrationsUserProviderIdx: uniqueIndex("user_integrations_user_provider_idx").on(table.userId, table.provider)
+    }));
+    insertUserIntegrationSchema = createInsertSchema(userIntegrations).omit({ id: true, createdAt: true, updatedAt: true });
+    integrationSyncLogs = pgTable("integration_sync_logs", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+      provider: text("provider").notNull(),
+      event: text("event").notNull(),
+      // lead.upserted | appointment.booked | form.submitted | call.completed | test …
+      action: text("action").notNull(),
+      // e.g. 'lead.create', 'contact.upsert', 'booking.create', 'webhook.post'
+      status: text("status").notNull(),
+      // 'success' | 'failed' | 'skipped'
+      /** Local record the push was about (lead id, appointment id, call id) */
+      sourceId: varchar("source_id"),
+      /** Provider-side id (Lead Id, contact id, booking uid, …) */
+      externalId: text("external_id"),
+      error: text("error"),
+      payload: jsonb("payload").$type(),
+      createdAt: timestamp("created_at").notNull().defaultNow()
+    }, (table) => ({
+      integrationSyncLogsUserProviderIdx: index("integration_sync_logs_user_provider_idx").on(table.userId, table.provider, table.createdAt),
+      integrationSyncLogsSourceIdx: index("integration_sync_logs_source_idx").on(table.provider, table.sourceId)
+    }));
     phoneReleaseRetryQueue = pgTable("phone_release_retry_queue", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
       phoneNumberId: varchar("phone_number_id").notNull(),
@@ -4640,7 +4873,7 @@ var post_call_messaging_exports = {};
 __export(post_call_messaging_exports, {
   triggerPostCallMessaging: () => triggerPostCallMessaging
 });
-import { sql as sql9, eq as eq3, and, desc } from "drizzle-orm";
+import { sql as sql10, eq as eq3, and, desc } from "drizzle-orm";
 function extractRows(result) {
   if (Array.isArray(result)) return result;
   if (Array.isArray(result.rows)) return result.rows;
@@ -4658,7 +4891,7 @@ async function readCallerEmailFromMetadata(callId) {
     for (const table of CALL_TABLES) {
       try {
         const result = await db.execute(
-          sql9`SELECT metadata->>'callerEmail' as caller_email FROM ${sql9.identifier(table)} WHERE id = ${callId} LIMIT 1`
+          sql10`SELECT metadata->>'callerEmail' as caller_email FROM ${sql10.identifier(table)} WHERE id = ${callId} LIMIT 1`
         );
         const rows = extractRows(result);
         if (rows.length > 0 && rows[0].caller_email) {
@@ -4684,7 +4917,7 @@ async function lookupContactByPhone(phone, userId) {
       phone: contacts.phone
     }).from(contacts).innerJoin(campaigns, eq3(contacts.campaignId, campaigns.id)).where(and(
       eq3(campaigns.userId, userId),
-      sql9`${contacts.phone} LIKE ${"%" + digits.slice(-10)}`
+      sql10`${contacts.phone} LIKE ${"%" + digits.slice(-10)}`
     )).orderBy(desc(contacts.createdAt)).limit(1);
     if (results.length > 0) {
       const c = results[0];
@@ -4703,7 +4936,7 @@ async function lookupContactByPhone(phone, userId) {
 async function lookupSipCallData(callId, userId) {
   if (!callId || !userId) return { conversationId: "", contactData: {} };
   try {
-    const result = await db.execute(sql9`
+    const result = await db.execute(sql10`
       SELECT sc.elevenlabs_conversation_id, sc.from_number, sc.to_number, sc.direction,
              a.name as agent_name,
              COALESCE(ct.first_name || ' ' || ct.last_name, ct.first_name, '') as contact_name,
@@ -4736,7 +4969,7 @@ async function lookupSipCallData(callId, userId) {
 async function lookupRegularCallData(callId, userId) {
   if (!callId || !userId) return {};
   try {
-    const result = await db.execute(sql9`
+    const result = await db.execute(sql10`
       SELECT c.phone_number, c.from_number, c.to_number, c.call_direction,
              a.name as agent_name,
              COALESCE(ct.first_name || ' ' || ct.last_name, ct.first_name, '') as contact_name,
@@ -4768,9 +5001,9 @@ async function lookupAppointmentData(callId, conversationId, userId) {
   try {
     const ids = [callId, conversationId].filter(Boolean);
     if (ids.length === 0 || !userId) return {};
-    const conditions = ids.map((id) => sql9`call_id = ${id}`);
-    const orClause = conditions.length === 1 ? conditions[0] : sql9`(${sql9.join(conditions, sql9` OR `)})`;
-    const result = await db.execute(sql9`
+    const conditions = ids.map((id) => sql10`call_id = ${id}`);
+    const orClause = conditions.length === 1 ? conditions[0] : sql10`(${sql10.join(conditions, sql10` OR `)})`;
+    const result = await db.execute(sql10`
       SELECT contact_name, contact_phone, contact_email, appointment_date, appointment_time,
              duration, service_name, notes, status
       FROM appointments
@@ -4829,7 +5062,7 @@ async function triggerPostCallMessaging(params) {
   _triggeredCallIds.add(dedupeKey);
   setTimeout(() => _triggeredCallIds.delete(dedupeKey), 10 * 60 * 1e3);
   try {
-    const agentRows = await db.select().from(agents).where(sql9`eleven_labs_agent_id = ${elevenLabsAgentId} OR id = ${elevenLabsAgentId}`).limit(1);
+    const agentRows = await db.select().from(agents).where(sql10`eleven_labs_agent_id = ${elevenLabsAgentId} OR id = ${elevenLabsAgentId}`).limit(1);
     if (agentRows.length === 0) {
       console.log(`[Post-Call Messaging] Agent not found: ${elevenLabsAgentId}`);
       return;
@@ -5095,8 +5328,3428 @@ var init_post_call_messaging = __esm({
   }
 });
 
+// server/storage/analytics-helpers.ts
+import { eq as eq4, sql as sql12, and as and2, gte, lt, desc as desc2, isNull as isNull2, or, inArray } from "drizzle-orm";
+async function calculateGlobalAnalytics(timeRange) {
+  const now = /* @__PURE__ */ new Date();
+  let startDate;
+  let previousStartDate;
+  let previousEndDate;
+  let groupByWeek = false;
+  let isAllTime = false;
+  switch (timeRange) {
+    case "7d":
+      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1e3);
+      previousEndDate = new Date(startDate.getTime());
+      previousStartDate = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1e3);
+      break;
+    case "30d":
+      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1e3);
+      previousEndDate = new Date(startDate.getTime());
+      previousStartDate = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1e3);
+      break;
+    case "90d":
+      startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1e3);
+      previousEndDate = new Date(startDate.getTime());
+      previousStartDate = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1e3);
+      groupByWeek = true;
+      break;
+    case "all":
+      startDate = /* @__PURE__ */ new Date(0);
+      previousStartDate = /* @__PURE__ */ new Date(0);
+      previousEndDate = /* @__PURE__ */ new Date(0);
+      groupByWeek = true;
+      isAllTime = true;
+      break;
+    default:
+      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1e3);
+      previousEndDate = new Date(startDate.getTime());
+      previousStartDate = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1e3);
+  }
+  const allUsers = await db.select().from(users);
+  const allPhoneNumbers = await db.select().from(phoneNumbers);
+  const allContacts = await db.select().from(contacts);
+  const allKnowledgeBases = await db.select().from(knowledgeBase);
+  let filteredCalls = [];
+  const filteredCampaigns = await db.select().from(campaigns).where(gte(campaigns.createdAt, startDate));
+  const filteredUsers = await db.select().from(users).where(gte(users.createdAt, startDate));
+  try {
+    filteredCalls = await db.select().from(calls).where(gte(calls.createdAt, startDate));
+  } catch (callFetchError) {
+    if (callFetchError?.code === "42703") {
+      console.warn("[GlobalAnalytics] Missing database column (run pre-upgrade-cleanup.sql then drizzle-kit push):", callFetchError.message);
+    } else {
+      console.error("[GlobalAnalytics] Error fetching filtered calls:", callFetchError.message);
+    }
+  }
+  let previousUsers = [];
+  let previousCalls = [];
+  let previousCampaigns = [];
+  if (!isAllTime) {
+    previousUsers = await db.select().from(users).where(
+      and2(gte(users.createdAt, previousStartDate), lt(users.createdAt, previousEndDate))
+    );
+    try {
+      previousCalls = await db.select().from(calls).where(
+        and2(gte(calls.createdAt, previousStartDate), lt(calls.createdAt, previousEndDate))
+      );
+    } catch (callFetchError) {
+      if (callFetchError?.code === "42703") {
+        console.warn("[GlobalAnalytics] Missing database column for previous calls:", callFetchError.message);
+      } else {
+        console.error("[GlobalAnalytics] Error fetching previous calls:", callFetchError.message);
+      }
+    }
+    previousCampaigns = await db.select().from(campaigns).where(
+      and2(gte(campaigns.createdAt, previousStartDate), lt(campaigns.createdAt, previousEndDate))
+    );
+  }
+  const calculateGrowthPercent = (current, previous) => {
+    if (previous === 0) {
+      return current > 0 ? 100 : 0;
+    }
+    return (current - previous) / previous * 100;
+  };
+  const userGrowthPercent = isAllTime ? 0 : calculateGrowthPercent(filteredUsers.length, previousUsers.length);
+  const callGrowthPercent = isAllTime ? 0 : calculateGrowthPercent(filteredCalls.length, previousCalls.length);
+  const campaignGrowthPercent = isAllTime ? 0 : calculateGrowthPercent(filteredCampaigns.length, previousCampaigns.length);
+  const totalCalls = filteredCalls.length;
+  const completedCalls = filteredCalls.filter((c) => c.status === "completed").length;
+  const successRate = totalCalls > 0 ? completedCalls / totalCalls * 100 : 0;
+  const qualifiedLeads = filteredCalls.filter((c) => c.classification === "hot" || c.classification === "warm").length;
+  const growthData = calculateGrowthData(
+    filteredUsers,
+    filteredCalls,
+    filteredCampaigns,
+    startDate,
+    now,
+    groupByWeek,
+    isAllTime
+  );
+  const activeSubscriptions = await db.select({
+    userId: userSubscriptions.userId,
+    planName: plans.name,
+    status: userSubscriptions.status,
+    currentPeriodEnd: userSubscriptions.currentPeriodEnd
+  }).from(userSubscriptions).innerJoin(plans, eq4(userSubscriptions.planId, plans.id)).where(
+    and2(
+      eq4(userSubscriptions.status, "active"),
+      or(
+        isNull2(userSubscriptions.currentPeriodEnd),
+        gte(userSubscriptions.currentPeriodEnd, now)
+      )
+    )
+  );
+  const proUserIds = /* @__PURE__ */ new Set();
+  for (const sub of activeSubscriptions) {
+    if (sub.planName !== "free") {
+      proUserIds.add(sub.userId);
+    }
+  }
+  const proPlanUsers = proUserIds.size;
+  const freePlanUsers = allUsers.length - proPlanUsers;
+  return {
+    totalUsers: filteredUsers.length,
+    totalCampaigns: filteredCampaigns.length,
+    totalCalls,
+    successRate,
+    qualifiedLeads,
+    activeUsers: filteredUsers.filter((u) => u.isActive).length,
+    proPlanUsers,
+    freePlanUsers,
+    totalPhoneNumbers: allPhoneNumbers.length,
+    totalContacts: allContacts.length,
+    totalKnowledgeBases: allKnowledgeBases.length,
+    growthData,
+    userGrowthPercent: Math.round(userGrowthPercent * 10) / 10,
+    callGrowthPercent: Math.round(callGrowthPercent * 10) / 10,
+    campaignGrowthPercent: Math.round(campaignGrowthPercent * 10) / 10
+  };
+}
+function calculateGrowthData(filteredUsers, filteredCalls, filteredCampaigns, startDate, now, groupByWeek, isAllTime) {
+  const growthMap = /* @__PURE__ */ new Map();
+  const getIsoDateKey = (date2) => {
+    const d = new Date(date2);
+    d.setHours(0, 0, 0, 0);
+    return d.toISOString().split("T")[0];
+  };
+  const getMonthKey = (date2) => {
+    const d = new Date(date2);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  };
+  const formatDateLabel = (isoDate, isMonthly = false) => {
+    if (isMonthly) {
+      const [year, month] = isoDate.split("-");
+      const d2 = new Date(parseInt(year, 10), parseInt(month, 10) - 1, 1);
+      return d2.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+    }
+    const d = /* @__PURE__ */ new Date(isoDate + "T00:00:00");
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+  let chartStartDate = startDate;
+  let useMonthlyBuckets = false;
+  if (isAllTime) {
+    const allDates = [];
+    for (const user of filteredUsers) {
+      if (user.createdAt) allDates.push(new Date(user.createdAt));
+    }
+    for (const call of filteredCalls) {
+      if (call.createdAt) allDates.push(new Date(call.createdAt));
+    }
+    for (const campaign of filteredCampaigns) {
+      if (campaign.createdAt) allDates.push(new Date(campaign.createdAt));
+    }
+    if (allDates.length > 0) {
+      chartStartDate = allDates.reduce((min, d) => d < min ? d : min, allDates[0]);
+      chartStartDate = new Date(chartStartDate.getFullYear(), chartStartDate.getMonth(), 1);
+    } else {
+      chartStartDate = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+    }
+    useMonthlyBuckets = true;
+  }
+  const startDateIso = useMonthlyBuckets ? getMonthKey(chartStartDate) : getIsoDateKey(chartStartDate);
+  const nowDateIso = useMonthlyBuckets ? getMonthKey(now) : getIsoDateKey(now);
+  const bucketKeys = [];
+  const currentDate = new Date(chartStartDate);
+  currentDate.setHours(0, 0, 0, 0);
+  if (useMonthlyBuckets) {
+    while (getMonthKey(currentDate) <= nowDateIso) {
+      bucketKeys.push(getMonthKey(currentDate));
+      currentDate.setMonth(currentDate.getMonth() + 1);
+    }
+  } else {
+    const interval = groupByWeek ? 7 : 1;
+    while (getIsoDateKey(currentDate) <= nowDateIso) {
+      bucketKeys.push(getIsoDateKey(currentDate));
+      currentDate.setDate(currentDate.getDate() + interval);
+    }
+  }
+  if (bucketKeys.length === 0) {
+    bucketKeys.push(startDateIso);
+  }
+  for (const key of bucketKeys) {
+    growthMap.set(key, { users: 0, calls: 0, campaigns: 0 });
+  }
+  const getBucketKey = (date2) => {
+    if (useMonthlyBuckets) {
+      const monthKey = getMonthKey(date2);
+      if (monthKey < startDateIso || monthKey > nowDateIso) {
+        return null;
+      }
+      return growthMap.has(monthKey) ? monthKey : null;
+    }
+    const dateKey = getIsoDateKey(date2);
+    if (dateKey < startDateIso || dateKey > nowDateIso) {
+      return null;
+    }
+    if (groupByWeek) {
+      for (let i = bucketKeys.length - 1; i >= 0; i--) {
+        if (dateKey >= bucketKeys[i]) {
+          return bucketKeys[i];
+        }
+      }
+      return bucketKeys[0];
+    } else {
+      return growthMap.has(dateKey) ? dateKey : null;
+    }
+  };
+  for (const user of filteredUsers) {
+    if (user.createdAt) {
+      const bucketKey = getBucketKey(new Date(user.createdAt));
+      if (bucketKey) {
+        const entry = growthMap.get(bucketKey);
+        if (entry) entry.users++;
+      }
+    }
+  }
+  for (const call of filteredCalls) {
+    if (call.createdAt) {
+      const bucketKey = getBucketKey(new Date(call.createdAt));
+      if (bucketKey) {
+        const entry = growthMap.get(bucketKey);
+        if (entry) entry.calls++;
+      }
+    }
+  }
+  for (const campaign of filteredCampaigns) {
+    if (campaign.createdAt) {
+      const bucketKey = getBucketKey(new Date(campaign.createdAt));
+      if (bucketKey) {
+        const entry = growthMap.get(bucketKey);
+        if (entry) entry.campaigns++;
+      }
+    }
+  }
+  return Array.from(growthMap.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([isoDate, data]) => ({
+    date: formatDateLabel(isoDate, useMonthlyBuckets),
+    ...data
+  }));
+}
+async function calculateUserAnalytics(userId, timeRange = "7days", callType = "all") {
+  const now = /* @__PURE__ */ new Date();
+  let startDate = /* @__PURE__ */ new Date();
+  switch (timeRange) {
+    case "7days":
+      startDate.setDate(now.getDate() - 7);
+      break;
+    case "30days":
+      startDate.setDate(now.getDate() - 30);
+      break;
+    case "90days":
+      startDate.setDate(now.getDate() - 90);
+      break;
+    case "year":
+      startDate.setFullYear(now.getFullYear() - 1);
+      break;
+    case "all":
+      startDate = /* @__PURE__ */ new Date(0);
+      break;
+    default:
+      startDate.setDate(now.getDate() - 7);
+  }
+  const userCampaigns = await db.select().from(campaigns).where(eq4(campaigns.userId, userId));
+  const campaignIds = userCampaigns.map((c) => c.id);
+  const userIncomingConnections = await db.select().from(incomingConnections).where(eq4(incomingConnections.userId, userId));
+  const incomingConnectionIds = userIncomingConnections.map((c) => c.id);
+  let allUserCalls = [];
+  try {
+    const directOwnershipCalls = await db.select().from(calls).where(and2(eq4(calls.userId, userId), gte(calls.createdAt, startDate)));
+    allUserCalls.push(...directOwnershipCalls);
+    if (campaignIds.length > 0) {
+      const campaignCalls = await db.select().from(calls).where(and2(inArray(calls.campaignId, campaignIds), gte(calls.createdAt, startDate)));
+      for (const call of campaignCalls) {
+        if (!allUserCalls.find((c) => c.id === call.id)) {
+          allUserCalls.push(call);
+        }
+      }
+    }
+    if (incomingConnectionIds.length > 0) {
+      const incomingCalls = await db.select().from(calls).where(and2(inArray(calls.incomingConnectionId, incomingConnectionIds), gte(calls.createdAt, startDate)));
+      for (const call of incomingCalls) {
+        if (!allUserCalls.find((c) => c.id === call.id)) {
+          allUserCalls.push(call);
+        }
+      }
+    }
+    const twilioOpenAICallsData = await db.select().from(twilioOpenaiCalls).where(and2(eq4(twilioOpenaiCalls.userId, userId), gte(twilioOpenaiCalls.createdAt, startDate)));
+    for (const toc of twilioOpenAICallsData) {
+      allUserCalls.push({
+        id: toc.id,
+        userId: toc.userId,
+        campaignId: toc.campaignId,
+        contactId: toc.contactId,
+        phoneNumber: toc.fromNumber,
+        status: toc.status,
+        callDirection: toc.callDirection,
+        duration: toc.duration,
+        classification: null,
+        sentiment: toc.sentiment,
+        createdAt: toc.createdAt,
+        metadata: toc.metadata,
+        incomingConnectionId: null
+      });
+    }
+    const plivoAnalyticsCallsData = await db.select().from(plivoCalls).where(and2(eq4(plivoCalls.userId, userId), gte(plivoCalls.createdAt, startDate)));
+    for (const pc of plivoAnalyticsCallsData) {
+      allUserCalls.push({
+        id: pc.id,
+        userId: pc.userId,
+        campaignId: pc.campaignId,
+        contactId: pc.contactId,
+        phoneNumber: pc.fromNumber,
+        status: pc.status,
+        callDirection: pc.callDirection,
+        duration: pc.duration,
+        classification: null,
+        sentiment: pc.sentiment,
+        createdAt: pc.createdAt,
+        metadata: pc.metadata,
+        incomingConnectionId: null
+      });
+    }
+  } catch (callFetchError) {
+    if (callFetchError?.code === "42703") {
+      console.warn("[Analytics] Missing database column (run pre-upgrade-cleanup.sql then drizzle-kit push):", callFetchError.message);
+    } else {
+      console.error("[Analytics] Error fetching calls:", callFetchError.message);
+    }
+  }
+  const isBatchCall = (c) => {
+    const meta = c.metadata;
+    return !!(meta?.batch_call || meta?.batchId || meta?.batch_calling);
+  };
+  const incomingDirections = ["incoming", "inbound", "bridged", "simulcall"];
+  const outgoingDirections = ["outgoing", "outbound"];
+  const isIncomingCall = (c) => incomingDirections.includes(c.callDirection || "") || !!c.incomingConnectionId;
+  const isOutgoingCall = (c) => {
+    if (isBatchCall(c)) return false;
+    if (outgoingDirections.includes(c.callDirection || "")) return true;
+    if (c.campaignId && !c.incomingConnectionId && !incomingDirections.includes(c.callDirection || "")) return true;
+    if (!isIncomingCall(c)) return true;
+    return false;
+  };
+  let filteredCalls = allUserCalls;
+  if (callType === "incoming") filteredCalls = allUserCalls.filter(isIncomingCall);
+  else if (callType === "outgoing") filteredCalls = allUserCalls.filter(isOutgoingCall);
+  else if (callType === "batch") filteredCalls = allUserCalls.filter(isBatchCall);
+  const allCalls = filteredCalls;
+  const typeBreakdown = {
+    incoming: allUserCalls.filter(isIncomingCall).length,
+    outgoing: allUserCalls.filter(isOutgoingCall).length,
+    batch: allUserCalls.filter(isBatchCall).length,
+    total: allUserCalls.length
+  };
+  const totalCalls = allCalls.length;
+  const completedCalls = allCalls.filter((c) => c.status === "completed").length;
+  const successRate = totalCalls > 0 ? completedCalls / totalCalls * 100 : 0;
+  const qualifiedLeads = allCalls.filter(
+    (c) => c.classification === "hot" || c.classification === "warm"
+  ).length;
+  const totalDuration = allCalls.reduce((sum, call) => sum + (call.duration || 0), 0);
+  const avgDuration = totalCalls > 0 ? totalDuration / totalCalls : 0;
+  const leadCounts = {
+    hot: allCalls.filter((c) => c.classification === "hot" || c.classification === "qualified").length,
+    warm: allCalls.filter((c) => c.classification === "warm" || c.classification === "interested").length,
+    cold: allCalls.filter((c) => c.classification === "cold" || c.classification === "not_interested").length,
+    lost: allCalls.filter((c) => c.classification === "lost" || c.classification === "do_not_call").length
+  };
+  const leadDistribution = [
+    { name: "Hot", value: leadCounts.hot },
+    { name: "Warm", value: leadCounts.warm },
+    { name: "Cold", value: leadCounts.cold },
+    { name: "Lost", value: leadCounts.lost }
+  ].filter((item) => item.value > 0);
+  const sentimentCounts = {
+    positive: allCalls.filter((c) => c.sentiment === "positive").length,
+    neutral: allCalls.filter((c) => c.sentiment === "neutral").length,
+    negative: allCalls.filter((c) => c.sentiment === "negative").length
+  };
+  const sentimentDistribution = [
+    { name: "Positive", value: sentimentCounts.positive },
+    { name: "Neutral", value: sentimentCounts.neutral },
+    { name: "Negative", value: sentimentCounts.negative }
+  ].filter((item) => item.value > 0);
+  const campaignPerformance = userCampaigns.map((campaign) => {
+    const campaignCalls = allCalls.filter((c) => c.campaignId === campaign.id);
+    const completed = campaignCalls.filter((c) => c.status === "completed").length;
+    const total = campaignCalls.length;
+    const rate = total > 0 ? completed / total * 100 : 0;
+    return {
+      name: campaign.name,
+      value: parseFloat(rate.toFixed(1)),
+      totalCalls: total,
+      completedCalls: completed
+    };
+  });
+  const dailyCalls = calculateDailyCalls(allCalls, timeRange);
+  return {
+    totalCalls,
+    successRate: parseFloat(successRate.toFixed(1)),
+    qualifiedLeads,
+    avgDuration: Math.round(avgDuration),
+    leadDistribution,
+    sentimentDistribution,
+    campaignPerformance,
+    dailyCalls,
+    typeBreakdown
+  };
+}
+function calculateDailyCalls(allCalls, timeRange) {
+  const dailyCalls = [];
+  let daysToShow = 7;
+  if (timeRange === "30days") daysToShow = 30;
+  else if (timeRange === "90days") daysToShow = 90;
+  else if (timeRange === "year") daysToShow = 365;
+  if (daysToShow <= 14) {
+    for (let i = daysToShow - 1; i >= 0; i--) {
+      const date2 = /* @__PURE__ */ new Date();
+      date2.setDate(date2.getDate() - i);
+      date2.setHours(0, 0, 0, 0);
+      const nextDay = new Date(date2);
+      nextDay.setDate(nextDay.getDate() + 1);
+      const dayCount = allCalls.filter((call) => {
+        const callDate = new Date(call.createdAt);
+        return callDate >= date2 && callDate < nextDay;
+      }).length;
+      dailyCalls.push({ date: date2.toISOString(), count: dayCount });
+    }
+  } else if (daysToShow <= 90) {
+    const weeksToShow = Math.ceil(daysToShow / 7);
+    for (let i = weeksToShow - 1; i >= 0; i--) {
+      const weekEnd = /* @__PURE__ */ new Date();
+      weekEnd.setDate(weekEnd.getDate() - i * 7);
+      weekEnd.setHours(23, 59, 59, 999);
+      const weekStart = new Date(weekEnd);
+      weekStart.setDate(weekStart.getDate() - 6);
+      weekStart.setHours(0, 0, 0, 0);
+      const weekCount = allCalls.filter((call) => {
+        const callDate = new Date(call.createdAt);
+        return callDate >= weekStart && callDate <= weekEnd;
+      }).length;
+      dailyCalls.push({ date: weekStart.toISOString(), count: weekCount });
+    }
+  } else {
+    for (let i = 11; i >= 0; i--) {
+      const monthStart = /* @__PURE__ */ new Date();
+      monthStart.setMonth(monthStart.getMonth() - i);
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+      const monthEnd = new Date(monthStart);
+      monthEnd.setMonth(monthEnd.getMonth() + 1);
+      monthEnd.setDate(0);
+      monthEnd.setHours(23, 59, 59, 999);
+      const monthCount = allCalls.filter((call) => {
+        const callDate = new Date(call.createdAt);
+        return callDate >= monthStart && callDate <= monthEnd;
+      }).length;
+      dailyCalls.push({ date: monthStart.toISOString(), count: monthCount });
+    }
+  }
+  return dailyCalls;
+}
+async function calculateDashboardData(userId) {
+  const now = /* @__PURE__ */ new Date();
+  const weekAgo = /* @__PURE__ */ new Date();
+  weekAgo.setDate(now.getDate() - 7);
+  const userCampaigns = await db.select().from(campaigns).where(eq4(campaigns.userId, userId));
+  const campaignIds = userCampaigns.map((c) => c.id);
+  const userIncomingConnections = await db.select().from(incomingConnections).where(eq4(incomingConnections.userId, userId));
+  const incomingConnectionIds = userIncomingConnections.map((c) => c.id);
+  let allUserCalls = [];
+  try {
+    const directOwnershipCalls = await db.select().from(calls).where(eq4(calls.userId, userId));
+    allUserCalls.push(...directOwnershipCalls);
+    if (campaignIds.length > 0) {
+      const campaignCalls = await db.select().from(calls).where(inArray(calls.campaignId, campaignIds));
+      for (const call of campaignCalls) {
+        if (!allUserCalls.find((c) => c.id === call.id)) {
+          allUserCalls.push(call);
+        }
+      }
+    }
+    if (incomingConnectionIds.length > 0) {
+      const incomingCalls = await db.select().from(calls).where(inArray(calls.incomingConnectionId, incomingConnectionIds));
+      for (const call of incomingCalls) {
+        if (!allUserCalls.find((c) => c.id === call.id)) {
+          allUserCalls.push(call);
+        }
+      }
+    }
+    const twilioOpenAICallsData = await db.select().from(twilioOpenaiCalls).where(eq4(twilioOpenaiCalls.userId, userId));
+    for (const toc of twilioOpenAICallsData) {
+      allUserCalls.push({
+        id: toc.id,
+        userId: toc.userId,
+        campaignId: toc.campaignId,
+        contactId: toc.contactId,
+        phoneNumber: toc.fromNumber,
+        status: toc.status,
+        callDirection: toc.callDirection,
+        duration: toc.duration,
+        classification: toc.classification,
+        sentiment: toc.sentiment,
+        createdAt: toc.createdAt,
+        metadata: toc.metadata,
+        incomingConnectionId: null
+      });
+    }
+    const plivoCallsData = await db.select().from(plivoCalls).where(eq4(plivoCalls.userId, userId));
+    for (const pc of plivoCallsData) {
+      allUserCalls.push({
+        id: pc.id,
+        userId: pc.userId,
+        campaignId: pc.campaignId,
+        contactId: pc.contactId,
+        phoneNumber: pc.fromNumber,
+        status: pc.status,
+        callDirection: pc.callDirection,
+        duration: pc.duration,
+        classification: pc.classification,
+        sentiment: pc.sentiment,
+        createdAt: pc.createdAt,
+        metadata: pc.metadata,
+        incomingConnectionId: null
+      });
+    }
+    const sipCallsData = await db.select().from(sipCalls).where(eq4(sipCalls.userId, userId));
+    for (const sc of sipCallsData) {
+      allUserCalls.push({
+        id: sc.id,
+        userId: sc.userId,
+        campaignId: sc.campaignId,
+        contactId: sc.contactId,
+        phoneNumber: sc.direction === "inbound" ? sc.fromNumber : sc.toNumber,
+        status: sc.status,
+        callDirection: sc.direction === "inbound" ? "incoming" : "outgoing",
+        duration: sc.durationSeconds,
+        classification: null,
+        sentiment: null,
+        createdAt: sc.createdAt,
+        metadata: sc.metadata,
+        incomingConnectionId: null
+      });
+    }
+  } catch (callFetchError) {
+    if (callFetchError?.code === "42703") {
+      console.warn("[Dashboard] Missing database column (run pre-upgrade-cleanup.sql then drizzle-kit push):", callFetchError.message);
+    } else {
+      console.error("[Dashboard] Error fetching calls:", callFetchError.message);
+    }
+  }
+  const incomingDirections = ["incoming", "inbound", "bridged", "simulcall"];
+  const outgoingDirections = ["outgoing", "outbound"];
+  const isBatchCall = (c) => {
+    const meta = c.metadata;
+    return !!(meta?.batch_call || meta?.batchId || meta?.batch_calling);
+  };
+  const isIncomingCall = (c) => incomingDirections.includes(c.callDirection || "") || !!c.incomingConnectionId;
+  const isOutgoingCall = (c) => {
+    if (isBatchCall(c)) return false;
+    if (outgoingDirections.includes(c.callDirection || "")) return true;
+    if (c.campaignId && !c.incomingConnectionId && !incomingDirections.includes(c.callDirection || "")) return true;
+    if (!isIncomingCall(c)) return true;
+    return false;
+  };
+  const prevWeekStart = /* @__PURE__ */ new Date();
+  prevWeekStart.setDate(now.getDate() - 14);
+  const thisWeekCalls = allUserCalls.filter((c) => new Date(c.createdAt) >= weekAgo);
+  const prevWeekCalls = allUserCalls.filter((c) => {
+    const date2 = new Date(c.createdAt);
+    return date2 >= prevWeekStart && date2 < weekAgo;
+  });
+  const incomingThisWeek = thisWeekCalls.filter(isIncomingCall);
+  const outgoingThisWeek = thisWeekCalls.filter(isOutgoingCall);
+  const incomingPrevWeek = prevWeekCalls.filter(isIncomingCall);
+  const outgoingPrevWeek = prevWeekCalls.filter(isOutgoingCall);
+  const calcTrend = (current, previous) => {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return Math.round((current - previous) / previous * 100);
+  };
+  const calcStats = (callList) => {
+    const completed = callList.filter((c) => c.status === "completed");
+    const successRate = callList.length > 0 ? Math.round(completed.length / callList.length * 100) : 0;
+    const avgDuration = completed.length > 0 ? Math.round(completed.reduce((sum, c) => sum + (c.duration || 0), 0) / completed.length) : 0;
+    return { successRate, avgDuration };
+  };
+  const dailyBreakdown = [];
+  for (let i = 6; i >= 0; i--) {
+    const day = /* @__PURE__ */ new Date();
+    day.setDate(now.getDate() - i);
+    day.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(day);
+    dayEnd.setHours(23, 59, 59, 999);
+    const dayCalls = thisWeekCalls.filter((c) => {
+      const callDate = new Date(c.createdAt);
+      return callDate >= day && callDate <= dayEnd;
+    });
+    dailyBreakdown.push({
+      date: day.toISOString(),
+      incoming: dayCalls.filter(isIncomingCall).length,
+      outgoing: dayCalls.filter(isOutgoingCall).length
+    });
+  }
+  const leadDistribution = {
+    hot: allUserCalls.filter((c) => c.classification?.toLowerCase() === "hot" || c.classification?.toLowerCase() === "qualified").length,
+    warm: allUserCalls.filter((c) => c.classification?.toLowerCase() === "warm" || c.classification?.toLowerCase() === "interested").length,
+    cold: allUserCalls.filter((c) => c.classification?.toLowerCase() === "cold" || c.classification?.toLowerCase() === "not_interested").length,
+    lost: allUserCalls.filter((c) => c.classification?.toLowerCase() === "lost" || c.classification?.toLowerCase() === "do_not_call").length
+  };
+  let recentCalls = [];
+  try {
+    recentCalls = await db.select({
+      id: calls.id,
+      phoneNumber: calls.phoneNumber,
+      status: calls.status,
+      duration: calls.duration,
+      classification: calls.classification,
+      callDirection: calls.callDirection,
+      createdAt: calls.createdAt,
+      campaignId: calls.campaignId,
+      incomingConnectionId: calls.incomingConnectionId,
+      metadata: calls.metadata
+    }).from(calls).where(eq4(calls.userId, userId)).orderBy(desc2(calls.createdAt)).limit(10);
+  } catch (callFetchError) {
+    if (callFetchError?.code === "42703") {
+      console.warn("[Dashboard] Missing database column for recent calls:", callFetchError.message);
+    } else {
+      console.error("[Dashboard] Error fetching recent calls:", callFetchError.message);
+    }
+  }
+  let recentUsers = [];
+  const [currentUser] = await db.select().from(users).where(eq4(users.id, userId));
+  if (currentUser?.role === "admin" || currentUser?.role === "super_admin") {
+    recentUsers = await db.select({
+      id: users.id,
+      email: users.email,
+      createdAt: users.createdAt
+    }).from(users).orderBy(desc2(users.createdAt)).limit(5);
+  }
+  const totalCampaigns = userCampaigns.length;
+  const activeCampaigns = userCampaigns.filter(
+    (c) => c.status === "in_progress" || c.status === "scheduled" || c.status === "pending"
+  ).length;
+  const completedCampaigns = userCampaigns.filter((c) => c.status === "completed").length;
+  let allCampaignCalls = [];
+  if (campaignIds.length > 0) {
+    try {
+      allCampaignCalls = await db.select().from(calls).where(inArray(calls.campaignId, campaignIds));
+    } catch (callFetchError) {
+      if (callFetchError?.code === "42703") {
+        console.warn("[Dashboard] Missing database column for campaign calls:", callFetchError.message);
+      } else {
+        console.error("[Dashboard] Error fetching campaign calls:", callFetchError.message);
+      }
+    }
+  }
+  const campaignCallsCompleted = allCampaignCalls.filter((c) => c.status === "completed");
+  const campaignSuccessRate = allCampaignCalls.length > 0 ? Math.round(campaignCallsCompleted.length / allCampaignCalls.length * 100) : 0;
+  const campaignAvgDuration = campaignCallsCompleted.length > 0 ? Math.round(campaignCallsCompleted.reduce((sum, c) => sum + (c.duration || 0), 0) / campaignCallsCompleted.length) : 0;
+  const [appointmentsResult] = await db.select({ count: sql12`count(*)` }).from(appointments).where(eq4(appointments.userId, userId));
+  const appointmentsCount = Number(appointmentsResult?.count || 0);
+  const userForms = await db.select({ id: forms.id }).from(forms).where(eq4(forms.userId, userId));
+  const formsCount = userForms.length;
+  let formSubmissionsCount = 0;
+  if (userForms.length > 0) {
+    const formIds = userForms.map((f) => f.id);
+    const [submissionsResult] = await db.select({ count: sql12`count(*)` }).from(formSubmissions).where(inArray(formSubmissions.formId, formIds));
+    formSubmissionsCount = Number(submissionsResult?.count || 0);
+  }
+  const [kbResult] = await db.select({ count: sql12`count(*)` }).from(knowledgeBase).where(eq4(knowledgeBase.userId, userId));
+  const knowledgeBaseCount = Number(kbResult?.count || 0);
+  const [webhooksResult] = await db.select({ count: sql12`count(*)` }).from(webhookSubscriptions).where(eq4(webhookSubscriptions.userId, userId));
+  const webhooksCount = Number(webhooksResult?.count || 0);
+  const [userTemplatesResult] = await db.select({ count: sql12`count(*)` }).from(promptTemplates).where(eq4(promptTemplates.userId, userId));
+  const userTemplatesCount = Number(userTemplatesResult?.count || 0);
+  const [systemTemplatesResult] = await db.select({ count: sql12`count(*)` }).from(promptTemplates).where(eq4(promptTemplates.isSystemTemplate, true));
+  const systemTemplatesCount = Number(systemTemplatesResult?.count || 0);
+  const templatesCount = userTemplatesCount + systemTemplatesCount;
+  const sentimentDistribution = {
+    positive: allUserCalls.filter((c) => c.sentiment === "positive").length,
+    neutral: allUserCalls.filter((c) => c.sentiment === "neutral").length,
+    negative: allUserCalls.filter((c) => c.sentiment === "negative").length
+  };
+  const incomingAllTime = allUserCalls.filter(isIncomingCall);
+  const outgoingAllTime = allUserCalls.filter(isOutgoingCall);
+  const incomingAllStats = calcStats(incomingAllTime);
+  const outgoingAllStats = calcStats(outgoingAllTime);
+  return {
+    callTypeStats: {
+      incoming: {
+        count: incomingAllTime.length,
+        trend: calcTrend(incomingThisWeek.length, incomingPrevWeek.length),
+        successRate: incomingAllStats.successRate,
+        avgDuration: incomingAllStats.avgDuration
+      },
+      outgoing: {
+        count: outgoingAllTime.length,
+        trend: calcTrend(outgoingThisWeek.length, outgoingPrevWeek.length),
+        successRate: outgoingAllStats.successRate,
+        avgDuration: outgoingAllStats.avgDuration
+      },
+      campaign: {
+        count: totalCampaigns,
+        active: activeCampaigns,
+        completed: completedCampaigns,
+        successRate: campaignSuccessRate,
+        avgDuration: campaignAvgDuration,
+        totalCalls: allCampaignCalls.length
+      }
+    },
+    weeklyCallsChart: dailyBreakdown,
+    leadDistribution,
+    sentimentDistribution,
+    recentCalls: recentCalls.map((c) => ({
+      ...c,
+      callType: isBatchCall(c) ? "batch" : c.callDirection === "incoming" || c.incomingConnectionId ? "incoming" : "outgoing"
+    })),
+    recentUsers,
+    userName: currentUser?.name || currentUser?.email?.split("@")[0] || "User",
+    totalCalls: allUserCalls.length,
+    totalThisWeek: thisWeekCalls.length,
+    totalPrevWeek: prevWeekCalls.length,
+    weeklyTrend: calcTrend(thisWeekCalls.length, prevWeekCalls.length),
+    appointmentsBooked: appointmentsCount,
+    formsSubmitted: formSubmissionsCount,
+    formsCount,
+    knowledgeBaseCount,
+    webhooksCount,
+    templatesCount
+  };
+}
+var init_analytics_helpers = __esm({
+  "server/storage/analytics-helpers.ts"() {
+    "use strict";
+    init_db();
+    init_schema();
+  }
+});
+
+// server/storage.ts
+import { nanoid } from "nanoid";
+import { eq as eq5, sql as sql13, and as and3, gte as gte2, lte as lte2, desc as desc3, asc, isNull as isNull3, isNotNull as isNotNull2, or as or2, inArray as inArray2, ilike, count } from "drizzle-orm";
+function userSubscriptionPreferenceOrder() {
+  return [
+    sql13`CASE WHEN ${userSubscriptions.status} = 'active' THEN 0 ELSE 1 END`,
+    sql13`CASE WHEN ${userSubscriptions.status} = 'active' THEN ${userSubscriptions.currentPeriodEnd} END DESC NULLS LAST`,
+    desc3(userSubscriptions.createdAt)
+  ];
+}
+var DbStorage, storage;
+var init_storage = __esm({
+  "server/storage.ts"() {
+    "use strict";
+    init_db();
+    init_schema();
+    init_analytics_helpers();
+    DbStorage = class {
+      // Users
+      async getUser(id) {
+        const [user] = await db.select().from(users).where(eq5(users.id, id));
+        return user;
+      }
+      async getUserByEmail(email) {
+        const [user] = await db.select().from(users).where(eq5(users.email, email));
+        return user;
+      }
+      async createUser(insertUser) {
+        const [user] = await db.insert(users).values(insertUser).returning();
+        return user;
+      }
+      async updateUserCredits(userId, credits) {
+        await db.update(users).set({ credits }).where(eq5(users.id, userId));
+      }
+      // Agents
+      async getAgent(id) {
+        const [agent] = await db.select().from(agents).where(eq5(agents.id, id));
+        return agent;
+      }
+      async getUserAgents(userId) {
+        return db.select().from(agents).where(eq5(agents.userId, userId));
+      }
+      async createAgent(insertAgent) {
+        const [agent] = await db.insert(agents).values(insertAgent).returning();
+        return agent;
+      }
+      async updateAgent(id, agent) {
+        await db.update(agents).set(agent).where(eq5(agents.id, id));
+      }
+      async deleteAgent(id) {
+        await db.delete(agents).where(eq5(agents.id, id));
+      }
+      // Knowledge Base
+      async getKnowledgeBaseItem(id) {
+        const [item] = await db.select().from(knowledgeBase).where(eq5(knowledgeBase.id, id));
+        return item;
+      }
+      async getUserKnowledgeBase(userId) {
+        return db.select().from(knowledgeBase).where(eq5(knowledgeBase.userId, userId));
+      }
+      async getUserKnowledgeBaseCount(userId) {
+        const result = await db.select({ count: sql13`count(*)` }).from(knowledgeBase).where(eq5(knowledgeBase.userId, userId));
+        return Number(result[0]?.count || 0);
+      }
+      async createKnowledgeBaseItem(insertItem) {
+        const [item] = await db.insert(knowledgeBase).values(insertItem).returning();
+        return item;
+      }
+      async updateKnowledgeBaseItem(id, item) {
+        await db.update(knowledgeBase).set(item).where(eq5(knowledgeBase.id, id));
+      }
+      async deleteKnowledgeBaseItem(id) {
+        await db.delete(knowledgeBase).where(eq5(knowledgeBase.id, id));
+      }
+      // Campaigns
+      async getCampaign(id) {
+        const [campaign] = await db.select().from(campaigns).where(and3(
+          eq5(campaigns.id, id),
+          isNull3(campaigns.deletedAt)
+        ));
+        return campaign;
+      }
+      async getCampaignIncludingDeleted(id) {
+        const [campaign] = await db.select().from(campaigns).where(eq5(campaigns.id, id));
+        return campaign;
+      }
+      async getUserCampaigns(userId) {
+        return db.select().from(campaigns).where(and3(
+          eq5(campaigns.userId, userId),
+          isNull3(campaigns.deletedAt)
+        )).orderBy(desc3(campaigns.createdAt));
+      }
+      async getUserDeletedCampaigns(userId) {
+        return db.select().from(campaigns).where(and3(
+          eq5(campaigns.userId, userId),
+          isNotNull2(campaigns.deletedAt)
+        )).orderBy(desc3(campaigns.createdAt));
+      }
+      async createCampaign(insertCampaign) {
+        const [campaign] = await db.insert(campaigns).values(insertCampaign).returning();
+        return campaign;
+      }
+      async updateCampaign(id, campaign) {
+        await db.update(campaigns).set(campaign).where(eq5(campaigns.id, id));
+      }
+      async deleteCampaign(id) {
+        await db.update(campaigns).set({ deletedAt: /* @__PURE__ */ new Date() }).where(eq5(campaigns.id, id));
+      }
+      async restoreCampaign(id) {
+        await db.update(campaigns).set({ deletedAt: null }).where(eq5(campaigns.id, id));
+      }
+      // Contacts
+      async getContact(id) {
+        const [contact] = await db.select().from(contacts).where(eq5(contacts.id, id));
+        return contact;
+      }
+      async getCampaignContacts(campaignId) {
+        return db.select().from(contacts).where(eq5(contacts.campaignId, campaignId));
+      }
+      async getUserContacts(userId) {
+        const results = await db.select({
+          contact: contacts,
+          campaign: campaigns
+        }).from(contacts).innerJoin(campaigns, eq5(contacts.campaignId, campaigns.id)).where(and3(
+          eq5(campaigns.userId, userId),
+          isNull3(campaigns.deletedAt)
+        ));
+        return results.map((r) => ({
+          ...r.contact,
+          campaign: r.campaign ? { id: r.campaign.id, name: r.campaign.name } : null
+        }));
+      }
+      async getUserContactsDeduplicated(userId) {
+        const normalizePhone2 = (phone) => {
+          let cleaned = phone.replace(/[\s\-().]/g, "");
+          if (cleaned.startsWith("00")) cleaned = "+" + cleaned.slice(2);
+          if (!cleaned.startsWith("+") && cleaned.length >= 10) cleaned = "+" + cleaned;
+          return cleaned;
+        };
+        const results = await db.select({
+          contact: contacts,
+          campaign: campaigns
+        }).from(contacts).innerJoin(campaigns, eq5(contacts.campaignId, campaigns.id)).where(and3(
+          eq5(campaigns.userId, userId),
+          isNull3(campaigns.deletedAt)
+        )).orderBy(desc3(contacts.createdAt));
+        const phoneGroups = /* @__PURE__ */ new Map();
+        for (const result of results) {
+          const { contact, campaign } = result;
+          const phone = normalizePhone2(contact.phone);
+          if (!phoneGroups.has(phone)) {
+            phoneGroups.set(phone, {
+              phone,
+              email: contact.email,
+              names: /* @__PURE__ */ new Set(),
+              namesList: [],
+              campaigns: /* @__PURE__ */ new Set(),
+              campaignsList: [],
+              statuses: /* @__PURE__ */ new Set(),
+              latestContactId: contact.id,
+              latestStatus: contact.status,
+              latestEmail: contact.email,
+              latestCreatedAt: contact.createdAt,
+              source: "campaign",
+              callCount: 0
+            });
+          }
+          const group = phoneGroups.get(phone);
+          const nameKey = `${contact.firstName.toLowerCase()}|${(contact.lastName || "").toLowerCase()}`;
+          if (!group.names.has(nameKey)) {
+            group.names.add(nameKey);
+            group.namesList.push({
+              firstName: contact.firstName,
+              lastName: contact.lastName
+            });
+          }
+          if (!group.campaigns.has(campaign.id) && campaign) {
+            group.campaigns.add(campaign.id);
+            group.campaignsList.push({
+              id: campaign.id,
+              name: campaign.name
+            });
+          }
+          group.statuses.add(contact.status);
+          if (contact.createdAt > group.latestCreatedAt) {
+            group.latestContactId = contact.id;
+            group.latestStatus = contact.status;
+            group.latestEmail = contact.email;
+            group.latestCreatedAt = contact.createdAt;
+          }
+        }
+        const callsWithoutContacts = await db.select({
+          phoneNumber: calls.phoneNumber,
+          callDirection: calls.callDirection,
+          createdAt: calls.createdAt,
+          status: calls.status
+        }).from(calls).where(and3(
+          eq5(calls.userId, userId),
+          isNull3(calls.contactId),
+          isNotNull2(calls.phoneNumber)
+        )).orderBy(desc3(calls.createdAt));
+        for (const call of callsWithoutContacts) {
+          const rawPhone = call.phoneNumber;
+          if (!rawPhone || rawPhone === "Unknown Caller" || rawPhone === "unknown") continue;
+          const phone = normalizePhone2(rawPhone);
+          const callStatus = call.callDirection === "incoming" ? "incoming_call" : "outgoing_call";
+          if (!phoneGroups.has(phone)) {
+            phoneGroups.set(phone, {
+              phone,
+              email: null,
+              names: /* @__PURE__ */ new Set(),
+              namesList: [],
+              campaigns: /* @__PURE__ */ new Set(),
+              campaignsList: [],
+              statuses: /* @__PURE__ */ new Set([callStatus]),
+              latestContactId: `call-${phone}`,
+              // Virtual ID for call-only contacts
+              latestStatus: callStatus,
+              latestEmail: null,
+              latestCreatedAt: call.createdAt,
+              source: "call",
+              callCount: 1
+            });
+          } else {
+            const group = phoneGroups.get(phone);
+            group.callCount = (group.callCount || 0) + 1;
+            group.statuses.add(callStatus);
+            if (call.createdAt > group.latestCreatedAt) {
+              group.latestStatus = callStatus;
+              group.latestCreatedAt = call.createdAt;
+            }
+          }
+        }
+        const leadsResults = await db.select({
+          phone: leads.phone,
+          firstName: leads.firstName,
+          lastName: leads.lastName,
+          email: leads.email,
+          stage: leads.stage,
+          sourceType: leads.sourceType,
+          createdAt: leads.createdAt,
+          id: leads.id
+        }).from(leads).where(eq5(leads.userId, userId)).orderBy(desc3(leads.createdAt));
+        for (const lead of leadsResults) {
+          if (!lead.phone || lead.phone === "Unknown Caller" || lead.phone === "unknown") continue;
+          const phone = normalizePhone2(lead.phone);
+          const leadStatus = `lead_${lead.stage || "new"}`;
+          const leadSource = lead.sourceType === "campaign" ? "campaign" : "call";
+          if (!phoneGroups.has(phone)) {
+            phoneGroups.set(phone, {
+              phone,
+              email: lead.email,
+              names: /* @__PURE__ */ new Set(),
+              namesList: [],
+              campaigns: /* @__PURE__ */ new Set(),
+              campaignsList: [],
+              statuses: /* @__PURE__ */ new Set([leadStatus]),
+              latestContactId: lead.id,
+              latestStatus: leadStatus,
+              latestEmail: lead.email,
+              latestCreatedAt: lead.createdAt,
+              source: leadSource,
+              callCount: 0
+            });
+            if (lead.firstName) {
+              const nameKey = `${lead.firstName.toLowerCase()}|${(lead.lastName || "").toLowerCase()}`;
+              phoneGroups.get(phone).names.add(nameKey);
+              phoneGroups.get(phone).namesList.push({
+                firstName: lead.firstName,
+                lastName: lead.lastName
+              });
+            }
+          } else {
+            const group = phoneGroups.get(phone);
+            group.statuses.add(leadStatus);
+            if (lead.email) {
+              group.latestEmail = lead.email;
+            }
+            if (lead.firstName) {
+              const nameKey = `${lead.firstName.toLowerCase()}|${(lead.lastName || "").toLowerCase()}`;
+              if (!group.names.has(nameKey)) {
+                group.names.add(nameKey);
+                group.namesList.unshift({
+                  firstName: lead.firstName,
+                  lastName: lead.lastName
+                });
+              }
+            }
+            if (lead.createdAt > group.latestCreatedAt) {
+              group.latestContactId = lead.id;
+              group.latestStatus = leadStatus;
+              group.latestCreatedAt = lead.createdAt;
+            }
+          }
+        }
+        const twilioOpenaiCallsResults = await db.select({
+          fromNumber: twilioOpenaiCalls.fromNumber,
+          toNumber: twilioOpenaiCalls.toNumber,
+          callDirection: twilioOpenaiCalls.callDirection,
+          createdAt: twilioOpenaiCalls.createdAt,
+          status: twilioOpenaiCalls.status
+        }).from(twilioOpenaiCalls).where(and3(
+          eq5(twilioOpenaiCalls.userId, userId),
+          isNull3(twilioOpenaiCalls.contactId)
+        )).orderBy(desc3(twilioOpenaiCalls.createdAt));
+        for (const call of twilioOpenaiCallsResults) {
+          const rawTwPhone = call.callDirection === "inbound" ? call.fromNumber : call.toNumber;
+          if (!rawTwPhone || rawTwPhone === "Unknown Caller" || rawTwPhone === "unknown") continue;
+          const phone = normalizePhone2(rawTwPhone);
+          const callStatus = call.callDirection === "inbound" ? "incoming_call" : "outgoing_call";
+          if (!phoneGroups.has(phone)) {
+            phoneGroups.set(phone, {
+              phone,
+              email: null,
+              names: /* @__PURE__ */ new Set(),
+              namesList: [],
+              campaigns: /* @__PURE__ */ new Set(),
+              campaignsList: [],
+              statuses: /* @__PURE__ */ new Set([callStatus]),
+              latestContactId: `twilio-openai-call-${phone}`,
+              latestStatus: callStatus,
+              latestEmail: null,
+              latestCreatedAt: call.createdAt,
+              source: "call",
+              callCount: 1
+            });
+          } else {
+            const group = phoneGroups.get(phone);
+            group.callCount = (group.callCount || 0) + 1;
+            group.statuses.add(callStatus);
+            if (call.createdAt > group.latestCreatedAt) {
+              group.latestStatus = callStatus;
+              group.latestCreatedAt = call.createdAt;
+            }
+          }
+        }
+        const plivoCallsResults = await db.select({
+          fromNumber: plivoCalls.fromNumber,
+          toNumber: plivoCalls.toNumber,
+          callDirection: plivoCalls.callDirection,
+          createdAt: plivoCalls.createdAt,
+          status: plivoCalls.status
+        }).from(plivoCalls).where(and3(
+          eq5(plivoCalls.userId, userId),
+          isNull3(plivoCalls.contactId)
+        )).orderBy(desc3(plivoCalls.createdAt));
+        for (const call of plivoCallsResults) {
+          const rawPlPhone = call.callDirection === "inbound" ? call.fromNumber : call.toNumber;
+          if (!rawPlPhone || rawPlPhone === "Unknown Caller" || rawPlPhone === "unknown") continue;
+          const phone = normalizePhone2(rawPlPhone);
+          const callStatus = call.callDirection === "inbound" ? "incoming_call" : "outgoing_call";
+          if (!phoneGroups.has(phone)) {
+            phoneGroups.set(phone, {
+              phone,
+              email: null,
+              names: /* @__PURE__ */ new Set(),
+              namesList: [],
+              campaigns: /* @__PURE__ */ new Set(),
+              campaignsList: [],
+              statuses: /* @__PURE__ */ new Set([callStatus]),
+              latestContactId: `plivo-call-${phone}`,
+              latestStatus: callStatus,
+              latestEmail: null,
+              latestCreatedAt: call.createdAt,
+              source: "call",
+              callCount: 1
+            });
+          } else {
+            const group = phoneGroups.get(phone);
+            group.callCount = (group.callCount || 0) + 1;
+            group.statuses.add(callStatus);
+            if (call.createdAt > group.latestCreatedAt) {
+              group.latestStatus = callStatus;
+              group.latestCreatedAt = call.createdAt;
+            }
+          }
+        }
+        const sipCallsResults = await db.select({
+          fromNumber: sipCalls.fromNumber,
+          toNumber: sipCalls.toNumber,
+          direction: sipCalls.direction,
+          createdAt: sipCalls.createdAt,
+          status: sipCalls.status
+        }).from(sipCalls).where(and3(
+          eq5(sipCalls.userId, userId),
+          isNull3(sipCalls.contactId)
+        )).orderBy(desc3(sipCalls.createdAt));
+        for (const call of sipCallsResults) {
+          const rawSipPhone = call.direction === "inbound" ? call.fromNumber : call.toNumber;
+          if (!rawSipPhone || rawSipPhone === "Unknown Caller" || rawSipPhone === "unknown") continue;
+          const phone = normalizePhone2(rawSipPhone);
+          const callStatus = call.direction === "inbound" ? "incoming_call" : "outgoing_call";
+          if (!phoneGroups.has(phone)) {
+            phoneGroups.set(phone, {
+              phone,
+              email: null,
+              names: /* @__PURE__ */ new Set(),
+              namesList: [],
+              campaigns: /* @__PURE__ */ new Set(),
+              campaignsList: [],
+              statuses: /* @__PURE__ */ new Set([callStatus]),
+              latestContactId: `sip-call-${phone}`,
+              latestStatus: callStatus,
+              latestEmail: null,
+              latestCreatedAt: call.createdAt || /* @__PURE__ */ new Date(0),
+              source: "call",
+              callCount: 1
+            });
+          } else {
+            const group = phoneGroups.get(phone);
+            group.callCount = (group.callCount || 0) + 1;
+            group.statuses.add(callStatus);
+            if (call.createdAt && call.createdAt > group.latestCreatedAt) {
+              group.latestStatus = callStatus;
+              group.latestCreatedAt = call.createdAt;
+            }
+          }
+        }
+        return Array.from(phoneGroups.values()).map((group) => ({
+          id: group.latestContactId,
+          phone: group.phone,
+          email: group.latestEmail,
+          names: group.namesList,
+          campaigns: group.campaignsList,
+          status: group.latestStatus,
+          allStatuses: Array.from(group.statuses),
+          source: group.source,
+          callCount: group.callCount
+        }));
+      }
+      async createContact(insertContact) {
+        const [contact] = await db.insert(contacts).values(insertContact).returning();
+        return contact;
+      }
+      async createContacts(insertContacts) {
+        return db.insert(contacts).values(insertContacts).returning();
+      }
+      async deleteContact(id) {
+        await db.delete(contacts).where(eq5(contacts.id, id));
+      }
+      // Calls
+      async getCall(id) {
+        const [call] = await db.select().from(calls).where(eq5(calls.id, id));
+        return call;
+      }
+      async getCallWithDetails(id) {
+        const elevenLabsResults = await db.select({
+          call: calls,
+          campaign: campaigns,
+          contact: contacts,
+          incomingConnection: incomingConnections,
+          widget: websiteWidgets
+        }).from(calls).leftJoin(campaigns, eq5(calls.campaignId, campaigns.id)).leftJoin(contacts, eq5(calls.contactId, contacts.id)).leftJoin(incomingConnections, eq5(calls.incomingConnectionId, incomingConnections.id)).leftJoin(websiteWidgets, eq5(calls.widgetId, websiteWidgets.id)).where(eq5(calls.id, id));
+        if (elevenLabsResults.length > 0) {
+          const r = elevenLabsResults[0];
+          const metadataEngine = r.call.metadata?.engine;
+          const engine = metadataEngine || "elevenlabs";
+          return {
+            ...r.call,
+            engine,
+            campaign: r.campaign ? { id: r.campaign.id, name: r.campaign.name } : null,
+            contact: r.contact ? { id: r.contact.id, firstName: r.contact.firstName, lastName: r.contact.lastName, phone: r.contact.phone } : null,
+            incomingConnection: r.incomingConnection ? { id: r.incomingConnection.id, agentId: r.incomingConnection.agentId } : null,
+            widget: r.widget ? { id: r.widget.id, name: r.widget.name } : null
+          };
+        }
+        const twilioOpenAIResults = await db.select({
+          call: twilioOpenaiCalls,
+          campaign: campaigns,
+          contact: contacts,
+          agent: agents
+        }).from(twilioOpenaiCalls).leftJoin(campaigns, eq5(twilioOpenaiCalls.campaignId, campaigns.id)).leftJoin(contacts, eq5(twilioOpenaiCalls.contactId, contacts.id)).leftJoin(agents, eq5(twilioOpenaiCalls.agentId, agents.id)).where(eq5(twilioOpenaiCalls.id, id));
+        if (twilioOpenAIResults.length > 0) {
+          const r = twilioOpenAIResults[0];
+          return {
+            id: r.call.id,
+            userId: r.call.userId,
+            campaignId: r.call.campaignId,
+            contactId: r.call.contactId,
+            agentId: r.call.agentId,
+            phoneNumber: r.call.fromNumber,
+            fromNumber: r.call.fromNumber,
+            toNumber: r.call.toNumber,
+            twilioSid: r.call.twilioCallSid,
+            status: r.call.status,
+            callDirection: r.call.callDirection === "inbound" ? "incoming" : r.call.callDirection === "outbound" ? "outgoing" : r.call.callDirection,
+            duration: r.call.duration,
+            recordingUrl: r.call.recordingUrl,
+            transcript: r.call.transcript,
+            aiSummary: r.call.aiSummary,
+            sentiment: r.call.sentiment,
+            wasTransferred: r.call.wasTransferred,
+            transferredTo: r.call.transferredTo,
+            transferredAt: r.call.transferredAt,
+            startedAt: r.call.startedAt,
+            endedAt: r.call.endedAt,
+            createdAt: r.call.createdAt,
+            metadata: r.call.metadata,
+            engine: "twilio-openai",
+            openaiSessionId: r.call.openaiSessionId,
+            openaiVoice: r.call.openaiVoice,
+            openaiModel: r.call.openaiModel,
+            campaign: r.campaign ? { id: r.campaign.id, name: r.campaign.name } : null,
+            contact: r.contact ? { id: r.contact.id, firstName: r.contact.firstName, lastName: r.contact.lastName, phone: r.contact.phone } : null,
+            incomingConnection: null,
+            agent: r.agent ? { id: r.agent.id, name: r.agent.name } : null
+          };
+        }
+        const plivoResults = await db.select({
+          call: plivoCalls,
+          campaign: campaigns,
+          contact: contacts,
+          agent: agents
+        }).from(plivoCalls).leftJoin(campaigns, eq5(plivoCalls.campaignId, campaigns.id)).leftJoin(contacts, eq5(plivoCalls.contactId, contacts.id)).leftJoin(agents, eq5(plivoCalls.agentId, agents.id)).where(eq5(plivoCalls.id, id));
+        if (plivoResults.length > 0) {
+          const r = plivoResults[0];
+          return {
+            id: r.call.id,
+            userId: r.call.userId,
+            campaignId: r.call.campaignId,
+            contactId: r.call.contactId,
+            agentId: r.call.agentId,
+            phoneNumber: r.call.fromNumber,
+            fromNumber: r.call.fromNumber,
+            toNumber: r.call.toNumber,
+            plivoCallUuid: r.call.plivoCallUuid,
+            status: r.call.status,
+            callDirection: r.call.callDirection === "inbound" ? "incoming" : r.call.callDirection === "outbound" ? "outgoing" : r.call.callDirection,
+            duration: r.call.duration,
+            recordingUrl: r.call.recordingUrl,
+            transcript: r.call.transcript,
+            aiSummary: r.call.aiSummary,
+            sentiment: r.call.sentiment,
+            leadQualityScore: r.call.leadQualityScore,
+            keyPoints: r.call.keyPoints,
+            nextActions: r.call.nextActions,
+            wasTransferred: r.call.wasTransferred,
+            transferredTo: r.call.transferredTo,
+            transferredAt: r.call.transferredAt,
+            startedAt: r.call.startedAt,
+            answeredAt: r.call.answeredAt,
+            endedAt: r.call.endedAt,
+            createdAt: r.call.createdAt,
+            metadata: r.call.metadata,
+            engine: "plivo-openai",
+            openaiSessionId: r.call.openaiSessionId,
+            openaiVoice: r.call.openaiVoice,
+            openaiModel: r.call.openaiModel,
+            campaign: r.campaign ? { id: r.campaign.id, name: r.campaign.name } : null,
+            contact: r.contact ? { id: r.contact.id, firstName: r.contact.firstName, lastName: r.contact.lastName, phone: r.contact.phone } : null,
+            incomingConnection: null,
+            agent: r.agent ? { id: r.agent.id, name: r.agent.name } : null
+          };
+        }
+        const sipResults = await db.select({
+          call: sipCalls,
+          agent: agents,
+          contact: contacts
+        }).from(sipCalls).leftJoin(agents, eq5(sipCalls.agentId, agents.id)).leftJoin(contacts, eq5(sipCalls.contactId, contacts.id)).where(eq5(sipCalls.id, id));
+        if (sipResults.length > 0) {
+          const r = sipResults[0];
+          return {
+            id: r.call.id,
+            userId: r.call.userId,
+            campaignId: r.call.campaignId,
+            contactId: r.call.contactId,
+            agentId: r.call.agentId,
+            phoneNumber: r.call.direction === "inbound" ? r.call.fromNumber : r.call.toNumber,
+            fromNumber: r.call.fromNumber,
+            toNumber: r.call.toNumber,
+            status: r.call.status,
+            callDirection: r.call.direction === "inbound" ? "incoming" : "outgoing",
+            duration: r.call.durationSeconds,
+            recordingUrl: r.call.recordingUrl,
+            transcript: r.call.transcript,
+            aiSummary: r.call.aiSummary,
+            sentiment: r.call.sentiment || r.call.metadata?.sentiment || null,
+            classification: r.call.classification || r.call.metadata?.classification || null,
+            startedAt: r.call.startedAt,
+            answeredAt: r.call.answeredAt,
+            endedAt: r.call.endedAt,
+            createdAt: r.call.createdAt,
+            metadata: r.call.metadata,
+            engine: r.call.engine,
+            sipTrunkId: r.call.sipTrunkId,
+            sipPhoneNumberId: r.call.sipPhoneNumberId,
+            elevenLabsConversationId: r.call.elevenlabsConversationId,
+            elevenlabsConversationId: r.call.elevenlabsConversationId,
+            externalCallId: r.call.externalCallId,
+            openaiCallId: r.call.openaiCallId,
+            creditsUsed: r.call.creditsUsed,
+            sipHeaders: r.call.sipHeaders,
+            campaign: null,
+            contact: r.contact ? { id: r.contact.id, firstName: r.contact.firstName, lastName: r.contact.lastName, phone: r.contact.phone } : null,
+            incomingConnection: null,
+            agent: r.agent ? { id: r.agent.id, name: r.agent.name } : null
+          };
+        }
+        return void 0;
+      }
+      async getCampaignCalls(campaignId) {
+        return db.select().from(calls).where(eq5(calls.campaignId, campaignId));
+      }
+      async getUserCalls(userId) {
+        const results = await db.select({ calls }).from(calls).leftJoin(campaigns, eq5(calls.campaignId, campaigns.id)).leftJoin(incomingConnections, eq5(calls.incomingConnectionId, incomingConnections.id)).where(
+          or2(
+            eq5(calls.userId, userId),
+            and3(isNotNull2(calls.campaignId), eq5(campaigns.userId, userId)),
+            and3(isNotNull2(calls.incomingConnectionId), eq5(incomingConnections.userId, userId))
+          )
+        );
+        return results.map((r) => r.calls);
+      }
+      async getUserCallsWithDetails(userId) {
+        const elevenLabsResults = await db.select({
+          call: calls,
+          campaign: campaigns,
+          contact: contacts,
+          incomingConnection: incomingConnections,
+          widget: websiteWidgets
+        }).from(calls).leftJoin(campaigns, eq5(calls.campaignId, campaigns.id)).leftJoin(contacts, eq5(calls.contactId, contacts.id)).leftJoin(incomingConnections, eq5(calls.incomingConnectionId, incomingConnections.id)).leftJoin(websiteWidgets, eq5(calls.widgetId, websiteWidgets.id)).where(
+          or2(
+            // Primary filter: Direct user ownership (guaranteed isolation)
+            eq5(calls.userId, userId),
+            // Fallback for legacy calls: Check via campaign ownership
+            and3(isNotNull2(calls.campaignId), eq5(campaigns.userId, userId)),
+            // Fallback for legacy calls: Check via incoming connection ownership
+            and3(isNotNull2(calls.incomingConnectionId), eq5(incomingConnections.userId, userId))
+          )
+        ).orderBy(sql13`${calls.createdAt} DESC`);
+        const elevenLabsCalls = elevenLabsResults.map((r) => {
+          const metadataEngine = r.call.metadata?.engine;
+          const engine = metadataEngine || "elevenlabs";
+          return {
+            ...r.call,
+            engine,
+            campaign: r.campaign ? { id: r.campaign.id, name: r.campaign.name } : null,
+            contact: r.contact ? { id: r.contact.id, firstName: r.contact.firstName, lastName: r.contact.lastName, phone: r.contact.phone } : null,
+            incomingConnection: r.incomingConnection ? { id: r.incomingConnection.id, agentId: r.incomingConnection.agentId } : null,
+            widget: r.widget ? { id: r.widget.id, name: r.widget.name } : null
+          };
+        });
+        const twilioOpenAIResults = await db.select({
+          call: twilioOpenaiCalls,
+          campaign: campaigns,
+          contact: contacts,
+          agent: agents
+        }).from(twilioOpenaiCalls).leftJoin(campaigns, eq5(twilioOpenaiCalls.campaignId, campaigns.id)).leftJoin(contacts, eq5(twilioOpenaiCalls.contactId, contacts.id)).leftJoin(agents, eq5(twilioOpenaiCalls.agentId, agents.id)).where(eq5(twilioOpenaiCalls.userId, userId)).orderBy(sql13`${twilioOpenaiCalls.createdAt} DESC`);
+        const twilioOpenAICalls = twilioOpenAIResults.map((r) => ({
+          id: r.call.id,
+          userId: r.call.userId,
+          campaignId: r.call.campaignId,
+          contactId: r.call.contactId,
+          agentId: r.call.agentId,
+          phoneNumber: r.call.fromNumber,
+          fromNumber: r.call.fromNumber,
+          toNumber: r.call.toNumber,
+          twilioSid: r.call.twilioCallSid,
+          status: r.call.status,
+          callDirection: r.call.callDirection === "inbound" ? "incoming" : "outgoing",
+          duration: r.call.duration,
+          recordingUrl: r.call.recordingUrl,
+          transcript: r.call.transcript,
+          aiSummary: r.call.aiSummary,
+          sentiment: r.call.sentiment,
+          wasTransferred: r.call.wasTransferred,
+          transferredTo: r.call.transferredTo,
+          transferredAt: r.call.transferredAt,
+          startedAt: r.call.startedAt,
+          endedAt: r.call.endedAt,
+          createdAt: r.call.createdAt,
+          metadata: r.call.metadata,
+          engine: "twilio-openai",
+          openaiSessionId: r.call.openaiSessionId,
+          openaiVoice: r.call.openaiVoice,
+          openaiModel: r.call.openaiModel,
+          campaign: r.campaign ? { id: r.campaign.id, name: r.campaign.name } : null,
+          contact: r.contact ? { id: r.contact.id, firstName: r.contact.firstName, lastName: r.contact.lastName, phone: r.contact.phone } : null,
+          incomingConnection: null,
+          agent: r.agent ? { id: r.agent.id, name: r.agent.name } : null
+        }));
+        const plivoResults = await db.select({
+          call: plivoCalls,
+          campaign: campaigns,
+          contact: contacts,
+          agent: agents
+        }).from(plivoCalls).leftJoin(campaigns, eq5(plivoCalls.campaignId, campaigns.id)).leftJoin(contacts, eq5(plivoCalls.contactId, contacts.id)).leftJoin(agents, eq5(plivoCalls.agentId, agents.id)).where(eq5(plivoCalls.userId, userId)).orderBy(sql13`${plivoCalls.createdAt} DESC`);
+        const plivoOpenAICalls = plivoResults.map((r) => ({
+          id: r.call.id,
+          userId: r.call.userId,
+          campaignId: r.call.campaignId,
+          contactId: r.call.contactId,
+          agentId: r.call.agentId,
+          phoneNumber: r.call.fromNumber,
+          fromNumber: r.call.fromNumber,
+          toNumber: r.call.toNumber,
+          plivoCallUuid: r.call.plivoCallUuid,
+          status: r.call.status,
+          callDirection: r.call.callDirection === "inbound" ? "incoming" : "outgoing",
+          duration: r.call.duration,
+          recordingUrl: r.call.recordingUrl,
+          transcript: r.call.transcript,
+          aiSummary: r.call.aiSummary,
+          sentiment: r.call.sentiment,
+          leadQualityScore: r.call.leadQualityScore,
+          keyPoints: r.call.keyPoints,
+          nextActions: r.call.nextActions,
+          wasTransferred: r.call.wasTransferred,
+          transferredTo: r.call.transferredTo,
+          transferredAt: r.call.transferredAt,
+          startedAt: r.call.startedAt,
+          answeredAt: r.call.answeredAt,
+          endedAt: r.call.endedAt,
+          createdAt: r.call.createdAt,
+          metadata: r.call.metadata,
+          engine: "plivo-openai",
+          openaiSessionId: r.call.openaiSessionId,
+          openaiVoice: r.call.openaiVoice,
+          openaiModel: r.call.openaiModel,
+          campaign: r.campaign ? { id: r.campaign.id, name: r.campaign.name } : null,
+          contact: r.contact ? { id: r.contact.id, firstName: r.contact.firstName, lastName: r.contact.lastName, phone: r.contact.phone } : null,
+          incomingConnection: null,
+          agent: r.agent ? { id: r.agent.id, name: r.agent.name } : null
+        }));
+        const sipCallResults = await db.select({
+          call: sipCalls,
+          agent: agents,
+          contact: contacts
+        }).from(sipCalls).leftJoin(agents, eq5(sipCalls.agentId, agents.id)).leftJoin(contacts, eq5(sipCalls.contactId, contacts.id)).where(eq5(sipCalls.userId, userId)).orderBy(sql13`${sipCalls.createdAt} DESC`);
+        const sipCallsFormatted = sipCallResults.map((r) => ({
+          id: r.call.id,
+          userId: r.call.userId,
+          campaignId: r.call.campaignId,
+          contactId: r.call.contactId,
+          agentId: r.call.agentId,
+          phoneNumber: r.call.direction === "inbound" ? r.call.fromNumber : r.call.toNumber,
+          fromNumber: r.call.fromNumber,
+          toNumber: r.call.toNumber,
+          status: r.call.status,
+          callDirection: r.call.direction === "inbound" ? "incoming" : "outgoing",
+          duration: r.call.durationSeconds,
+          recordingUrl: r.call.recordingUrl,
+          transcript: r.call.transcript,
+          aiSummary: r.call.aiSummary,
+          sentiment: r.call.sentiment || r.call.metadata?.sentiment || null,
+          classification: r.call.classification || r.call.metadata?.classification || null,
+          startedAt: r.call.startedAt,
+          answeredAt: r.call.answeredAt,
+          endedAt: r.call.endedAt,
+          createdAt: r.call.createdAt,
+          metadata: r.call.metadata,
+          engine: r.call.engine,
+          sipTrunkId: r.call.sipTrunkId,
+          sipPhoneNumberId: r.call.sipPhoneNumberId,
+          elevenLabsConversationId: r.call.elevenlabsConversationId,
+          elevenlabsConversationId: r.call.elevenlabsConversationId,
+          creditsUsed: r.call.creditsUsed,
+          campaign: null,
+          contact: r.contact ? { id: r.contact.id, firstName: r.contact.firstName, lastName: r.contact.lastName, phone: r.contact.phone } : null,
+          incomingConnection: null,
+          agent: r.agent ? { id: r.agent.id, name: r.agent.name } : null
+        }));
+        const twilioOpenAIByCampaignContact = new Set(
+          twilioOpenAICalls.filter((c) => c.campaignId && c.contactId).map((c) => `${c.campaignId}:${c.contactId}`)
+        );
+        const plivoByCampaignContact = new Set(
+          plivoOpenAICalls.filter((c) => c.campaignId && c.contactId).map((c) => `${c.campaignId}:${c.contactId}`)
+        );
+        const filteredElevenLabsCalls = elevenLabsCalls.filter((c) => {
+          if (!c.campaignId || !c.contactId) return true;
+          const md = c.metadata || {};
+          if (md.batchCall !== true) return true;
+          const key = `${c.campaignId}:${c.contactId}`;
+          if (md.telephonyProvider === "twilio_openai" && twilioOpenAIByCampaignContact.has(key)) {
+            return false;
+          }
+          if (md.telephonyProvider === "plivo" && plivoByCampaignContact.has(key)) {
+            return false;
+          }
+          return true;
+        });
+        const allCalls = [...filteredElevenLabsCalls, ...twilioOpenAICalls, ...plivoOpenAICalls, ...sipCallsFormatted];
+        allCalls.sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dateB - dateA;
+        });
+        return allCalls;
+      }
+      async createCall(insertCall) {
+        const [call] = await db.insert(calls).values(insertCall).returning();
+        return call;
+      }
+      async updateCall(id, call) {
+        await db.update(calls).set(call).where(eq5(calls.id, id));
+      }
+      // Credit Transactions
+      async getCreditTransaction(id) {
+        const [transaction] = await db.select().from(creditTransactions).where(eq5(creditTransactions.id, id));
+        return transaction;
+      }
+      async getUserCreditTransactions(userId) {
+        return db.select().from(creditTransactions).where(eq5(creditTransactions.userId, userId));
+      }
+      async createCreditTransaction(insertTransaction) {
+        const [transaction] = await db.insert(creditTransactions).values(insertTransaction).returning();
+        return transaction;
+      }
+      // Atomic credit purchase: creates transaction + adds credits in single DB transaction
+      async addCreditsAtomic(userId, credits, description, reference, executor) {
+        const run = async (tx) => {
+          if (executor) {
+            const [dup] = await tx.select({ id: creditTransactions.id }).from(creditTransactions).where(eq5(creditTransactions.stripePaymentId, reference)).limit(1);
+            if (dup) throw new Error(`duplicate credit reference ${reference}`);
+          }
+          await tx.insert(creditTransactions).values({
+            userId,
+            type: "credit",
+            amount: credits,
+            description,
+            stripePaymentId: reference
+          });
+          await tx.execute(sql13`
+        UPDATE users 
+        SET credits = COALESCE(credits, 0) + ${credits}
+        WHERE id = ${userId}
+      `);
+        };
+        if (executor) {
+          await run(executor);
+        } else {
+          await db.transaction(async (tx) => run(tx));
+        }
+      }
+      // Tools
+      async getTool(id) {
+        const [tool] = await db.select().from(tools).where(eq5(tools.id, id));
+        return tool;
+      }
+      async getUserTools(userId) {
+        return db.select().from(tools).where(eq5(tools.userId, userId));
+      }
+      async createTool(insertTool) {
+        const [tool] = await db.insert(tools).values(insertTool).returning();
+        return tool;
+      }
+      async updateTool(id, tool) {
+        await db.update(tools).set(tool).where(eq5(tools.id, id));
+      }
+      async deleteTool(id) {
+        await db.delete(tools).where(eq5(tools.id, id));
+      }
+      // Phone Number Rentals
+      async createPhoneNumberRental(insertRental) {
+        const [rental] = await db.insert(phoneNumberRentals).values(insertRental).returning();
+        return rental;
+      }
+      async getPhoneNumberRentals(phoneNumberId) {
+        return db.select().from(phoneNumberRentals).where(eq5(phoneNumberRentals.phoneNumberId, phoneNumberId)).orderBy(desc3(phoneNumberRentals.createdAt));
+      }
+      // Voices
+      async getVoice(id) {
+        const [voice] = await db.select().from(voices).where(eq5(voices.id, id));
+        return voice;
+      }
+      async getUserVoices(userId) {
+        return db.select().from(voices).where(eq5(voices.userId, userId));
+      }
+      async createVoice(insertVoice) {
+        const [voice] = await db.insert(voices).values(insertVoice).returning();
+        return voice;
+      }
+      async deleteVoice(id) {
+        await db.delete(voices).where(eq5(voices.id, id));
+      }
+      // Plans
+      async getPlan(id) {
+        const [plan] = await db.select().from(plans).where(eq5(plans.id, id));
+        return plan;
+      }
+      async getPlanByName(name) {
+        const [plan] = await db.select().from(plans).where(eq5(plans.name, name));
+        return plan;
+      }
+      async getAllPlans() {
+        return db.select().from(plans).where(eq5(plans.isActive, true));
+      }
+      async createPlan(insertPlan) {
+        const [plan] = await db.insert(plans).values(insertPlan).returning();
+        return plan;
+      }
+      async updatePlan(id, plan) {
+        const result = await db.update(plans).set(plan).where(eq5(plans.id, id)).returning({ id: plans.id });
+        if (result.length === 0) {
+          throw new Error(`Failed to update plan: Plan with id '${id}' not found`);
+        }
+      }
+      async deletePlan(id) {
+        await db.delete(plans).where(eq5(plans.id, id));
+      }
+      // Global Settings
+      async getGlobalSetting(key) {
+        const [setting] = await db.select().from(globalSettings).where(eq5(globalSettings.key, key));
+        if (setting && setting.value !== null && setting.value !== void 0) {
+          let val = setting.value;
+          if (typeof val === "string" && val.startsWith('"') && val.endsWith('"')) {
+            try {
+              val = JSON.parse(val);
+            } catch {
+            }
+          }
+          return { ...setting, value: val };
+        }
+        return setting;
+      }
+      async updateGlobalSetting(key, value) {
+        try {
+          const jsonValue = JSON.stringify(value);
+          await db.execute(sql13`
+        INSERT INTO global_settings (id, key, value, updated_at)
+        VALUES (gen_random_uuid(), ${key}, ${jsonValue}::jsonb, NOW())
+        ON CONFLICT (key) DO UPDATE SET 
+          value = ${jsonValue}::jsonb,
+          updated_at = NOW()
+      `);
+          console.log(`\u2705 [Settings] Saved setting '${key}' successfully`);
+        } catch (error) {
+          console.error(`\u274C [Settings] Failed to save setting '${key}':`, error.message);
+          throw new Error(`Failed to save setting '${key}': ${error.message}`);
+        }
+      }
+      // Credit Packages
+      async getCreditPackage(id) {
+        const [pack] = await db.select().from(creditPackages).where(eq5(creditPackages.id, id));
+        return pack;
+      }
+      async getAllCreditPackages() {
+        return db.select().from(creditPackages).where(eq5(creditPackages.isActive, true));
+      }
+      async createCreditPackage(insertPack) {
+        const [pack] = await db.insert(creditPackages).values(insertPack).returning();
+        return pack;
+      }
+      async updateCreditPackage(id, pack) {
+        const result = await db.update(creditPackages).set(pack).where(eq5(creditPackages.id, id)).returning({ id: creditPackages.id });
+        if (result.length === 0) {
+          throw new Error(`Failed to update credit package: Package with id '${id}' not found`);
+        }
+      }
+      // Admin Functions
+      async getAllUsers() {
+        return db.select().from(users).orderBy(desc3(users.createdAt));
+      }
+      async getAllAdminUsers() {
+        return db.select().from(users).where(
+          sql13`${users.role} = 'admin'`
+        ).orderBy(desc3(users.createdAt));
+      }
+      async updateUser(id, user) {
+        const result = await db.update(users).set(user).where(eq5(users.id, id)).returning({ id: users.id });
+        if (result.length === 0) {
+          throw new Error(`Failed to update user: User with id '${id}' not found`);
+        }
+      }
+      async getSystemPhoneNumbers() {
+        const results = await db.select({
+          phone: phoneNumbers,
+          user: users
+        }).from(phoneNumbers).leftJoin(users, eq5(phoneNumbers.userId, users.id));
+        return results.map((r) => ({
+          ...r.phone,
+          userEmail: r.user?.email
+        }));
+      }
+      async getGlobalAnalytics(timeRange) {
+        return calculateGlobalAnalytics(timeRange);
+      }
+      // User Subscriptions
+      async getUserSubscription(userId) {
+        const result = await db.select({
+          subscription: userSubscriptions,
+          plan: plans
+        }).from(userSubscriptions).leftJoin(plans, eq5(userSubscriptions.planId, plans.id)).where(eq5(userSubscriptions.userId, userId)).orderBy(...userSubscriptionPreferenceOrder()).limit(1);
+        if (result.length > 0 && result[0].subscription && result[0].plan) {
+          return {
+            ...result[0].subscription,
+            plan: result[0].plan
+          };
+        }
+        const [freePlan] = await db.select().from(plans).where(eq5(plans.name, "free")).limit(1);
+        if (!freePlan) {
+          return null;
+        }
+        return null;
+      }
+      async getAllUserSubscriptions() {
+        return await db.select().from(userSubscriptions);
+      }
+      async createUserSubscription(insertSubscription) {
+        const [subscription] = await db.insert(userSubscriptions).values(insertSubscription).returning();
+        return subscription;
+      }
+      async updateUserSubscription(id, subscription) {
+        await db.update(userSubscriptions).set(subscription).where(eq5(userSubscriptions.id, id));
+      }
+      async updateUserSubscriptionByUserId(userId, subscription) {
+        await db.update(userSubscriptions).set({ ...subscription, updatedAt: /* @__PURE__ */ new Date() }).where(eq5(userSubscriptions.userId, userId));
+      }
+      // Get effective limits for a user - merges plan defaults with per-user overrides
+      async getUserEffectiveLimits(userId) {
+        const subscriptionWithPlan = await this.getUserSubscription(userId);
+        const defaultLimits = {
+          maxAgents: 1,
+          maxCampaigns: 1,
+          maxContactsPerCampaign: 5,
+          maxWebhooks: 3,
+          maxKnowledgeBases: 5,
+          maxFlows: 3,
+          maxPhoneNumbers: 0,
+          includedCredits: 0,
+          sources: {
+            maxAgents: "plan",
+            maxCampaigns: "plan",
+            maxContactsPerCampaign: "plan",
+            maxWebhooks: "plan",
+            maxKnowledgeBases: "plan",
+            maxFlows: "plan",
+            maxPhoneNumbers: "plan",
+            includedCredits: "plan"
+          },
+          planName: "free",
+          planDisplayName: "Free"
+        };
+        if (!subscriptionWithPlan || !subscriptionWithPlan.plan) {
+          const [freePlan] = await db.select().from(plans).where(eq5(plans.name, "free")).limit(1);
+          if (freePlan) {
+            return {
+              maxAgents: freePlan.maxAgents,
+              maxCampaigns: freePlan.maxCampaigns,
+              maxContactsPerCampaign: freePlan.maxContactsPerCampaign,
+              maxWebhooks: freePlan.maxWebhooks ?? 3,
+              maxKnowledgeBases: freePlan.maxKnowledgeBases ?? 5,
+              maxFlows: freePlan.maxFlows ?? 3,
+              maxPhoneNumbers: freePlan.maxPhoneNumbers ?? 0,
+              includedCredits: freePlan.includedCredits,
+              sources: {
+                maxAgents: "plan",
+                maxCampaigns: "plan",
+                maxContactsPerCampaign: "plan",
+                maxWebhooks: "plan",
+                maxKnowledgeBases: "plan",
+                maxFlows: "plan",
+                maxPhoneNumbers: "plan",
+                includedCredits: "plan"
+              },
+              planName: freePlan.name,
+              planDisplayName: freePlan.displayName
+            };
+          }
+          return defaultLimits;
+        }
+        const plan = subscriptionWithPlan.plan;
+        const sub = subscriptionWithPlan;
+        return {
+          maxAgents: sub.overrideMaxAgents ?? plan.maxAgents,
+          maxCampaigns: sub.overrideMaxCampaigns ?? plan.maxCampaigns,
+          maxContactsPerCampaign: sub.overrideMaxContactsPerCampaign ?? plan.maxContactsPerCampaign,
+          maxWebhooks: sub.overrideMaxWebhooks ?? plan.maxWebhooks ?? 3,
+          maxKnowledgeBases: sub.overrideMaxKnowledgeBases ?? plan.maxKnowledgeBases ?? 5,
+          maxFlows: sub.overrideMaxFlows ?? plan.maxFlows ?? 3,
+          maxPhoneNumbers: sub.overrideMaxPhoneNumbers ?? plan.maxPhoneNumbers ?? 0,
+          includedCredits: sub.overrideIncludedCredits ?? plan.includedCredits,
+          sources: {
+            maxAgents: sub.overrideMaxAgents !== null ? "override" : "plan",
+            maxCampaigns: sub.overrideMaxCampaigns !== null ? "override" : "plan",
+            maxContactsPerCampaign: sub.overrideMaxContactsPerCampaign !== null ? "override" : "plan",
+            maxWebhooks: sub.overrideMaxWebhooks !== null ? "override" : "plan",
+            maxKnowledgeBases: sub.overrideMaxKnowledgeBases !== null ? "override" : "plan",
+            maxFlows: sub.overrideMaxFlows !== null ? "override" : "plan",
+            maxPhoneNumbers: sub.overrideMaxPhoneNumbers !== null ? "override" : "plan",
+            includedCredits: sub.overrideIncludedCredits !== null ? "override" : "plan"
+          },
+          planName: plan.name,
+          planDisplayName: plan.displayName
+        };
+      }
+      // Phone Numbers
+      async getPhoneNumber(id) {
+        const [phoneNumber] = await db.select().from(phoneNumbers).where(eq5(phoneNumbers.id, id));
+        return phoneNumber;
+      }
+      async getUserPhoneNumbers(userId) {
+        return db.select().from(phoneNumbers).where(eq5(phoneNumbers.userId, userId));
+      }
+      async getAllPhoneNumbers() {
+        return db.select().from(phoneNumbers);
+      }
+      async createPhoneNumber(insertPhoneNumber) {
+        const [phoneNumber] = await db.insert(phoneNumbers).values(insertPhoneNumber).returning();
+        return phoneNumber;
+      }
+      async updatePhoneNumber(id, phoneNumber) {
+        await db.update(phoneNumbers).set(phoneNumber).where(eq5(phoneNumbers.id, id));
+      }
+      async deletePhoneNumber(id) {
+        await db.delete(phoneNumbers).where(eq5(phoneNumbers.id, id));
+      }
+      // Usage Records
+      async createUsageRecord(insertRecord) {
+        const [record] = await db.insert(usageRecords).values(insertRecord).returning();
+        return record;
+      }
+      async getUserUsageRecords(userId) {
+        return db.select().from(usageRecords).where(eq5(usageRecords.userId, userId));
+      }
+      // Analytics methods - delegate to extracted helper functions
+      async getUserAnalytics(userId, timeRange = "7days", callType = "all") {
+        return calculateUserAnalytics(userId, timeRange, callType);
+      }
+      async getDashboardData(userId) {
+        return calculateDashboardData(userId);
+      }
+      // Webhooks (Subscriptions)
+      async getWebhook(id) {
+        const [webhook] = await db.select().from(webhookSubscriptions).where(eq5(webhookSubscriptions.id, id));
+        return webhook;
+      }
+      async getUserWebhooks(userId) {
+        return await db.select().from(webhookSubscriptions).where(eq5(webhookSubscriptions.userId, userId)).orderBy(desc3(webhookSubscriptions.createdAt));
+      }
+      async getUserWebhookCount(userId) {
+        const result = await db.select({ count: sql13`count(*)` }).from(webhookSubscriptions).where(eq5(webhookSubscriptions.userId, userId));
+        return Number(result[0]?.count || 0);
+      }
+      async getWebhooksForEvent(userId, event, campaignId) {
+        const allUserWebhooks = await db.select().from(webhookSubscriptions).where(and3(
+          eq5(webhookSubscriptions.userId, userId),
+          eq5(webhookSubscriptions.isActive, true)
+        ));
+        return allUserWebhooks.filter((webhook) => {
+          if (!webhook.events.includes(event)) return false;
+          if (campaignId && webhook.campaignIds && webhook.campaignIds.length > 0) {
+            return webhook.campaignIds.includes(campaignId);
+          }
+          return true;
+        });
+      }
+      async createWebhook(webhook) {
+        const [newWebhook] = await db.insert(webhookSubscriptions).values({
+          ...webhook,
+          id: nanoid()
+        }).returning();
+        return newWebhook;
+      }
+      async updateWebhook(id, webhook) {
+        const updateData = { ...webhook, updatedAt: /* @__PURE__ */ new Date() };
+        await db.update(webhookSubscriptions).set(updateData).where(eq5(webhookSubscriptions.id, id));
+      }
+      async deleteWebhook(id) {
+        await db.delete(webhookSubscriptions).where(eq5(webhookSubscriptions.id, id));
+      }
+      // Webhook Delivery Logs
+      async getWebhookLog(id) {
+        const [log] = await db.select().from(webhookDeliveryLogs).where(eq5(webhookDeliveryLogs.id, id));
+        return log;
+      }
+      async getWebhookLogs(webhookId, limit = 50) {
+        return await db.select().from(webhookDeliveryLogs).where(eq5(webhookDeliveryLogs.webhookId, webhookId)).orderBy(desc3(webhookDeliveryLogs.createdAt)).limit(limit);
+      }
+      async createWebhookLog(log) {
+        const [newLog] = await db.insert(webhookDeliveryLogs).values(log).returning();
+        return newLog;
+      }
+      async updateWebhookLog(id, log) {
+        await db.update(webhookDeliveryLogs).set(log).where(eq5(webhookDeliveryLogs.id, id));
+      }
+      async getFailedWebhookLogs(limit = 100) {
+        return await db.select().from(webhookDeliveryLogs).where(and3(
+          eq5(webhookDeliveryLogs.success, false),
+          isNotNull2(webhookDeliveryLogs.nextRetryAt)
+        )).orderBy(asc(webhookDeliveryLogs.nextRetryAt)).limit(limit);
+      }
+      // Notifications
+      async getNotification(id) {
+        const [notification] = await db.select().from(notifications).where(eq5(notifications.id, id));
+        return notification;
+      }
+      async getUserNotifications(userId, limit = 50) {
+        return await db.select().from(notifications).where(eq5(notifications.userId, userId)).orderBy(desc3(notifications.createdAt)).limit(limit);
+      }
+      async getUnreadNotificationCount(userId) {
+        const result = await db.select({ count: sql13`count(*)` }).from(notifications).where(and3(eq5(notifications.userId, userId), eq5(notifications.isRead, false)));
+        return Number(result[0]?.count || 0);
+      }
+      async createNotification(notification) {
+        const [newNotification] = await db.insert(notifications).values(notification).returning();
+        return newNotification;
+      }
+      async markNotificationAsRead(id) {
+        await db.update(notifications).set({ isRead: true }).where(eq5(notifications.id, id));
+      }
+      async markAllNotificationsAsRead(userId) {
+        await db.update(notifications).set({ isRead: true }).where(eq5(notifications.userId, userId));
+      }
+      async getBannerNotifications(userId) {
+        return await db.select().from(notifications).where(and3(
+          eq5(notifications.userId, userId),
+          or2(
+            eq5(notifications.displayType, "banner"),
+            eq5(notifications.displayType, "both")
+          ),
+          eq5(notifications.isDismissed, false),
+          or2(
+            isNull3(notifications.expiresAt),
+            gte2(notifications.expiresAt, /* @__PURE__ */ new Date())
+          )
+        )).orderBy(desc3(notifications.priority), desc3(notifications.createdAt));
+      }
+      async dismissNotification(id, userId) {
+        if (userId) {
+          await db.update(notifications).set({ isDismissed: true }).where(and3(eq5(notifications.id, id), eq5(notifications.userId, userId)));
+        } else {
+          await db.update(notifications).set({ isDismissed: true }).where(eq5(notifications.id, id));
+        }
+      }
+      async deleteNotification(id) {
+        await db.delete(notifications).where(eq5(notifications.id, id));
+      }
+      // Email Templates
+      async getEmailTemplates() {
+        return await db.select().from(emailTemplates).orderBy(emailTemplates.templateType);
+      }
+      async getEmailTemplate(templateType) {
+        const [template] = await db.select().from(emailTemplates).where(eq5(emailTemplates.templateType, templateType));
+        return template;
+      }
+      async updateEmailTemplate(id, data) {
+        await db.update(emailTemplates).set({ ...data, updatedAt: /* @__PURE__ */ new Date() }).where(eq5(emailTemplates.id, id));
+      }
+      async createEmailTemplate(data) {
+        const [template] = await db.insert(emailTemplates).values(data).returning();
+        return template;
+      }
+      // Prompt Templates
+      async getPromptTemplate(id) {
+        const [template] = await db.select().from(promptTemplates).where(eq5(promptTemplates.id, id));
+        return template;
+      }
+      async getUserPromptTemplates(userId) {
+        return await db.select().from(promptTemplates).where(eq5(promptTemplates.userId, userId)).orderBy(desc3(promptTemplates.createdAt));
+      }
+      async getSystemPromptTemplates() {
+        return await db.select().from(promptTemplates).where(eq5(promptTemplates.isSystemTemplate, true)).orderBy(asc(promptTemplates.category), asc(promptTemplates.name));
+      }
+      async getPublicPromptTemplates() {
+        return await db.select().from(promptTemplates).where(eq5(promptTemplates.isPublic, true)).orderBy(desc3(promptTemplates.usageCount), asc(promptTemplates.name));
+      }
+      async createPromptTemplate(template) {
+        const [newTemplate] = await db.insert(promptTemplates).values(template).returning();
+        return newTemplate;
+      }
+      async updatePromptTemplate(id, template) {
+        await db.update(promptTemplates).set({ ...template, updatedAt: /* @__PURE__ */ new Date() }).where(eq5(promptTemplates.id, id));
+      }
+      async deletePromptTemplate(id) {
+        await db.delete(promptTemplates).where(eq5(promptTemplates.id, id));
+      }
+      async incrementPromptTemplateUsage(id) {
+        await db.update(promptTemplates).set({
+          usageCount: sql13`${promptTemplates.usageCount} + 1`,
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where(eq5(promptTemplates.id, id));
+      }
+      // Agent Versions
+      async getAgentVersion(id) {
+        const [version] = await db.select().from(agentVersions).where(eq5(agentVersions.id, id));
+        return version;
+      }
+      async getAgentVersions(agentId) {
+        return await db.select().from(agentVersions).where(eq5(agentVersions.agentId, agentId)).orderBy(desc3(agentVersions.versionNumber));
+      }
+      async getAgentVersionByNumber(agentId, versionNumber) {
+        const [version] = await db.select().from(agentVersions).where(and3(
+          eq5(agentVersions.agentId, agentId),
+          eq5(agentVersions.versionNumber, versionNumber)
+        ));
+        return version;
+      }
+      async getLatestAgentVersion(agentId) {
+        const [version] = await db.select().from(agentVersions).where(eq5(agentVersions.agentId, agentId)).orderBy(desc3(agentVersions.versionNumber)).limit(1);
+        return version;
+      }
+      async createAgentVersion(version) {
+        const [newVersion] = await db.insert(agentVersions).values(version).returning();
+        return newVersion;
+      }
+      // SEO Settings
+      async getSeoSettings() {
+        const [settings] = await db.select().from(seoSettings).limit(1);
+        return settings;
+      }
+      async updateSeoSettings(settings) {
+        const existing = await this.getSeoSettings();
+        if (existing) {
+          const updateData = { ...settings, updatedAt: /* @__PURE__ */ new Date() };
+          const [updated] = await db.update(seoSettings).set(updateData).where(eq5(seoSettings.id, existing.id)).returning();
+          return updated;
+        } else {
+          const [created] = await db.insert(seoSettings).values(settings).returning();
+          return created;
+        }
+      }
+      // Analytics Scripts
+      async getAnalyticsScript(id) {
+        const [script] = await db.select().from(analyticsScripts).where(eq5(analyticsScripts.id, id));
+        return script;
+      }
+      async getAllAnalyticsScripts() {
+        return db.select().from(analyticsScripts).orderBy(desc3(analyticsScripts.loadPriority), asc(analyticsScripts.createdAt));
+      }
+      async getEnabledAnalyticsScripts() {
+        return db.select().from(analyticsScripts).where(eq5(analyticsScripts.enabled, true)).orderBy(desc3(analyticsScripts.loadPriority), asc(analyticsScripts.createdAt));
+      }
+      async createAnalyticsScript(script) {
+        const [created] = await db.insert(analyticsScripts).values(script).returning();
+        return created;
+      }
+      async updateAnalyticsScript(id, script) {
+        const updateData = { ...script, updatedAt: /* @__PURE__ */ new Date() };
+        await db.update(analyticsScripts).set(updateData).where(eq5(analyticsScripts.id, id));
+      }
+      async deleteAnalyticsScript(id) {
+        await db.delete(analyticsScripts).where(eq5(analyticsScripts.id, id));
+      }
+      // Payment Transactions
+      async getPaymentTransaction(id) {
+        const [transaction] = await db.select().from(paymentTransactions).where(eq5(paymentTransactions.id, id));
+        return transaction;
+      }
+      async getPaymentTransactionByGatewayId(gateway, gatewayTransactionId) {
+        const [transaction] = await db.select().from(paymentTransactions).where(and3(
+          eq5(paymentTransactions.gateway, gateway),
+          eq5(paymentTransactions.gatewayTransactionId, gatewayTransactionId)
+        ));
+        return transaction;
+      }
+      async getPaymentTransactionByOrderId(gatewayOrderId) {
+        const [transaction] = await db.select().from(paymentTransactions).where(eq5(paymentTransactions.gatewayOrderId, gatewayOrderId)).limit(1);
+        return transaction;
+      }
+      async getUserPaymentTransactions(userId) {
+        return db.select().from(paymentTransactions).where(eq5(paymentTransactions.userId, userId)).orderBy(desc3(paymentTransactions.createdAt));
+      }
+      async getAllPaymentTransactions(filters) {
+        const conditions = [];
+        if (filters?.gateway) {
+          conditions.push(eq5(paymentTransactions.gateway, filters.gateway));
+        }
+        if (filters?.type) {
+          conditions.push(eq5(paymentTransactions.type, filters.type));
+        }
+        if (filters?.status) {
+          conditions.push(eq5(paymentTransactions.status, filters.status));
+        }
+        if (filters?.startDate) {
+          conditions.push(gte2(paymentTransactions.createdAt, filters.startDate));
+        }
+        if (filters?.endDate) {
+          conditions.push(lte2(paymentTransactions.createdAt, filters.endDate));
+        }
+        if (conditions.length > 0) {
+          return db.select().from(paymentTransactions).where(and3(...conditions)).orderBy(desc3(paymentTransactions.createdAt));
+        }
+        return db.select().from(paymentTransactions).orderBy(desc3(paymentTransactions.createdAt));
+      }
+      async createPaymentTransaction(transaction) {
+        const [created] = await db.insert(paymentTransactions).values(transaction).returning();
+        return created;
+      }
+      async updatePaymentTransaction(id, transaction) {
+        await db.update(paymentTransactions).set({ ...transaction, updatedAt: /* @__PURE__ */ new Date() }).where(eq5(paymentTransactions.id, id));
+      }
+      async getPaymentAnalytics(startDate, endDate) {
+        const revenueStatuses = ["completed", "refunded", "partially_refunded"];
+        const conditions = [];
+        if (startDate) conditions.push(gte2(paymentTransactions.createdAt, startDate));
+        if (endDate) conditions.push(lte2(paymentTransactions.createdAt, endDate));
+        const transactions = await db.select().from(paymentTransactions).where(
+          conditions.length > 0 ? and3(
+            inArray2(paymentTransactions.status, revenueStatuses),
+            ...conditions
+          ) : inArray2(paymentTransactions.status, revenueStatuses)
+        );
+        const dateConditions = [];
+        if (startDate) dateConditions.push(gte2(paymentTransactions.createdAt, startDate));
+        if (endDate) dateConditions.push(lte2(paymentTransactions.createdAt, endDate));
+        const allTransactions = await db.select().from(paymentTransactions).where(dateConditions.length > 0 ? and3(...dateConditions) : void 0);
+        const refundConditions = [];
+        if (startDate) refundConditions.push(gte2(refunds.createdAt, startDate));
+        if (endDate) refundConditions.push(lte2(refunds.createdAt, endDate));
+        const allRefunds = await db.select().from(refunds).where(refundConditions.length > 0 ? and3(...refundConditions) : void 0);
+        let totalRevenue = 0;
+        const revenueByGateway = {};
+        const revenueByType = {};
+        const transactionsByStatus = {};
+        for (const tx of transactions) {
+          const amount = parseFloat(tx.amount || "0");
+          totalRevenue += amount;
+          revenueByGateway[tx.gateway] = (revenueByGateway[tx.gateway] || 0) + amount;
+          revenueByType[tx.type] = (revenueByType[tx.type] || 0) + amount;
+        }
+        for (const tx of allTransactions) {
+          transactionsByStatus[tx.status] = (transactionsByStatus[tx.status] || 0) + 1;
+        }
+        let totalRefunded = 0;
+        for (const refund of allRefunds) {
+          totalRefunded += parseFloat(refund.amount || "0");
+        }
+        return {
+          totalRevenue,
+          revenueByGateway,
+          revenueByType,
+          transactionCount: allTransactions.length,
+          transactionsByStatus,
+          refundCount: allRefunds.length,
+          totalRefunded
+        };
+      }
+      // Refunds
+      async getRefund(id) {
+        const [refund] = await db.select().from(refunds).where(eq5(refunds.id, id));
+        return refund;
+      }
+      async getTransactionRefunds(transactionId) {
+        return db.select().from(refunds).where(eq5(refunds.transactionId, transactionId)).orderBy(desc3(refunds.createdAt));
+      }
+      async getUserRefunds(userId) {
+        return db.select().from(refunds).where(eq5(refunds.userId, userId)).orderBy(desc3(refunds.createdAt));
+      }
+      async getAllRefunds() {
+        return db.select().from(refunds).orderBy(desc3(refunds.createdAt));
+      }
+      async createRefund(refund) {
+        const [created] = await db.insert(refunds).values(refund).returning();
+        return created;
+      }
+      async updateRefund(id, refund) {
+        await db.update(refunds).set({ ...refund, updatedAt: /* @__PURE__ */ new Date() }).where(eq5(refunds.id, id));
+      }
+      // Invoices
+      async getInvoice(id) {
+        const [invoice] = await db.select().from(invoices).where(eq5(invoices.id, id));
+        return invoice;
+      }
+      async getInvoiceByNumber(invoiceNumber) {
+        const [invoice] = await db.select().from(invoices).where(eq5(invoices.invoiceNumber, invoiceNumber));
+        return invoice;
+      }
+      /** The tax invoice of a transaction (credit notes share the transactionId and are excluded). */
+      async getTransactionInvoice(transactionId) {
+        const [invoice] = await db.select().from(invoices).where(and3(eq5(invoices.transactionId, transactionId), eq5(invoices.invoiceType, "tax_invoice"))).orderBy(asc(invoices.createdAt)).limit(1);
+        return invoice;
+      }
+      async getTransactionCreditNotes(transactionId) {
+        return db.select().from(invoices).where(and3(eq5(invoices.transactionId, transactionId), eq5(invoices.invoiceType, "credit_note"))).orderBy(asc(invoices.createdAt));
+      }
+      async getUserInvoices(userId) {
+        return db.select().from(invoices).where(eq5(invoices.userId, userId)).orderBy(desc3(invoices.createdAt));
+      }
+      async getAllInvoices() {
+        return db.select().from(invoices).orderBy(desc3(invoices.createdAt));
+      }
+      async createInvoice(invoice) {
+        const [created] = await db.insert(invoices).values(invoice).returning();
+        return created;
+      }
+      async updateInvoice(id, invoice) {
+        await db.update(invoices).set({ ...invoice, updatedAt: /* @__PURE__ */ new Date() }).where(eq5(invoices.id, id));
+      }
+      async getUserInvoicesPaginated(userId, options) {
+        const limit = Math.min(Math.max(options.limit ?? 20, 1), 100);
+        const offset = Math.max(options.offset ?? 0, 0);
+        const conditions = [eq5(invoices.userId, userId)];
+        if (options.type) conditions.push(eq5(invoices.invoiceType, options.type));
+        const where = and3(...conditions);
+        const [rows, [{ value: total }]] = await Promise.all([
+          db.select().from(invoices).where(where).orderBy(desc3(invoices.issuedAt), desc3(invoices.createdAt)).limit(limit).offset(offset),
+          db.select({ value: count() }).from(invoices).where(where)
+        ]);
+        return { invoices: rows, total: Number(total) };
+      }
+      async getAdminInvoices(filters) {
+        const limit = Math.min(Math.max(filters.limit ?? 50, 1), 200);
+        const offset = Math.max(filters.offset ?? 0, 0);
+        const conditions = [];
+        if (filters.userId) conditions.push(eq5(invoices.userId, filters.userId));
+        if (filters.type) conditions.push(eq5(invoices.invoiceType, filters.type));
+        if (filters.startDate) conditions.push(gte2(invoices.issuedAt, filters.startDate));
+        if (filters.endDate) conditions.push(lte2(invoices.issuedAt, filters.endDate));
+        if (filters.search) {
+          const pattern = `%${filters.search.replace(/[%_\\]/g, "\\$&")}%`;
+          const searchCondition = or2(
+            ilike(invoices.invoiceNumber, pattern),
+            ilike(invoices.customerEmail, pattern),
+            ilike(invoices.customerName, pattern)
+          );
+          if (searchCondition) conditions.push(searchCondition);
+        }
+        const where = conditions.length > 0 ? and3(...conditions) : void 0;
+        const [rows, [{ value: total }]] = await Promise.all([
+          db.select({ invoice: invoices, userName: users.name, userEmail: users.email }).from(invoices).leftJoin(users, eq5(invoices.userId, users.id)).where(where).orderBy(desc3(invoices.issuedAt), desc3(invoices.createdAt)).limit(limit).offset(offset),
+          db.select({ value: count() }).from(invoices).where(where)
+        ]);
+        return {
+          invoices: rows.map((r) => ({ ...r.invoice, userName: r.userName, userEmail: r.userEmail })),
+          total: Number(total)
+        };
+      }
+      /**
+       * Computes the next sequence for `<prefix>/<FY>/<NNNN>`. Numbering is per prefix (tax invoice prefix
+       * or 'CN' for credit notes) and per financial year. Must run inside the advisory lock to be safe.
+       */
+      async computeNextInvoiceNumber(executor, numbering) {
+        const prefix = numbering.prefix.replace(/[^A-Za-z0-9]/g, "").substring(0, 10) || "INV";
+        const fy = numbering.financialYear;
+        const likePattern = `${prefix}/${fy}/%`;
+        const result = await executor.execute(sql13`
+      SELECT MAX(CAST(SPLIT_PART(${invoices.invoiceNumber}, '/', 3) AS INTEGER)) as max_num
+      FROM ${invoices}
+      WHERE ${invoices.invoiceNumber} LIKE ${likePattern}
+        AND SPLIT_PART(${invoices.invoiceNumber}, '/', 3) ~ '^[0-9]+$'
+    `);
+        const maxNum = result.rows?.[0]?.max_num;
+        let nextNum = 1;
+        if (numbering.startNumber && numbering.startNumber > 0) nextNum = numbering.startNumber;
+        if (maxNum !== null && maxNum !== void 0 && !isNaN(Number(maxNum))) {
+          nextNum = Math.max(Number(maxNum) + 1, nextNum);
+        }
+        return `${prefix}/${fy}/${String(nextNum).padStart(4, "0")}`;
+      }
+      async getNextInvoiceNumber(numbering) {
+        const resolved = numbering ?? await this.defaultInvoiceNumbering();
+        return this.computeNextInvoiceNumber(db, resolved);
+      }
+      async defaultInvoiceNumbering() {
+        const [prefixSetting] = await db.select().from(globalSettings).where(eq5(globalSettings.key, "invoice_prefix"));
+        const rawPrefix = prefixSetting?.value ? String(prefixSetting.value).replace(/"/g, "") : "AIC";
+        const now = /* @__PURE__ */ new Date();
+        const ist = new Date(now.getTime() + 330 * 60 * 1e3);
+        const year = ist.getUTCFullYear();
+        const startYear = ist.getUTCMonth() + 1 >= 4 ? year : year - 1;
+        const yy = (n) => String(n % 100).padStart(2, "0");
+        return { prefix: rawPrefix || "AIC", financialYear: `${yy(startYear)}-${yy(startYear + 1)}` };
+      }
+      async createInvoiceWithNumber(invoice, numbering) {
+        const lockKey = `invoice_number:${numbering.prefix}:${numbering.financialYear}`;
+        return db.transaction(async (tx) => {
+          await tx.execute(sql13`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`);
+          const invoiceNumber = await this.computeNextInvoiceNumber(tx, numbering);
+          const [created] = await tx.insert(invoices).values({ ...invoice, invoiceNumber }).returning();
+          return created;
+        });
+      }
+      async getNextRefundNoteNumber() {
+        const [prefixSetting] = await db.select().from(globalSettings).where(eq5(globalSettings.key, "refund_note_prefix"));
+        let rawPrefix = prefixSetting?.value ? String(prefixSetting.value).replace(/"/g, "") : "RF";
+        const prefix = rawPrefix.replace(/[^A-Za-z0-9]/g, "").substring(0, 10) || "RF";
+        const result = await db.execute(sql13`
+      SELECT MAX(
+        CAST(
+          REGEXP_REPLACE(refund_note_number, '^[A-Za-z]+', '', 'g') 
+          AS INTEGER
+        )
+      ) as max_num
+      FROM refunds
+      WHERE refund_note_number ~ ${`^${prefix}[0-9]+$`}
+    `);
+        let nextNum = 1;
+        const maxNum = result.rows?.[0]?.max_num;
+        if (maxNum !== null && maxNum !== void 0 && !isNaN(Number(maxNum))) {
+          nextNum = Number(maxNum) + 1;
+        }
+        return `${prefix}${String(nextNum).padStart(2, "0")}`;
+      }
+      // Payment Webhook Queue
+      async getWebhookQueueItem(id) {
+        const [item] = await db.select().from(paymentWebhookQueue).where(eq5(paymentWebhookQueue.id, id));
+        return item;
+      }
+      async getPendingWebhooks() {
+        return db.select().from(paymentWebhookQueue).where(eq5(paymentWebhookQueue.status, "pending")).orderBy(asc(paymentWebhookQueue.receivedAt));
+      }
+      async getWebhookByEventId(gateway, eventId) {
+        const [item] = await db.select().from(paymentWebhookQueue).where(and3(
+          eq5(paymentWebhookQueue.gateway, gateway),
+          eq5(paymentWebhookQueue.eventId, eventId)
+        ));
+        return item;
+      }
+      async createWebhookQueueItem(item) {
+        const [created] = await db.insert(paymentWebhookQueue).values(item).returning();
+        return created;
+      }
+      async updateWebhookQueueItem(id, item) {
+        await db.update(paymentWebhookQueue).set(item).where(eq5(paymentWebhookQueue.id, id));
+      }
+      async getExpiredWebhooks() {
+        const now = /* @__PURE__ */ new Date();
+        return db.select().from(paymentWebhookQueue).where(and3(
+          eq5(paymentWebhookQueue.status, "pending"),
+          lte2(paymentWebhookQueue.expiresAt, now)
+        ));
+      }
+      async getRetryableWebhooks() {
+        const now = /* @__PURE__ */ new Date();
+        return db.select().from(paymentWebhookQueue).where(and3(
+          or2(
+            eq5(paymentWebhookQueue.status, "pending"),
+            eq5(paymentWebhookQueue.status, "failed")
+          ),
+          sql13`${paymentWebhookQueue.attemptCount} < ${paymentWebhookQueue.maxAttempts}`,
+          or2(
+            isNull3(paymentWebhookQueue.nextRetryAt),
+            lte2(paymentWebhookQueue.nextRetryAt, now)
+          ),
+          gte2(paymentWebhookQueue.expiresAt, now)
+        )).orderBy(asc(paymentWebhookQueue.receivedAt));
+      }
+      // Email Notification Settings
+      async getEmailNotificationSetting(eventType) {
+        const [setting] = await db.select().from(emailNotificationSettings).where(eq5(emailNotificationSettings.eventType, eventType));
+        return setting;
+      }
+      async getAllEmailNotificationSettings() {
+        return db.select().from(emailNotificationSettings).orderBy(asc(emailNotificationSettings.category), asc(emailNotificationSettings.eventType));
+      }
+      async getEmailNotificationSettingsByCategory(category) {
+        return db.select().from(emailNotificationSettings).where(eq5(emailNotificationSettings.category, category)).orderBy(asc(emailNotificationSettings.eventType));
+      }
+      async createEmailNotificationSetting(setting) {
+        const [created] = await db.insert(emailNotificationSettings).values(setting).returning();
+        return created;
+      }
+      async updateEmailNotificationSetting(eventType, setting) {
+        await db.update(emailNotificationSettings).set({ ...setting, updatedAt: /* @__PURE__ */ new Date() }).where(eq5(emailNotificationSettings.eventType, eventType));
+      }
+      // Admin Call Monitoring
+      async getAdminCalls(options) {
+        const page = options.page || 1;
+        const pageSize = options.pageSize || 20;
+        const offset = (page - 1) * pageSize;
+        const conditions = [];
+        if (options.userId) {
+          conditions.push(eq5(calls.userId, options.userId));
+        }
+        if (options.status) {
+          conditions.push(eq5(calls.status, options.status));
+        }
+        if (options.startDate) {
+          conditions.push(gte2(calls.createdAt, options.startDate));
+        }
+        if (options.endDate) {
+          conditions.push(lte2(calls.createdAt, options.endDate));
+        }
+        if (options.search) {
+          const escapeLike = (term) => term.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+          const searchPattern = `%${escapeLike(options.search)}%`;
+          conditions.push(
+            or2(
+              sql13`${calls.phoneNumber} ILIKE ${searchPattern} ESCAPE '\\'`,
+              sql13`${calls.transcript} ILIKE ${searchPattern} ESCAPE '\\'`
+            )
+          );
+        }
+        const whereClause = conditions.length > 0 ? and3(...conditions) : void 0;
+        const violationCountSubquery = db.select({
+          callId: contentViolations.callId,
+          count: sql13`count(*)`.as("violation_count"),
+          summary: sql13`string_agg(${contentViolations.detectedWord}, ', ' ORDER BY ${contentViolations.createdAt} DESC)`.as("violation_summary")
+        }).from(contentViolations).groupBy(contentViolations.callId).as("violation_counts");
+        let query = db.select({
+          call: calls,
+          user: {
+            id: users.id,
+            email: users.email,
+            name: users.name
+          },
+          campaign: {
+            id: campaigns.id,
+            name: campaigns.name
+          },
+          violationCount: sql13`COALESCE(${violationCountSubquery.count}, 0)`,
+          violationSummary: sql13`${violationCountSubquery.summary}`
+        }).from(calls).leftJoin(users, eq5(calls.userId, users.id)).leftJoin(campaigns, eq5(calls.campaignId, campaigns.id)).leftJoin(violationCountSubquery, eq5(calls.id, violationCountSubquery.callId));
+        if (whereClause) {
+          query = query.where(whereClause);
+        }
+        if (options.hasViolations === true) {
+          query = query.where(sql13`COALESCE(${violationCountSubquery.count}, 0) > 0`);
+        } else if (options.hasViolations === false) {
+          query = query.where(sql13`COALESCE(${violationCountSubquery.count}, 0) = 0`);
+        }
+        const results = await query.orderBy(desc3(calls.createdAt)).limit(pageSize).offset(offset);
+        const countResult = await db.select({ count: sql13`count(*)` }).from(calls).where(whereClause);
+        const totalItems = Number(countResult[0]?.count || 0);
+        const totalPages = Math.ceil(totalItems / pageSize);
+        return {
+          data: results.map((r) => ({
+            ...r.call,
+            user: r.user,
+            campaign: r.campaign,
+            violationCount: Number(r.violationCount),
+            violationSummary: r.violationSummary || null
+          })),
+          pagination: { page, pageSize, totalItems, totalPages }
+        };
+      }
+      async getAdminCallById(id) {
+        const [result] = await db.select({
+          call: calls,
+          user: {
+            id: users.id,
+            email: users.email,
+            name: users.name
+          },
+          campaign: {
+            id: campaigns.id,
+            name: campaigns.name
+          },
+          contact: {
+            id: contacts.id,
+            firstName: contacts.firstName,
+            lastName: contacts.lastName,
+            phone: contacts.phone,
+            email: contacts.email
+          }
+        }).from(calls).leftJoin(users, eq5(calls.userId, users.id)).leftJoin(campaigns, eq5(calls.campaignId, campaigns.id)).leftJoin(contacts, eq5(calls.contactId, contacts.id)).where(eq5(calls.id, id));
+        if (!result) return void 0;
+        const violations = await this.getViolationsByCallId(id);
+        return {
+          ...result.call,
+          user: result.user,
+          campaign: result.campaign,
+          contact: result.contact,
+          violations
+        };
+      }
+      async getUserById(id) {
+        return this.getUser(id);
+      }
+      // Content Violations
+      async getViolationsByCallId(callId) {
+        return db.select().from(contentViolations).where(eq5(contentViolations.callId, callId)).orderBy(desc3(contentViolations.createdAt));
+      }
+      async getContentViolations(options) {
+        const page = options.page || 1;
+        const pageSize = options.pageSize || 20;
+        const offset = (page - 1) * pageSize;
+        const conditions = [];
+        if (options.userId) {
+          conditions.push(eq5(contentViolations.userId, options.userId));
+        }
+        if (options.status) {
+          conditions.push(eq5(contentViolations.status, options.status));
+        }
+        if (options.severity) {
+          conditions.push(eq5(contentViolations.severity, options.severity));
+        }
+        if (options.startDate) {
+          conditions.push(gte2(contentViolations.createdAt, options.startDate));
+        }
+        if (options.endDate) {
+          conditions.push(lte2(contentViolations.createdAt, options.endDate));
+        }
+        const whereClause = conditions.length > 0 ? and3(...conditions) : void 0;
+        let query = db.select({
+          violation: contentViolations,
+          user: {
+            id: users.id,
+            email: users.email,
+            name: users.name
+          },
+          call: {
+            id: calls.id,
+            phoneNumber: calls.phoneNumber,
+            status: calls.status
+          }
+        }).from(contentViolations).leftJoin(users, eq5(contentViolations.userId, users.id)).leftJoin(calls, eq5(contentViolations.callId, calls.id));
+        if (whereClause) {
+          query = query.where(whereClause);
+        }
+        const results = await query.orderBy(desc3(contentViolations.createdAt)).limit(pageSize).offset(offset);
+        const countResult = await db.select({ count: sql13`count(*)` }).from(contentViolations).where(whereClause);
+        const totalItems = Number(countResult[0]?.count || 0);
+        const totalPages = Math.ceil(totalItems / pageSize);
+        return {
+          data: results.map((r) => ({
+            ...r.violation,
+            user: r.user,
+            call: r.call
+          })),
+          pagination: { page, pageSize, totalItems, totalPages }
+        };
+      }
+      async updateContentViolation(id, data) {
+        const [updated] = await db.update(contentViolations).set(data).where(eq5(contentViolations.id, id)).returning();
+        return updated;
+      }
+      async createContentViolation(data) {
+        const [violation] = await db.insert(contentViolations).values(data).returning();
+        return violation;
+      }
+      // Banned Words
+      async getBannedWords() {
+        return db.select().from(bannedWords).orderBy(asc(bannedWords.word));
+      }
+      async getActiveBannedWords() {
+        return db.select().from(bannedWords).where(eq5(bannedWords.isActive, true)).orderBy(asc(bannedWords.word));
+      }
+      async createBannedWord(data) {
+        const [word] = await db.insert(bannedWords).values(data).returning();
+        return word;
+      }
+      async updateBannedWord(id, data) {
+        const [updated] = await db.update(bannedWords).set({ ...data, updatedAt: /* @__PURE__ */ new Date() }).where(eq5(bannedWords.id, id)).returning();
+        return updated;
+      }
+      async deleteBannedWord(id) {
+        const result = await db.delete(bannedWords).where(eq5(bannedWords.id, id)).returning();
+        return result.length > 0;
+      }
+      async getCallsWithTranscripts() {
+        return db.select().from(calls).where(and3(
+          isNotNull2(calls.transcript),
+          sql13`${calls.transcript} != ''`
+        ));
+      }
+      // Demo Sessions - Browser-based demo calls
+      async createDemoSession(data) {
+        const [session] = await db.insert(demoSessions).values(data).returning();
+        return session;
+      }
+      async getDemoSession(id) {
+        const [session] = await db.select().from(demoSessions).where(eq5(demoSessions.id, id));
+        return session;
+      }
+      async getDemoSessionByToken(token) {
+        const [session] = await db.select().from(demoSessions).where(eq5(demoSessions.sessionToken, token));
+        return session;
+      }
+      async updateDemoSession(id, data) {
+        await db.update(demoSessions).set(data).where(eq5(demoSessions.id, id));
+      }
+      async getActiveDemoSessionCount() {
+        const result = await db.select({ count: sql13`count(*)` }).from(demoSessions).where(eq5(demoSessions.status, "active"));
+        return Number(result[0]?.count || 0);
+      }
+      async getRecentDemoSessionByIp(ip, cooldownMinutes) {
+        const cooldownTime = new Date(Date.now() - cooldownMinutes * 60 * 1e3);
+        const [session] = await db.select().from(demoSessions).where(and3(
+          eq5(demoSessions.visitorIp, ip),
+          gte2(demoSessions.createdAt, cooldownTime)
+        )).orderBy(desc3(demoSessions.createdAt)).limit(1);
+        return session;
+      }
+      async getDemoSessionStats(days = 30) {
+        const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1e3);
+        const sessions = await db.select().from(demoSessions).where(gte2(demoSessions.createdAt, startDate));
+        const completed = sessions.filter((s) => s.status === "completed");
+        const totalDuration = completed.reduce((sum, s) => sum + (s.duration || 0), 0);
+        const languageBreakdown = {};
+        for (const session of sessions) {
+          languageBreakdown[session.language] = (languageBreakdown[session.language] || 0) + 1;
+        }
+        return {
+          totalSessions: sessions.length,
+          completedSessions: completed.length,
+          averageDuration: completed.length > 0 ? Math.round(totalDuration / completed.length) : 0,
+          languageBreakdown
+        };
+      }
+    };
+    storage = new DbStorage();
+  }
+});
+
+// server/services/notification-service.ts
+async function getLowCreditsThreshold() {
+  const now = Date.now();
+  if (cachedLowCreditsThreshold !== null && now - thresholdCacheTime < THRESHOLD_CACHE_TTL) {
+    return cachedLowCreditsThreshold;
+  }
+  try {
+    const setting = await storage.getGlobalSetting("low_credits_threshold");
+    const threshold = typeof setting?.value === "number" ? setting.value : DEFAULT_LOW_CREDITS_THRESHOLD;
+    cachedLowCreditsThreshold = threshold;
+    thresholdCacheTime = now;
+    return threshold;
+  } catch (error) {
+    console.error("[NotificationService] Failed to fetch low_credits_threshold, using default:", error);
+    return DEFAULT_LOW_CREDITS_THRESHOLD;
+  }
+}
+async function getAppName() {
+  const now = Date.now();
+  if (cachedAppName !== null && now - appNameCacheTime < THRESHOLD_CACHE_TTL) {
+    return cachedAppName;
+  }
+  try {
+    const setting = await storage.getGlobalSetting("app_name");
+    const appName = typeof setting?.value === "string" ? setting.value : DEFAULT_APP_NAME;
+    cachedAppName = appName;
+    appNameCacheTime = now;
+    return appName;
+  } catch (error) {
+    console.error("[NotificationService] Failed to fetch app_name, using default:", error);
+    return DEFAULT_APP_NAME;
+  }
+}
+var DEFAULT_LOW_CREDITS_THRESHOLD, DEFAULT_APP_NAME, cachedLowCreditsThreshold, thresholdCacheTime, THRESHOLD_CACHE_TTL, cachedAppName, appNameCacheTime, EVENT_NOTIFICATION_STYLE, NotificationService;
+var init_notification_service = __esm({
+  "server/services/notification-service.ts"() {
+    "use strict";
+    init_storage();
+    DEFAULT_LOW_CREDITS_THRESHOLD = 50;
+    DEFAULT_APP_NAME = "";
+    cachedLowCreditsThreshold = null;
+    thresholdCacheTime = 0;
+    THRESHOLD_CACHE_TTL = 5 * 60 * 1e3;
+    cachedAppName = null;
+    appNameCacheTime = 0;
+    EVENT_NOTIFICATION_STYLE = {
+      welcome: { icon: "sparkles", priority: 0 },
+      purchase_completed: { icon: "credit-card", priority: 10 },
+      invoice_created: { icon: "file-text", priority: 5 },
+      payment_failed: { icon: "alert-triangle", priority: 80 },
+      refund_processed: { icon: "rotate-ccw", priority: 20 },
+      credits_added: { icon: "coins", priority: 10 },
+      credits_added_by_admin: { icon: "gift", priority: 10 },
+      low_credits: { icon: "alert-circle", priority: 60 },
+      plan_activated: { icon: "crown", priority: 20 },
+      plan_renewed: { icon: "refresh-cw", priority: 10 },
+      plan_expiring: { icon: "clock", priority: 50 },
+      plan_expired: { icon: "alert-triangle", priority: 70 },
+      phone_number_purchased: { icon: "phone", priority: 10 },
+      phone_number_expiring: { icon: "clock", priority: 40 },
+      phone_number_released: { icon: "phone-off", priority: 70 },
+      phone_billing_failed: { icon: "alert-triangle", priority: 80 },
+      campaign_completed: { icon: "check-circle", priority: 10 },
+      campaign_failed: { icon: "x-circle", priority: 70 },
+      kyc_approved: { icon: "shield-check", priority: 20 },
+      kyc_rejected: { icon: "shield-alert", priority: 60 },
+      account_reactivated: { icon: "check-circle", priority: 20 }
+    };
+    NotificationService = {
+      async create(options) {
+        try {
+          await storage.createNotification({
+            userId: options.userId,
+            type: options.type,
+            title: options.title,
+            message: options.message,
+            link: options.link || null,
+            icon: options.icon || null,
+            displayType: options.displayType || "bell",
+            priority: options.priority ?? 0,
+            dismissible: options.dismissible ?? true,
+            expiresAt: options.expiresAt || null
+          });
+        } catch (error) {
+          console.error("Failed to create notification:", error);
+        }
+      },
+      /**
+       * Generic in-app notification for a dispatcher event (used by event-dispatcher).
+       * Returns true when the row was created, false on failure (never throws).
+       */
+      async createForEvent(eventKey, userId, title, message, link) {
+        const style = EVENT_NOTIFICATION_STYLE[eventKey] || { icon: "bell", priority: 0 };
+        try {
+          await storage.createNotification({
+            userId,
+            type: eventKey,
+            title,
+            message,
+            link: link || null,
+            icon: style.icon,
+            displayType: style.priority >= 50 ? "both" : "bell",
+            priority: style.priority,
+            dismissible: true,
+            expiresAt: null
+          });
+          return true;
+        } catch (error) {
+          console.error(`[NotificationService] Failed to create ${eventKey} notification for ${userId}:`, error);
+          return false;
+        }
+      },
+      async notifyLowCredits(userId, currentCredits) {
+        await this.create({
+          userId,
+          type: "low_credits",
+          title: "Low Credits Warning",
+          message: `Your credit balance is low (${currentCredits} credits remaining). Purchase more credits to continue using phone numbers and making calls.`,
+          link: "/app/billing"
+        });
+      },
+      async notifyMembershipUpgraded(userId, planName) {
+        await this.create({
+          userId,
+          type: "membership_upgraded",
+          title: "Welcome to Pro",
+          message: `Your membership has been upgraded to ${planName}. You now have unlimited agents, campaigns, and contacts!`,
+          link: "/app/billing"
+        });
+      },
+      async notifyMembershipCancelled(userId) {
+        await this.create({
+          userId,
+          type: "membership_expiry",
+          title: "Membership Cancelled",
+          message: "Your Pro membership has been cancelled. You'll continue to have Pro access until the end of your billing period.",
+          link: "/app/billing"
+        });
+      },
+      async notifyCampaignCompleted(userId, campaignId, campaignName, callCount) {
+        await this.create({
+          userId,
+          type: "campaign_completed",
+          title: "Campaign Completed",
+          message: `Campaign "${campaignName}" has completed with ${callCount} calls made.`,
+          link: `/app/campaigns/${campaignId}`
+        });
+      },
+      async notifyCampaignFailed(userId, campaignId, campaignName, error) {
+        await this.create({
+          userId,
+          type: "campaign_failed",
+          title: "Campaign Failed",
+          message: `Campaign "${campaignName}" failed: ${error}`,
+          link: `/app/campaigns/${campaignId}`
+        });
+      },
+      async notifyCampaignPaused(userId, campaignId, campaignName, reason) {
+        await this.create({
+          userId,
+          type: "campaign_paused",
+          title: "Campaign Paused",
+          message: `Campaign "${campaignName}" has been paused: ${reason}`,
+          link: `/app/campaigns/${campaignId}`
+        });
+      },
+      async notifyPhoneBillingSuccess(userId, phoneNumber, creditsCharged) {
+        await this.create({
+          userId,
+          type: "phone_billing_success",
+          title: "Phone Number Renewed",
+          message: `Phone number ${phoneNumber} has been renewed for ${creditsCharged} credits.`,
+          link: "/app/phone-numbers"
+        });
+      },
+      async notifyPhoneBillingFailed(userId, phoneNumber, reason) {
+        await this.create({
+          userId,
+          type: "phone_billing_failed",
+          title: "Phone Number Billing Failed",
+          message: `Phone number ${phoneNumber} billing failed: ${reason}. The number has been released.`,
+          link: "/app/phone-numbers"
+        });
+      },
+      async notifyCallCreditFailed(userId, options) {
+        const { callId, creditsRequired, currentBalance, durationSeconds } = options;
+        const durationText = durationSeconds && durationSeconds > 0 ? ` (${Math.ceil(durationSeconds / 60)} min call)` : "";
+        await this.create({
+          userId,
+          type: "call_credit_failed",
+          title: "Call Could Not Be Billed",
+          message: `A call ended but your credit balance was too low to bill it${durationText}. Required ${creditsRequired} credits, balance ${currentBalance}. Top up to keep new calls running.`,
+          link: `/app/calls/${callId}`,
+          icon: "alert-triangle",
+          priority: 70,
+          displayType: "both"
+        });
+      },
+      async notifyPhoneReleased(userId, phoneNumber) {
+        await this.create({
+          userId,
+          type: "phone_released",
+          title: "Phone Number Released",
+          message: `Phone number ${phoneNumber} has been released due to insufficient credits.`,
+          link: "/app/phone-numbers"
+        });
+      },
+      async notifyWelcome(userId, userName) {
+        const appName = await getAppName();
+        await this.create({
+          userId,
+          type: "welcome",
+          title: `Welcome to ${appName}, ${userName}`,
+          message: "Get started by creating your first AI agent and launching a campaign. Check out our knowledge base for tips and best practices.",
+          link: "/app/agents"
+        });
+      },
+      async createNotificationForAllAdmins(options) {
+        try {
+          const adminUsers = await storage.getAllAdminUsers();
+          for (const admin of adminUsers) {
+            await this.create({
+              ...options,
+              userId: admin.id
+            });
+          }
+        } catch (error) {
+          console.error("Failed to create admin notifications:", error);
+        }
+      },
+      async notifyAdmins(title, message, severity = "info") {
+        const icon = severity === "critical" ? "alert-triangle" : severity === "warning" ? "alert-circle" : "info";
+        await this.createNotificationForAllAdmins({
+          type: `admin_${severity}`,
+          title,
+          message,
+          icon,
+          priority: severity === "critical" ? 100 : severity === "warning" ? 50 : 0,
+          displayType: severity === "critical" ? "both" : "bell"
+        });
+      },
+      async notifyPaymentFailed(userId) {
+        await this.create({
+          userId,
+          type: "payment_failed",
+          title: "Payment Failed",
+          message: "Your subscription payment failed. Please update your payment method to maintain your Pro membership.",
+          link: "/app/billing",
+          icon: "credit-card",
+          priority: 80,
+          displayType: "both"
+        });
+      },
+      async notifySubscriptionPastDue(userId) {
+        await this.create({
+          userId,
+          type: "subscription_past_due",
+          title: "Payment Overdue",
+          message: "Your subscription is past due. Please update your payment method to avoid losing access to Pro features.",
+          link: "/app/billing",
+          icon: "alert-triangle",
+          priority: 90,
+          displayType: "both"
+        });
+      },
+      async shouldNotifyLowCredits(currentCredits) {
+        const threshold = await getLowCreditsThreshold();
+        return currentCredits > 0 && currentCredits <= threshold;
+      },
+      // Utility to get current threshold (for email service, etc.)
+      async getLowCreditsThreshold() {
+        return getLowCreditsThreshold();
+      }
+    };
+  }
+});
+
+// server/engines/plivo/services/openai-pool.service.ts
+var openai_pool_service_exports = {};
+__export(openai_pool_service_exports, {
+  OpenAIPoolService: () => OpenAIPoolService
+});
+import { eq as eq6, and as and4, desc as desc4, asc as asc2, sql as sql14 } from "drizzle-orm";
+var lastNotificationThreshold, OpenAIPoolService;
+var init_openai_pool_service = __esm({
+  "server/engines/plivo/services/openai-pool.service.ts"() {
+    "use strict";
+    init_db();
+    init_schema();
+    init_notification_service();
+    lastNotificationThreshold = /* @__PURE__ */ new Map();
+    OpenAIPoolService = class {
+      /**
+       * Add a new OpenAI API key to the pool
+       */
+      static async addCredential(data) {
+        const isValid = await this.testCredential(data.apiKey);
+        if (!isValid) {
+          throw new Error("Invalid OpenAI API key");
+        }
+        const [credential] = await db.insert(openaiCredentials).values({
+          ...data,
+          healthStatus: "healthy",
+          lastHealthCheck: /* @__PURE__ */ new Date()
+        }).returning();
+        console.log(`\u2705 Added OpenAI credential: ${credential.name} (tier: ${credential.modelTier})`);
+        return credential;
+      }
+      /**
+       * Update an existing credential
+       */
+      static async updateCredential(id, data) {
+        const [updated] = await db.update(openaiCredentials).set({
+          ...data,
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where(eq6(openaiCredentials.id, id)).returning();
+        if (!updated) {
+          throw new Error("Credential not found");
+        }
+        console.log(`\u2705 Updated OpenAI credential: ${updated.name}`);
+        return updated;
+      }
+      /**
+       * Test if an API key is valid by making a simple API call
+       */
+      static async testCredential(apiKey) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15e3);
+        try {
+          const response = await fetch("https://api.openai.com/v1/models", {
+            signal: controller.signal,
+            headers: {
+              "Authorization": `Bearer ${apiKey}`,
+              "Content-Type": "application/json"
+            }
+          });
+          if (!response.ok) {
+            console.error("\u274C OpenAI API key test failed");
+            return false;
+          }
+          console.log("\u2705 OpenAI API key validated");
+          return true;
+        } catch (error) {
+          if (error.name === "AbortError") {
+            console.error("\u274C OpenAI API key test timed out after 15s");
+          } else {
+            console.error("\u274C OpenAI API key test failed:", error);
+          }
+          return false;
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      }
+      /**
+       * Get credential by ID
+       */
+      static async getCredentialById(credentialId) {
+        const [credential] = await db.select().from(openaiCredentials).where(eq6(openaiCredentials.id, credentialId)).limit(1);
+        return credential || null;
+      }
+      /**
+       * Get the least-loaded active credential for a given model tier
+       * Considers both current load and total assigned agents for optimal distribution
+       */
+      static async getLeastLoadedCredential(tier) {
+        const baseConditions = [eq6(openaiCredentials.isActive, true)];
+        if (tier) {
+          baseConditions.push(eq6(openaiCredentials.modelTier, tier));
+        }
+        const credentials = await db.select().from(openaiCredentials).where(and4(...baseConditions));
+        if (credentials.length === 0) {
+          return null;
+        }
+        const sorted = credentials.map((c) => ({
+          ...c,
+          utilization: c.maxConcurrency > 0 ? c.currentLoad / c.maxConcurrency : 0,
+          agentDensity: c.totalAssignedAgents
+        })).sort((a, b) => {
+          if (Math.abs(a.utilization - b.utilization) > 0.1) {
+            return a.utilization - b.utilization;
+          }
+          return a.agentDensity - b.agentDensity;
+        });
+        return sorted[0];
+      }
+      /**
+       * Get credential for a specific agent (with load balancing fallback)
+       */
+      static async getCredentialForAgent(agentId) {
+        const [agent] = await db.select().from(agents).where(eq6(agents.id, agentId)).limit(1);
+        if (agent?.openaiCredentialId) {
+          const [credential] = await db.select().from(openaiCredentials).where(
+            and4(
+              eq6(openaiCredentials.id, agent.openaiCredentialId),
+              eq6(openaiCredentials.isActive, true)
+            )
+          ).limit(1);
+          if (credential) {
+            return credential;
+          }
+        }
+        return this.getLeastLoadedCredential();
+      }
+      /**
+       * Get credential with available capacity for making calls
+       * Checks both current load, concurrency limit, and model tier
+       */
+      static async getAvailableCredential(tier) {
+        const baseConditions = [eq6(openaiCredentials.isActive, true)];
+        if (tier) {
+          baseConditions.push(eq6(openaiCredentials.modelTier, tier));
+        }
+        const credentials = await db.select().from(openaiCredentials).where(and4(...baseConditions)).orderBy(asc2(openaiCredentials.currentLoad));
+        for (const credential of credentials) {
+          if (credential.currentLoad < credential.maxConcurrency) {
+            return credential;
+          }
+        }
+        return null;
+      }
+      /**
+       * Atomically reserve a slot on the least-loaded credential with available capacity.
+       * Uses a single UPDATE with WHERE condition to atomically find and reserve.
+       * 
+       * @param tier - Optional model tier to filter by ('free' or 'pro')
+       * @returns The credential with reserved slot, or null if no capacity available
+       */
+      static async reserveSlot(tier) {
+        try {
+          let result;
+          if (tier) {
+            result = await db.execute(sql14`
+          UPDATE openai_credentials
+          SET current_load = current_load + 1,
+              updated_at = NOW()
+          WHERE id = (
+            SELECT id FROM openai_credentials
+            WHERE is_active = true
+              AND current_load < max_concurrency
+            ORDER BY 
+              CASE WHEN model_tier = ${tier} THEN 0 ELSE 1 END,
+              (current_load::float / NULLIF(max_concurrency, 0)) ASC,
+              total_assigned_agents ASC
+            LIMIT 1
+            FOR UPDATE SKIP LOCKED
+          )
+          RETURNING *
+        `);
+          } else {
+            result = await db.execute(sql14`
+          UPDATE openai_credentials
+          SET current_load = current_load + 1,
+              updated_at = NOW()
+          WHERE id = (
+            SELECT id FROM openai_credentials
+            WHERE is_active = true
+              AND current_load < max_concurrency
+            ORDER BY 
+              (current_load::float / NULLIF(max_concurrency, 0)) ASC,
+              total_assigned_agents ASC
+            LIMIT 1
+            FOR UPDATE SKIP LOCKED
+          )
+          RETURNING *
+        `);
+          }
+          if (result.rows && result.rows.length > 0) {
+            const row = result.rows[0];
+            const tierMatch = tier && row.model_tier !== tier ? ` (fallback from '${tier}')` : "";
+            console.log(`[OpenAI Pool] Reserved slot on ${row.name} (tier: ${row.model_tier}${tierMatch}, load: ${row.current_load}/${row.max_concurrency})`);
+            return this.mapRowToCredential(row);
+          }
+          console.log(`[OpenAI Pool] No available capacity${tier ? ` for tier ${tier}` : ""} - all credentials at max load or none configured`);
+          return null;
+        } catch (error) {
+          console.error(`[OpenAI Pool] Failed to reserve slot:`, error);
+          return null;
+        }
+      }
+      /**
+       * Reserve a slot on a specific credential
+       */
+      static async reserveSlotOnCredential(credentialId) {
+        try {
+          const result = await db.execute(sql14`
+        UPDATE openai_credentials
+        SET current_load = current_load + 1,
+            updated_at = NOW()
+        WHERE id = ${credentialId}
+          AND is_active = true
+          AND current_load < max_concurrency
+        RETURNING *
+      `);
+          if (result.rows && result.rows.length > 0) {
+            const row = result.rows[0];
+            console.log(`\u{1F512} [OpenAI Pool] Reserved slot on ${row.name} (load: ${row.current_load}/${row.max_concurrency})`);
+            return this.mapRowToCredential(row);
+          }
+          console.log(`\u26A0\uFE0F [OpenAI Pool] Credential ${credentialId} has no capacity or is inactive`);
+          return null;
+        } catch (error) {
+          console.error(`\u274C [OpenAI Pool] Failed to reserve slot on credential ${credentialId}:`, error);
+          return null;
+        }
+      }
+      /**
+       * Release a slot when call ends
+       */
+      static async releaseSlot(credentialId) {
+        await db.update(openaiCredentials).set({
+          currentLoad: sql14`GREATEST(0, ${openaiCredentials.currentLoad} - 1)`,
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where(eq6(openaiCredentials.id, credentialId));
+        console.log(`\u{1F513} [OpenAI Pool] Released slot on credential ${credentialId}`);
+      }
+      /**
+       * Update agent assignment count for a credential
+       */
+      static async updateAssignmentCount(credentialId, increment) {
+        if (increment) {
+          await db.update(openaiCredentials).set({
+            totalAssignedAgents: sql14`${openaiCredentials.totalAssignedAgents} + 1`,
+            updatedAt: /* @__PURE__ */ new Date()
+          }).where(eq6(openaiCredentials.id, credentialId));
+        } else {
+          await db.update(openaiCredentials).set({
+            totalAssignedAgents: sql14`GREATEST(0, ${openaiCredentials.totalAssignedAgents} - 1)`,
+            updatedAt: /* @__PURE__ */ new Date()
+          }).where(eq6(openaiCredentials.id, credentialId));
+        }
+      }
+      /**
+       * Get all credentials with stats (sanitized - no API keys)
+       */
+      static async getAllWithStats() {
+        const credentials = await db.select().from(openaiCredentials).orderBy(desc4(openaiCredentials.createdAt));
+        return credentials.map(({ apiKey, ...rest }) => rest);
+      }
+      /**
+       * Get pool statistics with tier breakdown
+       */
+      static async getPoolStats() {
+        const credentials = await db.select().from(openaiCredentials).where(eq6(openaiCredentials.isActive, true));
+        const totalCapacity = credentials.reduce((sum, c) => sum + c.maxConcurrency, 0);
+        const totalLoad = credentials.reduce((sum, c) => sum + c.currentLoad, 0);
+        const totalAgents = credentials.reduce((sum, c) => sum + c.totalAssignedAgents, 0);
+        const totalUsers = credentials.reduce((sum, c) => sum + c.totalAssignedUsers, 0);
+        const availableCapacity = totalCapacity - totalLoad;
+        const utilizationPercent = totalCapacity > 0 ? totalLoad / totalCapacity * 100 : 0;
+        const freeCredentials = credentials.filter((c) => c.modelTier === "free");
+        const proCredentials = credentials.filter((c) => c.modelTier === "pro");
+        const byTier = {
+          free: {
+            keys: freeCredentials.length,
+            capacity: freeCredentials.reduce((sum, c) => sum + c.maxConcurrency, 0),
+            load: freeCredentials.reduce((sum, c) => sum + c.currentLoad, 0),
+            available: freeCredentials.reduce((sum, c) => sum + (c.maxConcurrency - c.currentLoad), 0)
+          },
+          pro: {
+            keys: proCredentials.length,
+            capacity: proCredentials.reduce((sum, c) => sum + c.maxConcurrency, 0),
+            load: proCredentials.reduce((sum, c) => sum + c.currentLoad, 0),
+            available: proCredentials.reduce((sum, c) => sum + (c.maxConcurrency - c.currentLoad), 0)
+          }
+        };
+        await this.checkCapacityAndNotify(utilizationPercent);
+        return {
+          totalKeys: credentials.length,
+          totalCapacity,
+          totalLoad,
+          availableCapacity,
+          utilizationPercent: Math.round(utilizationPercent * 100) / 100,
+          totalAgents,
+          totalUsers,
+          byTier,
+          credentials: credentials.map((c) => ({
+            id: c.id,
+            name: c.name,
+            modelTier: c.modelTier,
+            maxConcurrency: c.maxConcurrency,
+            currentLoad: c.currentLoad,
+            totalAssignedAgents: c.totalAssignedAgents,
+            totalAssignedUsers: c.totalAssignedUsers,
+            maxAgentsThreshold: c.maxAgentsThreshold,
+            utilizationPercent: c.maxConcurrency > 0 ? Math.round(c.currentLoad / c.maxConcurrency * 1e4) / 100 : 0,
+            healthStatus: c.healthStatus,
+            isActive: c.isActive
+          }))
+        };
+      }
+      /**
+       * Check capacity and send notifications to admins if needed (throttled)
+       */
+      static async checkCapacityAndNotify(utilizationPercent) {
+        const now = Date.now();
+        const THROTTLE_PERIOD = 4 * 60 * 60 * 1e3;
+        let threshold = 0;
+        if (utilizationPercent >= 95) {
+          threshold = 95;
+        } else if (utilizationPercent >= 90) {
+          threshold = 90;
+        } else if (utilizationPercent >= 80) {
+          threshold = 80;
+        }
+        if (threshold === 0) {
+          lastNotificationThreshold.clear();
+          return;
+        }
+        const lastSent = lastNotificationThreshold.get(threshold);
+        if (lastSent && now - lastSent < THROTTLE_PERIOD) {
+          return;
+        }
+        if (threshold === 95) {
+          await NotificationService.createNotificationForAllAdmins({
+            type: "system",
+            title: "CRITICAL: OpenAI Pool at 95%+ Capacity",
+            message: `The OpenAI API key pool is at ${utilizationPercent.toFixed(1)}% capacity. Add more API keys immediately to prevent service disruption.`,
+            link: "/admin/openai-pool"
+          });
+          lastNotificationThreshold.set(95, now);
+        } else if (threshold === 90) {
+          await NotificationService.createNotificationForAllAdmins({
+            type: "system",
+            title: "WARNING: OpenAI Pool at 90%+ Capacity",
+            message: `The OpenAI API key pool is at ${utilizationPercent.toFixed(1)}% capacity. Consider adding more API keys soon.`,
+            link: "/admin/openai-pool"
+          });
+          lastNotificationThreshold.set(90, now);
+        } else if (threshold === 80) {
+          await NotificationService.createNotificationForAllAdmins({
+            type: "system",
+            title: "Notice: OpenAI Pool at 80%+ Capacity",
+            message: `The OpenAI API key pool is at ${utilizationPercent.toFixed(1)}% capacity. Monitor usage and plan to add more keys if needed.`,
+            link: "/admin/openai-pool"
+          });
+          lastNotificationThreshold.set(80, now);
+        }
+      }
+      /**
+       * Deactivate a credential
+       */
+      static async deactivateCredential(id) {
+        await db.update(openaiCredentials).set({
+          isActive: false,
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where(eq6(openaiCredentials.id, id));
+      }
+      /**
+       * Activate a credential
+       */
+      static async activateCredential(id) {
+        await db.update(openaiCredentials).set({
+          isActive: true,
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where(eq6(openaiCredentials.id, id));
+      }
+      /**
+       * Delete a credential (only if no agents are using it)
+       */
+      static async deleteCredential(id) {
+        const [credential] = await db.select().from(openaiCredentials).where(eq6(openaiCredentials.id, id)).limit(1);
+        if (!credential) {
+          throw new Error("Credential not found");
+        }
+        if (credential.totalAssignedAgents > 0) {
+          throw new Error(`Cannot delete credential. ${credential.totalAssignedAgents} agents are still using it.`);
+        }
+        await db.delete(openaiCredentials).where(eq6(openaiCredentials.id, id));
+        console.log(`\u{1F5D1}\uFE0F [OpenAI Pool] Deleted credential: ${credential.name}`);
+      }
+      /**
+       * Perform health check on all credentials
+       */
+      static async performHealthChecks() {
+        const credentials = await db.select().from(openaiCredentials);
+        for (const credential of credentials) {
+          const isHealthy = await this.testCredential(credential.apiKey);
+          await db.update(openaiCredentials).set({
+            healthStatus: isHealthy ? "healthy" : "unhealthy",
+            lastHealthCheck: /* @__PURE__ */ new Date(),
+            updatedAt: /* @__PURE__ */ new Date()
+          }).where(eq6(openaiCredentials.id, credential.id));
+        }
+        console.log(`\u{1F3E5} [OpenAI Pool] Health checks completed for ${credentials.length} credentials`);
+      }
+      /**
+       * Recalculate agent counts for all credentials based on actual agents in database
+       */
+      static async recalculateAgentCounts() {
+        const credentials = await db.select().from(openaiCredentials);
+        const updates = [];
+        for (const credential of credentials) {
+          const [result] = await db.select({ count: sql14`count(*)::int` }).from(agents).where(eq6(agents.openaiCredentialId, credential.id));
+          const actualCount = result?.count || 0;
+          const oldCount = credential.totalAssignedAgents;
+          if (actualCount !== oldCount) {
+            await db.update(openaiCredentials).set({
+              totalAssignedAgents: actualCount,
+              updatedAt: /* @__PURE__ */ new Date()
+            }).where(eq6(openaiCredentials.id, credential.id));
+            updates.push({
+              id: credential.id,
+              name: credential.name,
+              oldCount,
+              newCount: actualCount
+            });
+            console.log(`\u{1F504} [OpenAI Pool] Recalculated ${credential.name}: ${oldCount} \u2192 ${actualCount} agents`);
+          }
+        }
+        return {
+          updated: updates.length,
+          credentials: updates
+        };
+      }
+      /**
+       * Get or assign a credential for a user based on their plan
+       * Free plan users get 'free' tier, Pro plan users get 'pro' tier
+       */
+      static async getOrAssignCredentialForUser(userId, requiredTier = "free") {
+        const [user] = await db.select().from(users).where(eq6(users.id, userId)).limit(1);
+        if (!user) {
+          return null;
+        }
+        const credential = await this.getLeastLoadedCredential(requiredTier);
+        if (credential) {
+          await db.update(openaiCredentials).set({
+            totalAssignedUsers: sql14`${openaiCredentials.totalAssignedUsers} + 1`,
+            updatedAt: /* @__PURE__ */ new Date()
+          }).where(eq6(openaiCredentials.id, credential.id));
+        }
+        return credential;
+      }
+      /**
+       * Get model tier for user based on subscription
+       */
+      static getModelTierForUser(subscriptionPlan) {
+        if (!subscriptionPlan) return "free";
+        const plan = subscriptionPlan.toLowerCase();
+        if (plan === "pro" || plan === "enterprise" || plan === "premium") {
+          return "pro";
+        }
+        return "free";
+      }
+      /**
+       * Get available models for a tier
+       */
+      static getModelsForTier(tier) {
+        if (tier === "pro") {
+          return ["gpt-realtime-2", "gpt-realtime-translate", "gpt-realtime-whisper", "gpt-realtime-1.5", "gpt-realtime", "gpt-realtime-mini", "gpt-4o-realtime-preview", "gpt-4o-mini-realtime-preview"];
+        }
+        return ["gpt-realtime-mini", "gpt-4o-mini-realtime-preview"];
+      }
+      /**
+       * Map database row to TypeScript OpenaiCredential type
+       */
+      static mapRowToCredential(row) {
+        return {
+          id: row.id,
+          name: row.name,
+          apiKey: row.api_key,
+          modelTier: row.model_tier,
+          maxConcurrency: row.max_concurrency,
+          currentLoad: row.current_load,
+          totalAssignedAgents: row.total_assigned_agents,
+          totalAssignedUsers: row.total_assigned_users,
+          maxAgentsThreshold: row.max_agents_threshold,
+          isActive: row.is_active,
+          healthStatus: row.health_status,
+          lastHealthCheck: row.last_health_check ? new Date(row.last_health_check) : null,
+          metadata: row.metadata,
+          createdAt: row.created_at ? new Date(row.created_at) : /* @__PURE__ */ new Date(),
+          updatedAt: row.updated_at ? new Date(row.updated_at) : /* @__PURE__ */ new Date()
+        };
+      }
+    };
+  }
+});
+
 // plugins/messaging/index.ts
-import { Router as Router5 } from "express";
+import { Router as Router7 } from "express";
 
 // plugins/messaging/routes/user-messaging.routes.ts
 init_email_template_service();
@@ -5300,9 +8953,17 @@ var WhatsAppConversationService = class {
         contact_name = CASE WHEN EXCLUDED.contact_name != '' THEN EXCLUDED.contact_name ELSE whatsapp_conversations.contact_name END,
         contact_wa_id = CASE WHEN EXCLUDED.contact_wa_id != '' THEN EXCLUDED.contact_wa_id ELSE whatsapp_conversations.contact_wa_id END,
         updated_at = NOW()
-      RETURNING *
+      RETURNING *, (xmax = 0) AS is_new
     `);
     return transformRow6(result.rows[0]);
+  }
+  /** Internal lookup (webhooks) — no user scoping; callers already resolved the owner. */
+  async getConversationById(conversationId) {
+    const result = await db.execute(sql7`
+      SELECT * FROM whatsapp_conversations WHERE id = ${conversationId} LIMIT 1
+    `);
+    const row = result.rows[0];
+    return row ? transformRow6(row) : null;
   }
   async getConversations(userId, options = {}) {
     const limit = options.limit || 50;
@@ -5432,6 +9093,39 @@ var WhatsAppConversationService = class {
       WHERE id = ${conversationId} AND user_id = ${userId}
     `);
   }
+  /**
+   * Atomically claims the right to send one AI reply for an inbound message.
+   * Returns false when a reply for that message was already claimed (duplicate webhook delivery).
+   */
+  async claimAutoReply(conversationId, inboundMessageId) {
+    const result = await db.execute(sql7`
+      UPDATE whatsapp_conversations SET
+        last_ai_reply_source_id = ${inboundMessageId}::uuid,
+        updated_at = NOW()
+      WHERE id = ${conversationId}
+        AND last_ai_reply_source_id IS DISTINCT FROM ${inboundMessageId}::uuid
+      RETURNING id
+    `);
+    return (result.rows || []).length > 0;
+  }
+  /** AI handoff: stop auto-replies and flag the thread for a human. No user scoping (called from webhooks). */
+  async handoffToHuman(conversationId) {
+    await db.execute(sql7`
+      UPDATE whatsapp_conversations SET
+        auto_reply_enabled = false,
+        needs_attention = true,
+        updated_at = NOW()
+      WHERE id = ${conversationId}
+    `);
+  }
+  async setNeedsAttention(userId, conversationId, needsAttention) {
+    await db.execute(sql7`
+      UPDATE whatsapp_conversations SET
+        needs_attention = ${needsAttention},
+        updated_at = NOW()
+      WHERE id = ${conversationId} AND user_id = ${userId}
+    `);
+  }
   async refreshWindow(conversationId) {
     await db.execute(sql7`
       UPDATE whatsapp_conversations SET
@@ -5490,7 +9184,8 @@ var WhatsAppConversationService = class {
   async getConversationUpdates(userId, since) {
     const result = await db.execute(sql7`
       SELECT id, unread_count, last_message_at, last_message_preview, status, updated_at, window_expires_at,
-             contact_phone, contact_name, contact_wa_id, user_id, assigned_agent_id, auto_reply_enabled, created_at
+             contact_phone, contact_name, contact_wa_id, user_id, assigned_agent_id, auto_reply_enabled,
+             needs_attention, last_ai_reply_source_id, created_at
       FROM whatsapp_conversations
       WHERE user_id = ${userId} AND updated_at > ${since}
       ORDER BY last_message_at DESC
@@ -5504,6 +9199,113 @@ var whatsAppConversationService = new WhatsAppConversationService();
 
 // plugins/messaging/routes/user-messaging.routes.ts
 init_messaging_log_service();
+
+// plugins/messaging/services/whatsapp-auto-reply-settings.service.ts
+init_db();
+import crypto2 from "crypto";
+import { sql as sql8 } from "drizzle-orm";
+function snakeToCamel7(str) {
+  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+function transformRow7(row) {
+  const transformed = {};
+  for (const key of Object.keys(row)) {
+    transformed[snakeToCamel7(key)] = row[key];
+  }
+  return transformed;
+}
+function newSecret() {
+  return crypto2.randomBytes(24).toString("hex");
+}
+var WAKI_WEBHOOK_PATH_PREFIX = "/api/webhooks/messaging/waki";
+var WhatsAppAutoReplySettingsService = class {
+  /** Returns the user's row, creating it (with a fresh secret) on first access. */
+  async getSettings(userId) {
+    const existing = await db.execute(sql8`
+      SELECT * FROM whatsapp_auto_reply_settings WHERE user_id = ${userId} LIMIT 1
+    `);
+    const row = existing.rows[0];
+    if (row) return transformRow7(row);
+    const created = await db.execute(sql8`
+      INSERT INTO whatsapp_auto_reply_settings (user_id, webhook_secret)
+      VALUES (${userId}, ${newSecret()})
+      ON CONFLICT (user_id) DO UPDATE SET updated_at = NOW()
+      RETURNING *
+    `);
+    return transformRow7(created.rows[0]);
+  }
+  /** Read-only variant for the webhook hot path (never creates rows). */
+  async findByUserId(userId) {
+    const result = await db.execute(sql8`
+      SELECT * FROM whatsapp_auto_reply_settings WHERE user_id = ${userId} LIMIT 1
+    `);
+    const row = result.rows[0];
+    return row ? transformRow7(row) : null;
+  }
+  /** Validates that the agent exists and belongs to the user. */
+  async agentBelongsToUser(userId, agentId) {
+    const result = await db.execute(sql8`
+      SELECT 1 FROM agents WHERE id = ${agentId} AND user_id = ${userId} LIMIT 1
+    `);
+    return (result.rows || []).length > 0;
+  }
+  async saveSettings(userId, data) {
+    await this.getSettings(userId);
+    const result = await db.execute(sql8`
+      UPDATE whatsapp_auto_reply_settings SET
+        default_whatsapp_agent_id = ${data.defaultWhatsappAgentId},
+        whatsapp_auto_reply_default = ${data.whatsappAutoReplyDefault},
+        updated_at = NOW()
+      WHERE user_id = ${userId}
+      RETURNING *
+    `);
+    return transformRow7(result.rows[0]);
+  }
+  async regenerateSecret(userId) {
+    await this.getSettings(userId);
+    const result = await db.execute(sql8`
+      UPDATE whatsapp_auto_reply_settings SET
+        webhook_secret = ${newSecret()},
+        updated_at = NOW()
+      WHERE user_id = ${userId}
+      RETURNING *
+    `);
+    return transformRow7(result.rows[0]);
+  }
+  /** Resolves the owner of an inbound Waki webhook from the secret in the URL. */
+  async findUserBySecret(secret) {
+    if (!secret || secret.length < 16 || secret.length > 64 || !/^[a-f0-9]+$/i.test(secret)) return null;
+    const result = await db.execute(sql8`
+      SELECT user_id, webhook_secret FROM whatsapp_auto_reply_settings WHERE webhook_secret = ${secret} LIMIT 1
+    `);
+    const row = result.rows[0];
+    if (!row) return null;
+    const a = Buffer.from(String(row.webhook_secret));
+    const b = Buffer.from(secret);
+    if (a.length !== b.length || !crypto2.timingSafeEqual(a, b)) return null;
+    return row.user_id;
+  }
+  /** Optional HMAC check (`X-Webhook-Signature: sha256=<hex>` over the raw body) when the sender signs. */
+  verifySignature(rawBody, signatureHeader, secret) {
+    if (!signatureHeader) return true;
+    if (!rawBody) return false;
+    try {
+      const provided = signatureHeader.startsWith("sha256=") ? signatureHeader.slice(7) : signatureHeader;
+      const expected = crypto2.createHmac("sha256", secret).update(rawBody).digest("hex");
+      const a = Buffer.from(provided, "hex");
+      const b = Buffer.from(expected, "hex");
+      return a.length === b.length && crypto2.timingSafeEqual(a, b);
+    } catch {
+      return false;
+    }
+  }
+  buildWebhookUrl(origin, secret) {
+    return `${origin.replace(/\/+$/, "")}${WAKI_WEBHOOK_PATH_PREFIX}/${secret}`;
+  }
+};
+var whatsAppAutoReplySettingsService = new WhatsAppAutoReplySettingsService();
+
+// plugins/messaging/routes/user-messaging.routes.ts
 async function getActiveWhatsAppProvider(userId) {
   const [metaSettings, whatswaySettings] = await Promise.all([
     metaWhatsAppService.getSettings(userId),
@@ -6223,7 +10025,7 @@ router.patch("/conversations/:id", async (req, res) => {
     if (!conversation) {
       return res.status(404).json({ success: false, error: "Conversation not found" });
     }
-    const { status, autoReplyEnabled, assignedAgentId } = req.body;
+    const { status, autoReplyEnabled, assignedAgentId, needsAttention } = req.body;
     if (status !== void 0) {
       const validStatuses = ["active", "closed", "archived"];
       if (!validStatuses.includes(status)) {
@@ -6232,7 +10034,18 @@ router.patch("/conversations/:id", async (req, res) => {
       await whatsAppConversationService.updateConversationStatus(userId, req.params.id, status);
     }
     if (autoReplyEnabled !== void 0) {
-      await whatsAppConversationService.setAutoReply(userId, req.params.id, autoReplyEnabled, assignedAgentId);
+      const agentId = autoReplyEnabled ? assignedAgentId || conversation.assignedAgentId || void 0 : assignedAgentId ?? conversation.assignedAgentId ?? void 0;
+      if (autoReplyEnabled && !agentId) {
+        return res.status(400).json({ success: false, error: "Pick an agent to auto-reply with." });
+      }
+      if (agentId && !await whatsAppAutoReplySettingsService.agentBelongsToUser(userId, agentId)) {
+        return res.status(400).json({ success: false, error: "Agent not found." });
+      }
+      await whatsAppConversationService.setAutoReply(userId, req.params.id, Boolean(autoReplyEnabled), agentId);
+      if (autoReplyEnabled) await whatsAppConversationService.setNeedsAttention(userId, req.params.id, false);
+    }
+    if (needsAttention !== void 0) {
+      await whatsAppConversationService.setNeedsAttention(userId, req.params.id, Boolean(needsAttention));
     }
     const updated = await whatsAppConversationService.getConversation(userId, req.params.id);
     res.json({ success: true, data: updated });
@@ -6359,7 +10172,7 @@ import { Router as Router2 } from "express";
 init_db();
 init_schema();
 import jwt from "jsonwebtoken";
-import { sql as sql8, eq as eq2 } from "drizzle-orm";
+import { sql as sql9, eq as eq2 } from "drizzle-orm";
 var JWT_SECRET = process.env.JWT_SECRET || (() => {
   if (process.env.NODE_ENV === "production") {
     throw new Error("JWT_SECRET environment variable must be set in production");
@@ -6375,8 +10188,8 @@ function requireAdminPermission(section, subsection, action) {
       if (req.adminTeamMember) {
         const { roleId } = req.adminTeamMember;
         const actionColumn = action === "create" ? "can_create" : action === "read" ? "can_read" : action === "update" ? "can_update" : "can_delete";
-        const permResult = await db.execute(sql8`
-          SELECT ${sql8.raw(actionColumn)} as has_permission
+        const permResult = await db.execute(sql9`
+          SELECT ${sql9.raw(actionColumn)} as has_permission
           FROM admin_team_permissions
           WHERE role_id = ${roleId}
             AND section = ${section}
@@ -6540,10 +10353,10 @@ var admin_messaging_routes_default = router2;
 // plugins/messaging/routes/webhook-messaging.routes.ts
 init_db();
 import { Router as Router3 } from "express";
-import { sql as sql10 } from "drizzle-orm";
+import { sql as sql11 } from "drizzle-orm";
 
 // plugins/messaging/services/webhook-auth.service.ts
-import crypto2 from "crypto";
+import crypto3 from "crypto";
 import fs from "fs";
 import path from "path";
 var PERSISTED_SECRET_PATH = path.join(process.cwd(), ".appointment-webhook-secret");
@@ -6561,7 +10374,7 @@ function getAppointmentWebhookSecret() {
       } catch (err) {
       }
       if (!appointmentWebhookSecret) {
-        appointmentWebhookSecret = crypto2.randomBytes(32).toString("hex");
+        appointmentWebhookSecret = crypto3.randomBytes(32).toString("hex");
         console.log(`[Webhook Auth] Generated new webhook secret`);
       }
       try {
@@ -6583,7 +10396,7 @@ function validateAppointmentWebhookToken(providedToken) {
   if (providedBuffer.length !== secretBuffer.length) {
     return false;
   }
-  return crypto2.timingSafeEqual(providedBuffer, secretBuffer);
+  return crypto3.timingSafeEqual(providedBuffer, secretBuffer);
 }
 
 // plugins/messaging/routes/webhook-messaging.routes.ts
@@ -6616,8 +10429,8 @@ function buildSipLookupResult(row) {
 async function lookupSipCallByConversationId(conversationId, userId) {
   if (!conversationId) return null;
   try {
-    const conditions = userId ? sql10`sc.elevenlabs_conversation_id = ${conversationId} AND sc.user_id = ${userId}` : sql10`sc.elevenlabs_conversation_id = ${conversationId}`;
-    const sipResult = await db.execute(sql10`
+    const conditions = userId ? sql11`sc.elevenlabs_conversation_id = ${conversationId} AND sc.user_id = ${userId}` : sql11`sc.elevenlabs_conversation_id = ${conversationId}`;
+    const sipResult = await db.execute(sql11`
       SELECT sc.id, sc.from_number, sc.to_number, sc.direction, sc.elevenlabs_conversation_id,
              a.name as agent_name, COALESCE(ct.first_name || ' ' || ct.last_name, ct.first_name, '') as contact_name, ct.email as contact_email
       FROM sip_calls sc
@@ -6635,7 +10448,7 @@ async function lookupSipCallByConversationId(conversationId, userId) {
 }
 async function lookupAnyCallByAgentId(elevenLabsAgentId, userId) {
   try {
-    const callResult = await db.execute(sql10`
+    const callResult = await db.execute(sql11`
       SELECT c.id, c.phone_number, COALESCE(ct.first_name || ' ' || ct.last_name, ct.first_name, '') as contact_name, ct.email as contact_email, a.name as agent_name
       FROM calls c
       JOIN agents a ON c.agent_id = a.id
@@ -6661,7 +10474,7 @@ async function lookupAnyCallByAgentId(elevenLabsAgentId, userId) {
         }
       };
     }
-    const sipResult = await db.execute(sql10`
+    const sipResult = await db.execute(sql11`
       SELECT sc.id, sc.from_number, sc.to_number, sc.direction, sc.elevenlabs_conversation_id,
              a.name as agent_name, COALESCE(ct.first_name || ' ' || ct.last_name, ct.first_name, '') as contact_name, ct.email as contact_email
       FROM sip_calls sc
@@ -6686,9 +10499,9 @@ async function lookupAppointmentData2(sipCallId, conversationId, userId) {
   try {
     const ids = [sipCallId, conversationId].filter(Boolean);
     if (ids.length === 0 || !userId) return {};
-    const conditions = ids.map((id) => sql10`call_id = ${id}`);
-    const orClause = conditions.length === 1 ? conditions[0] : sql10`(${sql10.join(conditions, sql10` OR `)})`;
-    const apptResult = await db.execute(sql10`
+    const conditions = ids.map((id) => sql11`call_id = ${id}`);
+    const orClause = conditions.length === 1 ? conditions[0] : sql11`(${sql11.join(conditions, sql11` OR `)})`;
+    const apptResult = await db.execute(sql11`
       SELECT contact_name, contact_phone, contact_email, appointment_date, appointment_time,
              duration, service_name, notes, status
       FROM appointments
@@ -6740,7 +10553,7 @@ router3.post("/collect-email/:token/:agentId", async (req, res) => {
       for (const tbl of ALLOWED_CONV_TABLES) {
         try {
           const r = await db.execute(
-            sql10`UPDATE ${sql10.identifier(tbl)} SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('callerEmail', ${callerEmail}::text) WHERE elevenlabs_conversation_id = ${conversationId} RETURNING id`
+            sql11`UPDATE ${sql11.identifier(tbl)} SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('callerEmail', ${callerEmail}::text) WHERE elevenlabs_conversation_id = ${conversationId} RETURNING id`
           );
           const rows = Array.isArray(r) ? r : r.rows || [];
           if (rows.length > 0) {
@@ -6754,7 +10567,7 @@ router3.post("/collect-email/:token/:agentId", async (req, res) => {
       for (const tbl of ALLOWED_ID_TABLES) {
         try {
           const r = await db.execute(
-            sql10`UPDATE ${sql10.identifier(tbl)} SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('callerEmail', ${callerEmail}::text) WHERE id = ${callId} RETURNING id`
+            sql11`UPDATE ${sql11.identifier(tbl)} SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('callerEmail', ${callerEmail}::text) WHERE id = ${callId} RETURNING id`
           );
           const rows = Array.isArray(r) ? r : r.rows || [];
           if (rows.length > 0) {
@@ -6784,7 +10597,7 @@ router3.post("/send-email/:token/:agentId", async (req, res) => {
       console.warn(`\u{1F4E7} [Messaging Webhook] Invalid authentication token`);
       return res.status(401).json({ success: false, error: "Unauthorized" });
     }
-    const agentResult = await db.execute(sql10`
+    const agentResult = await db.execute(sql11`
       SELECT id, user_id, messaging_email_template FROM agents 
       WHERE eleven_labs_agent_id = ${elevenLabsAgentId} OR id = ${elevenLabsAgentId} LIMIT 1
     `);
@@ -6842,7 +10655,7 @@ router3.post("/send-email/:token/:agentId", async (req, res) => {
         for (const tbl of CONV_TABLES) {
           try {
             await db.execute(
-              sql10`UPDATE ${sql10.identifier(tbl)} SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('callerEmail', ${recipient_email}::text) WHERE elevenlabs_conversation_id = ${conversationId}`
+              sql11`UPDATE ${sql11.identifier(tbl)} SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('callerEmail', ${recipient_email}::text) WHERE elevenlabs_conversation_id = ${conversationId}`
             );
           } catch (_) {
           }
@@ -6852,7 +10665,7 @@ router3.post("/send-email/:token/:agentId", async (req, res) => {
         for (const tbl of ID_TABLES) {
           try {
             await db.execute(
-              sql10`UPDATE ${sql10.identifier(tbl)} SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('callerEmail', ${recipient_email}::text) WHERE id = ${callId}`
+              sql11`UPDATE ${sql11.identifier(tbl)} SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('callerEmail', ${recipient_email}::text) WHERE id = ${callId}`
             );
           } catch (_) {
           }
@@ -6884,7 +10697,7 @@ router3.post("/send-whatsapp/:token/:agentId", async (req, res) => {
       console.warn(`\u{1F4AC} [Messaging Webhook] Invalid authentication token`);
       return res.status(401).json({ success: false, error: "Unauthorized" });
     }
-    const agentResult = await db.execute(sql10`
+    const agentResult = await db.execute(sql11`
       SELECT id, user_id, messaging_whatsapp_template, messaging_whatsapp_variables FROM agents 
       WHERE eleven_labs_agent_id = ${elevenLabsAgentId} OR id = ${elevenLabsAgentId} LIMIT 1
     `);
@@ -6911,7 +10724,7 @@ router3.post("/send-whatsapp/:token/:agentId", async (req, res) => {
     const resolvedConversationId = stripUnresolvedElevenLabsVar(rawConversationId);
     if (digits.length < 6 || Array.isArray(template_variables) && template_variables.length > 0 || savedWhatsappVariables) {
       if (req.query.callId) {
-        const callResult = await db.execute(sql10`
+        const callResult = await db.execute(sql11`
           SELECT c.phone_number, COALESCE(ct.first_name || ' ' || ct.last_name, ct.first_name, '') as contact_name, ct.email as contact_email, a.name as agent_name
           FROM calls c
           LEFT JOIN contacts ct ON c.contact_id = ct.id
@@ -6938,7 +10751,7 @@ router3.post("/send-whatsapp/:token/:agentId", async (req, res) => {
     }
     if ((!recipientPhone || recipientPhone.replace(/[^0-9]/g, "").length < 6) && resolvedConversationId) {
       console.log(`\u{1F4AC} [Messaging Webhook] Attempting conversationId fallback for: ${resolvedConversationId}`);
-      const convResult = await db.execute(sql10`
+      const convResult = await db.execute(sql11`
           SELECT c.phone_number, c.from_number, COALESCE(ct.first_name || ' ' || ct.last_name, ct.first_name, '') as contact_name, ct.email as contact_email, a.name as agent_name
           FROM calls c
           LEFT JOIN contacts ct ON c.contact_id = ct.id
@@ -7334,31 +11147,31 @@ var webhook_messaging_routes_default = router3;
 
 // plugins/messaging/routes/meta-webhook.routes.ts
 import { Router as Router4 } from "express";
-import crypto3 from "crypto";
+import crypto4 from "crypto";
 init_meta_whatsapp_service();
-var router4 = Router4();
-function getConversationService() {
-  return whatsAppConversationService;
-}
-function getAdminService() {
-  return metaWhatsAppAdminService;
-}
-function getMetaService() {
-  return metaWhatsAppService;
-}
-function verifySignature(rawBody, signatureHeader, appSecret) {
-  if (!signatureHeader || !appSecret) return false;
-  try {
-    const expectedSignature = "sha256=" + crypto3.createHmac("sha256", appSecret).update(rawBody).digest("hex");
-    return crypto3.timingSafeEqual(Buffer.from(signatureHeader), Buffer.from(expectedSignature));
-  } catch {
-    return false;
-  }
+
+// plugins/messaging/services/whatsapp-inbound-parser.ts
+var MESSAGE_TYPES = /* @__PURE__ */ new Set([
+  "text",
+  "template",
+  "image",
+  "document",
+  "audio",
+  "video",
+  "reaction",
+  "button",
+  "interactive",
+  "sticker",
+  "location",
+  "contacts"
+]);
+function toMessageType(type) {
+  return MESSAGE_TYPES.has(type) ? type : "unknown";
 }
 function extractMessageContent(message) {
   const type = message.type || "unknown";
   let content = "";
-  let messageType = type;
+  let messageType = toMessageType(type);
   let mediaUrl = null;
   let mediaMimeType = null;
   let metadata = {};
@@ -7398,12 +11211,10 @@ function extractMessageContent(message) {
       break;
     case "reaction":
       content = message.reaction?.emoji || "";
-      messageType = "reaction";
       metadata = { reactedMessageId: message.reaction?.message_id };
       break;
     case "button":
       content = message.button?.text || "";
-      messageType = "button";
       metadata = { payload: message.button?.payload };
       break;
     case "interactive":
@@ -7421,17 +11232,693 @@ function extractMessageContent(message) {
       content = `[Location: ${message.location?.latitude}, ${message.location?.longitude}]`;
       metadata = { latitude: message.location?.latitude, longitude: message.location?.longitude, name: message.location?.name, address: message.location?.address };
       break;
-    case "contacts":
+    case "contacts": {
       const firstContact = message.contacts?.[0];
       content = firstContact?.name?.formatted_name || "[Contact]";
       metadata = { contacts: message.contacts };
-      messageType = "contacts";
       break;
+    }
     default:
       content = `[${type}]`;
       messageType = "unknown";
   }
   return { content, messageType, mediaUrl, mediaMimeType, metadata };
+}
+function parseTimestamp(raw) {
+  if (raw == null || raw === "") return /* @__PURE__ */ new Date();
+  if (raw instanceof Date) return raw;
+  const asNumber = typeof raw === "number" ? raw : Number(raw);
+  if (Number.isFinite(asNumber) && asNumber > 0) {
+    return new Date(asNumber < 1e12 ? asNumber * 1e3 : asNumber);
+  }
+  const parsed = new Date(String(raw));
+  return Number.isNaN(parsed.getTime()) ? /* @__PURE__ */ new Date() : parsed;
+}
+function digitsOnly(value) {
+  return String(value ?? "").replace(/[^0-9]/g, "");
+}
+function fromMetaValue(value, out) {
+  const contactName = value.contacts?.[0]?.profile?.name || "";
+  const contactWaId = value.contacts?.[0]?.wa_id || "";
+  for (const message of value.messages || []) {
+    if (!message || !message.from) continue;
+    out.messages.push({
+      ...extractMessageContent(message),
+      messageId: String(message.id || ""),
+      from: digitsOnly(message.from),
+      contactName,
+      contactWaId,
+      receivedAt: parseTimestamp(message.timestamp)
+    });
+  }
+  for (const status of value.statuses || []) {
+    if (!status?.id || !status.status) continue;
+    out.statuses.push({
+      messageId: String(status.id),
+      status: String(status.status),
+      errorMessage: status.errors?.[0]?.message || null
+    });
+  }
+}
+function eventName(event) {
+  return String(event?.event || event?.type || event?.name || "").toLowerCase();
+}
+function fromFlatEvent(event, out) {
+  const data = event?.data || event?.message || event?.payload || event;
+  if (!data || typeof data !== "object") return false;
+  const name = eventName(event);
+  const statusValue = data.status || data.messageStatus;
+  if (name.includes("status") && (data.messageId || data.id || data.whatsappMessageId) && statusValue) {
+    out.statuses.push({
+      messageId: String(data.whatsappMessageId || data.messageId || data.id),
+      status: String(statusValue).toLowerCase(),
+      errorMessage: data.error || data.errorMessage || null
+    });
+    return true;
+  }
+  const from = data.from || data.phone || data.contactPhone || data.wa_id || data.waId || data.sender;
+  if (!from) return false;
+  const direction = String(data.direction || "").toLowerCase();
+  if (direction === "outbound" || data.fromMe === true || data.isFromMe === true) return true;
+  const rawText = data.text?.body ?? data.text ?? data.body ?? data.message ?? data.content ?? "";
+  const text2 = typeof rawText === "string" ? rawText : String(rawText?.body ?? "");
+  const type = String(data.type || data.messageType || "text").toLowerCase();
+  const mediaUrl = data.mediaUrl || data.media?.url || data.mediaId || data.media?.id || null;
+  out.messages.push({
+    content: text2 || (type !== "text" ? `[${type}]` : ""),
+    messageType: toMessageType(type),
+    mediaUrl: mediaUrl ? String(mediaUrl) : null,
+    mediaMimeType: data.mimeType || data.media?.mimeType || data.mediaMimeType || null,
+    metadata: { source: "waki", event: name || "message.received" },
+    messageId: String(data.whatsappMessageId || data.messageId || data.id || data.wamid || ""),
+    from: digitsOnly(from),
+    contactName: data.contactName || data.name || data.profileName || data.profile?.name || "",
+    contactWaId: digitsOnly(data.wa_id || data.waId || from),
+    receivedAt: parseTimestamp(data.timestamp || data.createdAt || data.receivedAt || event?.timestamp)
+  });
+  return true;
+}
+function parseWakiPayload(body) {
+  const out = { messages: [], statuses: [], unrecognized: false };
+  if (!body || typeof body !== "object") {
+    out.unrecognized = true;
+    return out;
+  }
+  const events = Array.isArray(body) ? body : [body];
+  let matched = false;
+  for (const event of events) {
+    if (Array.isArray(event?.entry)) {
+      for (const entry of event.entry) {
+        for (const change of entry?.changes || []) {
+          if (change?.value) {
+            fromMetaValue(change.value, out);
+            matched = true;
+          }
+        }
+      }
+      continue;
+    }
+    if (event?.messages || event?.statuses) {
+      fromMetaValue(event, out);
+      matched = true;
+      continue;
+    }
+    if (fromFlatEvent(event, out)) matched = true;
+  }
+  out.unrecognized = !matched;
+  return out;
+}
+
+// plugins/messaging/services/whatsapp-auto-reply.service.ts
+init_db();
+init_openai_pool_service();
+import { sql as sql16 } from "drizzle-orm";
+
+// server/services/rag-knowledge.ts
+init_db();
+init_schema();
+import OpenAI from "openai";
+import { eq as eq7, and as and5, inArray as inArray3, sql as sql15 } from "drizzle-orm";
+var EMBEDDING_MODEL = "text-embedding-3-small";
+var MAX_CHUNK_CHARS = 2e3;
+var DEFAULT_STORAGE_LIMIT_BYTES = 20 * 1024 * 1024;
+var openaiClient = null;
+var lastApiKey = null;
+async function getOpenAIApiKey() {
+  try {
+    const [dbSetting] = await db.select().from(globalSettings).where(eq7(globalSettings.key, "openai_api_key")).limit(1);
+    if (dbSetting?.value) {
+      return dbSetting.value;
+    }
+  } catch (e) {
+  }
+  if (process.env.OPENAI_API_KEY) {
+    return process.env.OPENAI_API_KEY;
+  }
+  try {
+    const { OpenAIPoolService: OpenAIPoolService2 } = await Promise.resolve().then(() => (init_openai_pool_service(), openai_pool_service_exports));
+    const cred = await OpenAIPoolService2.getLeastLoadedCredential();
+    if (cred?.apiKey) return cred.apiKey;
+  } catch {
+  }
+  throw new Error("OPENAI_API_KEY is required for RAG knowledge system. Configure it in Admin Settings or as an environment variable.");
+}
+async function getOpenAIClient() {
+  const apiKey = await getOpenAIApiKey();
+  if (!openaiClient || lastApiKey !== apiKey) {
+    openaiClient = new OpenAI({ apiKey });
+    lastApiKey = apiKey;
+  }
+  return openaiClient;
+}
+function cosineSimilarity(a, b) {
+  if (a.length !== b.length) {
+    throw new Error("Vectors must have same length");
+  }
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dotProduct += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  if (normA === 0 || normB === 0) return 0;
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+function chunkText(text2, maxChars = MAX_CHUNK_CHARS, overlapChars = 200) {
+  const chunks = [];
+  const cleanText = text2.replace(/\s+/g, " ").trim();
+  if (cleanText.length <= maxChars) {
+    return [cleanText];
+  }
+  let start = 0;
+  while (start < cleanText.length) {
+    let end = start + maxChars;
+    if (end < cleanText.length) {
+      const lastPeriod = cleanText.lastIndexOf(".", end);
+      const lastNewline = cleanText.lastIndexOf("\n", end);
+      const breakPoint = Math.max(lastPeriod, lastNewline);
+      if (breakPoint > start + maxChars / 2) {
+        end = breakPoint + 1;
+      }
+    }
+    const chunk = cleanText.slice(start, end).trim();
+    if (chunk.length > 0) {
+      chunks.push(chunk);
+    }
+    start = end - overlapChars;
+    if (start >= cleanText.length) break;
+  }
+  return chunks;
+}
+async function generateEmbedding(text2) {
+  const openai = await getOpenAIClient();
+  const response = await openai.embeddings.create({
+    model: EMBEDDING_MODEL,
+    input: text2
+  });
+  return response.data[0].embedding;
+}
+function estimateTokens(text2) {
+  return Math.ceil(text2.length / 4);
+}
+var RAGKnowledgeService = class {
+  /**
+   * Get or create storage limit for user
+   */
+  static async getUserStorageLimit(userId) {
+    const [existing] = await db.select().from(userKnowledgeStorageLimits).where(eq7(userKnowledgeStorageLimits.userId, userId));
+    if (existing) {
+      return { maxBytes: existing.maxStorageBytes, usedBytes: existing.usedStorageBytes };
+    }
+    await db.insert(userKnowledgeStorageLimits).values({
+      userId,
+      maxStorageBytes: DEFAULT_STORAGE_LIMIT_BYTES,
+      usedStorageBytes: 0
+    });
+    return { maxBytes: DEFAULT_STORAGE_LIMIT_BYTES, usedBytes: 0 };
+  }
+  /**
+   * Update used storage for user
+   */
+  static async updateUsedStorage(userId, deltaBytes) {
+    await db.update(userKnowledgeStorageLimits).set({
+      usedStorageBytes: sql15`${userKnowledgeStorageLimits.usedStorageBytes} + ${deltaBytes}`,
+      updatedAt: /* @__PURE__ */ new Date()
+    }).where(eq7(userKnowledgeStorageLimits.userId, userId));
+  }
+  /**
+   * Check if user has enough storage space
+   */
+  static async checkStorageSpace(userId, requiredBytes) {
+    const { maxBytes, usedBytes } = await this.getUserStorageLimit(userId);
+    return usedBytes + requiredBytes <= maxBytes;
+  }
+  /**
+   * Process and store knowledge base item with embeddings
+   */
+  static async processKnowledgeItem(knowledgeBaseId, userId, content, metadata) {
+    try {
+      console.log(`[RAG] Processing knowledge item ${knowledgeBaseId} for user ${userId}`);
+      const contentSize = Buffer.byteLength(content, "utf8");
+      const hasSpace = await this.checkStorageSpace(userId, contentSize);
+      if (!hasSpace) {
+        return {
+          success: false,
+          chunksCreated: 0,
+          error: "Storage limit exceeded. Please delete some knowledge items or upgrade your plan."
+        };
+      }
+      const [queueEntry] = await db.insert(knowledgeProcessingQueue).values({
+        knowledgeBaseId,
+        userId,
+        status: "processing"
+      }).returning();
+      const chunks = chunkText(content);
+      console.log(`[RAG] Created ${chunks.length} chunks from content`);
+      await db.update(knowledgeProcessingQueue).set({ totalChunks: chunks.length }).where(eq7(knowledgeProcessingQueue.id, queueEntry.id));
+      let processedCount = 0;
+      for (let i = 0; i < chunks.length; i++) {
+        const chunkText2 = chunks[i];
+        try {
+          const embedding = await generateEmbedding(chunkText2);
+          await db.insert(knowledgeChunks).values({
+            knowledgeBaseId,
+            userId,
+            chunkIndex: i,
+            chunkText: chunkText2,
+            embedding,
+            // Store as JSON array
+            tokenCount: estimateTokens(chunkText2),
+            metadata: { ...metadata, chunkIndex: i, totalChunks: chunks.length }
+          });
+          processedCount++;
+          await db.update(knowledgeProcessingQueue).set({ processedChunks: processedCount, updatedAt: /* @__PURE__ */ new Date() }).where(eq7(knowledgeProcessingQueue.id, queueEntry.id));
+        } catch (chunkError) {
+          console.error(`[RAG] Error processing chunk ${i}:`, chunkError.message);
+        }
+        if (i < chunks.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+      }
+      await this.updateUsedStorage(userId, contentSize);
+      await db.update(knowledgeProcessingQueue).set({ status: "completed", updatedAt: /* @__PURE__ */ new Date() }).where(eq7(knowledgeProcessingQueue.id, queueEntry.id));
+      console.log(`[RAG] Successfully processed ${processedCount}/${chunks.length} chunks`);
+      return { success: true, chunksCreated: processedCount };
+    } catch (error) {
+      console.error(`[RAG] Error processing knowledge item:`, error.message);
+      await db.update(knowledgeProcessingQueue).set({ status: "failed", errorMessage: error.message, updatedAt: /* @__PURE__ */ new Date() }).where(eq7(knowledgeProcessingQueue.knowledgeBaseId, knowledgeBaseId));
+      return { success: false, chunksCreated: 0, error: error.message };
+    }
+  }
+  /**
+   * Chunks with embeddings for in-memory search (one load per call on the Sarvam pipeline).
+   */
+  static async loadChunksForSearch(knowledgeBaseIds, userId, limit) {
+    if (knowledgeBaseIds.length === 0) return [];
+    const rows = await db.select({ text: knowledgeChunks.chunkText, embedding: knowledgeChunks.embedding }).from(knowledgeChunks).where(and5(inArray3(knowledgeChunks.knowledgeBaseId, knowledgeBaseIds), eq7(knowledgeChunks.userId, userId))).limit(limit);
+    return rows.filter((row) => Array.isArray(row.embedding) && row.embedding.length > 0).map((row) => ({ text: row.text, embedding: row.embedding }));
+  }
+  /**
+   * Re-runs chunking + embeddings for an item from its stored content (failed runs, items created
+   * before RAG existed). Existing chunks and queue rows are dropped first so the status is fresh.
+   */
+  static async reprocessKnowledgeItem(knowledgeBaseId, userId, content, metadata) {
+    await this.deleteKnowledgeChunks(knowledgeBaseId, userId);
+    return this.processKnowledgeItem(knowledgeBaseId, userId, content, metadata);
+  }
+  /**
+   * Search knowledge base using semantic similarity
+   */
+  static async searchKnowledge(query, knowledgeBaseIds, userId, maxResults = 5) {
+    try {
+      console.log(`[RAG] Searching knowledge for: "${query.substring(0, 50)}..."`);
+      if (knowledgeBaseIds.length === 0) {
+        return [];
+      }
+      const queryEmbedding = await generateEmbedding(query);
+      const chunks = await db.select().from(knowledgeChunks).where(
+        and5(
+          inArray3(knowledgeChunks.knowledgeBaseId, knowledgeBaseIds),
+          eq7(knowledgeChunks.userId, userId)
+        )
+      );
+      if (chunks.length === 0) {
+        console.log(`[RAG] No chunks found for knowledge bases`);
+        return [];
+      }
+      console.log(`[RAG] Searching ${chunks.length} chunks`);
+      const scoredChunks = chunks.filter((chunk) => chunk.embedding && Array.isArray(chunk.embedding)).map((chunk) => ({
+        chunk,
+        score: cosineSimilarity(queryEmbedding, chunk.embedding),
+        source: chunk.knowledgeBaseId
+      })).sort((a, b) => b.score - a.score).slice(0, maxResults);
+      console.log(`[RAG] Found ${scoredChunks.length} relevant chunks (top score: ${scoredChunks[0]?.score.toFixed(3) || "N/A"})`);
+      return scoredChunks;
+    } catch (error) {
+      console.error(`[RAG] Search error:`, error.message);
+      return [];
+    }
+  }
+  /**
+   * Format search results for agent consumption
+   */
+  static formatResultsForAgent(results, maxTokens = 500) {
+    if (results.length === 0) {
+      return "No relevant information found in the knowledge base.";
+    }
+    let output = "Based on the knowledge base:\n\n";
+    let totalTokens = estimateTokens(output);
+    for (const result of results) {
+      const chunkTokens = estimateTokens(result.chunk.chunkText);
+      if (totalTokens + chunkTokens > maxTokens) {
+        const remainingTokens = maxTokens - totalTokens - 10;
+        if (remainingTokens > 50) {
+          const truncatedChars = remainingTokens * 4;
+          output += `\u2022 ${result.chunk.chunkText.substring(0, truncatedChars)}...
+`;
+        }
+        break;
+      }
+      output += `\u2022 ${result.chunk.chunkText}
+
+`;
+      totalTokens += chunkTokens + 5;
+    }
+    return output.trim();
+  }
+  /**
+   * Delete all chunks for a knowledge base item
+   */
+  static async deleteKnowledgeChunks(knowledgeBaseId, userId) {
+    const chunks = await db.select().from(knowledgeChunks).where(
+      and5(
+        eq7(knowledgeChunks.knowledgeBaseId, knowledgeBaseId),
+        eq7(knowledgeChunks.userId, userId)
+      )
+    );
+    const totalSize = chunks.reduce((sum, chunk) => {
+      return sum + Buffer.byteLength(chunk.chunkText, "utf8");
+    }, 0);
+    await db.delete(knowledgeChunks).where(eq7(knowledgeChunks.knowledgeBaseId, knowledgeBaseId));
+    await db.delete(knowledgeProcessingQueue).where(eq7(knowledgeProcessingQueue.knowledgeBaseId, knowledgeBaseId));
+    if (totalSize > 0) {
+      await this.updateUsedStorage(userId, -totalSize);
+    }
+    console.log(`[RAG] Deleted ${chunks.length} chunks for knowledge base ${knowledgeBaseId}`);
+  }
+  /**
+   * Get processing status for a knowledge base item
+   */
+  static async getProcessingStatus(knowledgeBaseId) {
+    const [entry] = await db.select().from(knowledgeProcessingQueue).where(eq7(knowledgeProcessingQueue.knowledgeBaseId, knowledgeBaseId)).orderBy(sql15`${knowledgeProcessingQueue.createdAt} DESC`).limit(1);
+    if (!entry) {
+      return null;
+    }
+    const progress = entry.totalChunks ? (entry.processedChunks || 0) / entry.totalChunks * 100 : 0;
+    return {
+      status: entry.status,
+      progress: Math.round(progress),
+      error: entry.errorMessage || void 0
+    };
+  }
+  /**
+   * Get chunk count for a knowledge base item
+   */
+  static async getChunkCount(knowledgeBaseId) {
+    const result = await db.select({ count: sql15`count(*)` }).from(knowledgeChunks).where(eq7(knowledgeChunks.knowledgeBaseId, knowledgeBaseId));
+    return Number(result[0]?.count || 0);
+  }
+};
+
+// plugins/messaging/services/whatsapp-auto-reply.service.ts
+init_whatsway_service();
+init_meta_whatsapp_service();
+var LOG = "[WhatsApp AutoReply]";
+var DEFAULT_MODEL = "gpt-4o-mini";
+var MAX_MESSAGE_AGE_MS = 5 * 60 * 1e3;
+var HISTORY_MESSAGES = 12;
+var OPENAI_TIMEOUT_MS = 25e3;
+var HANDOFF_MARKER = "[HANDOFF]";
+var KB_MAX_CHUNKS = 2e3;
+var KB_MIN_SCORE = 0.25;
+var KB_MAX_PASSAGES = 4;
+var KB_MAX_CONTEXT_CHARS = 1400;
+var KB_MIN_QUERY_WORDS = 3;
+var KB_CACHE_TTL_MS = 5 * 60 * 1e3;
+var REPLYABLE_TYPES = /* @__PURE__ */ new Set(["text", "button", "interactive"]);
+var HANDOFF_PATTERNS = [
+  /\b(human|real person|live agent|customer care|support team|representative|operator|executive)\b/i,
+  /\btalk to (an? )?(agent|someone|person)\b/i,
+  /\bspeak (to|with) (an? )?(agent|someone|person)\b/i,
+  /\bagent\b/i,
+  /\bbaat karn[ia] hai\b/i,
+  /\bkisi se baat\b/i,
+  /\b(insaan|aadmi|bande|banda) se (baat|milna)\b/i,
+  /किसी से बात|इंसान से|बात करनी है|एजेंट/
+];
+var WHATSAPP_STYLE_WRAPPER = `
+You are now replying on WhatsApp chat, not on a phone call. Rules for every reply:
+- Keep it short: 2 to 4 sentences, plain conversational text.
+- Reply in the same language AND script the customer uses (Devanagari if they write Devanagari, Hinglish in Latin letters if they write Hinglish, English if they write English).
+- No markdown: no asterisks, no headings, no bullet lists, no code blocks. Emojis only if the customer uses them.
+- Use only the business information you have been given; if you do not know, say so briefly and offer to connect them with the team.
+- If the customer asks for a human, a team member, or a callback, or you cannot help, write one short handover line and put the marker ${HANDOFF_MARKER} at the very end of the reply.
+`.trim();
+function resolveChatModel(llmModel) {
+  const model = (llmModel || "").trim();
+  if (!model) return DEFAULT_MODEL;
+  if (/realtime|whisper|translate|tts|transcribe/i.test(model)) return DEFAULT_MODEL;
+  return model;
+}
+function wantsHuman(text2) {
+  const trimmed = (text2 || "").trim();
+  if (!trimmed) return false;
+  return HANDOFF_PATTERNS.some((pattern) => pattern.test(trimmed));
+}
+function stripMarkdown(text2) {
+  return text2.replace(/\*\*(.*?)\*\*/g, "$1").replace(/__(.*?)__/g, "$1").replace(/^#{1,6}\s+/gm, "").replace(/^\s*[-*]\s+/gm, "").replace(/`+/g, "").replace(/\n{3,}/g, "\n\n").trim();
+}
+var WhatsAppAutoReplyService = class {
+  kbCache = /* @__PURE__ */ new Map();
+  /**
+   * First message from a new contact: apply the user's default agent when the account default is on.
+   * Returns the (possibly updated) conversation.
+   */
+  async applyUserDefaults(userId, conversation) {
+    if (!conversation.isNew) return conversation;
+    const settings = await whatsAppAutoReplySettingsService.findByUserId(userId);
+    if (!settings?.whatsappAutoReplyDefault || !settings.defaultWhatsappAgentId) return conversation;
+    await whatsAppConversationService.setAutoReply(userId, conversation.id, true, settings.defaultWhatsappAgentId);
+    console.log(`${LOG} New conversation ${conversation.id}: default agent applied`);
+    return { ...conversation, autoReplyEnabled: true, assignedAgentId: settings.defaultWhatsappAgentId };
+  }
+  /** Entry point for webhooks. Never throws; every failure is logged and swallowed. */
+  async handleInbound(ctx) {
+    try {
+      await this.process(ctx);
+    } catch (error) {
+      console.error(`${LOG} Failed for conversation ${ctx.conversation.id}: ${error?.message || error}`);
+    }
+  }
+  async process(ctx) {
+    const { userId, message } = ctx;
+    if (message.direction !== "inbound" || message.senderType !== "customer") return;
+    if (!REPLYABLE_TYPES.has(message.messageType) || !message.content?.trim()) return;
+    const receivedAt = ctx.receivedAt || new Date(message.createdAt || Date.now());
+    if (Date.now() - receivedAt.getTime() > MAX_MESSAGE_AGE_MS) {
+      console.log(`${LOG} Ignoring stale inbound (${Math.round((Date.now() - receivedAt.getTime()) / 1e3)}s old)`);
+      return;
+    }
+    const conversation = await whatsAppConversationService.getConversationById(ctx.conversation.id);
+    if (!conversation || conversation.userId !== userId) return;
+    if (!conversation.autoReplyEnabled || !conversation.assignedAgentId) return;
+    if (conversation.status !== "active") return;
+    const claimed = await whatsAppConversationService.claimAutoReply(conversation.id, message.id);
+    if (!claimed) {
+      console.log(`${LOG} Reply already claimed for message ${message.id}; skipping`);
+      return;
+    }
+    if (!whatsAppConversationService.isWindowOpen(conversation)) {
+      console.log(`${LOG} 24-hour window closed for conversation ${conversation.id}; nothing sent`);
+      return;
+    }
+    const agent = await this.loadAgent(userId, conversation.assignedAgentId);
+    if (!agent) {
+      console.warn(`${LOG} Assigned agent not found for conversation ${conversation.id}; auto-reply disabled`);
+      await whatsAppConversationService.setAutoReply(userId, conversation.id, false);
+      return;
+    }
+    if (wantsHuman(message.content)) {
+      await this.handoff(ctx, conversation, agent, "Sure \u2014 connecting you to our team. Someone will reply here shortly.");
+      return;
+    }
+    const [history, knowledge] = await Promise.all([
+      whatsAppConversationService.getMessages(conversation.id, { limit: HISTORY_MESSAGES }),
+      this.retrieveKnowledge(userId, agent, message.content)
+    ]);
+    const reply = await this.generateReply(agent, history, knowledge);
+    if (!reply) return;
+    const handoffRequested = reply.includes(HANDOFF_MARKER);
+    const text2 = stripMarkdown(reply.replace(HANDOFF_MARKER, "")).trim();
+    if (text2) await this.send(ctx, conversation, agent, text2, message.id);
+    if (handoffRequested) {
+      await whatsAppConversationService.handoffToHuman(conversation.id);
+      console.log(`${LOG} Model requested handoff for conversation ${conversation.id}`);
+    }
+  }
+  async handoff(ctx, conversation, agent, ack) {
+    await this.send(ctx, conversation, agent, ack, ctx.message.id);
+    await whatsAppConversationService.handoffToHuman(conversation.id);
+    console.log(`${LOG} Customer asked for a human in conversation ${conversation.id}; auto-reply off`);
+  }
+  async send(ctx, conversation, agent, text2, replyToMessageId) {
+    const { userId, provider } = ctx;
+    try {
+      const sendResult = provider === "meta" ? await metaWhatsAppService.sendReply(userId, conversation.contactPhone, text2, { agentId: agent.id }) : await whatswayService.sendReply(userId, conversation.contactPhone, text2, { agentId: agent.id });
+      await whatsAppConversationService.addMessage({
+        conversationId: conversation.id,
+        userId,
+        direction: "outbound",
+        senderType: "agent",
+        messageType: "text",
+        content: text2,
+        metaMessageId: sendResult?.messageId,
+        status: "sent",
+        metadata: { agentId: agent.id, replyTo: replyToMessageId, source: "auto-reply", provider }
+      });
+      console.log(`${LOG} Replied in conversation ${conversation.id} via ${provider} (${text2.length} chars)`);
+    } catch (error) {
+      console.error(`${LOG} Send failed for conversation ${conversation.id}: ${error?.message || error}`);
+    }
+  }
+  async loadAgent(userId, agentId) {
+    const result = await db.execute(sql16`
+      SELECT id, name, system_prompt, llm_model, language, knowledge_base_ids
+      FROM agents WHERE id = ${agentId} AND user_id = ${userId} LIMIT 1
+    `);
+    const row = result.rows[0];
+    if (!row) return null;
+    return {
+      id: row.id,
+      name: row.name,
+      systemPrompt: row.system_prompt,
+      llmModel: row.llm_model,
+      language: row.language,
+      knowledgeBaseIds: Array.isArray(row.knowledge_base_ids) ? row.knowledge_base_ids : null
+    };
+  }
+  async loadChunks(userId, agent) {
+    const ids = (agent.knowledgeBaseIds || []).filter((id) => typeof id === "string" && id.length > 0);
+    if (ids.length === 0) return [];
+    const cacheKey = `${userId}:${agent.id}:${ids.join(",")}`;
+    const cached = this.kbCache.get(cacheKey);
+    if (cached && Date.now() - cached.loadedAt < KB_CACHE_TTL_MS) return cached.chunks;
+    const chunks = await RAGKnowledgeService.loadChunksForSearch(ids, userId, KB_MAX_CHUNKS);
+    this.kbCache.set(cacheKey, { loadedAt: Date.now(), chunks });
+    return chunks;
+  }
+  /** Best passages for the inbound text, formatted for the system prompt (null when none). */
+  async retrieveKnowledge(userId, agent, query) {
+    try {
+      const trimmed = query.trim();
+      if (trimmed.split(/\s+/).length < KB_MIN_QUERY_WORDS) return null;
+      const chunks = await this.loadChunks(userId, agent);
+      if (chunks.length === 0) return null;
+      const embedding = await generateEmbedding(trimmed);
+      const ranked = chunks.map((chunk) => ({ text: chunk.text, score: cosineSimilarity(embedding, chunk.embedding) })).filter((c) => c.score >= KB_MIN_SCORE).sort((a, b) => b.score - a.score).slice(0, KB_MAX_PASSAGES);
+      if (ranked.length === 0) return null;
+      let budget = KB_MAX_CONTEXT_CHARS;
+      const passages = [];
+      for (const { text: text2 } of ranked) {
+        if (budget <= 80) break;
+        const slice = text2.length > budget ? `${text2.substring(0, budget - 1)}\u2026` : text2;
+        passages.push(`- ${slice}`);
+        budget -= slice.length;
+      }
+      return passages.join("\n");
+    } catch (error) {
+      console.warn(`${LOG} Knowledge retrieval failed: ${error?.message || error}`);
+      return null;
+    }
+  }
+  async getOpenAIKey() {
+    try {
+      const cred = await OpenAIPoolService.getLeastLoadedCredential();
+      if (cred?.apiKey) return cred.apiKey;
+    } catch (error) {
+      console.warn(`${LOG} OpenAI pool lookup failed: ${error?.message || error}`);
+    }
+    return process.env.OPENAI_API_KEY || null;
+  }
+  async generateReply(agent, history, knowledge) {
+    const apiKey = await this.getOpenAIKey();
+    if (!apiKey) {
+      console.error(`${LOG} No OpenAI credential available (pool empty and OPENAI_API_KEY unset)`);
+      return null;
+    }
+    const systemParts = [
+      (agent.systemPrompt || `You are ${agent.name}, a helpful assistant for this business.`).trim(),
+      WHATSAPP_STYLE_WRAPPER
+    ];
+    if (knowledge) systemParts.push(`Relevant business information for this question:
+${knowledge}`);
+    const messages = [
+      { role: "system", content: systemParts.join("\n\n") },
+      ...history.filter((m) => m.content && m.content.trim()).map((m) => ({
+        role: m.direction === "inbound" ? "user" : "assistant",
+        content: m.content.trim().substring(0, 2e3)
+      }))
+    ];
+    if (messages.length === 1) return null;
+    const model = resolveChatModel(agent.llmModel);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), OPENAI_TIMEOUT_MS);
+    try {
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({ model, messages, temperature: 0.4, max_tokens: 320 }),
+        signal: controller.signal
+      });
+      if (!response.ok) {
+        const detail = await response.text().catch(() => "");
+        console.error(`${LOG} OpenAI ${response.status} for model ${model}: ${detail.substring(0, 200)}`);
+        return null;
+      }
+      const json = await response.json();
+      const text2 = json?.choices?.[0]?.message?.content;
+      return typeof text2 === "string" && text2.trim() ? text2.trim() : null;
+    } catch (error) {
+      console.error(`${LOG} OpenAI request failed: ${error?.name === "AbortError" ? "timeout" : error?.message}`);
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+};
+var whatsAppAutoReplyService = new WhatsAppAutoReplyService();
+
+// plugins/messaging/routes/meta-webhook.routes.ts
+var router4 = Router4();
+function getConversationService() {
+  return whatsAppConversationService;
+}
+function getAdminService() {
+  return metaWhatsAppAdminService;
+}
+function getMetaService() {
+  return metaWhatsAppService;
+}
+function verifySignature(rawBody, signatureHeader, appSecret) {
+  if (!signatureHeader || !appSecret) return false;
+  try {
+    const expectedSignature = "sha256=" + crypto4.createHmac("sha256", appSecret).update(rawBody).digest("hex");
+    return crypto4.timingSafeEqual(Buffer.from(signatureHeader), Buffer.from(expectedSignature));
+  } catch {
+    return false;
+  }
 }
 router4.get("/webhook", async (req, res) => {
   try {
@@ -7535,15 +12022,16 @@ async function processInboundMessages(value) {
         console.log(`[Meta Webhook] Skipping duplicate message: ${message.id}`);
         continue;
       }
-      const conversation = await convService.getOrCreateConversation(
+      let conversation = await convService.getOrCreateConversation(
         userId,
         message.from,
         contactName,
         contactWaId
       );
+      conversation = await whatsAppAutoReplyService.applyUserDefaults(userId, conversation);
       await convService.refreshWindow(conversation.id);
       const { content, messageType, mediaUrl, mediaMimeType, metadata } = extractMessageContent(message);
-      await convService.addMessage({
+      const stored = await convService.addMessage({
         conversationId: conversation.id,
         userId,
         direction: "inbound",
@@ -7558,6 +12046,9 @@ async function processInboundMessages(value) {
       meta.markMessageRead(userId, message.id).catch(() => {
       });
       console.log(`[Meta Webhook] Inbound message from ${message.from} stored (${message.id})`);
+      const tsSeconds = Number(message.timestamp);
+      const receivedAt = Number.isFinite(tsSeconds) && tsSeconds > 0 ? new Date(tsSeconds * 1e3) : /* @__PURE__ */ new Date();
+      void whatsAppAutoReplyService.handleInbound({ userId, conversation, message: stored, provider: "meta", receivedAt });
     } catch (error) {
       console.error(`[Meta Webhook] Error processing message ${message.id}:`, error.message);
     }
@@ -7576,6 +12067,172 @@ async function processStatusUpdates(statuses) {
 }
 var meta_webhook_routes_default = router4;
 
+// plugins/messaging/routes/waki-webhook.routes.ts
+import { Router as Router5 } from "express";
+var router5 = Router5();
+var LOG2 = "[Waki Webhook]";
+async function resolveUser(req, res) {
+  const secret = String(req.params.secret || "");
+  const userId = await whatsAppAutoReplySettingsService.findUserBySecret(secret);
+  if (!userId) {
+    console.warn(`${LOG2} Unknown webhook secret \u2014 rejecting`);
+    res.status(403).json({ success: false, error: "Forbidden" });
+    return null;
+  }
+  const signature = req.headers["x-webhook-signature"] || req.headers["x-hub-signature-256"];
+  if (!whatsAppAutoReplySettingsService.verifySignature(req.rawBody, signature, secret)) {
+    console.warn(`${LOG2} Invalid webhook signature \u2014 rejecting`);
+    res.status(403).json({ success: false, error: "Forbidden" });
+    return null;
+  }
+  return userId;
+}
+router5.get("/:secret", async (req, res) => {
+  const userId = await resolveUser(req, res);
+  if (!userId) return;
+  const challenge = req.query["hub.challenge"];
+  if (typeof challenge === "string" && challenge) {
+    return res.status(200).send(challenge);
+  }
+  return res.json({ success: true, message: "Waki webhook is connected" });
+});
+router5.post("/:secret", async (req, res) => {
+  const userId = await resolveUser(req, res);
+  if (!userId) return;
+  res.status(200).json({ success: true });
+  try {
+    const parsed = parseWakiPayload(req.body);
+    if (parsed.unrecognized) {
+      const keys = req.body && typeof req.body === "object" ? Object.keys(req.body).slice(0, 10).join(",") : typeof req.body;
+      console.warn(`${LOG2} Unrecognized payload shape (keys: ${keys})`);
+      return;
+    }
+    for (const inbound of parsed.messages) {
+      await storeInbound(userId, inbound);
+    }
+    for (const status of parsed.statuses) {
+      try {
+        await whatsAppConversationService.updateMessageStatus(status.messageId, status.status, status.errorMessage || void 0);
+      } catch (error) {
+        console.error(`${LOG2} Status update failed for ${status.messageId}: ${error.message}`);
+      }
+    }
+  } catch (error) {
+    console.error(`${LOG2} Error processing webhook: ${error.message}`);
+  }
+});
+async function storeInbound(userId, inbound) {
+  try {
+    if (!inbound.from) {
+      console.warn(`${LOG2} Inbound without sender phone \u2014 skipped`);
+      return;
+    }
+    if (inbound.messageId && await whatsAppConversationService.isDuplicateMessage(inbound.messageId)) {
+      console.log(`${LOG2} Skipping duplicate message ${inbound.messageId}`);
+      return;
+    }
+    let conversation = await whatsAppConversationService.getOrCreateConversation(
+      userId,
+      inbound.from,
+      inbound.contactName,
+      inbound.contactWaId
+    );
+    conversation = await whatsAppAutoReplyService.applyUserDefaults(userId, conversation);
+    await whatsAppConversationService.refreshWindow(conversation.id);
+    const stored = await whatsAppConversationService.addMessage({
+      conversationId: conversation.id,
+      userId,
+      direction: "inbound",
+      senderType: "customer",
+      messageType: inbound.messageType,
+      content: inbound.content,
+      metaMessageId: inbound.messageId || void 0,
+      mediaUrl: inbound.mediaUrl || void 0,
+      mediaMimeType: inbound.mediaMimeType || void 0,
+      status: "delivered",
+      metadata: { ...inbound.metadata, receivedAt: inbound.receivedAt.toISOString() }
+    });
+    console.log(`${LOG2} Inbound message stored in conversation ${conversation.id}`);
+    void whatsAppAutoReplyService.handleInbound({
+      userId,
+      conversation,
+      message: stored,
+      provider: "whatsway",
+      receivedAt: inbound.receivedAt
+    });
+  } catch (error) {
+    console.error(`${LOG2} Error storing inbound message: ${error.message}`);
+  }
+}
+var waki_webhook_routes_default = router5;
+
+// plugins/messaging/routes/auto-reply.routes.ts
+import { Router as Router6 } from "express";
+var router6 = Router6();
+function requestOrigin(req) {
+  const host = req.headers["x-forwarded-host"] || req.headers.host || "";
+  const isLocal = host.startsWith("localhost") || host.startsWith("127.0.0.1");
+  const proto = isLocal ? "http" : req.headers["x-forwarded-proto"]?.split(",")[0]?.trim() || "https";
+  return `${proto}://${host}`;
+}
+function present(req, settings) {
+  return {
+    defaultWhatsappAgentId: settings.defaultWhatsappAgentId,
+    whatsappAutoReplyDefault: settings.whatsappAutoReplyDefault,
+    webhookUrl: whatsAppAutoReplySettingsService.buildWebhookUrl(requestOrigin(req), settings.webhookSecret),
+    updatedAt: settings.updatedAt
+  };
+}
+router6.get("/settings", async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+    const settings = await whatsAppAutoReplySettingsService.getSettings(userId);
+    res.json({ success: true, data: present(req, settings) });
+  } catch (error) {
+    console.error("[Messaging] Error fetching auto-reply settings:", error.message);
+    res.status(500).json({ success: false, error: "Failed to fetch auto-reply settings" });
+  }
+});
+router6.put("/settings", async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+    const { defaultWhatsappAgentId, whatsappAutoReplyDefault } = req.body || {};
+    const agentId = typeof defaultWhatsappAgentId === "string" && defaultWhatsappAgentId.trim() ? defaultWhatsappAgentId.trim() : null;
+    const enabled = Boolean(whatsappAutoReplyDefault);
+    if (agentId && agentId.length > 64) {
+      return res.status(400).json({ success: false, error: "Invalid agent id" });
+    }
+    if (agentId && !await whatsAppAutoReplySettingsService.agentBelongsToUser(userId, agentId)) {
+      return res.status(400).json({ success: false, error: "Agent not found" });
+    }
+    if (enabled && !agentId) {
+      return res.status(400).json({ success: false, error: "Pick an agent to auto-reply with" });
+    }
+    const settings = await whatsAppAutoReplySettingsService.saveSettings(userId, {
+      defaultWhatsappAgentId: agentId,
+      whatsappAutoReplyDefault: enabled
+    });
+    res.json({ success: true, data: present(req, settings) });
+  } catch (error) {
+    console.error("[Messaging] Error saving auto-reply settings:", error.message);
+    res.status(500).json({ success: false, error: "Failed to save auto-reply settings" });
+  }
+});
+router6.post("/regenerate-secret", async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+    const settings = await whatsAppAutoReplySettingsService.regenerateSecret(userId);
+    res.json({ success: true, data: present(req, settings) });
+  } catch (error) {
+    console.error("[Messaging] Error regenerating webhook secret:", error.message);
+    res.status(500).json({ success: false, error: "Failed to regenerate webhook secret" });
+  }
+});
+var auto_reply_routes_default = router6;
+
 // plugins/messaging/index.ts
 init_email_template_service();
 init_whatsway_service();
@@ -7584,20 +12241,22 @@ init_messaging_log_service();
 var PLUGIN_VERSION = "1.0.3";
 var PLUGIN_NAME = "messaging";
 function createUserMessagingRouter() {
-  const router5 = Router5();
-  router5.use("/", user_messaging_routes_default);
-  return router5;
+  const router7 = Router7();
+  router7.use("/auto-reply", auto_reply_routes_default);
+  router7.use("/", user_messaging_routes_default);
+  return router7;
 }
 function createAdminMessagingRouter() {
-  const router5 = Router5();
-  router5.use("/", admin_messaging_routes_default);
-  return router5;
+  const router7 = Router7();
+  router7.use("/", admin_messaging_routes_default);
+  return router7;
 }
 function createWebhookMessagingRouter() {
-  const router5 = Router5();
-  router5.use("/", webhook_messaging_routes_default);
-  router5.use("/meta", meta_webhook_routes_default);
-  return router5;
+  const router7 = Router7();
+  router7.use("/", webhook_messaging_routes_default);
+  router7.use("/meta", meta_webhook_routes_default);
+  router7.use("/waki", waki_webhook_routes_default);
+  return router7;
 }
 function registerMessagingRoutes(app, options) {
   const { sessionAuthMiddleware, adminAuthMiddleware } = options;
@@ -7610,12 +12269,14 @@ function registerMessagingRoutes(app, options) {
   console.log("  - /api/messaging/whatsway/* (Waki, user auth)");
   console.log("  - /api/messaging/meta-whatsapp/* (user auth)");
   console.log("  - /api/messaging/conversations (user auth)");
+  console.log("  - /api/messaging/auto-reply/* (user auth)");
   console.log("  - /api/messaging/logs (user auth)");
   console.log("  - /api/admin/messaging/* (admin auth)");
   console.log("  - /api/admin/messaging/whatsapp-config (admin auth)");
   console.log("  - /api/webhooks/messaging/send-email (webhook)");
   console.log("  - /api/webhooks/messaging/send-whatsapp (webhook)");
   console.log("  - /api/webhooks/messaging/meta/webhook (Meta webhook)");
+  console.log("  - /api/webhooks/messaging/waki/:secret (Waki inbound webhook)");
   console.log("[Messaging] Plugin initialized");
 }
 var index_default = {
@@ -7630,6 +12291,8 @@ export {
   MetaWhatsAppService,
   PLUGIN_NAME,
   PLUGIN_VERSION,
+  WhatsAppAutoReplyService,
+  WhatsAppAutoReplySettingsService,
   WhatsAppConversationService,
   WhatswayService,
   createAdminMessagingRouter,
@@ -7641,6 +12304,8 @@ export {
   metaWhatsAppAdminService,
   metaWhatsAppService,
   registerMessagingRoutes,
+  whatsAppAutoReplyService,
+  whatsAppAutoReplySettingsService,
   whatsAppConversationService,
   whatswayService
 };

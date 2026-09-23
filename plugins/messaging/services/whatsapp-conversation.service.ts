@@ -44,9 +44,18 @@ export class WhatsAppConversationService {
         contact_name = CASE WHEN EXCLUDED.contact_name != '' THEN EXCLUDED.contact_name ELSE whatsapp_conversations.contact_name END,
         contact_wa_id = CASE WHEN EXCLUDED.contact_wa_id != '' THEN EXCLUDED.contact_wa_id ELSE whatsapp_conversations.contact_wa_id END,
         updated_at = NOW()
-      RETURNING *
+      RETURNING *, (xmax = 0) AS is_new
     `);
     return transformRow<WhatsAppConversation>((result as any).rows[0]);
+  }
+
+  /** Internal lookup (webhooks) — no user scoping; callers already resolved the owner. */
+  async getConversationById(conversationId: string): Promise<WhatsAppConversation | null> {
+    const result = await db.execute(sql`
+      SELECT * FROM whatsapp_conversations WHERE id = ${conversationId} LIMIT 1
+    `);
+    const row = (result as any).rows[0];
+    return row ? transformRow<WhatsAppConversation>(row) : null;
   }
 
   async getConversations(
@@ -229,6 +238,42 @@ export class WhatsAppConversationService {
     `);
   }
 
+  /**
+   * Atomically claims the right to send one AI reply for an inbound message.
+   * Returns false when a reply for that message was already claimed (duplicate webhook delivery).
+   */
+  async claimAutoReply(conversationId: string, inboundMessageId: string): Promise<boolean> {
+    const result = await db.execute(sql`
+      UPDATE whatsapp_conversations SET
+        last_ai_reply_source_id = ${inboundMessageId}::uuid,
+        updated_at = NOW()
+      WHERE id = ${conversationId}
+        AND last_ai_reply_source_id IS DISTINCT FROM ${inboundMessageId}::uuid
+      RETURNING id
+    `);
+    return ((result as any).rows || []).length > 0;
+  }
+
+  /** AI handoff: stop auto-replies and flag the thread for a human. No user scoping (called from webhooks). */
+  async handoffToHuman(conversationId: string): Promise<void> {
+    await db.execute(sql`
+      UPDATE whatsapp_conversations SET
+        auto_reply_enabled = false,
+        needs_attention = true,
+        updated_at = NOW()
+      WHERE id = ${conversationId}
+    `);
+  }
+
+  async setNeedsAttention(userId: string, conversationId: string, needsAttention: boolean): Promise<void> {
+    await db.execute(sql`
+      UPDATE whatsapp_conversations SET
+        needs_attention = ${needsAttention},
+        updated_at = NOW()
+      WHERE id = ${conversationId} AND user_id = ${userId}
+    `);
+  }
+
   async refreshWindow(conversationId: string): Promise<void> {
     await db.execute(sql`
       UPDATE whatsapp_conversations SET
@@ -294,7 +339,8 @@ export class WhatsAppConversationService {
   async getConversationUpdates(userId: string, since: string): Promise<WhatsAppConversation[]> {
     const result = await db.execute(sql`
       SELECT id, unread_count, last_message_at, last_message_preview, status, updated_at, window_expires_at,
-             contact_phone, contact_name, contact_wa_id, user_id, assigned_agent_id, auto_reply_enabled, created_at
+             contact_phone, contact_name, contact_wa_id, user_id, assigned_agent_id, auto_reply_enabled,
+             needs_attention, last_ai_reply_source_id, created_at
       FROM whatsapp_conversations
       WHERE user_id = ${userId} AND updated_at > ${since}
       ORDER BY last_message_at DESC
