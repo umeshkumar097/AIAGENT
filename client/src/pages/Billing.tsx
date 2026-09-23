@@ -13,6 +13,7 @@ import { Plus, Loader2, Check, Crown, AlertCircle, Wallet, Coins, Receipt, Trend
 import { CreditPurchaseDialog, type CreditPackageOption } from "@/components/CreditPurchaseDialog";
 import { CreditLedger } from "@/components/billing/CreditLedger";
 import { InvoicesList } from "@/components/billing/InvoicesList";
+import { UsageAlertsCard } from "@/components/billing/UsageAlertsCard";
 import TransactionHistory from "@/pages/TransactionHistory";
 import { UpgradePlansContent, type UserSubscription } from "@/pages/Upgrade";
 import { PhoneNumberSubscriptionSection } from "@/components/PhoneNumberSubscriptionSection";
@@ -269,6 +270,7 @@ export default function Billing() {
               )}
             </div>
           </div>
+          <UsageAlertsCard />
         </TabsContent>
 
         <TabsContent value="history" className="space-y-8">
