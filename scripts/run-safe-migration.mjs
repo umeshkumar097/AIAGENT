@@ -67,6 +67,7 @@ const MIGRATIONS = [
   resolve(rootDir, 'migrations', '0005_add_missing_agent_messaging_columns.sql'),
   resolve(rootDir, 'migrations', '0006_add_legacy_agent_columns.sql'),
   resolve(rootDir, 'migrations', '0007_schema_sync.sql'),
+  resolve(rootDir, 'migrations', '0008_cashfree_billing.sql'),
 ];
 
 /**
