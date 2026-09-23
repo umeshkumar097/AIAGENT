@@ -198,6 +198,7 @@ export function AddSystemNumberDialog({ open, onOpenChange }: AddSystemNumberDia
   };
 
   const handleRelease = (number: TwilioNumber) => {
+    // eslint-disable-next-line no-alert -- confirm() gates destructive number release
     if (confirm(t("admin.systemNumbers.releaseConfirm", { number: formatPhoneNumber(number.phoneNumber) }))) {
       releaseMutation.mutate(number.sid);
     }

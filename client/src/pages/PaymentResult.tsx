@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, XCircle, Loader2, Crown, ArrowLeft, Sparkles, RefreshCw } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, Crown, ArrowLeft, Sparkles, RefreshCw, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useTranslation } from "react-i18next";
 
 type PaymentType = "subscription" | "credits";
-type PaymentStatus = "success" | "failure" | "processing" | "cancelled";
+type PaymentStatus = "success" | "failure" | "processing" | "cancelled" | "unverified";
 type GatewayType = "stripe" | "razorpay" | "paypal" | "paystack" | "mercadopago";
 
 interface PaymentDetails {
@@ -99,6 +99,16 @@ const ProcessingAnimation = () => (
   </motion.div>
 );
 
+const UnverifiedAnimation = () => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.8 }}
+    animate={{ opacity: 1, scale: 1 }}
+    className="h-32 w-32 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-2xl shadow-amber-500/30"
+  >
+    <Clock className="h-16 w-16 text-white" />
+  </motion.div>
+);
+
 const ConfettiParticle = ({ delay, x }: { delay: number; x: number }) => (
   <motion.div
     initial={{ y: -20, x: x, opacity: 1, scale: 1 }}
@@ -144,7 +154,7 @@ export default function PaymentResult() {
       gateway: gatewayParam || "stripe",
       amount: params.get("amount") || undefined,
       currency: params.get("currency") || undefined,
-      credits: params.get("credits") ? parseInt(params.get("credits")!) : undefined,
+      credits: params.get("credits") ? parseInt(params.get("credits")!, 10) : undefined,
       planName: params.get("plan") || undefined,
       transactionId: sessionId || paymentId || orderId || token || reference || preferenceId || undefined,
     };
@@ -165,7 +175,7 @@ export default function PaymentResult() {
       setStatus("success");
       setShowConfetti(true);
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/subscription"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user-subscription"] });
       queryClient.invalidateQueries({ queryKey: ["/api/credit-transactions"] });
     };
 
@@ -238,22 +248,21 @@ export default function PaymentResult() {
               setStatus("failure");
             }
           } else if (paymentStatus === "approved" || statusParam === "success") {
-            handleSuccess();
+            // No verifiable identifier - never show success based on URL params alone
+            setStatus("unverified");
           } else {
             setStatus("processing");
           }
         } else if (statusParam === "success") {
-          handleSuccess();
+          // Nothing to verify against the server - do not trust URL-supplied status
+          setStatus("unverified");
         } else {
           setStatus("processing");
         }
       } catch (error) {
         console.error("Payment verification error:", error);
-        if (statusParam === "success") {
-          handleSuccess();
-        } else {
-          setStatus("failure");
-        }
+        // Verification failed or never completed - never show success without a verified response
+        setStatus("unverified");
       } finally {
         setVerifying(false);
       }
@@ -263,7 +272,8 @@ export default function PaymentResult() {
     if (hasGatewayIdentifier || gatewayParam) {
       verifyPayment();
     } else if (statusParam === "success") {
-      handleSuccess();
+      // No gateway identifier to verify - show pending state instead of unverified success
+      setStatus("unverified");
     } else {
       setStatus("processing");
     }
@@ -273,14 +283,16 @@ export default function PaymentResult() {
     switch (status) {
       case "success":
         return details?.type === "subscription" 
-          ? t("payment.subscriptionSuccess") || "Subscription Activated!"
-          : t("payment.creditsSuccess") || "Credits Purchased!";
+          ? t("payment.subscriptionSuccess", "Subscription Activated!")
+          : t("payment.creditsSuccess", "Credits Purchased!");
       case "failure":
-        return t("payment.failed") || "Payment Failed";
+        return t("payment.failed", "Payment Failed");
       case "cancelled":
-        return t("payment.cancelled") || "Payment Cancelled";
+        return t("payment.cancelled", "Payment Cancelled");
       case "processing":
-        return t("payment.processing") || "Processing Payment...";
+        return t("payment.processing", "Processing Payment...");
+      case "unverified":
+        return t("payment.unverified", "Payment Not Confirmed Yet");
     }
   };
 
@@ -289,20 +301,22 @@ export default function PaymentResult() {
       case "success":
         if (details?.type === "subscription") {
           return details?.planName 
-            ? `${t("payment.welcomeToPlan") || "Welcome to"} ${details.planName}! ${t("payment.subscriptionActive") || "Your subscription is now active."}`
-            : t("payment.subscriptionActiveGeneric") || "Your subscription has been activated successfully.";
+            ? `${t("payment.welcomeToPlan", "Welcome to")} ${details.planName}! ${t("payment.subscriptionActive", "Your subscription is now active.")}`
+            : t("payment.subscriptionActiveGeneric", "Your subscription has been activated successfully.");
         }
         return details?.credits 
-          ? `${details.credits.toLocaleString()} ${t("payment.creditsAdded") || "credits have been added to your account."}`
-          : t("payment.creditsAddedGeneric") || "Your credits have been added to your account.";
+          ? `${details.credits.toLocaleString()} ${t("payment.creditsAdded", "credits have been added to your account.")}`
+          : t("payment.creditsAddedGeneric", "Your credits have been added to your account.");
       case "failure":
-        return t("payment.failedDescription") || "We couldn't process your payment. Please try again or use a different payment method.";
+        return t("payment.failedDescription", "We couldn't process your payment. Please try again or use a different payment method.");
       case "cancelled":
-        return t("payment.cancelledDescription") || "You cancelled the payment. No charges have been made to your account.";
+        return t("payment.cancelledDescription", "You cancelled the payment. No charges have been made to your account.");
       case "processing":
         return verifying 
-          ? (t("payment.verifyingDescription") || "Verifying your payment with the payment provider...")
-          : (t("payment.processingDescription") || "Please wait while we confirm your payment...");
+          ? (t("payment.verifyingDescription", "Verifying your payment with the payment provider..."))
+          : (t("payment.processingDescription", "Please wait while we confirm your payment..."));
+      case "unverified":
+        return t("payment.unverifiedDescription", "We could not confirm this payment yet. If you were charged, your credits will appear once the payment is confirmed.");
     }
   };
 
@@ -332,6 +346,7 @@ export default function PaymentResult() {
               {status === "processing" && <ProcessingAnimation key="processing" />}
               {status === "success" && <CheckmarkAnimation key="success" />}
               {(status === "failure" || status === "cancelled") && <FailureAnimation key="failure" />}
+              {status === "unverified" && <UnverifiedAnimation key="unverified" />}
             </AnimatePresence>
 
             <motion.div
@@ -348,7 +363,7 @@ export default function PaymentResult() {
               </p>
             </motion.div>
 
-            {details && status !== "processing" && (
+            {details && status !== "processing" && status !== "unverified" && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -356,30 +371,30 @@ export default function PaymentResult() {
                 className="w-full bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 space-y-2"
               >
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-500 dark:text-slate-400">{t("payment.paymentMethod") || "Payment Method"}</span>
+                  <span className="text-slate-500 dark:text-slate-400">{t("payment.paymentMethod", "Payment Method")}</span>
                   <span className="font-medium text-slate-700 dark:text-slate-300" data-testid="text-payment-gateway">
                     {gatewayNames[details.gateway] || details.gateway}
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-500 dark:text-slate-400">{t("payment.type") || "Type"}</span>
+                  <span className="text-slate-500 dark:text-slate-400">{t("payment.type", "Type")}</span>
                   <span className="font-medium text-slate-700 dark:text-slate-300 capitalize flex items-center gap-1" data-testid="text-payment-type">
                     {details.type === "subscription" ? (
                       <>
                         <Crown className="h-4 w-4 text-indigo-500" />
-                        {t("payment.subscription") || "Subscription"}
+                        {t("payment.subscription", "Subscription")}
                       </>
                     ) : (
                       <>
                         <Sparkles className="h-4 w-4 text-amber-500" />
-                        {t("payment.creditPurchase") || "Credit Purchase"}
+                        {t("payment.creditPurchase", "Credit Purchase")}
                       </>
                     )}
                   </span>
                 </div>
                 {details.amount && details.currency && (
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-500 dark:text-slate-400">{t("payment.amount") || "Amount"}</span>
+                    <span className="text-slate-500 dark:text-slate-400">{t("payment.amount", "Amount")}</span>
                     <span className="font-medium text-slate-700 dark:text-slate-300" data-testid="text-payment-amount">
                       {details.currency} {details.amount}
                     </span>
@@ -387,7 +402,7 @@ export default function PaymentResult() {
                 )}
                 {details.credits && (
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-500 dark:text-slate-400">{t("payment.credits") || "Credits"}</span>
+                    <span className="text-slate-500 dark:text-slate-400">{t("payment.credits", "Credits")}</span>
                     <span className="font-medium text-emerald-600 dark:text-emerald-400" data-testid="text-payment-credits">
                       +{details.credits.toLocaleString()}
                     </span>
@@ -395,7 +410,7 @@ export default function PaymentResult() {
                 )}
                 {details.planName && (
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-500 dark:text-slate-400">{t("payment.plan") || "Plan"}</span>
+                    <span className="text-slate-500 dark:text-slate-400">{t("payment.plan", "Plan")}</span>
                     <span className="font-medium text-indigo-600 dark:text-indigo-400" data-testid="text-payment-plan">
                       {details.planName}
                     </span>
@@ -403,7 +418,7 @@ export default function PaymentResult() {
                 )}
                 {details.transactionId && (
                   <div className="flex justify-between items-center text-sm pt-2 border-t border-slate-200 dark:border-slate-700">
-                    <span className="text-slate-500 dark:text-slate-400">{t("payment.transactionId") || "Transaction ID"}</span>
+                    <span className="text-slate-500 dark:text-slate-400">{t("payment.transactionId", "Transaction ID")}</span>
                     <span className="font-mono text-xs text-slate-600 dark:text-slate-400 truncate max-w-[150px]" data-testid="text-transaction-id">
                       {details.transactionId}
                     </span>
@@ -426,7 +441,7 @@ export default function PaymentResult() {
                   data-testid="button-try-again"
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
-                  {t("payment.tryAgain") || "Try Again"}
+                  {t("payment.tryAgain", "Try Again")}
                 </Button>
               )}
               <Button
@@ -436,7 +451,7 @@ export default function PaymentResult() {
                 data-testid="button-return-billing"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                {t("payment.returnToBilling") || "Return to Billing"}
+                {t("payment.returnToBilling", "Return to Billing")}
               </Button>
             </motion.div>
           </div>

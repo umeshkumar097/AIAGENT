@@ -14,8 +14,8 @@
  * Respect the author's rights and Envato licensing terms.
  * ============================================================
  */
-import * as AspectRatioPrimitive from "@radix-ui/react-aspect-ratio"
+import * as AspectRatioPrimitive from "@radix-ui/react-aspect-ratio";
 
-const AspectRatio = AspectRatioPrimitive.Root
+const AspectRatio = AspectRatioPrimitive.Root;
 
-export { AspectRatio }
+export { AspectRatio };

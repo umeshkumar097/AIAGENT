@@ -22,6 +22,7 @@ import { Search, Play, Mic, Square, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from 'react-i18next';
+import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -82,6 +83,7 @@ const SARVAM_VOICES: SarvamVoiceInfo[] = [
 
 export default function Voices() {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [playingVoice, setPlayingVoice] = useState<string | null>(null);
@@ -200,9 +202,16 @@ export default function Voices() {
           audioRef.current = null;
           URL.revokeObjectURL(url);
         };
+      } else {
+        throw new Error(data.error || data.message || t('voices.previewFailed', 'Voice preview failed'));
       }
     } catch (e) {
       console.error('Sarvam preview error', e);
+      toast({
+        title: t('voices.previewFailed', 'Voice preview failed'),
+        description: e instanceof Error ? e.message : String(e),
+        variant: 'destructive',
+      });
     } finally {
       setSarvamPreviewLoading(null);
     }

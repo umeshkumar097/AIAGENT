@@ -222,7 +222,7 @@ export default function PricingSection() {
                   Get Started
                 </Button>
               </motion.div>
-            )
+            );
           })}
         </div>
 
@@ -251,7 +251,7 @@ export default function PricingSection() {
                   max={maxMins} 
                   step={100}
                   value={sliderValue}
-                  onChange={(e) => setSliderValue(parseInt(e.target.value))}
+                  onChange={(e) => setSliderValue(parseInt(e.target.value, 10))}
                   className="w-full h-3 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#27D3C9]"
                 />
                 

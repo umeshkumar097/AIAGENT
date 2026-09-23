@@ -14,10 +14,10 @@
  * Respect the author's rights and Envato licensing terms.
  * ============================================================
  */
-import * as React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
+import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
   // Whitespace-nowrap: Badges should never wrap.
@@ -39,7 +39,7 @@ const badgeVariants = cva(
       variant: "default",
     },
   },
-)
+);
 
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
@@ -51,4 +51,4 @@ function Badge({ className, variant, ...props }: BadgeProps) {
   );
 }
 
-export { Badge, badgeVariants }
+export { Badge, badgeVariants };

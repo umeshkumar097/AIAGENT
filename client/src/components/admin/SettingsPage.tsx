@@ -87,9 +87,9 @@ export default function SettingsPage({ onSwitchTab, initialSubTab }: SettingsPag
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold">{t("admin.settings.title") || "Settings"}</h2>
+        <h2 className="text-2xl font-bold">{t("admin.settings.title", "Settings")}</h2>
         <p className="text-muted-foreground">
-          {t("admin.settings.description") || "Configure platform settings, SEO, and integrations"}
+          {t("admin.settings.description", "Configure platform settings, SEO, and integrations")}
         </p>
       </div>
 
@@ -130,12 +130,12 @@ export default function SettingsPage({ onSwitchTab, initialSubTab }: SettingsPag
           </TabsTrigger>
           <TabsTrigger value="analytics" data-testid="settings-tab-analytics" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
-            <span className="hidden sm:inline">{t("admin.settings.tabs.analytics") || "Analytics"}</span>
+            <span className="hidden sm:inline">{t("admin.settings.tabs.analytics", "Analytics")}</span>
             <span className="sm:hidden">Analytics</span>
           </TabsTrigger>
           <TabsTrigger value="languages" data-testid="settings-tab-languages" className="flex items-center gap-2">
             <Globe className="h-4 w-4" />
-            <span className="hidden sm:inline">{t("admin.settings.tabs.languages") || "Languages"}</span>
+            <span className="hidden sm:inline">{t("admin.settings.tabs.languages", "Languages")}</span>
             <span className="sm:hidden">Lang</span>
           </TabsTrigger>
           {isRestApiPluginEnabled && (

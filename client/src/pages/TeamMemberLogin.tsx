@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,7 +11,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { useBranding } from "@/components/BrandingProvider";
 import { Eye, EyeOff, Users, ArrowLeft, Loader2 } from "lucide-react";
-import { Link } from "wouter";
 import TeamAuth from "@/lib/team-auth";
 
 const loginSchema = z.object({

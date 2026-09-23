@@ -399,7 +399,7 @@ export default function CreditPackages() {
               <Input
                 type="number"
                 value={formData.credits}
-                onChange={(e) => setFormData({ ...formData, credits: parseInt(e.target.value) || 0 })}
+                onChange={(e) => setFormData({ ...formData, credits: parseInt(e.target.value, 10) || 0 })}
                 data-testid="input-package-credits"
               />
             </div>

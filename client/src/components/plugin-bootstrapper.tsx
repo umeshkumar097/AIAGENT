@@ -167,6 +167,7 @@ export function PluginBootstrapper({ children }: { children: React.ReactNode }) 
               // Execute the bundle code using Function constructor
               // This is safer than eval() and works for IIFE bundles
               try {
+                // eslint-disable-next-line no-new-func -- executes dynamically fetched plugin bundle code
                 const executeBundle = new Function(bundleCode);
                 executeBundle();
                 

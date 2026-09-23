@@ -1427,7 +1427,7 @@ export default function WidgetsPage() {
                               min={10}
                               max={3600}
                               value={formData.maxCallDuration}
-                              onChange={(e) => setFormData({ ...formData, maxCallDuration: parseInt(e.target.value) || 300 })}
+                              onChange={(e) => setFormData({ ...formData, maxCallDuration: parseInt(e.target.value, 10) || 300 })}
                               data-testid="input-max-duration"
                             />
                             <p className="text-xs text-muted-foreground">10-3600 seconds</p>
@@ -1440,7 +1440,7 @@ export default function WidgetsPage() {
                               min={0}
                               max={60}
                               value={formData.cooldownMinutes}
-                              onChange={(e) => setFormData({ ...formData, cooldownMinutes: parseInt(e.target.value) || 0 })}
+                              onChange={(e) => setFormData({ ...formData, cooldownMinutes: parseInt(e.target.value, 10) || 0 })}
                               data-testid="input-cooldown"
                             />
                             <p className="text-xs text-muted-foreground">Wait time per IP</p>
@@ -1453,7 +1453,7 @@ export default function WidgetsPage() {
                               min={1}
                               max={100}
                               value={formData.maxConcurrentCalls}
-                              onChange={(e) => setFormData({ ...formData, maxConcurrentCalls: parseInt(e.target.value) || 5 })}
+                              onChange={(e) => setFormData({ ...formData, maxConcurrentCalls: parseInt(e.target.value, 10) || 5 })}
                               data-testid="input-max-concurrent"
                             />
                             <p className="text-xs text-muted-foreground">1-100 sessions</p>

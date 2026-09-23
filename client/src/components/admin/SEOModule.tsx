@@ -194,8 +194,8 @@ export default function SEOModule() {
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/seo"] });
       toast({
-        title: t("admin.seo.sitemap.generated") || "Sitemap Generated",
-        description: t("admin.seo.sitemap.generatedDesc") || `Created ${data.urlCount || 9} default URLs`
+        title: t("admin.seo.sitemap.generated", "Sitemap Generated"),
+        description: t("admin.seo.sitemap.generatedDesc", `Created ${data.urlCount || 9} default URLs`)
       });
     },
     onError: (error: any) => {
@@ -214,8 +214,8 @@ export default function SEOModule() {
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/seo"] });
       toast({
-        title: t("admin.seo.sitemap.rebuilt") || "Sitemap Rebuilt",
-        description: t("admin.seo.sitemap.rebuiltDesc") || `Updated ${data.urlCount || 0} URLs with latest dates`
+        title: t("admin.seo.sitemap.rebuilt", "Sitemap Rebuilt"),
+        description: t("admin.seo.sitemap.rebuiltDesc", `Updated ${data.urlCount || 0} URLs with latest dates`)
       });
     },
     onError: (error: any) => {
@@ -237,8 +237,8 @@ export default function SEOModule() {
         setFormData(prev => ({ ...prev, defaultOgImage: data.url }));
       }
       toast({
-        title: t("admin.seo.social.imageUploaded") || "Image Uploaded",
-        description: t("admin.seo.social.imageUploadedDesc") || "Image uploaded successfully"
+        title: t("admin.seo.social.imageUploaded", "Image Uploaded"),
+        description: t("admin.seo.social.imageUploadedDesc", "Image uploaded successfully")
       });
     },
     onError: (error: any) => {
@@ -423,7 +423,7 @@ export default function SEOModule() {
                   data-testid="input-seo-keywords"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  {t("admin.seo.metaTags.keywordsHint") || "Separate keywords with commas"}
+                  {t("admin.seo.metaTags.keywordsHint", "Separate keywords with commas")}
                 </p>
               </div>
 
@@ -498,7 +498,7 @@ export default function SEOModule() {
                     ) : (
                       <Wand2 className="h-4 w-4 mr-2" />
                     )}
-                    {t("admin.seo.sitemap.generateDefault") || "Generate Default"}
+                    {t("admin.seo.sitemap.generateDefault", "Generate Default")}
                   </Button>
                   <Button
                     variant="outline"
@@ -512,7 +512,7 @@ export default function SEOModule() {
                     ) : (
                       <RefreshCw className="h-4 w-4 mr-2" />
                     )}
-                    {t("admin.seo.sitemap.rebuild") || "Rebuild"}
+                    {t("admin.seo.sitemap.rebuild", "Rebuild")}
                   </Button>
                   <Button
                     variant="outline"
@@ -694,7 +694,7 @@ export default function SEOModule() {
                   min="0"
                   max="60"
                   value={formData.robotsCrawlDelay || 0}
-                  onChange={(e) => handleChange("robotsCrawlDelay", parseInt(e.target.value) || 0)}
+                  onChange={(e) => handleChange("robotsCrawlDelay", parseInt(e.target.value, 10) || 0)}
                   className="w-32"
                   data-testid="input-crawl-delay"
                 />
@@ -738,7 +738,7 @@ Disallow: /api/`}
               <div className="p-4 border rounded-lg bg-muted/30 space-y-4">
                 <div className="flex items-center gap-2">
                   <Image className="h-5 w-5" />
-                  <Label className="text-base font-medium">{t("admin.seo.social.ogImage") || "Open Graph Image"}</Label>
+                  <Label className="text-base font-medium">{t("admin.seo.social.ogImage", "Open Graph Image")}</Label>
                   <InfoTooltip content={t("admin.seo.social.ogImageTooltip")} />
                 </div>
                 
@@ -763,7 +763,7 @@ Disallow: /api/`}
                             data-testid="button-remove-og-image"
                           >
                             <Trash2 className="h-3 w-3 mr-1" />
-                            {t("common.remove") || "Remove"}
+                            {t("common.remove", "Remove")}
                           </Button>
                         </div>
                       </div>
@@ -771,7 +771,7 @@ Disallow: /api/`}
                       <div className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center h-40 bg-muted/20">
                         <Image className="h-8 w-8 text-muted-foreground mb-2" />
                         <p className="text-sm text-muted-foreground text-center">
-                          {t("admin.seo.social.noImage") || "No image uploaded"}
+                          {t("admin.seo.social.noImage", "No image uploaded")}
                         </p>
                       </div>
                     )}
@@ -781,7 +781,7 @@ Disallow: /api/`}
                   <div className="space-y-3">
                     <div>
                       <Label className="text-xs text-muted-foreground mb-1 block">
-                        {t("admin.seo.social.uploadImage") || "Upload Image"}
+                        {t("admin.seo.social.uploadImage", "Upload Image")}
                       </Label>
                       <div className="flex gap-2">
                         <input
@@ -803,14 +803,14 @@ Disallow: /api/`}
                           ) : (
                             <Upload className="h-4 w-4 mr-2" />
                           )}
-                          {t("admin.seo.social.chooseFile") || "Choose File"}
+                          {t("admin.seo.social.chooseFile", "Choose File")}
                         </Button>
                       </div>
                     </div>
                     
                     <div>
                       <Label className="text-xs text-muted-foreground mb-1 block">
-                        {t("admin.seo.social.orEnterUrl") || "Or enter URL directly"}
+                        {t("admin.seo.social.orEnterUrl", "Or enter URL directly")}
                       </Label>
                       <Input
                         value={formData.defaultOgImage || ""}
@@ -821,7 +821,7 @@ Disallow: /api/`}
                     </div>
                     
                     <p className="text-xs text-muted-foreground">
-                      {t("admin.seo.social.ogImageHint") || "Recommended size: 1200x630 pixels"}
+                      {t("admin.seo.social.ogImageHint", "Recommended size: 1200x630 pixels")}
                     </p>
                   </div>
                 </div>
@@ -1033,7 +1033,7 @@ Disallow: /api/`}
                         />
                       </div>
                       <div>
-                        <Label>{t("admin.seo.structured.productBrand") || "Brand"}</Label>
+                        <Label>{t("admin.seo.structured.productBrand", "Brand")}</Label>
                         <Input
                           value={formData.structuredDataProduct?.brand || ""}
                           onChange={(e) => handleProductChange("brand", e.target.value)}
@@ -1052,7 +1052,7 @@ Disallow: /api/`}
                         />
                       </div>
                       <div>
-                        <Label>{t("admin.seo.structured.productImage") || "Image URL"}</Label>
+                        <Label>{t("admin.seo.structured.productImage", "Image URL")}</Label>
                         <Input
                           value={formData.structuredDataProduct?.image || ""}
                           onChange={(e) => handleProductChange("image", e.target.value)}
@@ -1061,7 +1061,7 @@ Disallow: /api/`}
                         />
                       </div>
                       <div>
-                        <Label>{t("admin.seo.structured.productSku") || "SKU"}</Label>
+                        <Label>{t("admin.seo.structured.productSku", "SKU")}</Label>
                         <Input
                           value={formData.structuredDataProduct?.sku || ""}
                           onChange={(e) => handleProductChange("sku", e.target.value)}
@@ -1088,7 +1088,7 @@ Disallow: /api/`}
                         />
                       </div>
                       <div>
-                        <Label>{t("admin.seo.structured.productUrl") || "Product URL"}</Label>
+                        <Label>{t("admin.seo.structured.productUrl", "Product URL")}</Label>
                         <Input
                           value={formData.structuredDataProduct?.url || ""}
                           onChange={(e) => handleProductChange("url", e.target.value)}
@@ -1097,7 +1097,7 @@ Disallow: /api/`}
                         />
                       </div>
                       <div>
-                        <Label>{t("admin.seo.structured.productAvailability") || "Availability"}</Label>
+                        <Label>{t("admin.seo.structured.productAvailability", "Availability")}</Label>
                         <Select
                           value={formData.structuredDataProduct?.availability || "InStock"}
                           onValueChange={(value) => handleProductChange("availability", value)}
@@ -1114,7 +1114,7 @@ Disallow: /api/`}
                         </Select>
                       </div>
                       <div>
-                        <Label>{t("admin.seo.structured.productRatingValue") || "Rating Value"}</Label>
+                        <Label>{t("admin.seo.structured.productRatingValue", "Rating Value")}</Label>
                         <Input
                           value={formData.structuredDataProduct?.ratingValue || ""}
                           onChange={(e) => handleProductChange("ratingValue", e.target.value)}
@@ -1123,7 +1123,7 @@ Disallow: /api/`}
                         />
                       </div>
                       <div>
-                        <Label>{t("admin.seo.structured.productRatingCount") || "Rating Count"}</Label>
+                        <Label>{t("admin.seo.structured.productRatingCount", "Rating Count")}</Label>
                         <Input
                           value={formData.structuredDataProduct?.ratingCount || ""}
                           onChange={(e) => handleProductChange("ratingCount", e.target.value)}

@@ -153,8 +153,8 @@ export default function SystemSettings() {
   const handleSaveAll = async () => {
     try {
       setIsSaving(true);
-      const intervals = webhookIntervalsStr.split(",").map(s => parseInt(s.trim())).filter(n => !isNaN(n));
-      const originalIntervals = originalIntervalsStr.split(",").map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+      const intervals = webhookIntervalsStr.split(",").map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+      const originalIntervals = originalIntervalsStr.split(",").map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
       
       // Only update settings that have actually changed
       const changedSettings: { key: string; value: any }[] = [];
@@ -286,7 +286,7 @@ export default function SystemSettings() {
     } else {
       setFormData(prev => ({
         ...prev,
-        [key]: typeof value === "string" ? parseInt(value) || 0 : value,
+        [key]: typeof value === "string" ? parseInt(value, 10) || 0 : value,
       }));
     }
   };
@@ -557,17 +557,17 @@ export default function SystemSettings() {
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Phone className="h-4 w-4 text-primary" />
-              {t("admin.settings.resources.title") || "System Resources"}
+              {t("admin.settings.resources.title", "System Resources")}
             </CardTitle>
             <CardDescription>
-              {t("admin.settings.resources.description") || "Configure system resource pools and limits"}
+              {t("admin.settings.resources.description", "Configure system resource pools and limits")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="system_phone_pool_size" className="flex items-center gap-2">
-                {t("admin.settings.resources.poolSize") || "System Phone Pool Size"}
-                <InfoTooltip content={t("admin.settings.resources.poolSizeTooltip") || "Number of shared phone numbers available in the system pool for Free tier users"} />
+                {t("admin.settings.resources.poolSize", "System Phone Pool Size")}
+                <InfoTooltip content={t("admin.settings.resources.poolSizeTooltip", "Number of shared phone numbers available in the system pool for Free tier users")} />
               </Label>
               <div className="flex items-center gap-2">
                 <Input
@@ -583,7 +583,7 @@ export default function SystemSettings() {
                 <span className="text-sm text-muted-foreground">phones</span>
               </div>
               <p className="text-xs text-muted-foreground">
-                {t("admin.settings.resources.poolSizeHint") || "Shared phone numbers for users on Free plan"}
+                {t("admin.settings.resources.poolSizeHint", "Shared phone numbers for users on Free plan")}
               </p>
             </div>
           </CardContent>
@@ -594,17 +594,17 @@ export default function SystemSettings() {
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Wrench className="h-4 w-4 text-primary" />
-              {t("admin.settings.tools.title") || "System Tools"}
+              {t("admin.settings.tools.title", "System Tools")}
             </CardTitle>
             <CardDescription>
-              {t("admin.settings.tools.description") || "Administrative tools for data synchronization and maintenance"}
+              {t("admin.settings.tools.description", "Administrative tools for data synchronization and maintenance")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label>{t("admin.settings.tools.syncAllCalls") || "Sync All Calls"}</Label>
+              <Label>{t("admin.settings.tools.syncAllCalls", "Sync All Calls")}</Label>
               <p className="text-xs text-muted-foreground mb-2">
-                {t("admin.settings.tools.syncAllCallsDesc") || "Synchronize call data from ElevenLabs and Twilio"}
+                {t("admin.settings.tools.syncAllCallsDesc", "Synchronize call data from ElevenLabs and Twilio")}
               </p>
               <Button
                 variant="outline"
@@ -621,12 +621,12 @@ export default function SystemSettings() {
                       description += ` (${result.failed} failed)`;
                     }
                     toast({
-                      title: t("admin.settings.tools.callSyncComplete") || "Call Sync Complete",
+                      title: t("admin.settings.tools.callSyncComplete", "Call Sync Complete"),
                       description,
                     });
                   } catch (error: any) {
                     toast({
-                      title: t("common.error") || "Error",
+                      title: t("common.error", "Error"),
                       description: error.message,
                       variant: "destructive"
                     });
@@ -640,12 +640,12 @@ export default function SystemSettings() {
                 {syncingAllCalls ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {t("admin.settings.tools.syncingFromSources") || "Syncing..."}
+                    {t("admin.settings.tools.syncingFromSources", "Syncing...")}
                   </>
                 ) : (
                   <>
                     <RefreshCw className="mr-2 h-4 w-4" />
-                    {t("admin.settings.tools.syncAllCalls") || "Sync All Calls"}
+                    {t("admin.settings.tools.syncAllCalls", "Sync All Calls")}
                   </>
                 )}
               </Button>
@@ -654,9 +654,9 @@ export default function SystemSettings() {
             <Separator />
             
             <div>
-              <Label>{t("admin.settings.tools.syncIncomingWebhooks") || "Sync Incoming Webhooks"}</Label>
+              <Label>{t("admin.settings.tools.syncIncomingWebhooks", "Sync Incoming Webhooks")}</Label>
               <p className="text-xs text-muted-foreground mb-2">
-                {t("admin.settings.tools.syncIncomingWebhooksDesc") || "Configure ElevenLabs webhooks for all incoming agents"}
+                {t("admin.settings.tools.syncIncomingWebhooksDesc", "Configure ElevenLabs webhooks for all incoming agents")}
               </p>
               <Button
                 variant="outline"
@@ -666,12 +666,12 @@ export default function SystemSettings() {
                     const res = await apiRequest("POST", "/api/admin/sync-incoming-webhooks");
                     const result = await res.json() as { total: number; success: number; failed: number; webhookUrl?: string; errors?: string[] };
                     toast({
-                      title: t("admin.settings.tools.webhookSyncComplete") || "Webhook Sync Complete",
+                      title: t("admin.settings.tools.webhookSyncComplete", "Webhook Sync Complete"),
                       description: t("admin.settings.tools.webhooksConfigured", { success: result.success, total: result.total }) || `Configured ${result.success}/${result.total} webhooks` + (result.failed > 0 ? ` (${result.failed} failed)` : ''),
                     });
                   } catch (error: any) {
                     toast({
-                      title: t("common.error") || "Error",
+                      title: t("common.error", "Error"),
                       description: error.message,
                       variant: "destructive"
                     });
@@ -685,12 +685,12 @@ export default function SystemSettings() {
                 {syncingWebhooks ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {t("admin.settings.tools.syncing") || "Syncing..."}
+                    {t("admin.settings.tools.syncing", "Syncing...")}
                   </>
                 ) : (
                   <>
                     <RefreshCw className="mr-2 h-4 w-4" />
-                    {t("admin.settings.tools.syncIncomingWebhooks") || "Sync Incoming Webhooks"}
+                    {t("admin.settings.tools.syncIncomingWebhooks", "Sync Incoming Webhooks")}
                   </>
                 )}
               </Button>

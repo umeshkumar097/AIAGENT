@@ -650,6 +650,7 @@ export default function ElevenLabsPool() {
                           size="sm"
                           onClick={() => {
                             if (
+                              // eslint-disable-next-line no-alert -- confirm() gates destructive credential delete
                               confirm(
                                 t("admin.elevenLabsPool.deleteConfirm", { name: cred.name }) +
                                   (cred.totalAssignedAgents > 0
@@ -712,7 +713,7 @@ export default function ElevenLabsPool() {
                 id="maxConcurrency"
                 type="number"
                 value={maxConcurrency}
-                onChange={(e) => setMaxConcurrency(parseInt(e.target.value) || 30)}
+                onChange={(e) => setMaxConcurrency(parseInt(e.target.value, 10) || 30)}
                 data-testid="input-max-concurrency"
               />
               <p className="text-xs text-muted-foreground mt-1">

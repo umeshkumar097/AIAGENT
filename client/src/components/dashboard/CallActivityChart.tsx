@@ -126,7 +126,7 @@ export function CallActivityChart({ weeklyChartData, t }: any) {
                 <Phone className="h-6 w-6 text-primary/60" />
               </div>
               <h4 className="text-sm font-medium text-foreground mb-1">No Call Activity Yet</h4>
-              <p className="text-xs text-muted-foreground">{t('dashboard.noCallData') || "Start a campaign or make your first call to see activity trends here."}</p>
+              <p className="text-xs text-muted-foreground">{t('dashboard.noCallData', "Start a campaign or make your first call to see activity trends here.")}</p>
             </div>
           </div>
         )}

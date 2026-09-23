@@ -479,9 +479,9 @@ export default function LanguageManagement() {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold">{t("admin.languages.title") || "Language Management"}</h2>
+          <h2 className="text-2xl font-bold">{t("admin.languages.title", "Language Management")}</h2>
           <p className="text-muted-foreground">
-            {t("admin.languages.description") || "Manage platform languages and translations"}
+            {t("admin.languages.description", "Manage platform languages and translations")}
           </p>
         </div>
 
@@ -519,9 +519,9 @@ export default function LanguageManagement() {
     <div className="space-y-6">
       <div className="flex flex-row items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold">{t("admin.languages.title") || "Language Management"}</h2>
+          <h2 className="text-2xl font-bold">{t("admin.languages.title", "Language Management")}</h2>
           <p className="text-muted-foreground">
-            {t("admin.languages.description") || "Manage platform languages and translations"}
+            {t("admin.languages.description", "Manage platform languages and translations")}
           </p>
         </div>
         <Button onClick={() => setIsAddDialogOpen(true)} data-testid="button-add-language">

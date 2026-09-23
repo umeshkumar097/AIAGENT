@@ -439,12 +439,12 @@ export function TeamMemberSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={location === "/app/billing"}
-                    tooltip={t('nav.billingCredits') || 'Billing & Credits'}
+                    tooltip={t('nav.billingCredits', 'Billing & Credits')}
                     data-testid="link-billing-credits"
                   >
                     <Link href="/app/billing" onClick={handleNavClick}>
                       <CreditCard className="h-4 w-4 text-amber-500" />
-                      <span>{t('nav.billingCredits') || 'Billing & Credits'}</span>
+                      <span>{t('nav.billingCredits', 'Billing & Credits')}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -457,7 +457,7 @@ export function TeamMemberSidebar() {
         {navGroups.settings.length > 0 && (
           <SidebarGroup>
             <SidebarGroupLabel className="px-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-              {t('sidebar.settings') || 'Settings'}
+              {t('sidebar.settings', 'Settings')}
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>

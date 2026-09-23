@@ -21,7 +21,7 @@ import { Users, CreditCard, Settings, BarChart, Phone, Package, Bell, ListOrdere
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useLocation } from "wouter";
 import UserManagement from "@/components/admin/UserManagement";
 import PlanManagement from "@/components/admin/PlanManagement";
@@ -43,7 +43,6 @@ import OpenAIPoolManagement from "@/components/admin/OpenAIPoolManagement";
 import PlivoSettings from "@/components/admin/PlivoSettings";
 import CustomVoiceEngineSettings from "@/components/admin/CustomVoiceEngineSettings";
 import { Badge } from "@/components/ui/badge";
-import { Suspense } from "react";
 import { usePluginRegistry } from "@/contexts/plugin-registry";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { AuthStorage } from "@/lib/auth-storage";

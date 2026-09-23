@@ -55,7 +55,7 @@ export function LeadDistributionChart({ leadData, totalLeads, t }: any) {
                 <Users className="h-6 w-6 text-primary/60" />
               </div>
               <h4 className="text-sm font-medium text-foreground mb-1">No Leads Yet</h4>
-              <p className="text-xs text-muted-foreground">{t('dashboard.noLeadData') || "Lead distribution will appear here once campaigns start generating leads."}</p>
+              <p className="text-xs text-muted-foreground">{t('dashboard.noLeadData', "Lead distribution will appear here once campaigns start generating leads.")}</p>
             </div>
           </div>
         )}

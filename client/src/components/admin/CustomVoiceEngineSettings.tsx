@@ -563,12 +563,12 @@ function NodesSection() {
     const payload = {
       name: formData.get("name"),
       eslHost: formData.get("eslHost"),
-      eslPort: parseInt(formData.get("eslPort") as string),
+      eslPort: parseInt(formData.get("eslPort") as string, 10),
       eslPassword: formData.get("eslPassword") || "ClueCon",
       sipHost: formData.get("sipHost"),
-      sipPort: parseInt(formData.get("sipPort") as string),
-      wsPort: parseInt(formData.get("wsPort") as string),
-      maxCalls: parseInt(formData.get("maxCalls") as string) || 100,
+      sipPort: parseInt(formData.get("sipPort") as string, 10),
+      wsPort: parseInt(formData.get("wsPort") as string, 10),
+      maxCalls: parseInt(formData.get("maxCalls") as string, 10) || 100,
     };
     addNodeMutation.mutate(payload);
   };

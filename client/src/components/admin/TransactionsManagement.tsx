@@ -18,7 +18,7 @@
 
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { AuthStorage } from "@/lib/auth-storage";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,7 +34,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, DollarSign, CreditCard, TrendingUp, Receipt, RefreshCw, Filter, Download, Eye, FileText, Plus, RotateCcw, AlertTriangle, CheckCircle, XCircle, Clock, ExternalLink, Copy } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 

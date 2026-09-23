@@ -364,7 +364,7 @@ export function AdminApiKeysModule() {
                 type="number"
                 min={1}
                 value={editRateLimit}
-                onChange={(e) => setEditRateLimit(parseInt(e.target.value) || 100)}
+                onChange={(e) => setEditRateLimit(parseInt(e.target.value, 10) || 100)}
               />
             </div>
             <div>
@@ -374,7 +374,7 @@ export function AdminApiKeysModule() {
                 type="number"
                 min={1}
                 value={editRateLimitWindow}
-                onChange={(e) => setEditRateLimitWindow(parseInt(e.target.value) || 60)}
+                onChange={(e) => setEditRateLimitWindow(parseInt(e.target.value, 10) || 60)}
               />
             </div>
           </div>

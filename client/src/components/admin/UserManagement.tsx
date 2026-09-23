@@ -679,7 +679,7 @@ export default function UserManagement() {
               <Input
                 type="number"
                 value={editForm.credits}
-                onChange={(e) => setEditForm({ ...editForm, credits: parseInt(e.target.value) || 0 })}
+                onChange={(e) => setEditForm({ ...editForm, credits: parseInt(e.target.value, 10) || 0 })}
                 data-testid="input-user-credits"
               />
             </div>
@@ -750,7 +750,7 @@ export default function UserManagement() {
                 type="number"
                 min="1"
                 value={promoCreditsAmount}
-                onChange={(e) => setPromoCreditsAmount(parseInt(e.target.value) || 0)}
+                onChange={(e) => setPromoCreditsAmount(parseInt(e.target.value, 10) || 0)}
                 placeholder={t("admin.users.enterCreditAmount")}
                 data-testid="input-promo-credits"
               />
@@ -866,7 +866,7 @@ export default function UserManagement() {
                 type="number"
                 min="0"
                 value={createUserForm.credits}
-                onChange={(e) => setCreateUserForm({ ...createUserForm, credits: parseInt(e.target.value) || 0 })}
+                onChange={(e) => setCreateUserForm({ ...createUserForm, credits: parseInt(e.target.value, 10) || 0 })}
                 data-testid="input-create-credits"
               />
             </div>

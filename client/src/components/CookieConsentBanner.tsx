@@ -18,6 +18,7 @@ import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -69,6 +70,7 @@ function setStoredConsent(preferences: ConsentPreferences): void {
 
 export function CookieConsentBanner() {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [showBanner, setShowBanner] = useState(false);
   const [showPreferencesDialog, setShowPreferencesDialog] = useState(false);
   const [preferences, setPreferences] = useState<ConsentPreferences>({
@@ -101,6 +103,15 @@ export function CookieConsentBanner() {
       if (isAuthenticated) {
         queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       }
+      setShowBanner(false);
+    },
+    onError: (error: Error) => {
+      console.error("Failed to save cookie consent:", error);
+      toast({
+        title: t("cookies.saveFailed", "Could not save your cookie preferences"),
+        description: error?.message || t("cookies.saveFailedDescription", "Please try again."),
+        variant: "destructive",
+      });
     },
   });
 
@@ -138,7 +149,6 @@ export function CookieConsentBanner() {
     setPreferences(newPreferences);
     setStoredConsent(newPreferences);
     saveConsentMutation.mutate(newPreferences);
-    setShowBanner(false);
   };
 
   const handleAcceptEssential = () => {
@@ -151,7 +161,6 @@ export function CookieConsentBanner() {
     setPreferences(newPreferences);
     setStoredConsent(newPreferences);
     saveConsentMutation.mutate(newPreferences);
-    setShowBanner(false);
   };
 
   const handleSavePreferences = () => {
@@ -163,7 +172,6 @@ export function CookieConsentBanner() {
     setStoredConsent(updatedPreferences);
     saveConsentMutation.mutate(updatedPreferences);
     setShowPreferencesDialog(false);
-    setShowBanner(false);
   };
 
   if (!showBanner) {

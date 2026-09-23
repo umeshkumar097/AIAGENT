@@ -507,8 +507,8 @@ export default function Billing() {
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: t('billing.exportFailed') }));
-        throw new Error(error.message || t('billing.exportFailed'));
+        const error = await response.json().catch(() => ({ message: t('billing.exportFailed', 'Export failed') }));
+        throw new Error(error.message || t('billing.exportFailed', 'Export failed'));
       }
 
       const blob = await response.blob();
@@ -597,7 +597,7 @@ export default function Billing() {
         <TabsList className="mb-6">
           <TabsTrigger value="plans" className="gap-2" data-testid="tab-plans">
             <Crown className="h-4 w-4" />
-            {t('billing.plans') || 'Plans'}
+            {t('billing.plans', 'Plans')}
           </TabsTrigger>
           <TabsTrigger value="packs" className="gap-2" data-testid="tab-packs">
             <Coins className="h-4 w-4" />
@@ -605,7 +605,7 @@ export default function Billing() {
           </TabsTrigger>
           <TabsTrigger value="history" className="gap-2" data-testid="tab-history">
             <FileText className="h-4 w-4" />
-            {t('billing.transactionHistory') || 'Transaction History'}
+            {t('billing.transactionHistory', 'Transaction History')}
           </TabsTrigger>
           <TabsTrigger value="numbers" className="gap-2" data-testid="tab-phone-numbers">
             <Phone className="h-4 w-4" />
@@ -622,13 +622,13 @@ export default function Billing() {
                   <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
                     <Calendar className="h-5 w-5 text-white" />
                   </div>
-                  <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">{t('billing.subscriptionPeriod') || 'Subscription Period'}</h3>
+                  <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">{t('billing.subscriptionPeriod', 'Subscription Period')}</h3>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="bg-white/70 dark:bg-slate-800/50 rounded-xl p-4 border border-indigo-100 dark:border-indigo-800/30">
                     <div className="flex items-center gap-2 mb-1">
                       <Clock className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
-                      <span className="text-sm font-medium text-indigo-600 dark:text-indigo-400">{t('billing.startDate') || 'Start Date'}</span>
+                      <span className="text-sm font-medium text-indigo-600 dark:text-indigo-400">{t('billing.startDate', 'Start Date')}</span>
                     </div>
                     <div className="text-xl font-bold text-slate-800 dark:text-slate-100" data-testid="text-subscription-start-date">
                       {subscription.currentPeriodStart ? format(new Date(subscription.currentPeriodStart), 'MMM dd, yyyy') : '-'}
@@ -640,7 +640,7 @@ export default function Billing() {
                   <div className="bg-white/70 dark:bg-slate-800/50 rounded-xl p-4 border border-purple-100 dark:border-purple-800/30">
                     <div className="flex items-center gap-2 mb-1">
                       <Calendar className="h-4 w-4 text-purple-500 dark:text-purple-400" />
-                      <span className="text-sm font-medium text-purple-600 dark:text-purple-400">{t('billing.renewalDate') || 'Renewal Date'}</span>
+                      <span className="text-sm font-medium text-purple-600 dark:text-purple-400">{t('billing.renewalDate', 'Renewal Date')}</span>
                     </div>
                     <div className="text-xl font-bold text-slate-800 dark:text-slate-100" data-testid="text-subscription-end-date">
                       {subscription.currentPeriodEnd ? format(new Date(subscription.currentPeriodEnd), 'MMM dd, yyyy') : '-'}
@@ -851,7 +851,7 @@ export default function Billing() {
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{t('billing.transactionHistory')}</h2>
-                    <p className="text-slate-600 dark:text-slate-400 text-sm">{t('billing.transactionSubtitle') || 'View your credit transactions and payment history'}</p>
+                    <p className="text-slate-600 dark:text-slate-400 text-sm">{t('billing.transactionSubtitle', 'View your credit transactions and payment history')}</p>
                   </div>
                 </div>
                 <Button 

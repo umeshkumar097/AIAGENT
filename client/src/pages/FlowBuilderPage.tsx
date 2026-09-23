@@ -1112,7 +1112,7 @@ export default function FlowBuilderPage() {
                         id="duration"
                         type="number"
                         value={selectedNode.data.config?.duration || 1}
-                        onChange={(e) => updateNodeConfig({ duration: parseInt(e.target.value) })}
+                        onChange={(e) => updateNodeConfig({ duration: parseInt(e.target.value, 10) })}
                         placeholder={t("flows.nodeConfig.durationPlaceholder")}
                         min="1"
                         className="mt-1"

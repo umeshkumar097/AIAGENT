@@ -324,7 +324,7 @@ export default function GlobalSettings({ onSwitchTab }: GlobalSettingsProps) {
           ) : (
             <RefreshCw className="h-4 w-4 mr-2" />
           )}
-          {t("admin.settings.connectionStatus.refreshAll") || "Refresh Status"}
+          {t("admin.settings.connectionStatus.refreshAll", "Refresh Status")}
         </Button>
       </div>
 
@@ -358,9 +358,9 @@ export default function GlobalSettings({ onSwitchTab }: GlobalSettingsProps) {
                   )}
                 </div>
                 <div>
-                  <CardTitle className="text-lg">{t("admin.settings.twilio.title") || "Twilio API Credentials"}</CardTitle>
+                  <CardTitle className="text-lg">{t("admin.settings.twilio.title", "Twilio API Credentials")}</CardTitle>
                   <CardDescription className="text-sm">
-                    {t("admin.settings.connectionStatus.telephony") || "Voice & SMS telephony"}
+                    {t("admin.settings.connectionStatus.telephony", "Voice & SMS telephony")}
                   </CardDescription>
                 </div>
               </div>
@@ -374,17 +374,17 @@ export default function GlobalSettings({ onSwitchTab }: GlobalSettingsProps) {
                 {twilioStatus.loading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>{t("admin.settings.connectionStatus.checking") || "Checking..."}</span>
+                    <span>{t("admin.settings.connectionStatus.checking", "Checking...")}</span>
                   </>
                 ) : twilioStatus.connected ? (
                   <>
                     <CheckCircle2 className="h-4 w-4" />
-                    <span>{t("admin.settings.connectionStatus.connected") || "Connected"}</span>
+                    <span>{t("admin.settings.connectionStatus.connected", "Connected")}</span>
                   </>
                 ) : (
                   <>
                     <XCircle className="h-4 w-4" />
-                    <span>{t("admin.settings.connectionStatus.disconnected") || "Disconnected"}</span>
+                    <span>{t("admin.settings.connectionStatus.disconnected", "Disconnected")}</span>
                   </>
                 )}
               </div>
@@ -394,10 +394,10 @@ export default function GlobalSettings({ onSwitchTab }: GlobalSettingsProps) {
             <div className="flex items-center justify-between gap-4">
               <p className="text-sm text-muted-foreground">
                 {twilioStatus.loading 
-                  ? (t("admin.settings.connectionStatus.verifying") || "Verifying API connection...")
+                  ? (t("admin.settings.connectionStatus.verifying", "Verifying API connection..."))
                   : twilioStatus.connected 
-                    ? (t("admin.settings.connectionStatus.twilioReady") || "Twilio is configured and ready for calls")
-                    : twilioStatus.error || (t("admin.settings.connectionStatus.twilioSetup") || "Configure Twilio credentials below to enable calling")}
+                    ? (t("admin.settings.connectionStatus.twilioReady", "Twilio is configured and ready for calls"))
+                    : twilioStatus.error || (t("admin.settings.connectionStatus.twilioSetup", "Configure Twilio credentials below to enable calling"))}
               </p>
               <Button 
                 variant="outline" 
@@ -407,7 +407,7 @@ export default function GlobalSettings({ onSwitchTab }: GlobalSettingsProps) {
                 data-testid="button-edit-twilio"
               >
                 <Pencil className="h-4 w-4 mr-2" />
-                {t("admin.settings.connectionStatus.edit") || "Edit"}
+                {t("admin.settings.connectionStatus.edit", "Edit")}
               </Button>
             </div>
           </CardContent>
@@ -441,9 +441,9 @@ export default function GlobalSettings({ onSwitchTab }: GlobalSettingsProps) {
                   )}
                 </div>
                 <div>
-                  <CardTitle className="text-lg">{t("admin.settings.elevenlabs.title") || "ElevenLabs"}</CardTitle>
+                  <CardTitle className="text-lg">{t("admin.settings.elevenlabs.title", "ElevenLabs")}</CardTitle>
                   <CardDescription className="text-sm">
-                    {t("admin.settings.connectionStatus.aiVoice") || "AI voice synthesis"}
+                    {t("admin.settings.connectionStatus.aiVoice", "AI voice synthesis")}
                   </CardDescription>
                 </div>
               </div>
@@ -457,17 +457,17 @@ export default function GlobalSettings({ onSwitchTab }: GlobalSettingsProps) {
                 {elevenLabsStatus.loading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>{t("admin.settings.connectionStatus.checking") || "Checking..."}</span>
+                    <span>{t("admin.settings.connectionStatus.checking", "Checking...")}</span>
                   </>
                 ) : elevenLabsStatus.connected ? (
                   <>
                     <CheckCircle2 className="h-4 w-4" />
-                    <span>{t("admin.settings.connectionStatus.connected") || "Connected"}</span>
+                    <span>{t("admin.settings.connectionStatus.connected", "Connected")}</span>
                   </>
                 ) : (
                   <>
                     <XCircle className="h-4 w-4" />
-                    <span>{t("admin.settings.connectionStatus.disconnected") || "Disconnected"}</span>
+                    <span>{t("admin.settings.connectionStatus.disconnected", "Disconnected")}</span>
                   </>
                 )}
               </div>
@@ -477,10 +477,10 @@ export default function GlobalSettings({ onSwitchTab }: GlobalSettingsProps) {
             <div className="flex items-center justify-between gap-4">
               <p className="text-sm text-muted-foreground">
                 {elevenLabsStatus.loading 
-                  ? (t("admin.settings.connectionStatus.verifying") || "Verifying API connection...")
+                  ? (t("admin.settings.connectionStatus.verifying", "Verifying API connection..."))
                   : elevenLabsStatus.connected 
-                    ? (t("admin.settings.connectionStatus.elevenLabsReady") || "ElevenLabs is configured for AI voice agents")
-                    : elevenLabsStatus.error || (t("admin.settings.connectionStatus.elevenLabsSetup") || "Add API keys via the key pool to enable AI voices")}
+                    ? (t("admin.settings.connectionStatus.elevenLabsReady", "ElevenLabs is configured for AI voice agents"))
+                    : elevenLabsStatus.error || (t("admin.settings.connectionStatus.elevenLabsSetup", "Add API keys via the key pool to enable AI voices"))}
               </p>
               <Button 
                 variant="outline" 
@@ -490,7 +490,7 @@ export default function GlobalSettings({ onSwitchTab }: GlobalSettingsProps) {
                 data-testid="button-manage-elevenlabs-keys"
               >
                 <Key className="h-4 w-4 mr-2" />
-                {t("admin.settings.connectionStatus.manageKeys") || "Manage Keys"}
+                {t("admin.settings.connectionStatus.manageKeys", "Manage Keys")}
               </Button>
             </div>
           </CardContent>
@@ -524,9 +524,9 @@ export default function GlobalSettings({ onSwitchTab }: GlobalSettingsProps) {
                   )}
                 </div>
                 <div>
-                  <CardTitle className="text-lg">{t("admin.settings.openai.title") || "OpenAI API"}</CardTitle>
+                  <CardTitle className="text-lg">{t("admin.settings.openai.title", "OpenAI API")}</CardTitle>
                   <CardDescription className="text-sm">
-                    {t("admin.settings.connectionStatus.embeddings") || "Embeddings & RAG"}
+                    {t("admin.settings.connectionStatus.embeddings", "Embeddings & RAG")}
                   </CardDescription>
                 </div>
               </div>
@@ -540,17 +540,17 @@ export default function GlobalSettings({ onSwitchTab }: GlobalSettingsProps) {
                 {openaiStatus.loading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>{t("admin.settings.connectionStatus.checking") || "Checking..."}</span>
+                    <span>{t("admin.settings.connectionStatus.checking", "Checking...")}</span>
                   </>
                 ) : openaiStatus.connected ? (
                   <>
                     <CheckCircle2 className="h-4 w-4" />
-                    <span>{t("admin.settings.connectionStatus.connected") || "Connected"}</span>
+                    <span>{t("admin.settings.connectionStatus.connected", "Connected")}</span>
                   </>
                 ) : (
                   <>
                     <XCircle className="h-4 w-4" />
-                    <span>{t("admin.settings.connectionStatus.disconnected") || "Disconnected"}</span>
+                    <span>{t("admin.settings.connectionStatus.disconnected", "Disconnected")}</span>
                   </>
                 )}
               </div>
@@ -560,10 +560,10 @@ export default function GlobalSettings({ onSwitchTab }: GlobalSettingsProps) {
             <div className="flex items-center justify-between gap-4">
               <p className="text-sm text-muted-foreground">
                 {openaiStatus.loading 
-                  ? (t("admin.settings.connectionStatus.verifying") || "Verifying API connection...")
+                  ? (t("admin.settings.connectionStatus.verifying", "Verifying API connection..."))
                   : openaiStatus.connected 
-                    ? (t("admin.settings.connectionStatus.openaiReady") || "OpenAI is configured for RAG embeddings")
-                    : openaiStatus.error || (t("admin.settings.connectionStatus.openaiSetup") || "Configure OpenAI API key for embeddings")}
+                    ? (t("admin.settings.connectionStatus.openaiReady", "OpenAI is configured for RAG embeddings"))
+                    : openaiStatus.error || (t("admin.settings.connectionStatus.openaiSetup", "Configure OpenAI API key for embeddings"))}
               </p>
               <Button 
                 variant="outline" 
@@ -573,7 +573,7 @@ export default function GlobalSettings({ onSwitchTab }: GlobalSettingsProps) {
                 data-testid="button-edit-openai"
               >
                 <Pencil className="h-4 w-4 mr-2" />
-                {t("admin.settings.connectionStatus.edit") || "Edit"}
+                {t("admin.settings.connectionStatus.edit", "Edit")}
               </Button>
             </div>
           </CardContent>
@@ -840,7 +840,7 @@ export default function GlobalSettings({ onSwitchTab }: GlobalSettingsProps) {
               <Input
                 type="number"
                 value={formData.pro_plan_bonus_credits || 0}
-                onChange={(e) => handleChange("pro_plan_bonus_credits", parseInt(e.target.value) || 0)}
+                onChange={(e) => handleChange("pro_plan_bonus_credits", parseInt(e.target.value, 10) || 0)}
                 data-testid="input-bonus-credits"
               />
               <p className="text-xs text-muted-foreground mt-1">
@@ -921,7 +921,7 @@ export default function GlobalSettings({ onSwitchTab }: GlobalSettingsProps) {
               <Input
                 type="number"
                 value={formData.min_credit_purchase || 10}
-                onChange={(e) => handleChange("min_credit_purchase", parseInt(e.target.value) || 10)}
+                onChange={(e) => handleChange("min_credit_purchase", parseInt(e.target.value, 10) || 10)}
                 data-testid="input-min-purchase"
               />
             </div>
@@ -961,7 +961,7 @@ export default function GlobalSettings({ onSwitchTab }: GlobalSettingsProps) {
                 type="number"
                 min="1"
                 value={formData.invoice_start_number || 1}
-                onChange={(e) => handleChange("invoice_start_number", parseInt(e.target.value) || 1)}
+                onChange={(e) => handleChange("invoice_start_number", parseInt(e.target.value, 10) || 1)}
                 data-testid="input-invoice-start"
               />
               <p className="text-xs text-muted-foreground mt-1">

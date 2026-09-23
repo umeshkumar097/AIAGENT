@@ -839,7 +839,7 @@ export default function AnalyticsModule() {
                   id="priority"
                   type="number"
                   value={formData.loadPriority}
-                  onChange={(e) => setFormData(prev => ({ ...prev, loadPriority: parseInt(e.target.value) || 0 }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, loadPriority: parseInt(e.target.value, 10) || 0 }))}
                   min={0}
                   max={100}
                   data-testid="input-priority"

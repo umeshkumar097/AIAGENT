@@ -30,6 +30,7 @@ import { usePluginRegistry } from "@/contexts/plugin-registry";
 import { useTranslation } from "react-i18next";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useSearch } from "wouter";
 import { usePluginStatus } from "@/hooks/use-plugin-status";
 import { AuthStorage } from "@/lib/auth-storage";
 import { useBranding } from "@/components/BrandingProvider";
@@ -167,10 +168,16 @@ export default function Settings() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // Get tab from URL params
-  const urlParams = new URLSearchParams(window.location.search);
-  const initialTab = urlParams.get('tab') || 'profile';
-  const [activeTab, setActiveTab] = useState(initialTab);
+  // Get tab from URL params (reactive: updates on in-app navigation to ?tab=...)
+  const searchString = useSearch();
+  const [activeTab, setActiveTab] = useState(() => new URLSearchParams(searchString).get('tab') || 'profile');
+
+  useEffect(() => {
+    const tab = new URLSearchParams(searchString).get('tab');
+    if (tab) {
+      setActiveTab(tab);
+    }
+  }, [searchString]);
 
   const { data: user, isLoading } = useQuery<User>({
     queryKey: ["/api/auth/me"],

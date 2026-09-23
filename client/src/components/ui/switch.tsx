@@ -14,10 +14,10 @@
  * Respect the author's rights and Envato licensing terms.
  * ============================================================
  */
-import * as React from "react"
-import * as SwitchPrimitives from "@radix-ui/react-switch"
+import * as React from "react";
+import * as SwitchPrimitives from "@radix-ui/react-switch";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 const Switch = React.forwardRef<
   React.ElementRef<typeof SwitchPrimitives.Root>,
@@ -37,7 +37,7 @@ const Switch = React.forwardRef<
       )}
     />
   </SwitchPrimitives.Root>
-))
-Switch.displayName = SwitchPrimitives.Root.displayName
+));
+Switch.displayName = SwitchPrimitives.Root.displayName;
 
-export { Switch }
+export { Switch };

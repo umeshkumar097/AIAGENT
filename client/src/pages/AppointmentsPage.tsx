@@ -987,7 +987,7 @@ export default function AppointmentsPage() {
                   id="buffer-time"
                   type="number"
                   value={settingsData.bufferTime}
-                  onChange={(e) => setSettingsData({ ...settingsData, bufferTime: parseInt(e.target.value) || 0 })}
+                  onChange={(e) => setSettingsData({ ...settingsData, bufferTime: parseInt(e.target.value, 10) || 0 })}
                   data-testid="input-buffer-time"
                 />
               </div>
@@ -1000,7 +1000,7 @@ export default function AppointmentsPage() {
                   placeholder={t("appointments.settings.maxPerDayPlaceholder")}
                   value={settingsData.maxPerDay || ""}
                   onChange={(e) =>
-                    setSettingsData({ ...settingsData, maxPerDay: e.target.value ? parseInt(e.target.value) : null })
+                    setSettingsData({ ...settingsData, maxPerDay: e.target.value ? parseInt(e.target.value, 10) : null })
                   }
                   data-testid="input-max-per-day"
                 />

@@ -209,6 +209,7 @@ export function sanitizeText(text: string): string {
   }
 
   return text
+    // eslint-disable-next-line no-control-regex -- strips control characters
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
     .trim();
 }

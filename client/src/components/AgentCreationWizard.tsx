@@ -310,7 +310,7 @@ export function AgentCreationWizard({ open, onOpenChange, onSuccess }: AgentCrea
     switch (currentStep) {
       case "useCase":
         return !!formData.useCase;
-      case "basics":
+      case "basics": {
         // Voice validation depends on telephony provider
         const isOpenAIProvider = formData.telephonyProvider === "plivo" || formData.telephonyProvider === "twilio_openai" || formData.telephonyProvider === "openai-sip";
         const isSarvamProvider = formData.telephonyProvider === "sarvam-plivo";
@@ -323,6 +323,7 @@ export function AgentCreationWizard({ open, onOpenChange, onSuccess }: AgentCrea
         const isSipEngine = formData.telephonyProvider === "elevenlabs-sip" || formData.telephonyProvider === "openai-sip";
         const hasSipPhoneNumber = !isSipEngine || !!formData.sipPhoneNumberId;
         return !!formData.name && hasValidVoice && hasSipPhoneNumber;
+      }
       case "personality":
         return !!formData.voiceTone && !!formData.personality;
       case "prompts":
@@ -756,7 +757,7 @@ export function AgentCreationWizard({ open, onOpenChange, onSuccess }: AgentCrea
                           <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                           <p className="text-sm text-muted-foreground">
                             {t('wizard.noSipNumbers', { defaultValue: 'No SIP phone numbers available for this engine. Please set up a SIP trunk and import phone numbers in your' })}{' '}
-                            <a href="/app/sip" target="_blank" className="text-primary underline underline-offset-2" data-testid="link-sip-settings">
+                            <a href="/app/phone-numbers" target="_blank" className="text-primary underline underline-offset-2" data-testid="link-sip-settings">
                               {t('wizard.sipSettings', { defaultValue: 'SIP settings' })}
                             </a>{' '}
                             {t('wizard.first', { defaultValue: 'first.' })}

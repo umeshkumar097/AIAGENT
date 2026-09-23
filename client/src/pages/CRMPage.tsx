@@ -2239,6 +2239,7 @@ export default function CRMPage() {
               variant="outline"
               size="sm"
               onClick={() => {
+                // eslint-disable-next-line no-alert -- confirm() gates destructive bulk lead delete
                 if (confirm(`Delete ${selectedLeadIds.size} leads?`)) {
                   bulkDeleteMutation.mutate(Array.from(selectedLeadIds));
                 }

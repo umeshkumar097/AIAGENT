@@ -849,7 +849,7 @@ export default function PlanManagement() {
       const response = await apiRequest("DELETE", `/api/admin/plans/${planId}`);
       if (!response.ok) {
         const errorData = await response.json();
-        throw { response: { json: () => Promise.resolve(errorData) }, ...errorData };
+        throw Object.assign(new Error(errorData?.message || 'Failed to delete plan'), { response: { json: () => Promise.resolve(errorData) }, ...errorData });
       }
       return response.json();
     },

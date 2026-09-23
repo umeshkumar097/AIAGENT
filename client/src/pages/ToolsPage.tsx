@@ -2,14 +2,13 @@ import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ClipboardList, Calendar, Webhook, Globe, Key, Users, Mail, ContactRound, Link as LinkIcon, TableProperties, ExternalLink, Unlink, Loader2 } from "lucide-react";
+import { ClipboardList, Calendar, Webhook, Globe, Key, Users, Mail, ContactRound, Link as LinkIcon, TableProperties, ExternalLink, Unlink, Loader2, MessageSquare, Calendar as CalendarIcon, Workflow, Database, Cable } from "lucide-react";
 import { usePluginStatus } from "@/hooks/use-plugin-status";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { IntegrationCard } from "@/components/dashboard/IntegrationCard";
-import { MessageSquare, Calendar as CalendarIcon, Workflow, Database, Cable } from "lucide-react";
 import { SiZapier, SiZoho, SiGooglesheets } from "react-icons/si";
 
 // SiSalesforce removed from react-icons v5 — using inline SVG

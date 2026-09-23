@@ -122,7 +122,7 @@ export default function SMTPSettings() {
 
   const handleTest = () => {
     if (!testEmail) {
-      setTestResult({ success: false, message: t("admin.smtp.testEmailRequired") || "Test email address is required" });
+      setTestResult({ success: false, message: t("admin.smtp.testEmailRequired", "Test email address is required") });
       return;
     }
     testSMTPMutation.mutate(testEmail);
@@ -173,7 +173,7 @@ export default function SMTPSettings() {
             <Input
               type="number"
               value={formData.smtp_port}
-              onChange={(e) => handleChange("smtp_port", parseInt(e.target.value) || 587)}
+              onChange={(e) => handleChange("smtp_port", parseInt(e.target.value, 10) || 587)}
               placeholder="587"
               data-testid="input-smtp-port"
             />
@@ -225,12 +225,12 @@ export default function SMTPSettings() {
         </div>
 
         <div className="space-y-2">
-          <Label>{t("admin.smtp.testEmailAddress") || "Test Email Address"}</Label>
+          <Label>{t("admin.smtp.testEmailAddress", "Test Email Address")}</Label>
           <Input
             type="email"
             value={testEmail}
             onChange={(e) => { setTestEmail(e.target.value); setTestResult(null); }}
-            placeholder={t("admin.smtp.testEmailPlaceholder") || "Enter email to receive test"}
+            placeholder={t("admin.smtp.testEmailPlaceholder", "Enter email to receive test")}
             data-testid="input-smtp-test-email"
           />
         </div>
@@ -259,7 +259,7 @@ export default function SMTPSettings() {
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              {t("admin.smtp.missingFields") || "Missing fields"}: {missingFields.join(", ")}
+              {t("admin.smtp.missingFields", "Missing fields")}: {missingFields.join(", ")}
             </AlertDescription>
           </Alert>
         )}

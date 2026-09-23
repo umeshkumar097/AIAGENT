@@ -298,7 +298,7 @@ export default function AutoRestartModule() {
                 min={50}
                 max={95}
                 value={formData.auto_restart_ram_percent || 75}
-                onChange={(e) => handleChange("auto_restart_ram_percent", parseInt(e.target.value) || 75)}
+                onChange={(e) => handleChange("auto_restart_ram_percent", parseInt(e.target.value, 10) || 75)}
                 disabled={!formData.auto_restart_enabled}
                 data-testid="input-auto-restart-ram"
               />
@@ -316,7 +316,7 @@ export default function AutoRestartModule() {
                 min={20}
                 max={95}
                 value={formData.auto_restart_cpu_percent || 85}
-                onChange={(e) => handleChange("auto_restart_cpu_percent", parseInt(e.target.value) || 85)}
+                onChange={(e) => handleChange("auto_restart_cpu_percent", parseInt(e.target.value, 10) || 85)}
                 disabled={!formData.auto_restart_enabled}
                 data-testid="input-auto-restart-cpu"
               />

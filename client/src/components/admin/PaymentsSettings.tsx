@@ -289,7 +289,7 @@ export default function PaymentsSettings() {
     },
     onError: (error: any) => {
       toast({
-        title: t("admin.payments.updateFailed") || "Update Failed",
+        title: t("admin.payments.updateFailed", "Update Failed"),
         description: error.message,
         variant: "destructive"
       });
@@ -316,12 +316,12 @@ export default function PaymentsSettings() {
       updates.push(updateSettingMutation.mutateAsync({ key: "stripe_mode", value: stripeFormData.stripe_mode }));
 
       await Promise.all(updates);
-      toast({ title: t("admin.payments.updateSuccess") || "Settings saved successfully" });
+      toast({ title: t("admin.payments.updateSuccess", "Settings saved successfully") });
       setHasStripeChanges(false);
       setStripeFormData(prev => ({ ...prev, stripe_secret_key: "", stripe_webhook_secret: "" }));
     } catch (error: any) {
       toast({
-        title: t("admin.payments.updateFailed") || "Update Failed",
+        title: t("admin.payments.updateFailed", "Update Failed"),
         description: error.message,
         variant: "destructive"
       });
@@ -360,12 +360,12 @@ export default function PaymentsSettings() {
       updates.push(updateSettingMutation.mutateAsync({ key: "razorpay_mode", value: razorpayFormData.razorpay_mode }));
 
       await Promise.all(updates);
-      toast({ title: t("admin.payments.updateSuccess") || "Settings saved successfully" });
+      toast({ title: t("admin.payments.updateSuccess", "Settings saved successfully") });
       setHasRazorpayChanges(false);
       setRazorpayFormData(prev => ({ ...prev, razorpay_key_secret: "", razorpay_webhook_secret: "" }));
     } catch (error: any) {
       toast({
-        title: t("admin.payments.updateFailed") || "Update Failed",
+        title: t("admin.payments.updateFailed", "Update Failed"),
         description: error.message,
         variant: "destructive"
       });
@@ -389,12 +389,12 @@ export default function PaymentsSettings() {
       updates.push(updateSettingMutation.mutateAsync({ key: "paypal_currency", value: paypalFormData.paypal_currency }));
 
       await Promise.all(updates);
-      toast({ title: t("admin.payments.updateSuccess") || "Settings saved successfully" });
+      toast({ title: t("admin.payments.updateSuccess", "Settings saved successfully") });
       setHasPaypalChanges(false);
       setPaypalFormData(prev => ({ ...prev, paypal_client_secret: "" }));
     } catch (error: any) {
       toast({
-        title: t("admin.payments.updateFailed") || "Update Failed",
+        title: t("admin.payments.updateFailed", "Update Failed"),
         description: error.message,
         variant: "destructive"
       });
@@ -417,12 +417,12 @@ export default function PaymentsSettings() {
       updates.push(updateSettingMutation.mutateAsync({ key: "paystack_currency", value: paystackFormData.paystack_currency }));
 
       await Promise.all(updates);
-      toast({ title: t("admin.payments.updateSuccess") || "Settings saved successfully" });
+      toast({ title: t("admin.payments.updateSuccess", "Settings saved successfully") });
       setHasPaystackChanges(false);
       setPaystackFormData(prev => ({ ...prev, paystack_secret_key: "", paystack_webhook_secret: "" }));
     } catch (error: any) {
       toast({
-        title: t("admin.payments.updateFailed") || "Update Failed",
+        title: t("admin.payments.updateFailed", "Update Failed"),
         description: error.message,
         variant: "destructive"
       });
@@ -445,12 +445,12 @@ export default function PaymentsSettings() {
       updates.push(updateSettingMutation.mutateAsync({ key: "mercadopago_currency", value: mercadopagoFormData.mercadopago_currency }));
 
       await Promise.all(updates);
-      toast({ title: t("admin.payments.updateSuccess") || "Settings saved successfully" });
+      toast({ title: t("admin.payments.updateSuccess", "Settings saved successfully") });
       setHasMercadopagoChanges(false);
       setMercadopagoFormData(prev => ({ ...prev, mercadopago_access_token: "", mercadopago_webhook_secret: "" }));
     } catch (error: any) {
       toast({
-        title: t("admin.payments.updateFailed") || "Update Failed",
+        title: t("admin.payments.updateFailed", "Update Failed"),
         description: error.message,
         variant: "destructive"
       });
@@ -625,7 +625,7 @@ export default function PaymentsSettings() {
       const sanitizedError = sanitizeErrorMessage(error.message, 'Connection test failed');
       setStripeConnectionStatus({
         connected: false,
-        error: sanitizedError || t("admin.payments.testFailed") || "Connection test failed"
+        error: sanitizedError || t("admin.payments.testFailed", "Connection test failed")
       });
     }
   });
@@ -1205,14 +1205,14 @@ export default function PaymentsSettings() {
                 <div className="flex items-center gap-3">
                   <CreditCard className="h-5 w-5 text-muted-foreground" />
                   <div>
-                    <CardTitle>{t("admin.payments.title") || "Stripe Configuration"}</CardTitle>
-                    <CardDescription>{t("admin.payments.description") || "Configure Stripe for payment processing"}</CardDescription>
+                    <CardTitle>{t("admin.payments.title", "Stripe Configuration")}</CardTitle>
+                    <CardDescription>{t("admin.payments.description", "Configure Stripe for payment processing")}</CardDescription>
                   </div>
                 </div>
                 {isStripeConfigured && (
                   <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
                     <CheckCircle className="h-3 w-3 mr-1" />
-                    {t("admin.payments.configured") || "Configured"}
+                    {t("admin.payments.configured", "Configured")}
                   </Badge>
                 )}
               </div>
@@ -1229,10 +1229,10 @@ export default function PaymentsSettings() {
                   <AlertDescription>
                     {stripeConnectionStatus.connected ? (
                       <div className="space-y-1">
-                        <p>{t("admin.payments.connectionSuccess") || "Connection successful!"}</p>
+                        <p>{t("admin.payments.connectionSuccess", "Connection successful!")}</p>
                         <p className="text-sm text-muted-foreground">
-                          {t("admin.payments.mode") || "Mode"}: <strong>{stripeConnectionStatus.mode?.toUpperCase()}</strong> | 
-                          {" "}{t("admin.payments.source") || "Source"}: <strong>{stripeConnectionStatus.source}</strong>
+                          {t("admin.payments.mode", "Mode")}: <strong>{stripeConnectionStatus.mode?.toUpperCase()}</strong> | 
+                          {" "}{t("admin.payments.source", "Source")}: <strong>{stripeConnectionStatus.source}</strong>
                         </p>
                       </div>
                     ) : (
@@ -1245,7 +1245,7 @@ export default function PaymentsSettings() {
               <div className="grid gap-4">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Label htmlFor="stripe_secret_key">{t("admin.payments.secretKey") || "Secret Key"}</Label>
+                    <Label htmlFor="stripe_secret_key">{t("admin.payments.secretKey", "Secret Key")}</Label>
                     {settings?.stripe_secret_key && (
                       <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
                         <CheckCircle className="h-3 w-3 mr-1" />
@@ -1273,11 +1273,11 @@ export default function PaymentsSettings() {
                       {showStripeSecretKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">{t("admin.payments.secretKeyHint") || "Your Stripe secret key (starts with sk_)"}</p>
+                  <p className="text-xs text-muted-foreground">{t("admin.payments.secretKeyHint", "Your Stripe secret key (starts with sk_)")}</p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="stripe_publishable_key">{t("admin.payments.publishableKey") || "Publishable Key"}</Label>
+                  <Label htmlFor="stripe_publishable_key">{t("admin.payments.publishableKey", "Publishable Key")}</Label>
                   <Input
                     id="stripe_publishable_key"
                     type="text"
@@ -1286,7 +1286,7 @@ export default function PaymentsSettings() {
                     placeholder="pk_test_..."
                     data-testid="input-stripe-publishable-key"
                   />
-                  <p className="text-xs text-muted-foreground">{t("admin.payments.publishableKeyHint") || "Your Stripe publishable key (starts with pk_)"}</p>
+                  <p className="text-xs text-muted-foreground">{t("admin.payments.publishableKeyHint", "Your Stripe publishable key (starts with pk_)")}</p>
                 </div>
 
                 <div className="space-y-2">
@@ -1426,13 +1426,13 @@ export default function PaymentsSettings() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="stripe_mode">{t("admin.payments.stripeMode") || "Stripe Mode"}</Label>
+                    <Label htmlFor="stripe_mode">{t("admin.payments.stripeMode", "Stripe Mode")}</Label>
                     <Select
                       value={stripeFormData.stripe_mode}
                       onValueChange={(value) => handleStripeChange("stripe_mode", value)}
                     >
                       <SelectTrigger data-testid="select-stripe-mode">
-                        <SelectValue placeholder={t("admin.payments.selectMode") || "Select mode"} />
+                        <SelectValue placeholder={t("admin.payments.selectMode", "Select mode")} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="test">
@@ -1440,7 +1440,7 @@ export default function PaymentsSettings() {
                             <Badge variant="outline" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">
                               Test
                             </Badge>
-                            <span className="text-muted-foreground">{t("admin.payments.testMode") || "Test Mode"}</span>
+                            <span className="text-muted-foreground">{t("admin.payments.testMode", "Test Mode")}</span>
                           </div>
                         </SelectItem>
                         <SelectItem value="live">
@@ -1448,7 +1448,7 @@ export default function PaymentsSettings() {
                             <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
                               Live
                             </Badge>
-                            <span className="text-muted-foreground">{t("admin.payments.liveMode") || "Live Mode"}</span>
+                            <span className="text-muted-foreground">{t("admin.payments.liveMode", "Live Mode")}</span>
                           </div>
                         </SelectItem>
                       </SelectContent>
@@ -1513,7 +1513,7 @@ export default function PaymentsSettings() {
                 ) : (
                   <TestTube className="h-4 w-4 mr-2" />
                 )}
-                {t("admin.payments.testConnection") || "Test Connection"}
+                {t("admin.payments.testConnection", "Test Connection")}
               </Button>
               <Button
                 onClick={saveStripeSettings}
@@ -1525,7 +1525,7 @@ export default function PaymentsSettings() {
                 ) : (
                   <Save className="h-4 w-4 mr-2" />
                 )}
-                {t("common.saveChanges") || "Save Changes"}
+                {t("common.saveChanges", "Save Changes")}
               </Button>
             </CardFooter>
           </Card>
@@ -2598,8 +2598,8 @@ export default function PaymentsSettings() {
           <div className="flex items-center gap-3">
             <DollarSign className="h-5 w-5 text-muted-foreground" />
             <div>
-              <CardTitle>{t("admin.payments.currencyInfo") || "Currency Information"}</CardTitle>
-              <CardDescription>{t("admin.payments.currencyInfoDesc") || "Important information about currency settings"}</CardDescription>
+              <CardTitle>{t("admin.payments.currencyInfo", "Currency Information")}</CardTitle>
+              <CardDescription>{t("admin.payments.currencyInfoDesc", "Important information about currency settings")}</CardDescription>
             </div>
           </div>
         </CardHeader>

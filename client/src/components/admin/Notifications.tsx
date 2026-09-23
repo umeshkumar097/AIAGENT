@@ -273,7 +273,7 @@ export default function Notifications() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>{t("admin.notifications.createBroadcast.priorityLabel")}</Label>
-              <Select value={priority.toString()} onValueChange={(val) => setPriority(parseInt(val))} disabled={broadcastMutation.isPending}>
+              <Select value={priority.toString()} onValueChange={(val) => setPriority(parseInt(val, 10))} disabled={broadcastMutation.isPending}>
                 <SelectTrigger data-testid="select-priority">
                   <SelectValue />
                 </SelectTrigger>
