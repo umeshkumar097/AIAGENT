@@ -97,6 +97,7 @@ __export(schema_exports, {
   insertLegacyWebhookDeliverySchema: () => insertLegacyWebhookDeliverySchema,
   insertLegacyWebhookSchema: () => insertLegacyWebhookSchema,
   insertLlmModelSchema: () => insertLlmModelSchema,
+  insertNotificationEventSchema: () => insertNotificationEventSchema,
   insertNotificationSchema: () => insertNotificationSchema,
   insertOpenaiCredentialSchema: () => insertOpenaiCredentialSchema,
   insertPaymentTransactionSchema: () => insertPaymentTransactionSchema,
@@ -144,6 +145,7 @@ __export(schema_exports, {
   legacyWebhookDeliveries: () => legacyWebhookDeliveries,
   legacyWebhooks: () => legacyWebhooks,
   llmModels: () => llmModels,
+  notificationEvents: () => notificationEvents,
   notifications: () => notifications,
   openaiCredentials: () => openaiCredentials,
   otpVerifications: () => otpVerifications,
@@ -201,7 +203,7 @@ function determineAICategory(lead) {
   if (lead.sentiment === "positive") return AI_LEAD_CATEGORIES.WARM;
   return null;
 }
-var users, otpVerifications, refreshTokens, elevenLabsCredentials, syncedVoices, agents, knowledgeBase, incomingAgents, phoneNumbers, incomingConnections, campaigns, contacts, calls, creditTransactions, tools, voices, plans, globalSettings, llmModels, supportedLanguages, creditPackages, userSubscriptions, phoneNumberRentals, usageRecords, legacyWebhooks, legacyWebhookDeliveries, notifications, emailTemplates, promptTemplates, agentVersions, auditLogs, platformLanguages, insertUserSchema, insertElevenLabsCredentialSchema, insertSyncedVoiceSchema, insertAgentSchema, insertKnowledgeBaseSchema, insertIncomingAgentSchema, insertPromptTemplateSchema, insertAgentVersionSchema, insertIncomingConnectionSchema, insertCampaignSchema, insertContactSchema, insertCallSchema, insertCreditTransactionSchema, insertToolSchema, insertVoiceSchema, insertPlanSchema, insertGlobalSettingsSchema, insertLlmModelSchema, insertSupportedLanguageSchema, insertPlatformLanguageSchema, insertCreditPackageSchema, insertUserSubscriptionSchema, insertPhoneNumberSchema, insertUsageRecordSchema, insertLegacyWebhookSchema, insertLegacyWebhookDeliverySchema, insertPhoneNumberRentalSchema, insertNotificationSchema, insertEmailTemplateSchema, twilioCountries, insertTwilioCountrySchema, userKnowledgeStorageLimits, knowledgeChunks, knowledgeProcessingQueue, insertUserKnowledgeStorageLimitSchema, insertKnowledgeChunkSchema, insertKnowledgeProcessingQueueSchema, flows, insertFlowSchema, createFlowSchema, flowExecutions, insertFlowExecutionSchema, flowTestQueue, insertFlowTestQueueSchema, webhookSubscriptions, webhooks, insertWebhookSchema, createWebhookSchema, webhookDeliveryLogs, webhookLogs, insertWebhookLogSchema, appointments, insertAppointmentSchema, createAppointmentSchema, appointmentSettings, insertAppointmentSettingsSchema, createAppointmentSettingsSchema, forms, insertFormSchema, createFormSchema, formFields, insertFormFieldSchema, formSubmissions, insertFormSubmissionSchema, seoSettings, insertSeoSettingsSchema, analyticsScripts, insertAnalyticsScriptSchema, paymentTransactions, insertPaymentTransactionSchema, refunds, insertRefundSchema, invoices, insertInvoiceSchema, paymentWebhookQueue, insertPaymentWebhookQueueSchema, emailNotificationSettings, insertEmailNotificationSettingsSchema, bannedWords, insertBannedWordSchema, contentViolations, insertContentViolationSchema, openaiCredentials, insertOpenaiCredentialSchema, plivoCredentials, insertPlivoCredentialSchema, plivoPhoneNumbers, insertPlivoPhoneNumberSchema, plivoCalls, insertPlivoCallSchema, campaignJobs, insertCampaignJobSchema, plivoPhonePricing, insertPlivoPhonePricingSchema, userKycDocuments, insertUserKycDocumentSchema, twilioOpenaiCalls, insertTwilioOpenaiCallSchema, demoSessions, insertDemoSessionSchema, leadStages, insertLeadStageSchema, leads, insertLeadSchema, AI_LEAD_CATEGORIES, AI_CATEGORY_LABELS, AI_CATEGORY_COLORS, AI_CATEGORY_PRIORITY, leadNotes, insertLeadNoteSchema, leadActivities, insertLeadActivitySchema, crmCategoryPreferences, insertCrmCategoryPreferencesSchema, websiteWidgets, insertWebsiteWidgetSchema, widgetCallSessions, insertWidgetCallSessionSchema, API_SCOPES, apiKeys, insertApiKeySchema, apiAuditLogs, insertApiAuditLogSchema, apiRateLimits, sipTrunks, insertSipTrunkSchema, sipPhoneNumbers, insertSipPhoneNumberSchema, sipCalls, insertSipCallSchema, userAddresses, insertUserAddressSchema, userFeedback, insertUserFeedbackSchema, googleCalendarCredentials, insertGoogleCalendarCredentialSchema, googleSheetsCredentials, insertGoogleSheetsCredentialSchema, phoneReleaseRetryQueue, insertPhoneReleaseRetryQueueSchema;
+var users, otpVerifications, refreshTokens, elevenLabsCredentials, syncedVoices, agents, knowledgeBase, incomingAgents, phoneNumbers, incomingConnections, campaigns, contacts, calls, creditTransactions, tools, voices, plans, globalSettings, llmModels, supportedLanguages, creditPackages, userSubscriptions, phoneNumberRentals, usageRecords, legacyWebhooks, legacyWebhookDeliveries, notifications, emailTemplates, promptTemplates, agentVersions, auditLogs, platformLanguages, insertUserSchema, insertElevenLabsCredentialSchema, insertSyncedVoiceSchema, insertAgentSchema, insertKnowledgeBaseSchema, insertIncomingAgentSchema, insertPromptTemplateSchema, insertAgentVersionSchema, insertIncomingConnectionSchema, insertCampaignSchema, insertContactSchema, insertCallSchema, insertCreditTransactionSchema, insertToolSchema, insertVoiceSchema, insertPlanSchema, insertGlobalSettingsSchema, insertLlmModelSchema, insertSupportedLanguageSchema, insertPlatformLanguageSchema, insertCreditPackageSchema, insertUserSubscriptionSchema, insertPhoneNumberSchema, insertUsageRecordSchema, insertLegacyWebhookSchema, insertLegacyWebhookDeliverySchema, insertPhoneNumberRentalSchema, insertNotificationSchema, insertEmailTemplateSchema, twilioCountries, insertTwilioCountrySchema, userKnowledgeStorageLimits, knowledgeChunks, knowledgeProcessingQueue, insertUserKnowledgeStorageLimitSchema, insertKnowledgeChunkSchema, insertKnowledgeProcessingQueueSchema, flows, insertFlowSchema, createFlowSchema, flowExecutions, insertFlowExecutionSchema, flowTestQueue, insertFlowTestQueueSchema, webhookSubscriptions, webhooks, insertWebhookSchema, createWebhookSchema, webhookDeliveryLogs, webhookLogs, insertWebhookLogSchema, appointments, insertAppointmentSchema, createAppointmentSchema, appointmentSettings, insertAppointmentSettingsSchema, createAppointmentSettingsSchema, forms, insertFormSchema, createFormSchema, formFields, insertFormFieldSchema, formSubmissions, insertFormSubmissionSchema, seoSettings, insertSeoSettingsSchema, analyticsScripts, insertAnalyticsScriptSchema, paymentTransactions, insertPaymentTransactionSchema, refunds, insertRefundSchema, invoices, insertInvoiceSchema, paymentWebhookQueue, insertPaymentWebhookQueueSchema, emailNotificationSettings, insertEmailNotificationSettingsSchema, bannedWords, insertBannedWordSchema, contentViolations, insertContentViolationSchema, openaiCredentials, insertOpenaiCredentialSchema, plivoCredentials, insertPlivoCredentialSchema, plivoPhoneNumbers, insertPlivoPhoneNumberSchema, plivoCalls, insertPlivoCallSchema, campaignJobs, insertCampaignJobSchema, plivoPhonePricing, insertPlivoPhonePricingSchema, userKycDocuments, insertUserKycDocumentSchema, twilioOpenaiCalls, insertTwilioOpenaiCallSchema, demoSessions, insertDemoSessionSchema, leadStages, insertLeadStageSchema, leads, insertLeadSchema, AI_LEAD_CATEGORIES, AI_CATEGORY_LABELS, AI_CATEGORY_COLORS, AI_CATEGORY_PRIORITY, leadNotes, insertLeadNoteSchema, leadActivities, insertLeadActivitySchema, crmCategoryPreferences, insertCrmCategoryPreferencesSchema, websiteWidgets, insertWebsiteWidgetSchema, widgetCallSessions, insertWidgetCallSessionSchema, API_SCOPES, apiKeys, insertApiKeySchema, apiAuditLogs, insertApiAuditLogSchema, apiRateLimits, sipTrunks, insertSipTrunkSchema, sipPhoneNumbers, insertSipPhoneNumberSchema, sipCalls, insertSipCallSchema, userAddresses, insertUserAddressSchema, userFeedback, insertUserFeedbackSchema, googleCalendarCredentials, insertGoogleCalendarCredentialSchema, googleSheetsCredentials, insertGoogleSheetsCredentialSchema, phoneReleaseRetryQueue, insertPhoneReleaseRetryQueueSchema, notificationEvents, insertNotificationEventSchema;
 var init_schema = __esm({
   "shared/schema.ts"() {
     "use strict";
@@ -263,6 +265,11 @@ var init_schema = __esm({
       billingState: text("billing_state"),
       billingPostalCode: text("billing_postal_code"),
       billingCountry: text("billing_country"),
+      billingStateCode: text("billing_state_code"),
+      // GST state code (e.g. '09' for UP) — decides CGST/SGST vs IGST
+      billingPhone: text("billing_phone"),
+      gstin: text("gstin"),
+      // Buyer GSTIN for B2B invoices
       company: text("company"),
       // Company name for profile and team naming
       createdAt: timestamp("created_at").defaultNow(),
@@ -383,6 +390,10 @@ var init_schema = __esm({
       messagingEmailTemplate: text("messaging_email_template"),
       messagingWhatsappTemplate: text("messaging_whatsapp_template"),
       messagingWhatsappVariables: text("messaging_whatsapp_variables"),
+      // Templates the agent may pick at runtime (empty = any active/approved template). The single
+      // *Template columns above stay as the legacy default / first choice.
+      messagingEmailTemplates: text("messaging_email_templates").array(),
+      messagingWhatsappTemplates: text("messaging_whatsapp_templates").array(),
       expressiveMode: boolean("expressive_mode").default(false),
       // Knowledge Base (for incoming agents)
       knowledgeBaseIds: text("knowledge_base_ids").array(),
@@ -700,46 +711,9 @@ var init_schema = __esm({
       displayName: text("display_name").notNull(),
       description: text("description").notNull(),
       monthlyPrice: decimal("monthly_price", { precision: 10, scale: 2 }).notNull(),
-      // USD price
+      // INR (Cashfree)
       yearlyPrice: decimal("yearly_price", { precision: 10, scale: 2 }),
-      // USD price
-      razorpayMonthlyPrice: decimal("razorpay_monthly_price", { precision: 10, scale: 2 }),
-      // INR price
-      razorpayYearlyPrice: decimal("razorpay_yearly_price", { precision: 10, scale: 2 }),
-      // INR price
-      stripeMonthlyPriceId: text("stripe_monthly_price_id"),
-      // Stripe Price ID for monthly plan
-      stripeYearlyPriceId: text("stripe_yearly_price_id"),
-      // Stripe Price ID for yearly plan
-      stripeProductId: text("stripe_product_id"),
-      // Stripe Product ID
-      razorpayPlanId: text("razorpay_plan_id"),
-      // Razorpay Plan ID (monthly)
-      razorpayYearlyPlanId: text("razorpay_yearly_plan_id"),
-      // Razorpay Plan ID (yearly)
-      // PayPal pricing and plan IDs
-      paypalMonthlyPrice: decimal("paypal_monthly_price", { precision: 10, scale: 2 }),
-      // PayPal price (supports multiple currencies)
-      paypalYearlyPrice: decimal("paypal_yearly_price", { precision: 10, scale: 2 }),
-      paypalProductId: text("paypal_product_id"),
-      // PayPal Product ID
-      paypalMonthlyPlanId: text("paypal_monthly_plan_id"),
-      // PayPal Plan ID for monthly
-      paypalYearlyPlanId: text("paypal_yearly_plan_id"),
-      // PayPal Plan ID for yearly
-      // Paystack pricing and plan codes (Africa: NGN, GHS, ZAR, KES)
-      paystackMonthlyPrice: decimal("paystack_monthly_price", { precision: 10, scale: 2 }),
-      paystackYearlyPrice: decimal("paystack_yearly_price", { precision: 10, scale: 2 }),
-      paystackMonthlyPlanCode: text("paystack_monthly_plan_code"),
-      // Paystack Plan Code for monthly
-      paystackYearlyPlanCode: text("paystack_yearly_plan_code"),
-      // Paystack Plan Code for yearly
-      // MercadoPago pricing and plan IDs (LATAM: BRL, MXN, ARS, CLP, COP)
-      mercadopagoMonthlyPrice: decimal("mercadopago_monthly_price", { precision: 10, scale: 2 }),
-      mercadopagoYearlyPrice: decimal("mercadopago_yearly_price", { precision: 10, scale: 2 }),
-      mercadopagoMonthlyPlanId: text("mercadopago_monthly_plan_id"),
-      // MercadoPago preapproval_plan_id
-      mercadopagoYearlyPlanId: text("mercadopago_yearly_plan_id"),
+      // INR (Cashfree)
       maxAgents: integer("max_agents").notNull().default(1),
       maxCampaigns: integer("max_campaigns").notNull().default(1),
       maxContactsPerCampaign: integer("max_contacts_per_campaign").notNull().default(5),
@@ -828,22 +802,7 @@ var init_schema = __esm({
       description: text("description"),
       credits: integer("credits").notNull(),
       price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-      // USD price
-      razorpayPrice: decimal("razorpay_price", { precision: 10, scale: 2 }),
-      // INR price
-      stripeProductId: text("stripe_product_id"),
-      stripePriceId: text("stripe_price_id"),
-      razorpayItemId: text("razorpay_item_id"),
-      // Razorpay Item ID for credit package
-      // PayPal credit package pricing
-      paypalPrice: decimal("paypal_price", { precision: 10, scale: 2 }),
-      // PayPal price
-      // Paystack credit package pricing (Africa)
-      paystackPrice: decimal("paystack_price", { precision: 10, scale: 2 }),
-      // Paystack price
-      // MercadoPago credit package pricing (LATAM)
-      mercadopagoPrice: decimal("mercadopago_price", { precision: 10, scale: 2 }),
-      // MercadoPago price
+      // INR (Cashfree)
       isActive: boolean("is_active").notNull().default(true),
       createdAt: timestamp("created_at").notNull().defaultNow(),
       updatedAt: timestamp("updated_at").notNull().defaultNow()
@@ -856,26 +815,29 @@ var init_schema = __esm({
       // 'active', 'cancelled', 'expired'
       currentPeriodStart: timestamp("current_period_start").notNull().defaultNow(),
       currentPeriodEnd: timestamp("current_period_end").notNull(),
-      stripeSubscriptionId: text("stripe_subscription_id").unique(),
-      // Unique constraint for idempotency
-      razorpaySubscriptionId: text("razorpay_subscription_id").unique(),
-      // Razorpay Subscription ID
-      // PayPal subscription tracking
-      paypalSubscriptionId: text("paypal_subscription_id").unique(),
-      // PayPal Subscription ID
-      // Paystack subscription tracking (Africa)
-      paystackSubscriptionCode: text("paystack_subscription_code").unique(),
-      // Paystack Subscription Code
-      paystackCustomerCode: text("paystack_customer_code"),
-      // Paystack Customer Code
-      paystackEmailToken: text("paystack_email_token"),
-      // Token for customer management
-      // MercadoPago subscription tracking (LATAM)
-      mercadopagoSubscriptionId: text("mercadopago_subscription_id").unique(),
-      // MercadoPago preapproval ID
       cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
       billingPeriod: text("billing_period").notNull().default("monthly"),
       // 'monthly' or 'yearly'
+      // Cashfree one-time-per-period model: last paid order + expiry reminder bookkeeping
+      cashfreeOrderId: text("cashfree_order_id"),
+      reminder7SentAt: timestamp("reminder_7_sent_at"),
+      reminder3SentAt: timestamp("reminder_3_sent_at"),
+      reminder1SentAt: timestamp("reminder_1_sent_at"),
+      expiredNotifiedAt: timestamp("expired_notified_at"),
+      // Cashfree Subscriptions auto-renew mandate (UPI AutoPay / card / eNACH). The first period is always
+      // paid with a one-time order; the mandate only charges renewals at current_period_end.
+      autoRenew: boolean("auto_renew").notNull().default(false),
+      cashfreeSubscriptionId: text("cashfree_subscription_id"),
+      // our subscription_id sent to Cashfree (zvsub_…)
+      cfSubscriptionId: text("cf_subscription_id"),
+      // Cashfree's reference id
+      mandateStatus: text("mandate_status"),
+      // INITIALIZED | BANK_APPROVAL_PENDING | ACTIVE | ON_HOLD | PAUSED | CANCELLED | COMPLETED | EXPIRED
+      mandatePaymentMethod: text("mandate_payment_method"),
+      // upi | card | enach
+      mandateAuthorizedAt: timestamp("mandate_authorized_at"),
+      nextChargeAt: timestamp("next_charge_at"),
+      autoRenewCancelledAt: timestamp("auto_renew_cancelled_at"),
       // Admin-set per-user limit overrides (null = use plan defaults)
       overrideMaxAgents: integer("override_max_agents"),
       // Override plan's maxAgents
@@ -1590,6 +1552,15 @@ var init_schema = __esm({
       // 'monthly', 'yearly' for subscriptions
       creditsAwarded: integer("credits_awarded"),
       // For credit purchases
+      gatewayOrderId: text("gateway_order_id"),
+      // Cashfree order_id (idempotency key)
+      paymentMethod: text("payment_method"),
+      // upi, card, netbanking, wallet…
+      failureReason: text("failure_reason"),
+      refundedAmount: decimal("refunded_amount", { precision: 10, scale: 2 }).default("0.00"),
+      refundId: text("refund_id"),
+      phoneNumberId: varchar("phone_number_id"),
+      // For phone number rentals
       // Status
       status: text("status").notNull().default("pending"),
       // 'pending', 'completed', 'failed', 'refunded', 'partially_refunded'
@@ -1683,6 +1654,27 @@ var init_schema = __esm({
       gateway: text("gateway").notNull(),
       paymentMethod: text("payment_method"),
       // 'card', 'bank_transfer', etc.
+      // GST (India) — snapshot of seller/buyer tax details at issue time
+      invoiceType: text("invoice_type").notNull().default("tax_invoice"),
+      // 'tax_invoice' | 'credit_note'
+      relatedInvoiceId: varchar("related_invoice_id"),
+      // credit note → original invoice
+      financialYear: text("financial_year"),
+      // e.g. '25-26'
+      sellerName: text("seller_name"),
+      sellerGstin: text("seller_gstin"),
+      sellerAddress: text("seller_address"),
+      sellerStateCode: text("seller_state_code"),
+      buyerGstin: text("buyer_gstin"),
+      buyerStateCode: text("buyer_state_code"),
+      placeOfSupply: text("place_of_supply"),
+      hsnSac: text("hsn_sac"),
+      taxableAmount: decimal("taxable_amount", { precision: 10, scale: 2 }),
+      cgst: decimal("cgst", { precision: 10, scale: 2 }).default("0.00"),
+      sgst: decimal("sgst", { precision: 10, scale: 2 }).default("0.00"),
+      igst: decimal("igst", { precision: 10, scale: 2 }).default("0.00"),
+      taxRate: decimal("tax_rate", { precision: 5, scale: 2 }),
+      isInterState: boolean("is_inter_state").default(false),
       // PDF Storage
       pdfUrl: text("pdf_url"),
       // URL to stored PDF
@@ -2695,6 +2687,26 @@ var init_schema = __esm({
       createdAt: true,
       updatedAt: true
     });
+    notificationEvents = pgTable("notification_events", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
+      eventKey: text("event_key").notNull(),
+      // e.g. 'purchase_completed', 'plan_expiring'
+      channel: text("channel").notNull(),
+      // 'email' | 'in_app'
+      status: text("status").notNull(),
+      // 'sent' | 'failed' | 'skipped'
+      recipient: text("recipient"),
+      subject: text("subject"),
+      error: text("error"),
+      payload: jsonb("payload"),
+      createdAt: timestamp("created_at").notNull().defaultNow()
+    }, (table) => ({
+      userIdx: index("notification_events_user_id_idx").on(table.userId),
+      eventIdx: index("notification_events_event_key_idx").on(table.eventKey),
+      createdIdx: index("notification_events_created_at_idx").on(table.createdAt)
+    }));
+    insertNotificationEventSchema = createInsertSchema(notificationEvents).omit({ id: true, createdAt: true });
   }
 });
 
@@ -2907,106 +2919,42 @@ var init_db = __esm({
 });
 
 // plugins/messaging/services/email-sender.service.ts
-import { sql as sql2 } from "drizzle-orm";
-import nodemailer from "nodemailer";
-function cleanDbValue(value) {
-  if (!value) return "";
-  let cleaned = value.trim();
-  while (cleaned.startsWith('"""') && cleaned.endsWith('"""') || cleaned.startsWith('"') && cleaned.endsWith('"') && cleaned.length > 2) {
-    if (cleaned.startsWith('"""') && cleaned.endsWith('"""')) {
-      cleaned = cleaned.slice(3, -3);
-    } else if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
-      cleaned = cleaned.slice(1, -1);
-    }
-    cleaned = cleaned.trim();
-  }
-  return cleaned;
+function platformEmailService() {
+  const svc = globalThis.__platformEmailService;
+  return svc && typeof svc.sendEmail === "function" ? svc : null;
 }
-function createTransporter(host, portNum, user, pass) {
-  return nodemailer.createTransport({
-    host,
-    port: portNum,
-    secure: portNum === 465,
-    requireTLS: portNum === 587,
-    pool: true,
-    maxConnections: 5,
-    auth: { user, pass },
-    tls: { rejectUnauthorized: false },
-    connectionTimeout: 15e3,
-    greetingTimeout: 15e3,
-    socketTimeout: 15e3
-  });
-}
-async function initializeFromDatabase() {
-  try {
-    const settings = await db.execute(sql2`
-      SELECT key, value FROM global_settings WHERE key IN ('smtp_host', 'smtp_port', 'smtp_username', 'smtp_password', 'smtp_from_email', 'smtp_from_name')
-    `);
-    let rows = [];
-    if (Array.isArray(settings)) {
-      rows = settings;
-    } else if (Array.isArray(settings.rows)) {
-      rows = settings.rows;
-    }
-    const map = {};
-    for (const row of rows) {
-      map[row.key] = typeof row.value === "string" ? row.value : String(row.value ?? "");
-    }
-    const host = cleanDbValue(map["smtp_host"]);
-    const port = map["smtp_port"];
-    const user = cleanDbValue(map["smtp_username"]);
-    const pass = cleanDbValue(map["smtp_password"]);
-    const fromEmail = cleanDbValue(map["smtp_from_email"]);
-    const fName = cleanDbValue(map["smtp_from_name"]);
-    if (host && port && user && pass) {
-      const portNum = typeof port === "string" ? parseInt(port, 10) : Number(port);
-      transporter = createTransporter(host, portNum, user, pass);
-      smtpConfigured = true;
-      fromAddress = fromEmail || user || "";
-      fromName = fName || "";
-      return true;
-    }
-    console.warn("[Email Sender] SMTP settings incomplete in admin panel (missing host, port, username, or password).");
-  } catch (error) {
-    console.warn("[Email Sender] Could not load SMTP settings from database:", error.message);
-  }
-  smtpConfigured = false;
-  transporter = null;
-  return false;
-}
-async function sendEmail(to, subject, html) {
-  const dbLoaded = await initializeFromDatabase();
-  if (!dbLoaded || !smtpConfigured || !transporter) {
-    const reason = "SMTP not configured. Please set up SMTP in Admin Settings \u2192 Master Settings.";
-    console.warn(`[Email Sender] Cannot send to ${to}: ${reason}`);
-    return { success: false, error: reason };
-  }
-  const from = fromName ? `"${fromName}" <${fromAddress}>` : fromAddress;
-  if (!from) {
-    return { success: false, error: "No from address configured in Admin Settings \u2192 Master Settings." };
+async function sendEmail(to, subject, html, replyTo) {
+  const emailService = platformEmailService();
+  if (!emailService) {
+    const error = "Platform email service is not available";
+    console.error(`[Email Sender] Cannot send to ${to}: ${error}`);
+    return { success: false, error };
   }
   try {
-    const info = await transporter.sendMail({ from, to, subject, html });
-    return { success: true, messageId: info.messageId };
+    const result = await emailService.sendEmail(
+      to,
+      subject,
+      html,
+      void 0,
+      replyTo ? { replyTo } : void 0
+    );
+    if (!result.success) {
+      console.warn(`[Email Sender] Platform email to ${to} failed: ${result.error}`);
+    }
+    return result;
   } catch (error) {
     console.error(`[Email Sender] Failed to send email to ${to}:`, error.message);
-    return { success: false, error: error.message };
+    return { success: false, error: error.message || "Unknown email error" };
   }
 }
-var transporter, fromAddress, fromName, smtpConfigured;
 var init_email_sender_service = __esm({
   "plugins/messaging/services/email-sender.service.ts"() {
     "use strict";
-    init_db();
-    transporter = null;
-    fromAddress = "";
-    fromName = "";
-    smtpConfigured = false;
   }
 });
 
 // plugins/messaging/services/messaging-log.service.ts
-import { sql as sql3 } from "drizzle-orm";
+import { sql as sql2 } from "drizzle-orm";
 function snakeToCamel(str) {
   return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
 }
@@ -3024,7 +2972,7 @@ var init_messaging_log_service = __esm({
     init_db();
     MessagingLogService = class {
       async logMessage(userId, channel, data) {
-        const result = await db.execute(sql3`
+        const result = await db.execute(sql2`
       INSERT INTO messaging_logs (user_id, call_id, agent_id, channel, recipient_phone, recipient_email, template_name, status, response_data, error_message, message_content, message_type)
       VALUES (${userId}, ${data.callId || null}, ${data.agentId || null}, ${channel}, ${data.recipientPhone || null}, ${data.recipientEmail || null}, ${data.templateName}, ${data.status}, ${data.responseData ? JSON.stringify(data.responseData) : null}::jsonb, ${data.errorMessage || null}, ${data.messageContent || null}, ${data.messageType || null})
       RETURNING *
@@ -3036,13 +2984,13 @@ var init_messaging_log_service = __esm({
         const offset = filters.offset || 0;
         const channel = filters.channel && ["email", "whatsapp"].includes(filters.channel) ? filters.channel : null;
         const status = filters.status && ["sent", "failed", "pending"].includes(filters.status) ? filters.status : null;
-        const countResult = await db.execute(sql3`
+        const countResult = await db.execute(sql2`
       SELECT COUNT(*) as total FROM messaging_logs
       WHERE user_id = ${userId}
         AND (${channel}::text IS NULL OR channel = ${channel})
         AND (${status}::text IS NULL OR status = ${status})
     `);
-        const result = await db.execute(sql3`
+        const result = await db.execute(sql2`
       SELECT * FROM messaging_logs
       WHERE user_id = ${userId}
         AND (${channel}::text IS NULL OR channel = ${channel})
@@ -3059,12 +3007,12 @@ var init_messaging_log_service = __esm({
         const offset = filters.offset || 0;
         const channel = filters.channel && ["email", "whatsapp"].includes(filters.channel) ? filters.channel : null;
         const status = filters.status && ["sent", "failed", "pending"].includes(filters.status) ? filters.status : null;
-        const countResult = await db.execute(sql3`
+        const countResult = await db.execute(sql2`
       SELECT COUNT(*) as total FROM messaging_logs
       WHERE (${channel}::text IS NULL OR channel = ${channel})
         AND (${status}::text IS NULL OR status = ${status})
     `);
-        const result = await db.execute(sql3`
+        const result = await db.execute(sql2`
       SELECT ml.*, u.name as user_name, u.email as user_email
       FROM messaging_logs ml
       LEFT JOIN users u ON ml.user_id = u.id
@@ -3081,7 +3029,7 @@ var init_messaging_log_service = __esm({
         return { logs, total };
       }
       async getStats() {
-        const result = await db.execute(sql3`
+        const result = await db.execute(sql2`
       SELECT
         COUNT(*) as total,
         COUNT(*) FILTER (WHERE status = 'sent') as success_count,
@@ -3115,7 +3063,7 @@ __export(email_template_service_exports, {
   EmailTemplateService: () => EmailTemplateService,
   emailTemplateService: () => emailTemplateService
 });
-import { sql as sql4 } from "drizzle-orm";
+import { sql as sql3 } from "drizzle-orm";
 function snakeToCamel2(str) {
   return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
 }
@@ -3135,20 +3083,20 @@ var init_email_template_service = __esm({
     init_messaging_log_service();
     EmailTemplateService = class {
       async getAll(userId) {
-        const result = await db.execute(sql4`
+        const result = await db.execute(sql3`
       SELECT * FROM user_email_templates WHERE user_id = ${userId} ORDER BY created_at DESC
     `);
         return result.rows.map((row) => transformRow2(row));
       }
       async getById(userId, id) {
-        const result = await db.execute(sql4`
+        const result = await db.execute(sql3`
       SELECT * FROM user_email_templates WHERE id = ${id} AND user_id = ${userId} LIMIT 1
     `);
         const row = result.rows[0];
         return row ? transformRow2(row) : null;
       }
       async getByName(userId, name) {
-        const result = await db.execute(sql4`
+        const result = await db.execute(sql3`
       SELECT * FROM user_email_templates WHERE name = ${name} AND user_id = ${userId} AND is_active = true LIMIT 1
     `);
         const row = result.rows[0];
@@ -3158,7 +3106,7 @@ var init_email_template_service = __esm({
         const variables = data.variables || [];
         const pgArray = `{${variables.map((v) => `"${v.replace(/"/g, '\\"')}"`).join(",")}}`;
         const designJson = data.designJson ? JSON.stringify(data.designJson) : null;
-        const result = await db.execute(sql4`
+        const result = await db.execute(sql3`
       INSERT INTO user_email_templates (user_id, name, subject, html_body, variables, design_json)
       VALUES (${userId}, ${data.name}, ${data.subject}, ${data.htmlBody}, ${pgArray}::text[], ${designJson}::jsonb)
       RETURNING *
@@ -3175,7 +3123,7 @@ var init_email_template_service = __esm({
         const variables = data.variables ?? existing.variables ?? [];
         const pgArray = `{${variables.map((v) => `"${v.replace(/"/g, '\\"')}"`).join(",")}}`;
         const designJson = data.designJson !== void 0 ? data.designJson ? JSON.stringify(data.designJson) : null : existing.designJson ? JSON.stringify(existing.designJson) : null;
-        const result = await db.execute(sql4`
+        const result = await db.execute(sql3`
       UPDATE user_email_templates
       SET name = ${name}, subject = ${subject}, html_body = ${htmlBody}, is_active = ${isActive},
           variables = ${pgArray}::text[],
@@ -3188,7 +3136,7 @@ var init_email_template_service = __esm({
         return row ? transformRow2(row) : null;
       }
       async delete(userId, id) {
-        const result = await db.execute(sql4`
+        const result = await db.execute(sql3`
       DELETE FROM user_email_templates WHERE id = ${id} AND user_id = ${userId}
     `);
         return result.rowCount > 0;
@@ -3674,6 +3622,17 @@ var init_email_template_service = __esm({
         }
         return result;
       }
+      /** Account email of the sending user — used as Reply-To on platform-sent emails. */
+      async getReplyToAddress(userId) {
+        try {
+          const result = await db.execute(sql3`SELECT email FROM users WHERE id = ${userId} LIMIT 1`);
+          const email = result.rows?.[0]?.email;
+          return typeof email === "string" && email.includes("@") ? email : void 0;
+        } catch (error) {
+          console.warn(`[Messaging] Could not look up reply-to address for user ${userId}: ${error.message}`);
+          return void 0;
+        }
+      }
       async sendEmail(userId, templateId, recipientEmail, variables = {}, meta) {
         const template = await this.getById(userId, templateId);
         if (!template) {
@@ -3691,7 +3650,8 @@ var init_email_template_service = __esm({
         const subject = this.substituteVariables(template.subject, variables);
         const htmlBody = this.substituteVariables(template.htmlBody, variables);
         try {
-          const result = await sendEmail(recipientEmail, subject, htmlBody);
+          const replyTo = await this.getReplyToAddress(userId);
+          const result = await sendEmail(recipientEmail, subject, htmlBody, replyTo);
           await messagingLogService.logMessage(userId, "email", {
             callId: meta?.callId,
             agentId: meta?.agentId,
@@ -3745,10 +3705,11 @@ var init_email_template_service = __esm({
 // plugins/messaging/services/whatsway.service.ts
 var whatsway_service_exports = {};
 __export(whatsway_service_exports, {
+  WAKI_DEFAULT_BASE_URL: () => WAKI_DEFAULT_BASE_URL,
   WhatswayService: () => WhatswayService,
   whatswayService: () => whatswayService
 });
-import { sql as sql5 } from "drizzle-orm";
+import { sql as sql4 } from "drizzle-orm";
 function snakeToCamel3(str) {
   return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
 }
@@ -3759,24 +3720,25 @@ function transformRow3(row) {
   }
   return transformed;
 }
-var WhatswayService, whatswayService;
+var WAKI_DEFAULT_BASE_URL, WhatswayService, whatswayService;
 var init_whatsway_service = __esm({
   "plugins/messaging/services/whatsway.service.ts"() {
     "use strict";
     init_db();
     init_messaging_log_service();
+    WAKI_DEFAULT_BASE_URL = "https://app.waki.in";
     WhatswayService = class {
       async getSettings(userId) {
-        const result = await db.execute(sql5`
+        const result = await db.execute(sql4`
       SELECT * FROM whatsway_settings WHERE user_id = ${userId} LIMIT 1
     `);
         const row = result.rows[0];
         return row ? transformRow3(row) : null;
       }
       async saveSettings(userId, data) {
-        const baseUrl = data.baseUrl || "https://whatsway.diploy.in";
+        const baseUrl = data.baseUrl || WAKI_DEFAULT_BASE_URL;
         const channelId = data.channelId || "";
-        const result = await db.execute(sql5`
+        const result = await db.execute(sql4`
       INSERT INTO whatsway_settings (user_id, api_key, api_secret, base_url, channel_id)
       VALUES (${userId}, ${data.apiKey}, ${data.apiSecret}, ${baseUrl}, ${channelId})
       ON CONFLICT (user_id) DO UPDATE SET
@@ -3790,22 +3752,22 @@ var init_whatsway_service = __esm({
         return transformRow3(result.rows[0]);
       }
       async deactivate(userId) {
-        await db.execute(sql5`
+        await db.execute(sql4`
       UPDATE whatsway_settings SET is_active = false, updated_at = NOW() WHERE user_id = ${userId}
     `);
       }
       async deleteSettings(userId) {
-        await db.execute(sql5`
+        await db.execute(sql4`
       DELETE FROM whatsway_settings WHERE user_id = ${userId}
     `);
       }
       async getCredentials(userId, skipActiveCheck = false) {
         const settings = await this.getSettings(userId);
         if (!settings) {
-          throw new Error("WhatsWay not configured. Please add your API credentials first.");
+          throw new Error("Waki not configured. Please add your Waki API key, secret and channel ID first.");
         }
         if (!skipActiveCheck && !settings.isActive) {
-          throw new Error("WhatsWay integration is disabled.");
+          throw new Error("Waki integration is disabled.");
         }
         return {
           apiKey: settings.apiKey,
@@ -3829,15 +3791,15 @@ var init_whatsway_service = __esm({
         if (body) {
           options.body = JSON.stringify(body);
         }
-        console.log(`[WhatsWay] ${method} ${url}`);
+        console.log(`[Waki] ${method} ${url}`);
         const response = await fetch(url, options);
         if (!response.ok) {
           const errorText = await response.text().catch(() => "Unknown error");
-          let errorMessage = `WhatsWay API error (${response.status})`;
+          let errorMessage = `Waki API error (${response.status})`;
           if (response.status === 401 || response.status === 403) {
-            errorMessage = "Invalid WhatsWay API credentials";
+            errorMessage = "Invalid Waki API credentials";
           } else if (response.status === 429) {
-            errorMessage = "WhatsWay rate limit exceeded. Please try again later.";
+            errorMessage = "Waki rate limit exceeded. Please try again later.";
           } else {
             try {
               const errorJson = JSON.parse(errorText);
@@ -3853,7 +3815,7 @@ var init_whatsway_service = __esm({
       async testConnection(userId, skipActiveCheck = false) {
         const response = await this.makeRequest(userId, "GET", "/api/v1/account", void 0, skipActiveCheck);
         if (!response.success) {
-          throw new Error(response.error || "Failed to connect to WhatsWay");
+          throw new Error(response.error || "Failed to connect to Waki");
         }
         return response.data;
       }
@@ -3883,7 +3845,7 @@ var init_whatsway_service = __esm({
             status: "sent",
             responseData: response.data
           });
-          console.log(`\u2705 [WhatsWay] Template "${templateName}" sent to ${to}`);
+          console.log(`\u2705 [Waki] Template "${templateName}" sent to ${to}`);
           return response.data;
         } catch (error) {
           await messagingLogService.logMessage(userId, "whatsapp", {
@@ -3894,7 +3856,7 @@ var init_whatsway_service = __esm({
             status: "failed",
             errorMessage: error.message
           });
-          console.log(`\u274C [WhatsWay] Failed to send template "${templateName}" to ${to}: ${error.message}`);
+          console.log(`\u274C [Waki] Failed to send template "${templateName}" to ${to}: ${error.message}`);
           throw error;
         }
       }
@@ -3915,7 +3877,7 @@ var init_whatsway_service = __esm({
             status: "sent",
             responseData: response.data
           });
-          console.log(`\u2705 [WhatsWay] Reply sent to ${to}`);
+          console.log(`\u2705 [Waki] Reply sent to ${to}`);
           return response.data;
         } catch (error) {
           await messagingLogService.logMessage(userId, "whatsapp", {
@@ -3940,7 +3902,7 @@ var init_whatsway_service = __esm({
           "X-API-Secret": apiSecret
         };
         if (channelId) headers["X-Channel-Id"] = channelId;
-        console.log(`[WhatsWay] Uploading media: ${filename} (${mimeType}, ${fileBuffer.length} bytes)`);
+        console.log(`[Waki] Uploading media: ${filename} (${mimeType}, ${fileBuffer.length} bytes)`);
         const response = await fetch(url, {
           method: "POST",
           headers,
@@ -3948,14 +3910,14 @@ var init_whatsway_service = __esm({
         });
         if (!response.ok) {
           const errorText = await response.text().catch(() => "Unknown error");
-          throw new Error(`WhatsWay media upload failed (${response.status}): ${errorText}`);
+          throw new Error(`Waki media upload failed (${response.status}): ${errorText}`);
         }
         const json = await response.json();
         const mediaId = json?.data?.mediaId || json?.data?.id || json?.data?.url || "";
         if (!mediaId) {
-          throw new Error("WhatsWay media upload succeeded but no media ID returned");
+          throw new Error("Waki media upload succeeded but no media ID returned");
         }
-        console.log(`[WhatsWay] Media uploaded: ${mediaId}`);
+        console.log(`[Waki] Media uploaded: ${mediaId}`);
         return mediaId;
       }
       async getMediaStream(userId, mediaId) {
@@ -3965,7 +3927,7 @@ var init_whatsway_service = __esm({
           const allowedHost = new URL(baseUrl).host;
           const mediaHost = new URL(mediaId).host;
           if (mediaHost !== allowedHost) {
-            throw new Error("Media URL is not from a trusted WhatsWay host");
+            throw new Error("Media URL is not from a trusted Waki host");
           }
           downloadUrl = mediaId;
         } else {
@@ -3978,7 +3940,7 @@ var init_whatsway_service = __esm({
         if (channelId) headers["X-Channel-Id"] = channelId;
         const mediaRes = await fetch(downloadUrl, { headers });
         if (!mediaRes.ok) {
-          throw new Error(`WhatsWay media download failed (${mediaRes.status})`);
+          throw new Error(`Waki media download failed (${mediaRes.status})`);
         }
         const contentType = mediaRes.headers.get("content-type") || "application/octet-stream";
         const contentLength = mediaRes.headers.get("content-length");
@@ -4011,7 +3973,7 @@ var init_whatsway_service = __esm({
             callId: meta?.callId,
             agentId: meta?.agentId
           });
-          console.log(`\u2705 [WhatsWay] ${mediaType} sent to ${to}`);
+          console.log(`\u2705 [Waki] ${mediaType} sent to ${to}`);
           return response.data;
         } catch (error) {
           const preview = options?.caption || options?.filename || `[${mediaType}]`;
@@ -4051,7 +4013,7 @@ var init_whatsway_service = __esm({
             callId: meta?.callId,
             agentId: meta?.agentId
           });
-          console.log(`\u2705 [WhatsWay] Location sent to ${to}`);
+          console.log(`\u2705 [Waki] Location sent to ${to}`);
           return response.data;
         } catch (error) {
           const preview = name || `${latitude}, ${longitude}`;
@@ -4079,7 +4041,7 @@ __export(meta_whatsapp_service_exports, {
   MetaWhatsAppService: () => MetaWhatsAppService,
   metaWhatsAppService: () => metaWhatsAppService
 });
-import { sql as sql6 } from "drizzle-orm";
+import { sql as sql5 } from "drizzle-orm";
 function snakeToCamel4(str) {
   return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
 }
@@ -4110,14 +4072,14 @@ var init_meta_whatsapp_service = __esm({
     META_API_VERSION = process.env.META_WHATSAPP_API_VERSION || "v21.0";
     MetaWhatsAppService = class {
       async getSettings(userId) {
-        const result = await db.execute(sql6`
+        const result = await db.execute(sql5`
       SELECT * FROM meta_whatsapp_settings WHERE user_id = ${userId} LIMIT 1
     `);
         const row = result.rows[0];
         return row ? transformRow4(row) : null;
       }
       async saveSettings(userId, data) {
-        const result = await db.execute(sql6`
+        const result = await db.execute(sql5`
       INSERT INTO meta_whatsapp_settings (user_id, phone_number_id, waba_id, access_token)
       VALUES (${userId}, ${data.phoneNumberId}, ${data.wabaId}, ${data.accessToken})
       ON CONFLICT (user_id) DO UPDATE SET
@@ -4226,12 +4188,12 @@ var init_meta_whatsapp_service = __esm({
         }
       }
       async deactivate(userId) {
-        await db.execute(sql6`
+        await db.execute(sql5`
       UPDATE meta_whatsapp_settings SET is_active = false, updated_at = NOW() WHERE user_id = ${userId}
     `);
       }
       async deleteSettings(userId) {
-        await db.execute(sql6`
+        await db.execute(sql5`
       DELETE FROM meta_whatsapp_settings WHERE user_id = ${userId}
     `);
       }
@@ -4678,7 +4640,7 @@ var post_call_messaging_exports = {};
 __export(post_call_messaging_exports, {
   triggerPostCallMessaging: () => triggerPostCallMessaging
 });
-import { sql as sql10, eq as eq3, and, desc } from "drizzle-orm";
+import { sql as sql9, eq as eq3, and, desc } from "drizzle-orm";
 function extractRows(result) {
   if (Array.isArray(result)) return result;
   if (Array.isArray(result.rows)) return result.rows;
@@ -4696,7 +4658,7 @@ async function readCallerEmailFromMetadata(callId) {
     for (const table of CALL_TABLES) {
       try {
         const result = await db.execute(
-          sql10`SELECT metadata->>'callerEmail' as caller_email FROM ${sql10.identifier(table)} WHERE id = ${callId} LIMIT 1`
+          sql9`SELECT metadata->>'callerEmail' as caller_email FROM ${sql9.identifier(table)} WHERE id = ${callId} LIMIT 1`
         );
         const rows = extractRows(result);
         if (rows.length > 0 && rows[0].caller_email) {
@@ -4722,7 +4684,7 @@ async function lookupContactByPhone(phone, userId) {
       phone: contacts.phone
     }).from(contacts).innerJoin(campaigns, eq3(contacts.campaignId, campaigns.id)).where(and(
       eq3(campaigns.userId, userId),
-      sql10`${contacts.phone} LIKE ${"%" + digits.slice(-10)}`
+      sql9`${contacts.phone} LIKE ${"%" + digits.slice(-10)}`
     )).orderBy(desc(contacts.createdAt)).limit(1);
     if (results.length > 0) {
       const c = results[0];
@@ -4741,7 +4703,7 @@ async function lookupContactByPhone(phone, userId) {
 async function lookupSipCallData(callId, userId) {
   if (!callId || !userId) return { conversationId: "", contactData: {} };
   try {
-    const result = await db.execute(sql10`
+    const result = await db.execute(sql9`
       SELECT sc.elevenlabs_conversation_id, sc.from_number, sc.to_number, sc.direction,
              a.name as agent_name,
              COALESCE(ct.first_name || ' ' || ct.last_name, ct.first_name, '') as contact_name,
@@ -4774,7 +4736,7 @@ async function lookupSipCallData(callId, userId) {
 async function lookupRegularCallData(callId, userId) {
   if (!callId || !userId) return {};
   try {
-    const result = await db.execute(sql10`
+    const result = await db.execute(sql9`
       SELECT c.phone_number, c.from_number, c.to_number, c.call_direction,
              a.name as agent_name,
              COALESCE(ct.first_name || ' ' || ct.last_name, ct.first_name, '') as contact_name,
@@ -4806,9 +4768,9 @@ async function lookupAppointmentData(callId, conversationId, userId) {
   try {
     const ids = [callId, conversationId].filter(Boolean);
     if (ids.length === 0 || !userId) return {};
-    const conditions = ids.map((id) => sql10`call_id = ${id}`);
-    const orClause = conditions.length === 1 ? conditions[0] : sql10`(${sql10.join(conditions, sql10` OR `)})`;
-    const result = await db.execute(sql10`
+    const conditions = ids.map((id) => sql9`call_id = ${id}`);
+    const orClause = conditions.length === 1 ? conditions[0] : sql9`(${sql9.join(conditions, sql9` OR `)})`;
+    const result = await db.execute(sql9`
       SELECT contact_name, contact_phone, contact_email, appointment_date, appointment_time,
              duration, service_name, notes, status
       FROM appointments
@@ -4867,7 +4829,7 @@ async function triggerPostCallMessaging(params) {
   _triggeredCallIds.add(dedupeKey);
   setTimeout(() => _triggeredCallIds.delete(dedupeKey), 10 * 60 * 1e3);
   try {
-    const agentRows = await db.select().from(agents).where(sql10`eleven_labs_agent_id = ${elevenLabsAgentId} OR id = ${elevenLabsAgentId}`).limit(1);
+    const agentRows = await db.select().from(agents).where(sql9`eleven_labs_agent_id = ${elevenLabsAgentId} OR id = ${elevenLabsAgentId}`).limit(1);
     if (agentRows.length === 0) {
       console.log(`[Post-Call Messaging] Agent not found: ${elevenLabsAgentId}`);
       return;
@@ -5145,7 +5107,7 @@ import multer from "multer";
 
 // plugins/messaging/services/meta-whatsapp-admin.service.ts
 init_db();
-import { sql as sql7 } from "drizzle-orm";
+import { sql as sql6 } from "drizzle-orm";
 import crypto from "crypto";
 var META_GRAPH_API_BASE2 = "https://graph.facebook.com";
 var META_API_VERSION2 = process.env.META_WHATSAPP_API_VERSION || "v22.0";
@@ -5161,7 +5123,7 @@ function transformRow5(row) {
 }
 var MetaWhatsAppAdminService = class {
   async getConfig() {
-    const result = await db.execute(sql7`
+    const result = await db.execute(sql6`
       SELECT * FROM meta_whatsapp_admin_config LIMIT 1
     `);
     const row = result.rows[0];
@@ -5170,7 +5132,7 @@ var MetaWhatsAppAdminService = class {
   async saveConfig(data) {
     const existing = await this.getConfig();
     if (existing) {
-      const result = await db.execute(sql7`
+      const result = await db.execute(sql6`
         UPDATE meta_whatsapp_admin_config SET
           whatsapp_provider_mode = ${data.whatsappProviderMode !== void 0 ? data.whatsappProviderMode : existing.whatsappProviderMode},
           meta_app_id = ${data.metaAppId !== void 0 ? data.metaAppId : existing.metaAppId},
@@ -5185,7 +5147,7 @@ var MetaWhatsAppAdminService = class {
       `);
       return transformRow5(result.rows[0]);
     } else {
-      const result = await db.execute(sql7`
+      const result = await db.execute(sql6`
         INSERT INTO meta_whatsapp_admin_config (
           whatsapp_provider_mode,
           meta_app_id,
@@ -5195,7 +5157,7 @@ var MetaWhatsAppAdminService = class {
           coexistence_enabled,
           webhook_verify_token
         ) VALUES (
-          ${data.whatsappProviderMode || "both"},
+          ${data.whatsappProviderMode || "whatsway_only"},
           ${data.metaAppId || ""},
           ${data.metaAppSecret || ""},
           ${data.metaConfigId || ""},
@@ -5210,7 +5172,7 @@ var MetaWhatsAppAdminService = class {
   }
   async getProviderMode() {
     const config = await this.getConfig();
-    return config?.whatsappProviderMode || "both";
+    return config?.whatsappProviderMode || "whatsway_only";
   }
   async isMetaAllowed() {
     const mode = await this.getProviderMode();
@@ -5312,7 +5274,7 @@ var metaWhatsAppAdminService = new MetaWhatsAppAdminService();
 
 // plugins/messaging/services/whatsapp-conversation.service.ts
 init_db();
-import { sql as sql8 } from "drizzle-orm";
+import { sql as sql7 } from "drizzle-orm";
 function snakeToCamel6(str) {
   return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
 }
@@ -5331,7 +5293,7 @@ var WhatsAppConversationService = class {
     const normalizedPhone = normalizePhone(contactPhone);
     const name = contactName || "";
     const waId = contactWaId || "";
-    const result = await db.execute(sql8`
+    const result = await db.execute(sql7`
       INSERT INTO whatsapp_conversations (user_id, contact_phone, contact_name, contact_wa_id)
       VALUES (${userId}, ${normalizedPhone}, ${name}, ${waId})
       ON CONFLICT (user_id, contact_phone) DO UPDATE SET
@@ -5345,19 +5307,19 @@ var WhatsAppConversationService = class {
   async getConversations(userId, options = {}) {
     const limit = options.limit || 50;
     const offset = options.offset || 0;
-    let whereClause = sql8`WHERE user_id = ${userId}`;
+    let whereClause = sql7`WHERE user_id = ${userId}`;
     if (options.status) {
-      whereClause = sql8`${whereClause} AND status = ${options.status}`;
+      whereClause = sql7`${whereClause} AND status = ${options.status}`;
     }
     if (options.search) {
       const searchPattern = `%${options.search}%`;
-      whereClause = sql8`${whereClause} AND (contact_phone ILIKE ${searchPattern} OR contact_name ILIKE ${searchPattern})`;
+      whereClause = sql7`${whereClause} AND (contact_phone ILIKE ${searchPattern} OR contact_name ILIKE ${searchPattern})`;
     }
-    const countResult = await db.execute(sql8`
+    const countResult = await db.execute(sql7`
       SELECT COUNT(*)::int as total FROM whatsapp_conversations ${whereClause}
     `);
     const total = countResult.rows[0]?.total || 0;
-    const result = await db.execute(sql8`
+    const result = await db.execute(sql7`
       SELECT * FROM whatsapp_conversations ${whereClause}
       ORDER BY last_message_at DESC
       LIMIT ${limit} OFFSET ${offset}
@@ -5368,7 +5330,7 @@ var WhatsAppConversationService = class {
     return { conversations, total };
   }
   async getConversation(userId, conversationId) {
-    const result = await db.execute(sql8`
+    const result = await db.execute(sql7`
       SELECT * FROM whatsapp_conversations WHERE id = ${conversationId} AND user_id = ${userId} LIMIT 1
     `);
     const row = result.rows[0];
@@ -5378,14 +5340,14 @@ var WhatsAppConversationService = class {
     const limit = options.limit || 50;
     let query;
     if (options.before) {
-      query = sql8`
+      query = sql7`
         SELECT * FROM whatsapp_messages
         WHERE conversation_id = ${conversationId} AND created_at < ${options.before}
         ORDER BY created_at ASC
         LIMIT ${limit}
       `;
     } else {
-      query = sql8`
+      query = sql7`
         SELECT * FROM (
           SELECT * FROM whatsapp_messages
           WHERE conversation_id = ${conversationId}
@@ -5405,7 +5367,7 @@ var WhatsAppConversationService = class {
     const status = data.status || "sent";
     const metadata = data.metadata ? JSON.stringify(data.metadata) : "{}";
     const preview = content.substring(0, 100);
-    const result = await db.execute(sql8`
+    const result = await db.execute(sql7`
       INSERT INTO whatsapp_messages (
         conversation_id, user_id, direction, sender_type, message_type,
         content, meta_message_id, template_name, media_url, media_mime_type,
@@ -5418,7 +5380,7 @@ var WhatsAppConversationService = class {
       RETURNING *
     `);
     if (data.direction === "inbound") {
-      await db.execute(sql8`
+      await db.execute(sql7`
         UPDATE whatsapp_conversations SET
           last_message_at = NOW(),
           last_message_preview = ${preview},
@@ -5427,7 +5389,7 @@ var WhatsAppConversationService = class {
         WHERE id = ${data.conversationId}
       `);
     } else {
-      await db.execute(sql8`
+      await db.execute(sql7`
         UPDATE whatsapp_conversations SET
           last_message_at = NOW(),
           last_message_preview = ${preview},
@@ -5438,7 +5400,7 @@ var WhatsAppConversationService = class {
     return transformRow6(result.rows[0]);
   }
   async updateMessageStatus(metaMessageId, status, errorMessage) {
-    await db.execute(sql8`
+    await db.execute(sql7`
       UPDATE whatsapp_messages SET
         status = ${status},
         error_message = ${errorMessage || null}
@@ -5446,7 +5408,7 @@ var WhatsAppConversationService = class {
     `);
   }
   async markRead(userId, conversationId) {
-    await db.execute(sql8`
+    await db.execute(sql7`
       UPDATE whatsapp_conversations SET
         unread_count = 0,
         updated_at = NOW()
@@ -5454,7 +5416,7 @@ var WhatsAppConversationService = class {
     `);
   }
   async updateConversationStatus(userId, conversationId, status) {
-    await db.execute(sql8`
+    await db.execute(sql7`
       UPDATE whatsapp_conversations SET
         status = ${status},
         updated_at = NOW()
@@ -5462,7 +5424,7 @@ var WhatsAppConversationService = class {
     `);
   }
   async setAutoReply(userId, conversationId, enabled, agentId) {
-    await db.execute(sql8`
+    await db.execute(sql7`
       UPDATE whatsapp_conversations SET
         auto_reply_enabled = ${enabled},
         assigned_agent_id = ${agentId || null},
@@ -5471,7 +5433,7 @@ var WhatsAppConversationService = class {
     `);
   }
   async refreshWindow(conversationId) {
-    await db.execute(sql8`
+    await db.execute(sql7`
       UPDATE whatsapp_conversations SET
         window_expires_at = NOW() + INTERVAL '24 hours',
         updated_at = NOW()
@@ -5484,7 +5446,7 @@ var WhatsAppConversationService = class {
   }
   async getConversationByPhone(userId, contactPhone) {
     const normalized = normalizePhone(contactPhone);
-    const result = await db.execute(sql8`
+    const result = await db.execute(sql7`
       SELECT * FROM whatsapp_conversations
       WHERE user_id = ${userId} AND contact_phone = ${normalized}
       LIMIT 1
@@ -5493,7 +5455,7 @@ var WhatsAppConversationService = class {
     return row ? transformRow6(row) : null;
   }
   async findUserByPhoneNumberId(phoneNumberId) {
-    const result = await db.execute(sql8`
+    const result = await db.execute(sql7`
       SELECT user_id FROM meta_whatsapp_settings
       WHERE phone_number_id = ${phoneNumberId} AND is_active = true
       LIMIT 1
@@ -5502,7 +5464,7 @@ var WhatsAppConversationService = class {
     return row ? row.user_id : null;
   }
   async findUserByWabaId(wabaId) {
-    const result = await db.execute(sql8`
+    const result = await db.execute(sql7`
       SELECT user_id, phone_number_id FROM meta_whatsapp_settings
       WHERE waba_id = ${wabaId} AND is_active = true
       LIMIT 1
@@ -5511,7 +5473,7 @@ var WhatsAppConversationService = class {
     return row ? { userId: row.user_id, phoneNumberId: row.phone_number_id } : null;
   }
   async updatePhoneNumberId(userId, newPhoneNumberId) {
-    await db.execute(sql8`
+    await db.execute(sql7`
       UPDATE meta_whatsapp_settings SET
         phone_number_id = ${newPhoneNumberId},
         updated_at = NOW()
@@ -5520,13 +5482,13 @@ var WhatsAppConversationService = class {
   }
   async isDuplicateMessage(metaMessageId) {
     if (!metaMessageId) return false;
-    const result = await db.execute(sql8`
+    const result = await db.execute(sql7`
       SELECT 1 FROM whatsapp_messages WHERE meta_message_id = ${metaMessageId} LIMIT 1
     `);
     return (result.rows || []).length > 0;
   }
   async getConversationUpdates(userId, since) {
-    const result = await db.execute(sql8`
+    const result = await db.execute(sql7`
       SELECT id, unread_count, last_message_at, last_message_preview, status, updated_at, window_expires_at,
              contact_phone, contact_name, contact_wa_id, user_id, assigned_agent_id, auto_reply_enabled, created_at
       FROM whatsapp_conversations
@@ -5724,8 +5686,8 @@ router.get("/whatsway/settings", async (req, res) => {
       res.json({ success: true, data: null });
     }
   } catch (error) {
-    console.error("[Messaging] Error fetching WhatsWay settings:", error.message);
-    res.status(500).json({ success: false, error: "Failed to fetch WhatsWay settings" });
+    console.error("[Messaging] Error fetching Waki settings:", error.message);
+    res.status(500).json({ success: false, error: "Failed to fetch Waki settings" });
   }
 });
 router.post("/whatsway/settings", async (req, res) => {
@@ -5734,7 +5696,7 @@ router.post("/whatsway/settings", async (req, res) => {
     if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
     const whatswayAllowed = await metaWhatsAppAdminService.isWhatswayAllowed();
     if (!whatswayAllowed) {
-      return res.status(403).json({ success: false, error: "WhatsWay is not enabled by the administrator" });
+      return res.status(403).json({ success: false, error: "Waki is not enabled by the administrator" });
     }
     const { apiKey, apiSecret, baseUrl, channelId } = req.body;
     if (!apiKey || !apiSecret) {
@@ -5748,15 +5710,15 @@ router.post("/whatsway/settings", async (req, res) => {
       const accountInfo = await whatswayService.testConnection(userId, true);
       verified = true;
       accountName = accountInfo?.name || accountInfo?.businessName || "";
-      console.log(`[Messaging] WhatsWay credentials verified for user ${userId}: ${accountName}`);
+      console.log(`[Messaging] Waki credentials verified for user ${userId}: ${accountName}`);
       try {
         await metaWhatsAppService.deactivate(userId);
-        console.log(`[Messaging] Deactivated Meta WhatsApp for user ${userId} (WhatsWay is now active)`);
+        console.log(`[Messaging] Deactivated Meta WhatsApp for user ${userId} (Waki is now active)`);
       } catch (_) {
       }
     } catch (verErr) {
       verifyError = verErr.message || "Verification failed";
-      console.log(`[Messaging] WhatsWay credentials saved but verification failed for user ${userId}: ${verifyError}`);
+      console.log(`[Messaging] Waki credentials saved but verification failed for user ${userId}: ${verifyError}`);
     }
     res.json({
       success: true,
@@ -5770,8 +5732,8 @@ router.post("/whatsway/settings", async (req, res) => {
       }
     });
   } catch (error) {
-    console.error("[Messaging] Error saving WhatsWay settings:", error.message);
-    res.status(500).json({ success: false, error: "Failed to save WhatsWay settings" });
+    console.error("[Messaging] Error saving Waki settings:", error.message);
+    res.status(500).json({ success: false, error: "Failed to save Waki settings" });
   }
 });
 router.delete("/whatsway/settings", async (req, res) => {
@@ -5781,8 +5743,8 @@ router.delete("/whatsway/settings", async (req, res) => {
     await whatswayService.deleteSettings(userId);
     res.json({ success: true });
   } catch (error) {
-    console.error("[Messaging] Error deleting WhatsWay settings:", error.message);
-    res.status(500).json({ success: false, error: "Failed to delete WhatsWay settings" });
+    console.error("[Messaging] Error deleting Waki settings:", error.message);
+    res.status(500).json({ success: false, error: "Failed to delete Waki settings" });
   }
 });
 router.post("/whatsway/test-connection", async (req, res) => {
@@ -5792,8 +5754,8 @@ router.post("/whatsway/test-connection", async (req, res) => {
     const accountInfo = await whatswayService.testConnection(userId);
     res.json({ success: true, data: accountInfo });
   } catch (error) {
-    console.error("[Messaging] WhatsWay connection test failed:", error.message);
-    res.status(400).json({ success: false, error: "Failed to test WhatsWay connection" });
+    console.error("[Messaging] Waki connection test failed:", error.message);
+    res.status(400).json({ success: false, error: "Failed to test Waki connection" });
   }
 });
 router.get("/whatsway/templates", async (req, res) => {
@@ -5803,8 +5765,8 @@ router.get("/whatsway/templates", async (req, res) => {
     const templates = await whatswayService.getTemplates(userId);
     res.json({ success: true, data: templates });
   } catch (error) {
-    console.error("[Messaging] Error fetching WhatsWay templates:", error.message);
-    res.status(400).json({ success: false, error: "Failed to fetch WhatsWay templates" });
+    console.error("[Messaging] Error fetching Waki templates:", error.message);
+    res.status(400).json({ success: false, error: "Failed to fetch Waki templates" });
   }
 });
 router.get("/meta-whatsapp/settings", async (req, res) => {
@@ -5866,7 +5828,7 @@ router.post("/meta-whatsapp/settings", async (req, res) => {
       console.log(`[Messaging] Meta WhatsApp credentials verified for user ${userId}: ${businessName}`);
       try {
         await whatswayService.deactivate(userId);
-        console.log(`[Messaging] Deactivated WhatsWay for user ${userId} (Meta WhatsApp is now active)`);
+        console.log(`[Messaging] Deactivated Waki for user ${userId} (Meta WhatsApp is now active)`);
       } catch (_) {
       }
     } catch (verErr) {
@@ -6063,7 +6025,7 @@ router.post("/conversations/:id/messages", async (req, res) => {
     }
     const provider = await getActiveWhatsAppProvider(userId);
     if (!provider) {
-      return res.status(400).json({ success: false, error: "No WhatsApp provider configured. Please set up WhatsWay or Meta WhatsApp in your messaging settings." });
+      return res.status(400).json({ success: false, error: "No WhatsApp provider configured. Please set up Waki or Meta WhatsApp in your messaging settings." });
     }
     const { type, content, templateName, language, components, mediaId, caption, filename, mimeType, latitude, longitude, locationName, address } = req.body;
     if (type === "text") {
@@ -6359,7 +6321,7 @@ router.post("/meta-whatsapp/embedded-signup/callback", async (req, res) => {
     });
     try {
       await whatswayService.deactivate(userId);
-      console.log(`[Messaging] Deactivated WhatsWay for user ${userId} (Embedded Signup completed)`);
+      console.log(`[Messaging] Deactivated Waki for user ${userId} (Embedded Signup completed)`);
     } catch (_) {
     }
     let businessName = "";
@@ -6397,7 +6359,7 @@ import { Router as Router2 } from "express";
 init_db();
 init_schema();
 import jwt from "jsonwebtoken";
-import { sql as sql9, eq as eq2 } from "drizzle-orm";
+import { sql as sql8, eq as eq2 } from "drizzle-orm";
 var JWT_SECRET = process.env.JWT_SECRET || (() => {
   if (process.env.NODE_ENV === "production") {
     throw new Error("JWT_SECRET environment variable must be set in production");
@@ -6413,8 +6375,8 @@ function requireAdminPermission(section, subsection, action) {
       if (req.adminTeamMember) {
         const { roleId } = req.adminTeamMember;
         const actionColumn = action === "create" ? "can_create" : action === "read" ? "can_read" : action === "update" ? "can_update" : "can_delete";
-        const permResult = await db.execute(sql9`
-          SELECT ${sql9.raw(actionColumn)} as has_permission
+        const permResult = await db.execute(sql8`
+          SELECT ${sql8.raw(actionColumn)} as has_permission
           FROM admin_team_permissions
           WHERE role_id = ${roleId}
             AND section = ${section}
@@ -6578,7 +6540,7 @@ var admin_messaging_routes_default = router2;
 // plugins/messaging/routes/webhook-messaging.routes.ts
 init_db();
 import { Router as Router3 } from "express";
-import { sql as sql11 } from "drizzle-orm";
+import { sql as sql10 } from "drizzle-orm";
 
 // plugins/messaging/services/webhook-auth.service.ts
 import crypto2 from "crypto";
@@ -6654,8 +6616,8 @@ function buildSipLookupResult(row) {
 async function lookupSipCallByConversationId(conversationId, userId) {
   if (!conversationId) return null;
   try {
-    const conditions = userId ? sql11`sc.elevenlabs_conversation_id = ${conversationId} AND sc.user_id = ${userId}` : sql11`sc.elevenlabs_conversation_id = ${conversationId}`;
-    const sipResult = await db.execute(sql11`
+    const conditions = userId ? sql10`sc.elevenlabs_conversation_id = ${conversationId} AND sc.user_id = ${userId}` : sql10`sc.elevenlabs_conversation_id = ${conversationId}`;
+    const sipResult = await db.execute(sql10`
       SELECT sc.id, sc.from_number, sc.to_number, sc.direction, sc.elevenlabs_conversation_id,
              a.name as agent_name, COALESCE(ct.first_name || ' ' || ct.last_name, ct.first_name, '') as contact_name, ct.email as contact_email
       FROM sip_calls sc
@@ -6673,7 +6635,7 @@ async function lookupSipCallByConversationId(conversationId, userId) {
 }
 async function lookupAnyCallByAgentId(elevenLabsAgentId, userId) {
   try {
-    const callResult = await db.execute(sql11`
+    const callResult = await db.execute(sql10`
       SELECT c.id, c.phone_number, COALESCE(ct.first_name || ' ' || ct.last_name, ct.first_name, '') as contact_name, ct.email as contact_email, a.name as agent_name
       FROM calls c
       JOIN agents a ON c.agent_id = a.id
@@ -6699,7 +6661,7 @@ async function lookupAnyCallByAgentId(elevenLabsAgentId, userId) {
         }
       };
     }
-    const sipResult = await db.execute(sql11`
+    const sipResult = await db.execute(sql10`
       SELECT sc.id, sc.from_number, sc.to_number, sc.direction, sc.elevenlabs_conversation_id,
              a.name as agent_name, COALESCE(ct.first_name || ' ' || ct.last_name, ct.first_name, '') as contact_name, ct.email as contact_email
       FROM sip_calls sc
@@ -6724,9 +6686,9 @@ async function lookupAppointmentData2(sipCallId, conversationId, userId) {
   try {
     const ids = [sipCallId, conversationId].filter(Boolean);
     if (ids.length === 0 || !userId) return {};
-    const conditions = ids.map((id) => sql11`call_id = ${id}`);
-    const orClause = conditions.length === 1 ? conditions[0] : sql11`(${sql11.join(conditions, sql11` OR `)})`;
-    const apptResult = await db.execute(sql11`
+    const conditions = ids.map((id) => sql10`call_id = ${id}`);
+    const orClause = conditions.length === 1 ? conditions[0] : sql10`(${sql10.join(conditions, sql10` OR `)})`;
+    const apptResult = await db.execute(sql10`
       SELECT contact_name, contact_phone, contact_email, appointment_date, appointment_time,
              duration, service_name, notes, status
       FROM appointments
@@ -6778,7 +6740,7 @@ router3.post("/collect-email/:token/:agentId", async (req, res) => {
       for (const tbl of ALLOWED_CONV_TABLES) {
         try {
           const r = await db.execute(
-            sql11`UPDATE ${sql11.identifier(tbl)} SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('callerEmail', ${callerEmail}::text) WHERE elevenlabs_conversation_id = ${conversationId} RETURNING id`
+            sql10`UPDATE ${sql10.identifier(tbl)} SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('callerEmail', ${callerEmail}::text) WHERE elevenlabs_conversation_id = ${conversationId} RETURNING id`
           );
           const rows = Array.isArray(r) ? r : r.rows || [];
           if (rows.length > 0) {
@@ -6792,7 +6754,7 @@ router3.post("/collect-email/:token/:agentId", async (req, res) => {
       for (const tbl of ALLOWED_ID_TABLES) {
         try {
           const r = await db.execute(
-            sql11`UPDATE ${sql11.identifier(tbl)} SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('callerEmail', ${callerEmail}::text) WHERE id = ${callId} RETURNING id`
+            sql10`UPDATE ${sql10.identifier(tbl)} SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('callerEmail', ${callerEmail}::text) WHERE id = ${callId} RETURNING id`
           );
           const rows = Array.isArray(r) ? r : r.rows || [];
           if (rows.length > 0) {
@@ -6822,7 +6784,7 @@ router3.post("/send-email/:token/:agentId", async (req, res) => {
       console.warn(`\u{1F4E7} [Messaging Webhook] Invalid authentication token`);
       return res.status(401).json({ success: false, error: "Unauthorized" });
     }
-    const agentResult = await db.execute(sql11`
+    const agentResult = await db.execute(sql10`
       SELECT id, user_id, messaging_email_template FROM agents 
       WHERE eleven_labs_agent_id = ${elevenLabsAgentId} OR id = ${elevenLabsAgentId} LIMIT 1
     `);
@@ -6880,7 +6842,7 @@ router3.post("/send-email/:token/:agentId", async (req, res) => {
         for (const tbl of CONV_TABLES) {
           try {
             await db.execute(
-              sql11`UPDATE ${sql11.identifier(tbl)} SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('callerEmail', ${recipient_email}::text) WHERE elevenlabs_conversation_id = ${conversationId}`
+              sql10`UPDATE ${sql10.identifier(tbl)} SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('callerEmail', ${recipient_email}::text) WHERE elevenlabs_conversation_id = ${conversationId}`
             );
           } catch (_) {
           }
@@ -6890,7 +6852,7 @@ router3.post("/send-email/:token/:agentId", async (req, res) => {
         for (const tbl of ID_TABLES) {
           try {
             await db.execute(
-              sql11`UPDATE ${sql11.identifier(tbl)} SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('callerEmail', ${recipient_email}::text) WHERE id = ${callId}`
+              sql10`UPDATE ${sql10.identifier(tbl)} SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('callerEmail', ${recipient_email}::text) WHERE id = ${callId}`
             );
           } catch (_) {
           }
@@ -6922,7 +6884,7 @@ router3.post("/send-whatsapp/:token/:agentId", async (req, res) => {
       console.warn(`\u{1F4AC} [Messaging Webhook] Invalid authentication token`);
       return res.status(401).json({ success: false, error: "Unauthorized" });
     }
-    const agentResult = await db.execute(sql11`
+    const agentResult = await db.execute(sql10`
       SELECT id, user_id, messaging_whatsapp_template, messaging_whatsapp_variables FROM agents 
       WHERE eleven_labs_agent_id = ${elevenLabsAgentId} OR id = ${elevenLabsAgentId} LIMIT 1
     `);
@@ -6949,7 +6911,7 @@ router3.post("/send-whatsapp/:token/:agentId", async (req, res) => {
     const resolvedConversationId = stripUnresolvedElevenLabsVar(rawConversationId);
     if (digits.length < 6 || Array.isArray(template_variables) && template_variables.length > 0 || savedWhatsappVariables) {
       if (req.query.callId) {
-        const callResult = await db.execute(sql11`
+        const callResult = await db.execute(sql10`
           SELECT c.phone_number, COALESCE(ct.first_name || ' ' || ct.last_name, ct.first_name, '') as contact_name, ct.email as contact_email, a.name as agent_name
           FROM calls c
           LEFT JOIN contacts ct ON c.contact_id = ct.id
@@ -6976,7 +6938,7 @@ router3.post("/send-whatsapp/:token/:agentId", async (req, res) => {
     }
     if ((!recipientPhone || recipientPhone.replace(/[^0-9]/g, "").length < 6) && resolvedConversationId) {
       console.log(`\u{1F4AC} [Messaging Webhook] Attempting conversationId fallback for: ${resolvedConversationId}`);
-      const convResult = await db.execute(sql11`
+      const convResult = await db.execute(sql10`
           SELECT c.phone_number, c.from_number, COALESCE(ct.first_name || ' ' || ct.last_name, ct.first_name, '') as contact_name, ct.email as contact_email, a.name as agent_name
           FROM calls c
           LEFT JOIN contacts ct ON c.contact_id = ct.id
@@ -7316,8 +7278,8 @@ router3.post("/send-whatsapp/:token/:agentId", async (req, res) => {
         { callId: req.query.callId, agentId: dbAgentId }
       );
     } else if (whatswaySettings?.isActive) {
-      console.log(`[Messaging Webhook] Using WhatsWay for user ${userId}`);
-      console.log(`\u{1F4AC} [Messaging Webhook] Final Constructed Components for WhatsWay: ${JSON.stringify(components, null, 2)}`);
+      console.log(`[Messaging Webhook] Using Waki for user ${userId}`);
+      console.log(`\u{1F4AC} [Messaging Webhook] Final Constructed Components for Waki: ${JSON.stringify(components, null, 2)}`);
       sendResult = await whatswayService.sendTemplate(
         userId,
         recipientPhone,
@@ -7330,7 +7292,7 @@ router3.post("/send-whatsapp/:token/:agentId", async (req, res) => {
       console.warn(`[Messaging Webhook] No WhatsApp provider configured for user ${userId}`);
       return res.json({
         success: false,
-        message: "No WhatsApp provider configured. Please set up WhatsWay or Meta WhatsApp in your messaging settings."
+        message: "No WhatsApp provider configured. Please set up Waki or Meta WhatsApp in your messaging settings."
       });
     }
     try {
@@ -7645,7 +7607,7 @@ function registerMessagingRoutes(app, options) {
   console.log("[Messaging] Plugin registered (v1.0.3)");
   console.log("[Messaging] Endpoints:");
   console.log("  - /api/messaging/email-templates (user auth)");
-  console.log("  - /api/messaging/whatsway/* (user auth)");
+  console.log("  - /api/messaging/whatsway/* (Waki, user auth)");
   console.log("  - /api/messaging/meta-whatsapp/* (user auth)");
   console.log("  - /api/messaging/conversations (user auth)");
   console.log("  - /api/messaging/logs (user auth)");

@@ -97,6 +97,7 @@ __export(schema_exports, {
   insertLegacyWebhookDeliverySchema: () => insertLegacyWebhookDeliverySchema,
   insertLegacyWebhookSchema: () => insertLegacyWebhookSchema,
   insertLlmModelSchema: () => insertLlmModelSchema,
+  insertNotificationEventSchema: () => insertNotificationEventSchema,
   insertNotificationSchema: () => insertNotificationSchema,
   insertOpenaiCredentialSchema: () => insertOpenaiCredentialSchema,
   insertPaymentTransactionSchema: () => insertPaymentTransactionSchema,
@@ -144,6 +145,7 @@ __export(schema_exports, {
   legacyWebhookDeliveries: () => legacyWebhookDeliveries,
   legacyWebhooks: () => legacyWebhooks,
   llmModels: () => llmModels,
+  notificationEvents: () => notificationEvents,
   notifications: () => notifications,
   openaiCredentials: () => openaiCredentials,
   otpVerifications: () => otpVerifications,
@@ -201,7 +203,7 @@ function determineAICategory(lead) {
   if (lead.sentiment === "positive") return AI_LEAD_CATEGORIES.WARM;
   return null;
 }
-var users, otpVerifications, refreshTokens, elevenLabsCredentials, syncedVoices, agents, knowledgeBase, incomingAgents, phoneNumbers, incomingConnections, campaigns, contacts, calls, creditTransactions, tools, voices, plans, globalSettings, llmModels, supportedLanguages, creditPackages, userSubscriptions, phoneNumberRentals, usageRecords, legacyWebhooks, legacyWebhookDeliveries, notifications, emailTemplates, promptTemplates, agentVersions, auditLogs, platformLanguages, insertUserSchema, insertElevenLabsCredentialSchema, insertSyncedVoiceSchema, insertAgentSchema, insertKnowledgeBaseSchema, insertIncomingAgentSchema, insertPromptTemplateSchema, insertAgentVersionSchema, insertIncomingConnectionSchema, insertCampaignSchema, insertContactSchema, insertCallSchema, insertCreditTransactionSchema, insertToolSchema, insertVoiceSchema, insertPlanSchema, insertGlobalSettingsSchema, insertLlmModelSchema, insertSupportedLanguageSchema, insertPlatformLanguageSchema, insertCreditPackageSchema, insertUserSubscriptionSchema, insertPhoneNumberSchema, insertUsageRecordSchema, insertLegacyWebhookSchema, insertLegacyWebhookDeliverySchema, insertPhoneNumberRentalSchema, insertNotificationSchema, insertEmailTemplateSchema, twilioCountries, insertTwilioCountrySchema, userKnowledgeStorageLimits, knowledgeChunks, knowledgeProcessingQueue, insertUserKnowledgeStorageLimitSchema, insertKnowledgeChunkSchema, insertKnowledgeProcessingQueueSchema, flows, insertFlowSchema, createFlowSchema, flowExecutions, insertFlowExecutionSchema, flowTestQueue, insertFlowTestQueueSchema, webhookSubscriptions, webhooks, insertWebhookSchema, createWebhookSchema, webhookDeliveryLogs, webhookLogs, insertWebhookLogSchema, appointments, insertAppointmentSchema, createAppointmentSchema, appointmentSettings, insertAppointmentSettingsSchema, createAppointmentSettingsSchema, forms, insertFormSchema, createFormSchema, formFields, insertFormFieldSchema, formSubmissions, insertFormSubmissionSchema, seoSettings, insertSeoSettingsSchema, analyticsScripts, insertAnalyticsScriptSchema, paymentTransactions, insertPaymentTransactionSchema, refunds, insertRefundSchema, invoices, insertInvoiceSchema, paymentWebhookQueue, insertPaymentWebhookQueueSchema, emailNotificationSettings, insertEmailNotificationSettingsSchema, bannedWords, insertBannedWordSchema, contentViolations, insertContentViolationSchema, openaiCredentials, insertOpenaiCredentialSchema, plivoCredentials, insertPlivoCredentialSchema, plivoPhoneNumbers, insertPlivoPhoneNumberSchema, plivoCalls, insertPlivoCallSchema, campaignJobs, insertCampaignJobSchema, plivoPhonePricing, insertPlivoPhonePricingSchema, userKycDocuments, insertUserKycDocumentSchema, twilioOpenaiCalls, insertTwilioOpenaiCallSchema, demoSessions, insertDemoSessionSchema, leadStages, insertLeadStageSchema, leads, insertLeadSchema, AI_LEAD_CATEGORIES, AI_CATEGORY_LABELS, AI_CATEGORY_COLORS, AI_CATEGORY_PRIORITY, leadNotes, insertLeadNoteSchema, leadActivities, insertLeadActivitySchema, crmCategoryPreferences, insertCrmCategoryPreferencesSchema, websiteWidgets, insertWebsiteWidgetSchema, widgetCallSessions, insertWidgetCallSessionSchema, API_SCOPES, apiKeys, insertApiKeySchema, apiAuditLogs, insertApiAuditLogSchema, apiRateLimits, sipTrunks, insertSipTrunkSchema, sipPhoneNumbers, insertSipPhoneNumberSchema, sipCalls, insertSipCallSchema, userAddresses, insertUserAddressSchema, userFeedback, insertUserFeedbackSchema, googleCalendarCredentials, insertGoogleCalendarCredentialSchema, googleSheetsCredentials, insertGoogleSheetsCredentialSchema, phoneReleaseRetryQueue, insertPhoneReleaseRetryQueueSchema;
+var users, otpVerifications, refreshTokens, elevenLabsCredentials, syncedVoices, agents, knowledgeBase, incomingAgents, phoneNumbers, incomingConnections, campaigns, contacts, calls, creditTransactions, tools, voices, plans, globalSettings, llmModels, supportedLanguages, creditPackages, userSubscriptions, phoneNumberRentals, usageRecords, legacyWebhooks, legacyWebhookDeliveries, notifications, emailTemplates, promptTemplates, agentVersions, auditLogs, platformLanguages, insertUserSchema, insertElevenLabsCredentialSchema, insertSyncedVoiceSchema, insertAgentSchema, insertKnowledgeBaseSchema, insertIncomingAgentSchema, insertPromptTemplateSchema, insertAgentVersionSchema, insertIncomingConnectionSchema, insertCampaignSchema, insertContactSchema, insertCallSchema, insertCreditTransactionSchema, insertToolSchema, insertVoiceSchema, insertPlanSchema, insertGlobalSettingsSchema, insertLlmModelSchema, insertSupportedLanguageSchema, insertPlatformLanguageSchema, insertCreditPackageSchema, insertUserSubscriptionSchema, insertPhoneNumberSchema, insertUsageRecordSchema, insertLegacyWebhookSchema, insertLegacyWebhookDeliverySchema, insertPhoneNumberRentalSchema, insertNotificationSchema, insertEmailTemplateSchema, twilioCountries, insertTwilioCountrySchema, userKnowledgeStorageLimits, knowledgeChunks, knowledgeProcessingQueue, insertUserKnowledgeStorageLimitSchema, insertKnowledgeChunkSchema, insertKnowledgeProcessingQueueSchema, flows, insertFlowSchema, createFlowSchema, flowExecutions, insertFlowExecutionSchema, flowTestQueue, insertFlowTestQueueSchema, webhookSubscriptions, webhooks, insertWebhookSchema, createWebhookSchema, webhookDeliveryLogs, webhookLogs, insertWebhookLogSchema, appointments, insertAppointmentSchema, createAppointmentSchema, appointmentSettings, insertAppointmentSettingsSchema, createAppointmentSettingsSchema, forms, insertFormSchema, createFormSchema, formFields, insertFormFieldSchema, formSubmissions, insertFormSubmissionSchema, seoSettings, insertSeoSettingsSchema, analyticsScripts, insertAnalyticsScriptSchema, paymentTransactions, insertPaymentTransactionSchema, refunds, insertRefundSchema, invoices, insertInvoiceSchema, paymentWebhookQueue, insertPaymentWebhookQueueSchema, emailNotificationSettings, insertEmailNotificationSettingsSchema, bannedWords, insertBannedWordSchema, contentViolations, insertContentViolationSchema, openaiCredentials, insertOpenaiCredentialSchema, plivoCredentials, insertPlivoCredentialSchema, plivoPhoneNumbers, insertPlivoPhoneNumberSchema, plivoCalls, insertPlivoCallSchema, campaignJobs, insertCampaignJobSchema, plivoPhonePricing, insertPlivoPhonePricingSchema, userKycDocuments, insertUserKycDocumentSchema, twilioOpenaiCalls, insertTwilioOpenaiCallSchema, demoSessions, insertDemoSessionSchema, leadStages, insertLeadStageSchema, leads, insertLeadSchema, AI_LEAD_CATEGORIES, AI_CATEGORY_LABELS, AI_CATEGORY_COLORS, AI_CATEGORY_PRIORITY, leadNotes, insertLeadNoteSchema, leadActivities, insertLeadActivitySchema, crmCategoryPreferences, insertCrmCategoryPreferencesSchema, websiteWidgets, insertWebsiteWidgetSchema, widgetCallSessions, insertWidgetCallSessionSchema, API_SCOPES, apiKeys, insertApiKeySchema, apiAuditLogs, insertApiAuditLogSchema, apiRateLimits, sipTrunks, insertSipTrunkSchema, sipPhoneNumbers, insertSipPhoneNumberSchema, sipCalls, insertSipCallSchema, userAddresses, insertUserAddressSchema, userFeedback, insertUserFeedbackSchema, googleCalendarCredentials, insertGoogleCalendarCredentialSchema, googleSheetsCredentials, insertGoogleSheetsCredentialSchema, phoneReleaseRetryQueue, insertPhoneReleaseRetryQueueSchema, notificationEvents, insertNotificationEventSchema;
 var init_schema = __esm({
   "shared/schema.ts"() {
     "use strict";
@@ -263,6 +265,11 @@ var init_schema = __esm({
       billingState: text("billing_state"),
       billingPostalCode: text("billing_postal_code"),
       billingCountry: text("billing_country"),
+      billingStateCode: text("billing_state_code"),
+      // GST state code (e.g. '09' for UP) — decides CGST/SGST vs IGST
+      billingPhone: text("billing_phone"),
+      gstin: text("gstin"),
+      // Buyer GSTIN for B2B invoices
       company: text("company"),
       // Company name for profile and team naming
       createdAt: timestamp("created_at").defaultNow(),
@@ -383,6 +390,10 @@ var init_schema = __esm({
       messagingEmailTemplate: text("messaging_email_template"),
       messagingWhatsappTemplate: text("messaging_whatsapp_template"),
       messagingWhatsappVariables: text("messaging_whatsapp_variables"),
+      // Templates the agent may pick at runtime (empty = any active/approved template). The single
+      // *Template columns above stay as the legacy default / first choice.
+      messagingEmailTemplates: text("messaging_email_templates").array(),
+      messagingWhatsappTemplates: text("messaging_whatsapp_templates").array(),
       expressiveMode: boolean("expressive_mode").default(false),
       // Knowledge Base (for incoming agents)
       knowledgeBaseIds: text("knowledge_base_ids").array(),
@@ -700,46 +711,9 @@ var init_schema = __esm({
       displayName: text("display_name").notNull(),
       description: text("description").notNull(),
       monthlyPrice: decimal("monthly_price", { precision: 10, scale: 2 }).notNull(),
-      // USD price
+      // INR (Cashfree)
       yearlyPrice: decimal("yearly_price", { precision: 10, scale: 2 }),
-      // USD price
-      razorpayMonthlyPrice: decimal("razorpay_monthly_price", { precision: 10, scale: 2 }),
-      // INR price
-      razorpayYearlyPrice: decimal("razorpay_yearly_price", { precision: 10, scale: 2 }),
-      // INR price
-      stripeMonthlyPriceId: text("stripe_monthly_price_id"),
-      // Stripe Price ID for monthly plan
-      stripeYearlyPriceId: text("stripe_yearly_price_id"),
-      // Stripe Price ID for yearly plan
-      stripeProductId: text("stripe_product_id"),
-      // Stripe Product ID
-      razorpayPlanId: text("razorpay_plan_id"),
-      // Razorpay Plan ID (monthly)
-      razorpayYearlyPlanId: text("razorpay_yearly_plan_id"),
-      // Razorpay Plan ID (yearly)
-      // PayPal pricing and plan IDs
-      paypalMonthlyPrice: decimal("paypal_monthly_price", { precision: 10, scale: 2 }),
-      // PayPal price (supports multiple currencies)
-      paypalYearlyPrice: decimal("paypal_yearly_price", { precision: 10, scale: 2 }),
-      paypalProductId: text("paypal_product_id"),
-      // PayPal Product ID
-      paypalMonthlyPlanId: text("paypal_monthly_plan_id"),
-      // PayPal Plan ID for monthly
-      paypalYearlyPlanId: text("paypal_yearly_plan_id"),
-      // PayPal Plan ID for yearly
-      // Paystack pricing and plan codes (Africa: NGN, GHS, ZAR, KES)
-      paystackMonthlyPrice: decimal("paystack_monthly_price", { precision: 10, scale: 2 }),
-      paystackYearlyPrice: decimal("paystack_yearly_price", { precision: 10, scale: 2 }),
-      paystackMonthlyPlanCode: text("paystack_monthly_plan_code"),
-      // Paystack Plan Code for monthly
-      paystackYearlyPlanCode: text("paystack_yearly_plan_code"),
-      // Paystack Plan Code for yearly
-      // MercadoPago pricing and plan IDs (LATAM: BRL, MXN, ARS, CLP, COP)
-      mercadopagoMonthlyPrice: decimal("mercadopago_monthly_price", { precision: 10, scale: 2 }),
-      mercadopagoYearlyPrice: decimal("mercadopago_yearly_price", { precision: 10, scale: 2 }),
-      mercadopagoMonthlyPlanId: text("mercadopago_monthly_plan_id"),
-      // MercadoPago preapproval_plan_id
-      mercadopagoYearlyPlanId: text("mercadopago_yearly_plan_id"),
+      // INR (Cashfree)
       maxAgents: integer("max_agents").notNull().default(1),
       maxCampaigns: integer("max_campaigns").notNull().default(1),
       maxContactsPerCampaign: integer("max_contacts_per_campaign").notNull().default(5),
@@ -828,22 +802,7 @@ var init_schema = __esm({
       description: text("description"),
       credits: integer("credits").notNull(),
       price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-      // USD price
-      razorpayPrice: decimal("razorpay_price", { precision: 10, scale: 2 }),
-      // INR price
-      stripeProductId: text("stripe_product_id"),
-      stripePriceId: text("stripe_price_id"),
-      razorpayItemId: text("razorpay_item_id"),
-      // Razorpay Item ID for credit package
-      // PayPal credit package pricing
-      paypalPrice: decimal("paypal_price", { precision: 10, scale: 2 }),
-      // PayPal price
-      // Paystack credit package pricing (Africa)
-      paystackPrice: decimal("paystack_price", { precision: 10, scale: 2 }),
-      // Paystack price
-      // MercadoPago credit package pricing (LATAM)
-      mercadopagoPrice: decimal("mercadopago_price", { precision: 10, scale: 2 }),
-      // MercadoPago price
+      // INR (Cashfree)
       isActive: boolean("is_active").notNull().default(true),
       createdAt: timestamp("created_at").notNull().defaultNow(),
       updatedAt: timestamp("updated_at").notNull().defaultNow()
@@ -856,26 +815,29 @@ var init_schema = __esm({
       // 'active', 'cancelled', 'expired'
       currentPeriodStart: timestamp("current_period_start").notNull().defaultNow(),
       currentPeriodEnd: timestamp("current_period_end").notNull(),
-      stripeSubscriptionId: text("stripe_subscription_id").unique(),
-      // Unique constraint for idempotency
-      razorpaySubscriptionId: text("razorpay_subscription_id").unique(),
-      // Razorpay Subscription ID
-      // PayPal subscription tracking
-      paypalSubscriptionId: text("paypal_subscription_id").unique(),
-      // PayPal Subscription ID
-      // Paystack subscription tracking (Africa)
-      paystackSubscriptionCode: text("paystack_subscription_code").unique(),
-      // Paystack Subscription Code
-      paystackCustomerCode: text("paystack_customer_code"),
-      // Paystack Customer Code
-      paystackEmailToken: text("paystack_email_token"),
-      // Token for customer management
-      // MercadoPago subscription tracking (LATAM)
-      mercadopagoSubscriptionId: text("mercadopago_subscription_id").unique(),
-      // MercadoPago preapproval ID
       cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
       billingPeriod: text("billing_period").notNull().default("monthly"),
       // 'monthly' or 'yearly'
+      // Cashfree one-time-per-period model: last paid order + expiry reminder bookkeeping
+      cashfreeOrderId: text("cashfree_order_id"),
+      reminder7SentAt: timestamp("reminder_7_sent_at"),
+      reminder3SentAt: timestamp("reminder_3_sent_at"),
+      reminder1SentAt: timestamp("reminder_1_sent_at"),
+      expiredNotifiedAt: timestamp("expired_notified_at"),
+      // Cashfree Subscriptions auto-renew mandate (UPI AutoPay / card / eNACH). The first period is always
+      // paid with a one-time order; the mandate only charges renewals at current_period_end.
+      autoRenew: boolean("auto_renew").notNull().default(false),
+      cashfreeSubscriptionId: text("cashfree_subscription_id"),
+      // our subscription_id sent to Cashfree (zvsub_…)
+      cfSubscriptionId: text("cf_subscription_id"),
+      // Cashfree's reference id
+      mandateStatus: text("mandate_status"),
+      // INITIALIZED | BANK_APPROVAL_PENDING | ACTIVE | ON_HOLD | PAUSED | CANCELLED | COMPLETED | EXPIRED
+      mandatePaymentMethod: text("mandate_payment_method"),
+      // upi | card | enach
+      mandateAuthorizedAt: timestamp("mandate_authorized_at"),
+      nextChargeAt: timestamp("next_charge_at"),
+      autoRenewCancelledAt: timestamp("auto_renew_cancelled_at"),
       // Admin-set per-user limit overrides (null = use plan defaults)
       overrideMaxAgents: integer("override_max_agents"),
       // Override plan's maxAgents
@@ -1590,6 +1552,15 @@ var init_schema = __esm({
       // 'monthly', 'yearly' for subscriptions
       creditsAwarded: integer("credits_awarded"),
       // For credit purchases
+      gatewayOrderId: text("gateway_order_id"),
+      // Cashfree order_id (idempotency key)
+      paymentMethod: text("payment_method"),
+      // upi, card, netbanking, wallet…
+      failureReason: text("failure_reason"),
+      refundedAmount: decimal("refunded_amount", { precision: 10, scale: 2 }).default("0.00"),
+      refundId: text("refund_id"),
+      phoneNumberId: varchar("phone_number_id"),
+      // For phone number rentals
       // Status
       status: text("status").notNull().default("pending"),
       // 'pending', 'completed', 'failed', 'refunded', 'partially_refunded'
@@ -1683,6 +1654,27 @@ var init_schema = __esm({
       gateway: text("gateway").notNull(),
       paymentMethod: text("payment_method"),
       // 'card', 'bank_transfer', etc.
+      // GST (India) — snapshot of seller/buyer tax details at issue time
+      invoiceType: text("invoice_type").notNull().default("tax_invoice"),
+      // 'tax_invoice' | 'credit_note'
+      relatedInvoiceId: varchar("related_invoice_id"),
+      // credit note → original invoice
+      financialYear: text("financial_year"),
+      // e.g. '25-26'
+      sellerName: text("seller_name"),
+      sellerGstin: text("seller_gstin"),
+      sellerAddress: text("seller_address"),
+      sellerStateCode: text("seller_state_code"),
+      buyerGstin: text("buyer_gstin"),
+      buyerStateCode: text("buyer_state_code"),
+      placeOfSupply: text("place_of_supply"),
+      hsnSac: text("hsn_sac"),
+      taxableAmount: decimal("taxable_amount", { precision: 10, scale: 2 }),
+      cgst: decimal("cgst", { precision: 10, scale: 2 }).default("0.00"),
+      sgst: decimal("sgst", { precision: 10, scale: 2 }).default("0.00"),
+      igst: decimal("igst", { precision: 10, scale: 2 }).default("0.00"),
+      taxRate: decimal("tax_rate", { precision: 5, scale: 2 }),
+      isInterState: boolean("is_inter_state").default(false),
       // PDF Storage
       pdfUrl: text("pdf_url"),
       // URL to stored PDF
@@ -2695,6 +2687,26 @@ var init_schema = __esm({
       createdAt: true,
       updatedAt: true
     });
+    notificationEvents = pgTable("notification_events", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
+      eventKey: text("event_key").notNull(),
+      // e.g. 'purchase_completed', 'plan_expiring'
+      channel: text("channel").notNull(),
+      // 'email' | 'in_app'
+      status: text("status").notNull(),
+      // 'sent' | 'failed' | 'skipped'
+      recipient: text("recipient"),
+      subject: text("subject"),
+      error: text("error"),
+      payload: jsonb("payload"),
+      createdAt: timestamp("created_at").notNull().defaultNow()
+    }, (table) => ({
+      userIdx: index("notification_events_user_id_idx").on(table.userId),
+      eventIdx: index("notification_events_event_key_idx").on(table.eventKey),
+      createdIdx: index("notification_events_created_at_idx").on(table.createdAt)
+    }));
+    insertNotificationEventSchema = createInsertSchema(notificationEvents).omit({ id: true, createdAt: true });
   }
 });
 
@@ -2906,8 +2918,3428 @@ var init_db = __esm({
   }
 });
 
+// server/storage/analytics-helpers.ts
+import { eq as eq7, sql as sql12, and, gte, lt, desc, isNull, or, inArray as inArray3 } from "drizzle-orm";
+async function calculateGlobalAnalytics(timeRange) {
+  const now = /* @__PURE__ */ new Date();
+  let startDate;
+  let previousStartDate;
+  let previousEndDate;
+  let groupByWeek = false;
+  let isAllTime = false;
+  switch (timeRange) {
+    case "7d":
+      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1e3);
+      previousEndDate = new Date(startDate.getTime());
+      previousStartDate = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1e3);
+      break;
+    case "30d":
+      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1e3);
+      previousEndDate = new Date(startDate.getTime());
+      previousStartDate = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1e3);
+      break;
+    case "90d":
+      startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1e3);
+      previousEndDate = new Date(startDate.getTime());
+      previousStartDate = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1e3);
+      groupByWeek = true;
+      break;
+    case "all":
+      startDate = /* @__PURE__ */ new Date(0);
+      previousStartDate = /* @__PURE__ */ new Date(0);
+      previousEndDate = /* @__PURE__ */ new Date(0);
+      groupByWeek = true;
+      isAllTime = true;
+      break;
+    default:
+      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1e3);
+      previousEndDate = new Date(startDate.getTime());
+      previousStartDate = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1e3);
+  }
+  const allUsers = await db.select().from(users);
+  const allPhoneNumbers = await db.select().from(phoneNumbers);
+  const allContacts = await db.select().from(contacts);
+  const allKnowledgeBases = await db.select().from(knowledgeBase);
+  let filteredCalls = [];
+  const filteredCampaigns = await db.select().from(campaigns).where(gte(campaigns.createdAt, startDate));
+  const filteredUsers = await db.select().from(users).where(gte(users.createdAt, startDate));
+  try {
+    filteredCalls = await db.select().from(calls).where(gte(calls.createdAt, startDate));
+  } catch (callFetchError) {
+    if (callFetchError?.code === "42703") {
+      console.warn("[GlobalAnalytics] Missing database column (run pre-upgrade-cleanup.sql then drizzle-kit push):", callFetchError.message);
+    } else {
+      console.error("[GlobalAnalytics] Error fetching filtered calls:", callFetchError.message);
+    }
+  }
+  let previousUsers = [];
+  let previousCalls = [];
+  let previousCampaigns = [];
+  if (!isAllTime) {
+    previousUsers = await db.select().from(users).where(
+      and(gte(users.createdAt, previousStartDate), lt(users.createdAt, previousEndDate))
+    );
+    try {
+      previousCalls = await db.select().from(calls).where(
+        and(gte(calls.createdAt, previousStartDate), lt(calls.createdAt, previousEndDate))
+      );
+    } catch (callFetchError) {
+      if (callFetchError?.code === "42703") {
+        console.warn("[GlobalAnalytics] Missing database column for previous calls:", callFetchError.message);
+      } else {
+        console.error("[GlobalAnalytics] Error fetching previous calls:", callFetchError.message);
+      }
+    }
+    previousCampaigns = await db.select().from(campaigns).where(
+      and(gte(campaigns.createdAt, previousStartDate), lt(campaigns.createdAt, previousEndDate))
+    );
+  }
+  const calculateGrowthPercent = (current, previous) => {
+    if (previous === 0) {
+      return current > 0 ? 100 : 0;
+    }
+    return (current - previous) / previous * 100;
+  };
+  const userGrowthPercent = isAllTime ? 0 : calculateGrowthPercent(filteredUsers.length, previousUsers.length);
+  const callGrowthPercent = isAllTime ? 0 : calculateGrowthPercent(filteredCalls.length, previousCalls.length);
+  const campaignGrowthPercent = isAllTime ? 0 : calculateGrowthPercent(filteredCampaigns.length, previousCampaigns.length);
+  const totalCalls = filteredCalls.length;
+  const completedCalls = filteredCalls.filter((c) => c.status === "completed").length;
+  const successRate = totalCalls > 0 ? completedCalls / totalCalls * 100 : 0;
+  const qualifiedLeads = filteredCalls.filter((c) => c.classification === "hot" || c.classification === "warm").length;
+  const growthData = calculateGrowthData(
+    filteredUsers,
+    filteredCalls,
+    filteredCampaigns,
+    startDate,
+    now,
+    groupByWeek,
+    isAllTime
+  );
+  const activeSubscriptions = await db.select({
+    userId: userSubscriptions.userId,
+    planName: plans.name,
+    status: userSubscriptions.status,
+    currentPeriodEnd: userSubscriptions.currentPeriodEnd
+  }).from(userSubscriptions).innerJoin(plans, eq7(userSubscriptions.planId, plans.id)).where(
+    and(
+      eq7(userSubscriptions.status, "active"),
+      or(
+        isNull(userSubscriptions.currentPeriodEnd),
+        gte(userSubscriptions.currentPeriodEnd, now)
+      )
+    )
+  );
+  const proUserIds = /* @__PURE__ */ new Set();
+  for (const sub of activeSubscriptions) {
+    if (sub.planName !== "free") {
+      proUserIds.add(sub.userId);
+    }
+  }
+  const proPlanUsers = proUserIds.size;
+  const freePlanUsers = allUsers.length - proPlanUsers;
+  return {
+    totalUsers: filteredUsers.length,
+    totalCampaigns: filteredCampaigns.length,
+    totalCalls,
+    successRate,
+    qualifiedLeads,
+    activeUsers: filteredUsers.filter((u) => u.isActive).length,
+    proPlanUsers,
+    freePlanUsers,
+    totalPhoneNumbers: allPhoneNumbers.length,
+    totalContacts: allContacts.length,
+    totalKnowledgeBases: allKnowledgeBases.length,
+    growthData,
+    userGrowthPercent: Math.round(userGrowthPercent * 10) / 10,
+    callGrowthPercent: Math.round(callGrowthPercent * 10) / 10,
+    campaignGrowthPercent: Math.round(campaignGrowthPercent * 10) / 10
+  };
+}
+function calculateGrowthData(filteredUsers, filteredCalls, filteredCampaigns, startDate, now, groupByWeek, isAllTime) {
+  const growthMap = /* @__PURE__ */ new Map();
+  const getIsoDateKey = (date2) => {
+    const d = new Date(date2);
+    d.setHours(0, 0, 0, 0);
+    return d.toISOString().split("T")[0];
+  };
+  const getMonthKey = (date2) => {
+    const d = new Date(date2);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  };
+  const formatDateLabel = (isoDate, isMonthly = false) => {
+    if (isMonthly) {
+      const [year, month] = isoDate.split("-");
+      const d2 = new Date(parseInt(year, 10), parseInt(month, 10) - 1, 1);
+      return d2.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+    }
+    const d = /* @__PURE__ */ new Date(isoDate + "T00:00:00");
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+  let chartStartDate = startDate;
+  let useMonthlyBuckets = false;
+  if (isAllTime) {
+    const allDates = [];
+    for (const user of filteredUsers) {
+      if (user.createdAt) allDates.push(new Date(user.createdAt));
+    }
+    for (const call of filteredCalls) {
+      if (call.createdAt) allDates.push(new Date(call.createdAt));
+    }
+    for (const campaign of filteredCampaigns) {
+      if (campaign.createdAt) allDates.push(new Date(campaign.createdAt));
+    }
+    if (allDates.length > 0) {
+      chartStartDate = allDates.reduce((min, d) => d < min ? d : min, allDates[0]);
+      chartStartDate = new Date(chartStartDate.getFullYear(), chartStartDate.getMonth(), 1);
+    } else {
+      chartStartDate = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+    }
+    useMonthlyBuckets = true;
+  }
+  const startDateIso = useMonthlyBuckets ? getMonthKey(chartStartDate) : getIsoDateKey(chartStartDate);
+  const nowDateIso = useMonthlyBuckets ? getMonthKey(now) : getIsoDateKey(now);
+  const bucketKeys = [];
+  const currentDate = new Date(chartStartDate);
+  currentDate.setHours(0, 0, 0, 0);
+  if (useMonthlyBuckets) {
+    while (getMonthKey(currentDate) <= nowDateIso) {
+      bucketKeys.push(getMonthKey(currentDate));
+      currentDate.setMonth(currentDate.getMonth() + 1);
+    }
+  } else {
+    const interval = groupByWeek ? 7 : 1;
+    while (getIsoDateKey(currentDate) <= nowDateIso) {
+      bucketKeys.push(getIsoDateKey(currentDate));
+      currentDate.setDate(currentDate.getDate() + interval);
+    }
+  }
+  if (bucketKeys.length === 0) {
+    bucketKeys.push(startDateIso);
+  }
+  for (const key of bucketKeys) {
+    growthMap.set(key, { users: 0, calls: 0, campaigns: 0 });
+  }
+  const getBucketKey = (date2) => {
+    if (useMonthlyBuckets) {
+      const monthKey = getMonthKey(date2);
+      if (monthKey < startDateIso || monthKey > nowDateIso) {
+        return null;
+      }
+      return growthMap.has(monthKey) ? monthKey : null;
+    }
+    const dateKey = getIsoDateKey(date2);
+    if (dateKey < startDateIso || dateKey > nowDateIso) {
+      return null;
+    }
+    if (groupByWeek) {
+      for (let i = bucketKeys.length - 1; i >= 0; i--) {
+        if (dateKey >= bucketKeys[i]) {
+          return bucketKeys[i];
+        }
+      }
+      return bucketKeys[0];
+    } else {
+      return growthMap.has(dateKey) ? dateKey : null;
+    }
+  };
+  for (const user of filteredUsers) {
+    if (user.createdAt) {
+      const bucketKey = getBucketKey(new Date(user.createdAt));
+      if (bucketKey) {
+        const entry = growthMap.get(bucketKey);
+        if (entry) entry.users++;
+      }
+    }
+  }
+  for (const call of filteredCalls) {
+    if (call.createdAt) {
+      const bucketKey = getBucketKey(new Date(call.createdAt));
+      if (bucketKey) {
+        const entry = growthMap.get(bucketKey);
+        if (entry) entry.calls++;
+      }
+    }
+  }
+  for (const campaign of filteredCampaigns) {
+    if (campaign.createdAt) {
+      const bucketKey = getBucketKey(new Date(campaign.createdAt));
+      if (bucketKey) {
+        const entry = growthMap.get(bucketKey);
+        if (entry) entry.campaigns++;
+      }
+    }
+  }
+  return Array.from(growthMap.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([isoDate, data]) => ({
+    date: formatDateLabel(isoDate, useMonthlyBuckets),
+    ...data
+  }));
+}
+async function calculateUserAnalytics(userId, timeRange = "7days", callType = "all") {
+  const now = /* @__PURE__ */ new Date();
+  let startDate = /* @__PURE__ */ new Date();
+  switch (timeRange) {
+    case "7days":
+      startDate.setDate(now.getDate() - 7);
+      break;
+    case "30days":
+      startDate.setDate(now.getDate() - 30);
+      break;
+    case "90days":
+      startDate.setDate(now.getDate() - 90);
+      break;
+    case "year":
+      startDate.setFullYear(now.getFullYear() - 1);
+      break;
+    case "all":
+      startDate = /* @__PURE__ */ new Date(0);
+      break;
+    default:
+      startDate.setDate(now.getDate() - 7);
+  }
+  const userCampaigns = await db.select().from(campaigns).where(eq7(campaigns.userId, userId));
+  const campaignIds = userCampaigns.map((c) => c.id);
+  const userIncomingConnections = await db.select().from(incomingConnections).where(eq7(incomingConnections.userId, userId));
+  const incomingConnectionIds = userIncomingConnections.map((c) => c.id);
+  let allUserCalls = [];
+  try {
+    const directOwnershipCalls = await db.select().from(calls).where(and(eq7(calls.userId, userId), gte(calls.createdAt, startDate)));
+    allUserCalls.push(...directOwnershipCalls);
+    if (campaignIds.length > 0) {
+      const campaignCalls = await db.select().from(calls).where(and(inArray3(calls.campaignId, campaignIds), gte(calls.createdAt, startDate)));
+      for (const call of campaignCalls) {
+        if (!allUserCalls.find((c) => c.id === call.id)) {
+          allUserCalls.push(call);
+        }
+      }
+    }
+    if (incomingConnectionIds.length > 0) {
+      const incomingCalls = await db.select().from(calls).where(and(inArray3(calls.incomingConnectionId, incomingConnectionIds), gte(calls.createdAt, startDate)));
+      for (const call of incomingCalls) {
+        if (!allUserCalls.find((c) => c.id === call.id)) {
+          allUserCalls.push(call);
+        }
+      }
+    }
+    const twilioOpenAICallsData = await db.select().from(twilioOpenaiCalls).where(and(eq7(twilioOpenaiCalls.userId, userId), gte(twilioOpenaiCalls.createdAt, startDate)));
+    for (const toc of twilioOpenAICallsData) {
+      allUserCalls.push({
+        id: toc.id,
+        userId: toc.userId,
+        campaignId: toc.campaignId,
+        contactId: toc.contactId,
+        phoneNumber: toc.fromNumber,
+        status: toc.status,
+        callDirection: toc.callDirection,
+        duration: toc.duration,
+        classification: null,
+        sentiment: toc.sentiment,
+        createdAt: toc.createdAt,
+        metadata: toc.metadata,
+        incomingConnectionId: null
+      });
+    }
+    const plivoAnalyticsCallsData = await db.select().from(plivoCalls).where(and(eq7(plivoCalls.userId, userId), gte(plivoCalls.createdAt, startDate)));
+    for (const pc of plivoAnalyticsCallsData) {
+      allUserCalls.push({
+        id: pc.id,
+        userId: pc.userId,
+        campaignId: pc.campaignId,
+        contactId: pc.contactId,
+        phoneNumber: pc.fromNumber,
+        status: pc.status,
+        callDirection: pc.callDirection,
+        duration: pc.duration,
+        classification: null,
+        sentiment: pc.sentiment,
+        createdAt: pc.createdAt,
+        metadata: pc.metadata,
+        incomingConnectionId: null
+      });
+    }
+  } catch (callFetchError) {
+    if (callFetchError?.code === "42703") {
+      console.warn("[Analytics] Missing database column (run pre-upgrade-cleanup.sql then drizzle-kit push):", callFetchError.message);
+    } else {
+      console.error("[Analytics] Error fetching calls:", callFetchError.message);
+    }
+  }
+  const isBatchCall = (c) => {
+    const meta = c.metadata;
+    return !!(meta?.batch_call || meta?.batchId || meta?.batch_calling);
+  };
+  const incomingDirections = ["incoming", "inbound", "bridged", "simulcall"];
+  const outgoingDirections = ["outgoing", "outbound"];
+  const isIncomingCall = (c) => incomingDirections.includes(c.callDirection || "") || !!c.incomingConnectionId;
+  const isOutgoingCall = (c) => {
+    if (isBatchCall(c)) return false;
+    if (outgoingDirections.includes(c.callDirection || "")) return true;
+    if (c.campaignId && !c.incomingConnectionId && !incomingDirections.includes(c.callDirection || "")) return true;
+    if (!isIncomingCall(c)) return true;
+    return false;
+  };
+  let filteredCalls = allUserCalls;
+  if (callType === "incoming") filteredCalls = allUserCalls.filter(isIncomingCall);
+  else if (callType === "outgoing") filteredCalls = allUserCalls.filter(isOutgoingCall);
+  else if (callType === "batch") filteredCalls = allUserCalls.filter(isBatchCall);
+  const allCalls = filteredCalls;
+  const typeBreakdown = {
+    incoming: allUserCalls.filter(isIncomingCall).length,
+    outgoing: allUserCalls.filter(isOutgoingCall).length,
+    batch: allUserCalls.filter(isBatchCall).length,
+    total: allUserCalls.length
+  };
+  const totalCalls = allCalls.length;
+  const completedCalls = allCalls.filter((c) => c.status === "completed").length;
+  const successRate = totalCalls > 0 ? completedCalls / totalCalls * 100 : 0;
+  const qualifiedLeads = allCalls.filter(
+    (c) => c.classification === "hot" || c.classification === "warm"
+  ).length;
+  const totalDuration = allCalls.reduce((sum, call) => sum + (call.duration || 0), 0);
+  const avgDuration = totalCalls > 0 ? totalDuration / totalCalls : 0;
+  const leadCounts = {
+    hot: allCalls.filter((c) => c.classification === "hot" || c.classification === "qualified").length,
+    warm: allCalls.filter((c) => c.classification === "warm" || c.classification === "interested").length,
+    cold: allCalls.filter((c) => c.classification === "cold" || c.classification === "not_interested").length,
+    lost: allCalls.filter((c) => c.classification === "lost" || c.classification === "do_not_call").length
+  };
+  const leadDistribution = [
+    { name: "Hot", value: leadCounts.hot },
+    { name: "Warm", value: leadCounts.warm },
+    { name: "Cold", value: leadCounts.cold },
+    { name: "Lost", value: leadCounts.lost }
+  ].filter((item) => item.value > 0);
+  const sentimentCounts = {
+    positive: allCalls.filter((c) => c.sentiment === "positive").length,
+    neutral: allCalls.filter((c) => c.sentiment === "neutral").length,
+    negative: allCalls.filter((c) => c.sentiment === "negative").length
+  };
+  const sentimentDistribution = [
+    { name: "Positive", value: sentimentCounts.positive },
+    { name: "Neutral", value: sentimentCounts.neutral },
+    { name: "Negative", value: sentimentCounts.negative }
+  ].filter((item) => item.value > 0);
+  const campaignPerformance = userCampaigns.map((campaign) => {
+    const campaignCalls = allCalls.filter((c) => c.campaignId === campaign.id);
+    const completed = campaignCalls.filter((c) => c.status === "completed").length;
+    const total = campaignCalls.length;
+    const rate = total > 0 ? completed / total * 100 : 0;
+    return {
+      name: campaign.name,
+      value: parseFloat(rate.toFixed(1)),
+      totalCalls: total,
+      completedCalls: completed
+    };
+  });
+  const dailyCalls = calculateDailyCalls(allCalls, timeRange);
+  return {
+    totalCalls,
+    successRate: parseFloat(successRate.toFixed(1)),
+    qualifiedLeads,
+    avgDuration: Math.round(avgDuration),
+    leadDistribution,
+    sentimentDistribution,
+    campaignPerformance,
+    dailyCalls,
+    typeBreakdown
+  };
+}
+function calculateDailyCalls(allCalls, timeRange) {
+  const dailyCalls = [];
+  let daysToShow = 7;
+  if (timeRange === "30days") daysToShow = 30;
+  else if (timeRange === "90days") daysToShow = 90;
+  else if (timeRange === "year") daysToShow = 365;
+  if (daysToShow <= 14) {
+    for (let i = daysToShow - 1; i >= 0; i--) {
+      const date2 = /* @__PURE__ */ new Date();
+      date2.setDate(date2.getDate() - i);
+      date2.setHours(0, 0, 0, 0);
+      const nextDay = new Date(date2);
+      nextDay.setDate(nextDay.getDate() + 1);
+      const dayCount = allCalls.filter((call) => {
+        const callDate = new Date(call.createdAt);
+        return callDate >= date2 && callDate < nextDay;
+      }).length;
+      dailyCalls.push({ date: date2.toISOString(), count: dayCount });
+    }
+  } else if (daysToShow <= 90) {
+    const weeksToShow = Math.ceil(daysToShow / 7);
+    for (let i = weeksToShow - 1; i >= 0; i--) {
+      const weekEnd = /* @__PURE__ */ new Date();
+      weekEnd.setDate(weekEnd.getDate() - i * 7);
+      weekEnd.setHours(23, 59, 59, 999);
+      const weekStart = new Date(weekEnd);
+      weekStart.setDate(weekStart.getDate() - 6);
+      weekStart.setHours(0, 0, 0, 0);
+      const weekCount = allCalls.filter((call) => {
+        const callDate = new Date(call.createdAt);
+        return callDate >= weekStart && callDate <= weekEnd;
+      }).length;
+      dailyCalls.push({ date: weekStart.toISOString(), count: weekCount });
+    }
+  } else {
+    for (let i = 11; i >= 0; i--) {
+      const monthStart = /* @__PURE__ */ new Date();
+      monthStart.setMonth(monthStart.getMonth() - i);
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+      const monthEnd = new Date(monthStart);
+      monthEnd.setMonth(monthEnd.getMonth() + 1);
+      monthEnd.setDate(0);
+      monthEnd.setHours(23, 59, 59, 999);
+      const monthCount = allCalls.filter((call) => {
+        const callDate = new Date(call.createdAt);
+        return callDate >= monthStart && callDate <= monthEnd;
+      }).length;
+      dailyCalls.push({ date: monthStart.toISOString(), count: monthCount });
+    }
+  }
+  return dailyCalls;
+}
+async function calculateDashboardData(userId) {
+  const now = /* @__PURE__ */ new Date();
+  const weekAgo = /* @__PURE__ */ new Date();
+  weekAgo.setDate(now.getDate() - 7);
+  const userCampaigns = await db.select().from(campaigns).where(eq7(campaigns.userId, userId));
+  const campaignIds = userCampaigns.map((c) => c.id);
+  const userIncomingConnections = await db.select().from(incomingConnections).where(eq7(incomingConnections.userId, userId));
+  const incomingConnectionIds = userIncomingConnections.map((c) => c.id);
+  let allUserCalls = [];
+  try {
+    const directOwnershipCalls = await db.select().from(calls).where(eq7(calls.userId, userId));
+    allUserCalls.push(...directOwnershipCalls);
+    if (campaignIds.length > 0) {
+      const campaignCalls = await db.select().from(calls).where(inArray3(calls.campaignId, campaignIds));
+      for (const call of campaignCalls) {
+        if (!allUserCalls.find((c) => c.id === call.id)) {
+          allUserCalls.push(call);
+        }
+      }
+    }
+    if (incomingConnectionIds.length > 0) {
+      const incomingCalls = await db.select().from(calls).where(inArray3(calls.incomingConnectionId, incomingConnectionIds));
+      for (const call of incomingCalls) {
+        if (!allUserCalls.find((c) => c.id === call.id)) {
+          allUserCalls.push(call);
+        }
+      }
+    }
+    const twilioOpenAICallsData = await db.select().from(twilioOpenaiCalls).where(eq7(twilioOpenaiCalls.userId, userId));
+    for (const toc of twilioOpenAICallsData) {
+      allUserCalls.push({
+        id: toc.id,
+        userId: toc.userId,
+        campaignId: toc.campaignId,
+        contactId: toc.contactId,
+        phoneNumber: toc.fromNumber,
+        status: toc.status,
+        callDirection: toc.callDirection,
+        duration: toc.duration,
+        classification: toc.classification,
+        sentiment: toc.sentiment,
+        createdAt: toc.createdAt,
+        metadata: toc.metadata,
+        incomingConnectionId: null
+      });
+    }
+    const plivoCallsData = await db.select().from(plivoCalls).where(eq7(plivoCalls.userId, userId));
+    for (const pc of plivoCallsData) {
+      allUserCalls.push({
+        id: pc.id,
+        userId: pc.userId,
+        campaignId: pc.campaignId,
+        contactId: pc.contactId,
+        phoneNumber: pc.fromNumber,
+        status: pc.status,
+        callDirection: pc.callDirection,
+        duration: pc.duration,
+        classification: pc.classification,
+        sentiment: pc.sentiment,
+        createdAt: pc.createdAt,
+        metadata: pc.metadata,
+        incomingConnectionId: null
+      });
+    }
+    const sipCallsData = await db.select().from(sipCalls).where(eq7(sipCalls.userId, userId));
+    for (const sc of sipCallsData) {
+      allUserCalls.push({
+        id: sc.id,
+        userId: sc.userId,
+        campaignId: sc.campaignId,
+        contactId: sc.contactId,
+        phoneNumber: sc.direction === "inbound" ? sc.fromNumber : sc.toNumber,
+        status: sc.status,
+        callDirection: sc.direction === "inbound" ? "incoming" : "outgoing",
+        duration: sc.durationSeconds,
+        classification: null,
+        sentiment: null,
+        createdAt: sc.createdAt,
+        metadata: sc.metadata,
+        incomingConnectionId: null
+      });
+    }
+  } catch (callFetchError) {
+    if (callFetchError?.code === "42703") {
+      console.warn("[Dashboard] Missing database column (run pre-upgrade-cleanup.sql then drizzle-kit push):", callFetchError.message);
+    } else {
+      console.error("[Dashboard] Error fetching calls:", callFetchError.message);
+    }
+  }
+  const incomingDirections = ["incoming", "inbound", "bridged", "simulcall"];
+  const outgoingDirections = ["outgoing", "outbound"];
+  const isBatchCall = (c) => {
+    const meta = c.metadata;
+    return !!(meta?.batch_call || meta?.batchId || meta?.batch_calling);
+  };
+  const isIncomingCall = (c) => incomingDirections.includes(c.callDirection || "") || !!c.incomingConnectionId;
+  const isOutgoingCall = (c) => {
+    if (isBatchCall(c)) return false;
+    if (outgoingDirections.includes(c.callDirection || "")) return true;
+    if (c.campaignId && !c.incomingConnectionId && !incomingDirections.includes(c.callDirection || "")) return true;
+    if (!isIncomingCall(c)) return true;
+    return false;
+  };
+  const prevWeekStart = /* @__PURE__ */ new Date();
+  prevWeekStart.setDate(now.getDate() - 14);
+  const thisWeekCalls = allUserCalls.filter((c) => new Date(c.createdAt) >= weekAgo);
+  const prevWeekCalls = allUserCalls.filter((c) => {
+    const date2 = new Date(c.createdAt);
+    return date2 >= prevWeekStart && date2 < weekAgo;
+  });
+  const incomingThisWeek = thisWeekCalls.filter(isIncomingCall);
+  const outgoingThisWeek = thisWeekCalls.filter(isOutgoingCall);
+  const incomingPrevWeek = prevWeekCalls.filter(isIncomingCall);
+  const outgoingPrevWeek = prevWeekCalls.filter(isOutgoingCall);
+  const calcTrend = (current, previous) => {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return Math.round((current - previous) / previous * 100);
+  };
+  const calcStats = (callList) => {
+    const completed = callList.filter((c) => c.status === "completed");
+    const successRate = callList.length > 0 ? Math.round(completed.length / callList.length * 100) : 0;
+    const avgDuration = completed.length > 0 ? Math.round(completed.reduce((sum, c) => sum + (c.duration || 0), 0) / completed.length) : 0;
+    return { successRate, avgDuration };
+  };
+  const dailyBreakdown = [];
+  for (let i = 6; i >= 0; i--) {
+    const day = /* @__PURE__ */ new Date();
+    day.setDate(now.getDate() - i);
+    day.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(day);
+    dayEnd.setHours(23, 59, 59, 999);
+    const dayCalls = thisWeekCalls.filter((c) => {
+      const callDate = new Date(c.createdAt);
+      return callDate >= day && callDate <= dayEnd;
+    });
+    dailyBreakdown.push({
+      date: day.toISOString(),
+      incoming: dayCalls.filter(isIncomingCall).length,
+      outgoing: dayCalls.filter(isOutgoingCall).length
+    });
+  }
+  const leadDistribution = {
+    hot: allUserCalls.filter((c) => c.classification?.toLowerCase() === "hot" || c.classification?.toLowerCase() === "qualified").length,
+    warm: allUserCalls.filter((c) => c.classification?.toLowerCase() === "warm" || c.classification?.toLowerCase() === "interested").length,
+    cold: allUserCalls.filter((c) => c.classification?.toLowerCase() === "cold" || c.classification?.toLowerCase() === "not_interested").length,
+    lost: allUserCalls.filter((c) => c.classification?.toLowerCase() === "lost" || c.classification?.toLowerCase() === "do_not_call").length
+  };
+  let recentCalls = [];
+  try {
+    recentCalls = await db.select({
+      id: calls.id,
+      phoneNumber: calls.phoneNumber,
+      status: calls.status,
+      duration: calls.duration,
+      classification: calls.classification,
+      callDirection: calls.callDirection,
+      createdAt: calls.createdAt,
+      campaignId: calls.campaignId,
+      incomingConnectionId: calls.incomingConnectionId,
+      metadata: calls.metadata
+    }).from(calls).where(eq7(calls.userId, userId)).orderBy(desc(calls.createdAt)).limit(10);
+  } catch (callFetchError) {
+    if (callFetchError?.code === "42703") {
+      console.warn("[Dashboard] Missing database column for recent calls:", callFetchError.message);
+    } else {
+      console.error("[Dashboard] Error fetching recent calls:", callFetchError.message);
+    }
+  }
+  let recentUsers = [];
+  const [currentUser] = await db.select().from(users).where(eq7(users.id, userId));
+  if (currentUser?.role === "admin" || currentUser?.role === "super_admin") {
+    recentUsers = await db.select({
+      id: users.id,
+      email: users.email,
+      createdAt: users.createdAt
+    }).from(users).orderBy(desc(users.createdAt)).limit(5);
+  }
+  const totalCampaigns = userCampaigns.length;
+  const activeCampaigns = userCampaigns.filter(
+    (c) => c.status === "in_progress" || c.status === "scheduled" || c.status === "pending"
+  ).length;
+  const completedCampaigns = userCampaigns.filter((c) => c.status === "completed").length;
+  let allCampaignCalls = [];
+  if (campaignIds.length > 0) {
+    try {
+      allCampaignCalls = await db.select().from(calls).where(inArray3(calls.campaignId, campaignIds));
+    } catch (callFetchError) {
+      if (callFetchError?.code === "42703") {
+        console.warn("[Dashboard] Missing database column for campaign calls:", callFetchError.message);
+      } else {
+        console.error("[Dashboard] Error fetching campaign calls:", callFetchError.message);
+      }
+    }
+  }
+  const campaignCallsCompleted = allCampaignCalls.filter((c) => c.status === "completed");
+  const campaignSuccessRate = allCampaignCalls.length > 0 ? Math.round(campaignCallsCompleted.length / allCampaignCalls.length * 100) : 0;
+  const campaignAvgDuration = campaignCallsCompleted.length > 0 ? Math.round(campaignCallsCompleted.reduce((sum, c) => sum + (c.duration || 0), 0) / campaignCallsCompleted.length) : 0;
+  const [appointmentsResult] = await db.select({ count: sql12`count(*)` }).from(appointments).where(eq7(appointments.userId, userId));
+  const appointmentsCount = Number(appointmentsResult?.count || 0);
+  const userForms = await db.select({ id: forms.id }).from(forms).where(eq7(forms.userId, userId));
+  const formsCount = userForms.length;
+  let formSubmissionsCount = 0;
+  if (userForms.length > 0) {
+    const formIds = userForms.map((f) => f.id);
+    const [submissionsResult] = await db.select({ count: sql12`count(*)` }).from(formSubmissions).where(inArray3(formSubmissions.formId, formIds));
+    formSubmissionsCount = Number(submissionsResult?.count || 0);
+  }
+  const [kbResult] = await db.select({ count: sql12`count(*)` }).from(knowledgeBase).where(eq7(knowledgeBase.userId, userId));
+  const knowledgeBaseCount = Number(kbResult?.count || 0);
+  const [webhooksResult] = await db.select({ count: sql12`count(*)` }).from(webhookSubscriptions).where(eq7(webhookSubscriptions.userId, userId));
+  const webhooksCount = Number(webhooksResult?.count || 0);
+  const [userTemplatesResult] = await db.select({ count: sql12`count(*)` }).from(promptTemplates).where(eq7(promptTemplates.userId, userId));
+  const userTemplatesCount = Number(userTemplatesResult?.count || 0);
+  const [systemTemplatesResult] = await db.select({ count: sql12`count(*)` }).from(promptTemplates).where(eq7(promptTemplates.isSystemTemplate, true));
+  const systemTemplatesCount = Number(systemTemplatesResult?.count || 0);
+  const templatesCount = userTemplatesCount + systemTemplatesCount;
+  const sentimentDistribution = {
+    positive: allUserCalls.filter((c) => c.sentiment === "positive").length,
+    neutral: allUserCalls.filter((c) => c.sentiment === "neutral").length,
+    negative: allUserCalls.filter((c) => c.sentiment === "negative").length
+  };
+  const incomingAllTime = allUserCalls.filter(isIncomingCall);
+  const outgoingAllTime = allUserCalls.filter(isOutgoingCall);
+  const incomingAllStats = calcStats(incomingAllTime);
+  const outgoingAllStats = calcStats(outgoingAllTime);
+  return {
+    callTypeStats: {
+      incoming: {
+        count: incomingAllTime.length,
+        trend: calcTrend(incomingThisWeek.length, incomingPrevWeek.length),
+        successRate: incomingAllStats.successRate,
+        avgDuration: incomingAllStats.avgDuration
+      },
+      outgoing: {
+        count: outgoingAllTime.length,
+        trend: calcTrend(outgoingThisWeek.length, outgoingPrevWeek.length),
+        successRate: outgoingAllStats.successRate,
+        avgDuration: outgoingAllStats.avgDuration
+      },
+      campaign: {
+        count: totalCampaigns,
+        active: activeCampaigns,
+        completed: completedCampaigns,
+        successRate: campaignSuccessRate,
+        avgDuration: campaignAvgDuration,
+        totalCalls: allCampaignCalls.length
+      }
+    },
+    weeklyCallsChart: dailyBreakdown,
+    leadDistribution,
+    sentimentDistribution,
+    recentCalls: recentCalls.map((c) => ({
+      ...c,
+      callType: isBatchCall(c) ? "batch" : c.callDirection === "incoming" || c.incomingConnectionId ? "incoming" : "outgoing"
+    })),
+    recentUsers,
+    userName: currentUser?.name || currentUser?.email?.split("@")[0] || "User",
+    totalCalls: allUserCalls.length,
+    totalThisWeek: thisWeekCalls.length,
+    totalPrevWeek: prevWeekCalls.length,
+    weeklyTrend: calcTrend(thisWeekCalls.length, prevWeekCalls.length),
+    appointmentsBooked: appointmentsCount,
+    formsSubmitted: formSubmissionsCount,
+    formsCount,
+    knowledgeBaseCount,
+    webhooksCount,
+    templatesCount
+  };
+}
+var init_analytics_helpers = __esm({
+  "server/storage/analytics-helpers.ts"() {
+    "use strict";
+    init_db();
+    init_schema();
+  }
+});
+
+// server/storage.ts
+import { nanoid } from "nanoid";
+import { eq as eq8, sql as sql13, and as and2, gte as gte2, lte as lte2, desc as desc2, asc, isNull as isNull2, isNotNull as isNotNull2, or as or2, inArray as inArray4, ilike, count } from "drizzle-orm";
+function userSubscriptionPreferenceOrder() {
+  return [
+    sql13`CASE WHEN ${userSubscriptions.status} = 'active' THEN 0 ELSE 1 END`,
+    sql13`CASE WHEN ${userSubscriptions.status} = 'active' THEN ${userSubscriptions.currentPeriodEnd} END DESC NULLS LAST`,
+    desc2(userSubscriptions.createdAt)
+  ];
+}
+var DbStorage, storage;
+var init_storage = __esm({
+  "server/storage.ts"() {
+    "use strict";
+    init_db();
+    init_schema();
+    init_analytics_helpers();
+    DbStorage = class {
+      // Users
+      async getUser(id) {
+        const [user] = await db.select().from(users).where(eq8(users.id, id));
+        return user;
+      }
+      async getUserByEmail(email) {
+        const [user] = await db.select().from(users).where(eq8(users.email, email));
+        return user;
+      }
+      async createUser(insertUser) {
+        const [user] = await db.insert(users).values(insertUser).returning();
+        return user;
+      }
+      async updateUserCredits(userId, credits) {
+        await db.update(users).set({ credits }).where(eq8(users.id, userId));
+      }
+      // Agents
+      async getAgent(id) {
+        const [agent] = await db.select().from(agents).where(eq8(agents.id, id));
+        return agent;
+      }
+      async getUserAgents(userId) {
+        return db.select().from(agents).where(eq8(agents.userId, userId));
+      }
+      async createAgent(insertAgent) {
+        const [agent] = await db.insert(agents).values(insertAgent).returning();
+        return agent;
+      }
+      async updateAgent(id, agent) {
+        await db.update(agents).set(agent).where(eq8(agents.id, id));
+      }
+      async deleteAgent(id) {
+        await db.delete(agents).where(eq8(agents.id, id));
+      }
+      // Knowledge Base
+      async getKnowledgeBaseItem(id) {
+        const [item] = await db.select().from(knowledgeBase).where(eq8(knowledgeBase.id, id));
+        return item;
+      }
+      async getUserKnowledgeBase(userId) {
+        return db.select().from(knowledgeBase).where(eq8(knowledgeBase.userId, userId));
+      }
+      async getUserKnowledgeBaseCount(userId) {
+        const result = await db.select({ count: sql13`count(*)` }).from(knowledgeBase).where(eq8(knowledgeBase.userId, userId));
+        return Number(result[0]?.count || 0);
+      }
+      async createKnowledgeBaseItem(insertItem) {
+        const [item] = await db.insert(knowledgeBase).values(insertItem).returning();
+        return item;
+      }
+      async updateKnowledgeBaseItem(id, item) {
+        await db.update(knowledgeBase).set(item).where(eq8(knowledgeBase.id, id));
+      }
+      async deleteKnowledgeBaseItem(id) {
+        await db.delete(knowledgeBase).where(eq8(knowledgeBase.id, id));
+      }
+      // Campaigns
+      async getCampaign(id) {
+        const [campaign] = await db.select().from(campaigns).where(and2(
+          eq8(campaigns.id, id),
+          isNull2(campaigns.deletedAt)
+        ));
+        return campaign;
+      }
+      async getCampaignIncludingDeleted(id) {
+        const [campaign] = await db.select().from(campaigns).where(eq8(campaigns.id, id));
+        return campaign;
+      }
+      async getUserCampaigns(userId) {
+        return db.select().from(campaigns).where(and2(
+          eq8(campaigns.userId, userId),
+          isNull2(campaigns.deletedAt)
+        )).orderBy(desc2(campaigns.createdAt));
+      }
+      async getUserDeletedCampaigns(userId) {
+        return db.select().from(campaigns).where(and2(
+          eq8(campaigns.userId, userId),
+          isNotNull2(campaigns.deletedAt)
+        )).orderBy(desc2(campaigns.createdAt));
+      }
+      async createCampaign(insertCampaign) {
+        const [campaign] = await db.insert(campaigns).values(insertCampaign).returning();
+        return campaign;
+      }
+      async updateCampaign(id, campaign) {
+        await db.update(campaigns).set(campaign).where(eq8(campaigns.id, id));
+      }
+      async deleteCampaign(id) {
+        await db.update(campaigns).set({ deletedAt: /* @__PURE__ */ new Date() }).where(eq8(campaigns.id, id));
+      }
+      async restoreCampaign(id) {
+        await db.update(campaigns).set({ deletedAt: null }).where(eq8(campaigns.id, id));
+      }
+      // Contacts
+      async getContact(id) {
+        const [contact] = await db.select().from(contacts).where(eq8(contacts.id, id));
+        return contact;
+      }
+      async getCampaignContacts(campaignId) {
+        return db.select().from(contacts).where(eq8(contacts.campaignId, campaignId));
+      }
+      async getUserContacts(userId) {
+        const results = await db.select({
+          contact: contacts,
+          campaign: campaigns
+        }).from(contacts).innerJoin(campaigns, eq8(contacts.campaignId, campaigns.id)).where(and2(
+          eq8(campaigns.userId, userId),
+          isNull2(campaigns.deletedAt)
+        ));
+        return results.map((r) => ({
+          ...r.contact,
+          campaign: r.campaign ? { id: r.campaign.id, name: r.campaign.name } : null
+        }));
+      }
+      async getUserContactsDeduplicated(userId) {
+        const normalizePhone = (phone) => {
+          let cleaned = phone.replace(/[\s\-().]/g, "");
+          if (cleaned.startsWith("00")) cleaned = "+" + cleaned.slice(2);
+          if (!cleaned.startsWith("+") && cleaned.length >= 10) cleaned = "+" + cleaned;
+          return cleaned;
+        };
+        const results = await db.select({
+          contact: contacts,
+          campaign: campaigns
+        }).from(contacts).innerJoin(campaigns, eq8(contacts.campaignId, campaigns.id)).where(and2(
+          eq8(campaigns.userId, userId),
+          isNull2(campaigns.deletedAt)
+        )).orderBy(desc2(contacts.createdAt));
+        const phoneGroups = /* @__PURE__ */ new Map();
+        for (const result of results) {
+          const { contact, campaign } = result;
+          const phone = normalizePhone(contact.phone);
+          if (!phoneGroups.has(phone)) {
+            phoneGroups.set(phone, {
+              phone,
+              email: contact.email,
+              names: /* @__PURE__ */ new Set(),
+              namesList: [],
+              campaigns: /* @__PURE__ */ new Set(),
+              campaignsList: [],
+              statuses: /* @__PURE__ */ new Set(),
+              latestContactId: contact.id,
+              latestStatus: contact.status,
+              latestEmail: contact.email,
+              latestCreatedAt: contact.createdAt,
+              source: "campaign",
+              callCount: 0
+            });
+          }
+          const group = phoneGroups.get(phone);
+          const nameKey = `${contact.firstName.toLowerCase()}|${(contact.lastName || "").toLowerCase()}`;
+          if (!group.names.has(nameKey)) {
+            group.names.add(nameKey);
+            group.namesList.push({
+              firstName: contact.firstName,
+              lastName: contact.lastName
+            });
+          }
+          if (!group.campaigns.has(campaign.id) && campaign) {
+            group.campaigns.add(campaign.id);
+            group.campaignsList.push({
+              id: campaign.id,
+              name: campaign.name
+            });
+          }
+          group.statuses.add(contact.status);
+          if (contact.createdAt > group.latestCreatedAt) {
+            group.latestContactId = contact.id;
+            group.latestStatus = contact.status;
+            group.latestEmail = contact.email;
+            group.latestCreatedAt = contact.createdAt;
+          }
+        }
+        const callsWithoutContacts = await db.select({
+          phoneNumber: calls.phoneNumber,
+          callDirection: calls.callDirection,
+          createdAt: calls.createdAt,
+          status: calls.status
+        }).from(calls).where(and2(
+          eq8(calls.userId, userId),
+          isNull2(calls.contactId),
+          isNotNull2(calls.phoneNumber)
+        )).orderBy(desc2(calls.createdAt));
+        for (const call of callsWithoutContacts) {
+          const rawPhone = call.phoneNumber;
+          if (!rawPhone || rawPhone === "Unknown Caller" || rawPhone === "unknown") continue;
+          const phone = normalizePhone(rawPhone);
+          const callStatus = call.callDirection === "incoming" ? "incoming_call" : "outgoing_call";
+          if (!phoneGroups.has(phone)) {
+            phoneGroups.set(phone, {
+              phone,
+              email: null,
+              names: /* @__PURE__ */ new Set(),
+              namesList: [],
+              campaigns: /* @__PURE__ */ new Set(),
+              campaignsList: [],
+              statuses: /* @__PURE__ */ new Set([callStatus]),
+              latestContactId: `call-${phone}`,
+              // Virtual ID for call-only contacts
+              latestStatus: callStatus,
+              latestEmail: null,
+              latestCreatedAt: call.createdAt,
+              source: "call",
+              callCount: 1
+            });
+          } else {
+            const group = phoneGroups.get(phone);
+            group.callCount = (group.callCount || 0) + 1;
+            group.statuses.add(callStatus);
+            if (call.createdAt > group.latestCreatedAt) {
+              group.latestStatus = callStatus;
+              group.latestCreatedAt = call.createdAt;
+            }
+          }
+        }
+        const leadsResults = await db.select({
+          phone: leads.phone,
+          firstName: leads.firstName,
+          lastName: leads.lastName,
+          email: leads.email,
+          stage: leads.stage,
+          sourceType: leads.sourceType,
+          createdAt: leads.createdAt,
+          id: leads.id
+        }).from(leads).where(eq8(leads.userId, userId)).orderBy(desc2(leads.createdAt));
+        for (const lead of leadsResults) {
+          if (!lead.phone || lead.phone === "Unknown Caller" || lead.phone === "unknown") continue;
+          const phone = normalizePhone(lead.phone);
+          const leadStatus = `lead_${lead.stage || "new"}`;
+          const leadSource = lead.sourceType === "campaign" ? "campaign" : "call";
+          if (!phoneGroups.has(phone)) {
+            phoneGroups.set(phone, {
+              phone,
+              email: lead.email,
+              names: /* @__PURE__ */ new Set(),
+              namesList: [],
+              campaigns: /* @__PURE__ */ new Set(),
+              campaignsList: [],
+              statuses: /* @__PURE__ */ new Set([leadStatus]),
+              latestContactId: lead.id,
+              latestStatus: leadStatus,
+              latestEmail: lead.email,
+              latestCreatedAt: lead.createdAt,
+              source: leadSource,
+              callCount: 0
+            });
+            if (lead.firstName) {
+              const nameKey = `${lead.firstName.toLowerCase()}|${(lead.lastName || "").toLowerCase()}`;
+              phoneGroups.get(phone).names.add(nameKey);
+              phoneGroups.get(phone).namesList.push({
+                firstName: lead.firstName,
+                lastName: lead.lastName
+              });
+            }
+          } else {
+            const group = phoneGroups.get(phone);
+            group.statuses.add(leadStatus);
+            if (lead.email) {
+              group.latestEmail = lead.email;
+            }
+            if (lead.firstName) {
+              const nameKey = `${lead.firstName.toLowerCase()}|${(lead.lastName || "").toLowerCase()}`;
+              if (!group.names.has(nameKey)) {
+                group.names.add(nameKey);
+                group.namesList.unshift({
+                  firstName: lead.firstName,
+                  lastName: lead.lastName
+                });
+              }
+            }
+            if (lead.createdAt > group.latestCreatedAt) {
+              group.latestContactId = lead.id;
+              group.latestStatus = leadStatus;
+              group.latestCreatedAt = lead.createdAt;
+            }
+          }
+        }
+        const twilioOpenaiCallsResults = await db.select({
+          fromNumber: twilioOpenaiCalls.fromNumber,
+          toNumber: twilioOpenaiCalls.toNumber,
+          callDirection: twilioOpenaiCalls.callDirection,
+          createdAt: twilioOpenaiCalls.createdAt,
+          status: twilioOpenaiCalls.status
+        }).from(twilioOpenaiCalls).where(and2(
+          eq8(twilioOpenaiCalls.userId, userId),
+          isNull2(twilioOpenaiCalls.contactId)
+        )).orderBy(desc2(twilioOpenaiCalls.createdAt));
+        for (const call of twilioOpenaiCallsResults) {
+          const rawTwPhone = call.callDirection === "inbound" ? call.fromNumber : call.toNumber;
+          if (!rawTwPhone || rawTwPhone === "Unknown Caller" || rawTwPhone === "unknown") continue;
+          const phone = normalizePhone(rawTwPhone);
+          const callStatus = call.callDirection === "inbound" ? "incoming_call" : "outgoing_call";
+          if (!phoneGroups.has(phone)) {
+            phoneGroups.set(phone, {
+              phone,
+              email: null,
+              names: /* @__PURE__ */ new Set(),
+              namesList: [],
+              campaigns: /* @__PURE__ */ new Set(),
+              campaignsList: [],
+              statuses: /* @__PURE__ */ new Set([callStatus]),
+              latestContactId: `twilio-openai-call-${phone}`,
+              latestStatus: callStatus,
+              latestEmail: null,
+              latestCreatedAt: call.createdAt,
+              source: "call",
+              callCount: 1
+            });
+          } else {
+            const group = phoneGroups.get(phone);
+            group.callCount = (group.callCount || 0) + 1;
+            group.statuses.add(callStatus);
+            if (call.createdAt > group.latestCreatedAt) {
+              group.latestStatus = callStatus;
+              group.latestCreatedAt = call.createdAt;
+            }
+          }
+        }
+        const plivoCallsResults = await db.select({
+          fromNumber: plivoCalls.fromNumber,
+          toNumber: plivoCalls.toNumber,
+          callDirection: plivoCalls.callDirection,
+          createdAt: plivoCalls.createdAt,
+          status: plivoCalls.status
+        }).from(plivoCalls).where(and2(
+          eq8(plivoCalls.userId, userId),
+          isNull2(plivoCalls.contactId)
+        )).orderBy(desc2(plivoCalls.createdAt));
+        for (const call of plivoCallsResults) {
+          const rawPlPhone = call.callDirection === "inbound" ? call.fromNumber : call.toNumber;
+          if (!rawPlPhone || rawPlPhone === "Unknown Caller" || rawPlPhone === "unknown") continue;
+          const phone = normalizePhone(rawPlPhone);
+          const callStatus = call.callDirection === "inbound" ? "incoming_call" : "outgoing_call";
+          if (!phoneGroups.has(phone)) {
+            phoneGroups.set(phone, {
+              phone,
+              email: null,
+              names: /* @__PURE__ */ new Set(),
+              namesList: [],
+              campaigns: /* @__PURE__ */ new Set(),
+              campaignsList: [],
+              statuses: /* @__PURE__ */ new Set([callStatus]),
+              latestContactId: `plivo-call-${phone}`,
+              latestStatus: callStatus,
+              latestEmail: null,
+              latestCreatedAt: call.createdAt,
+              source: "call",
+              callCount: 1
+            });
+          } else {
+            const group = phoneGroups.get(phone);
+            group.callCount = (group.callCount || 0) + 1;
+            group.statuses.add(callStatus);
+            if (call.createdAt > group.latestCreatedAt) {
+              group.latestStatus = callStatus;
+              group.latestCreatedAt = call.createdAt;
+            }
+          }
+        }
+        const sipCallsResults = await db.select({
+          fromNumber: sipCalls.fromNumber,
+          toNumber: sipCalls.toNumber,
+          direction: sipCalls.direction,
+          createdAt: sipCalls.createdAt,
+          status: sipCalls.status
+        }).from(sipCalls).where(and2(
+          eq8(sipCalls.userId, userId),
+          isNull2(sipCalls.contactId)
+        )).orderBy(desc2(sipCalls.createdAt));
+        for (const call of sipCallsResults) {
+          const rawSipPhone = call.direction === "inbound" ? call.fromNumber : call.toNumber;
+          if (!rawSipPhone || rawSipPhone === "Unknown Caller" || rawSipPhone === "unknown") continue;
+          const phone = normalizePhone(rawSipPhone);
+          const callStatus = call.direction === "inbound" ? "incoming_call" : "outgoing_call";
+          if (!phoneGroups.has(phone)) {
+            phoneGroups.set(phone, {
+              phone,
+              email: null,
+              names: /* @__PURE__ */ new Set(),
+              namesList: [],
+              campaigns: /* @__PURE__ */ new Set(),
+              campaignsList: [],
+              statuses: /* @__PURE__ */ new Set([callStatus]),
+              latestContactId: `sip-call-${phone}`,
+              latestStatus: callStatus,
+              latestEmail: null,
+              latestCreatedAt: call.createdAt || /* @__PURE__ */ new Date(0),
+              source: "call",
+              callCount: 1
+            });
+          } else {
+            const group = phoneGroups.get(phone);
+            group.callCount = (group.callCount || 0) + 1;
+            group.statuses.add(callStatus);
+            if (call.createdAt && call.createdAt > group.latestCreatedAt) {
+              group.latestStatus = callStatus;
+              group.latestCreatedAt = call.createdAt;
+            }
+          }
+        }
+        return Array.from(phoneGroups.values()).map((group) => ({
+          id: group.latestContactId,
+          phone: group.phone,
+          email: group.latestEmail,
+          names: group.namesList,
+          campaigns: group.campaignsList,
+          status: group.latestStatus,
+          allStatuses: Array.from(group.statuses),
+          source: group.source,
+          callCount: group.callCount
+        }));
+      }
+      async createContact(insertContact) {
+        const [contact] = await db.insert(contacts).values(insertContact).returning();
+        return contact;
+      }
+      async createContacts(insertContacts) {
+        return db.insert(contacts).values(insertContacts).returning();
+      }
+      async deleteContact(id) {
+        await db.delete(contacts).where(eq8(contacts.id, id));
+      }
+      // Calls
+      async getCall(id) {
+        const [call] = await db.select().from(calls).where(eq8(calls.id, id));
+        return call;
+      }
+      async getCallWithDetails(id) {
+        const elevenLabsResults = await db.select({
+          call: calls,
+          campaign: campaigns,
+          contact: contacts,
+          incomingConnection: incomingConnections,
+          widget: websiteWidgets
+        }).from(calls).leftJoin(campaigns, eq8(calls.campaignId, campaigns.id)).leftJoin(contacts, eq8(calls.contactId, contacts.id)).leftJoin(incomingConnections, eq8(calls.incomingConnectionId, incomingConnections.id)).leftJoin(websiteWidgets, eq8(calls.widgetId, websiteWidgets.id)).where(eq8(calls.id, id));
+        if (elevenLabsResults.length > 0) {
+          const r = elevenLabsResults[0];
+          const metadataEngine = r.call.metadata?.engine;
+          const engine = metadataEngine || "elevenlabs";
+          return {
+            ...r.call,
+            engine,
+            campaign: r.campaign ? { id: r.campaign.id, name: r.campaign.name } : null,
+            contact: r.contact ? { id: r.contact.id, firstName: r.contact.firstName, lastName: r.contact.lastName, phone: r.contact.phone } : null,
+            incomingConnection: r.incomingConnection ? { id: r.incomingConnection.id, agentId: r.incomingConnection.agentId } : null,
+            widget: r.widget ? { id: r.widget.id, name: r.widget.name } : null
+          };
+        }
+        const twilioOpenAIResults = await db.select({
+          call: twilioOpenaiCalls,
+          campaign: campaigns,
+          contact: contacts,
+          agent: agents
+        }).from(twilioOpenaiCalls).leftJoin(campaigns, eq8(twilioOpenaiCalls.campaignId, campaigns.id)).leftJoin(contacts, eq8(twilioOpenaiCalls.contactId, contacts.id)).leftJoin(agents, eq8(twilioOpenaiCalls.agentId, agents.id)).where(eq8(twilioOpenaiCalls.id, id));
+        if (twilioOpenAIResults.length > 0) {
+          const r = twilioOpenAIResults[0];
+          return {
+            id: r.call.id,
+            userId: r.call.userId,
+            campaignId: r.call.campaignId,
+            contactId: r.call.contactId,
+            agentId: r.call.agentId,
+            phoneNumber: r.call.fromNumber,
+            fromNumber: r.call.fromNumber,
+            toNumber: r.call.toNumber,
+            twilioSid: r.call.twilioCallSid,
+            status: r.call.status,
+            callDirection: r.call.callDirection === "inbound" ? "incoming" : r.call.callDirection === "outbound" ? "outgoing" : r.call.callDirection,
+            duration: r.call.duration,
+            recordingUrl: r.call.recordingUrl,
+            transcript: r.call.transcript,
+            aiSummary: r.call.aiSummary,
+            sentiment: r.call.sentiment,
+            wasTransferred: r.call.wasTransferred,
+            transferredTo: r.call.transferredTo,
+            transferredAt: r.call.transferredAt,
+            startedAt: r.call.startedAt,
+            endedAt: r.call.endedAt,
+            createdAt: r.call.createdAt,
+            metadata: r.call.metadata,
+            engine: "twilio-openai",
+            openaiSessionId: r.call.openaiSessionId,
+            openaiVoice: r.call.openaiVoice,
+            openaiModel: r.call.openaiModel,
+            campaign: r.campaign ? { id: r.campaign.id, name: r.campaign.name } : null,
+            contact: r.contact ? { id: r.contact.id, firstName: r.contact.firstName, lastName: r.contact.lastName, phone: r.contact.phone } : null,
+            incomingConnection: null,
+            agent: r.agent ? { id: r.agent.id, name: r.agent.name } : null
+          };
+        }
+        const plivoResults = await db.select({
+          call: plivoCalls,
+          campaign: campaigns,
+          contact: contacts,
+          agent: agents
+        }).from(plivoCalls).leftJoin(campaigns, eq8(plivoCalls.campaignId, campaigns.id)).leftJoin(contacts, eq8(plivoCalls.contactId, contacts.id)).leftJoin(agents, eq8(plivoCalls.agentId, agents.id)).where(eq8(plivoCalls.id, id));
+        if (plivoResults.length > 0) {
+          const r = plivoResults[0];
+          return {
+            id: r.call.id,
+            userId: r.call.userId,
+            campaignId: r.call.campaignId,
+            contactId: r.call.contactId,
+            agentId: r.call.agentId,
+            phoneNumber: r.call.fromNumber,
+            fromNumber: r.call.fromNumber,
+            toNumber: r.call.toNumber,
+            plivoCallUuid: r.call.plivoCallUuid,
+            status: r.call.status,
+            callDirection: r.call.callDirection === "inbound" ? "incoming" : r.call.callDirection === "outbound" ? "outgoing" : r.call.callDirection,
+            duration: r.call.duration,
+            recordingUrl: r.call.recordingUrl,
+            transcript: r.call.transcript,
+            aiSummary: r.call.aiSummary,
+            sentiment: r.call.sentiment,
+            leadQualityScore: r.call.leadQualityScore,
+            keyPoints: r.call.keyPoints,
+            nextActions: r.call.nextActions,
+            wasTransferred: r.call.wasTransferred,
+            transferredTo: r.call.transferredTo,
+            transferredAt: r.call.transferredAt,
+            startedAt: r.call.startedAt,
+            answeredAt: r.call.answeredAt,
+            endedAt: r.call.endedAt,
+            createdAt: r.call.createdAt,
+            metadata: r.call.metadata,
+            engine: "plivo-openai",
+            openaiSessionId: r.call.openaiSessionId,
+            openaiVoice: r.call.openaiVoice,
+            openaiModel: r.call.openaiModel,
+            campaign: r.campaign ? { id: r.campaign.id, name: r.campaign.name } : null,
+            contact: r.contact ? { id: r.contact.id, firstName: r.contact.firstName, lastName: r.contact.lastName, phone: r.contact.phone } : null,
+            incomingConnection: null,
+            agent: r.agent ? { id: r.agent.id, name: r.agent.name } : null
+          };
+        }
+        const sipResults = await db.select({
+          call: sipCalls,
+          agent: agents,
+          contact: contacts
+        }).from(sipCalls).leftJoin(agents, eq8(sipCalls.agentId, agents.id)).leftJoin(contacts, eq8(sipCalls.contactId, contacts.id)).where(eq8(sipCalls.id, id));
+        if (sipResults.length > 0) {
+          const r = sipResults[0];
+          return {
+            id: r.call.id,
+            userId: r.call.userId,
+            campaignId: r.call.campaignId,
+            contactId: r.call.contactId,
+            agentId: r.call.agentId,
+            phoneNumber: r.call.direction === "inbound" ? r.call.fromNumber : r.call.toNumber,
+            fromNumber: r.call.fromNumber,
+            toNumber: r.call.toNumber,
+            status: r.call.status,
+            callDirection: r.call.direction === "inbound" ? "incoming" : "outgoing",
+            duration: r.call.durationSeconds,
+            recordingUrl: r.call.recordingUrl,
+            transcript: r.call.transcript,
+            aiSummary: r.call.aiSummary,
+            sentiment: r.call.sentiment || r.call.metadata?.sentiment || null,
+            classification: r.call.classification || r.call.metadata?.classification || null,
+            startedAt: r.call.startedAt,
+            answeredAt: r.call.answeredAt,
+            endedAt: r.call.endedAt,
+            createdAt: r.call.createdAt,
+            metadata: r.call.metadata,
+            engine: r.call.engine,
+            sipTrunkId: r.call.sipTrunkId,
+            sipPhoneNumberId: r.call.sipPhoneNumberId,
+            elevenLabsConversationId: r.call.elevenlabsConversationId,
+            elevenlabsConversationId: r.call.elevenlabsConversationId,
+            externalCallId: r.call.externalCallId,
+            openaiCallId: r.call.openaiCallId,
+            creditsUsed: r.call.creditsUsed,
+            sipHeaders: r.call.sipHeaders,
+            campaign: null,
+            contact: r.contact ? { id: r.contact.id, firstName: r.contact.firstName, lastName: r.contact.lastName, phone: r.contact.phone } : null,
+            incomingConnection: null,
+            agent: r.agent ? { id: r.agent.id, name: r.agent.name } : null
+          };
+        }
+        return void 0;
+      }
+      async getCampaignCalls(campaignId) {
+        return db.select().from(calls).where(eq8(calls.campaignId, campaignId));
+      }
+      async getUserCalls(userId) {
+        const results = await db.select({ calls }).from(calls).leftJoin(campaigns, eq8(calls.campaignId, campaigns.id)).leftJoin(incomingConnections, eq8(calls.incomingConnectionId, incomingConnections.id)).where(
+          or2(
+            eq8(calls.userId, userId),
+            and2(isNotNull2(calls.campaignId), eq8(campaigns.userId, userId)),
+            and2(isNotNull2(calls.incomingConnectionId), eq8(incomingConnections.userId, userId))
+          )
+        );
+        return results.map((r) => r.calls);
+      }
+      async getUserCallsWithDetails(userId) {
+        const elevenLabsResults = await db.select({
+          call: calls,
+          campaign: campaigns,
+          contact: contacts,
+          incomingConnection: incomingConnections,
+          widget: websiteWidgets
+        }).from(calls).leftJoin(campaigns, eq8(calls.campaignId, campaigns.id)).leftJoin(contacts, eq8(calls.contactId, contacts.id)).leftJoin(incomingConnections, eq8(calls.incomingConnectionId, incomingConnections.id)).leftJoin(websiteWidgets, eq8(calls.widgetId, websiteWidgets.id)).where(
+          or2(
+            // Primary filter: Direct user ownership (guaranteed isolation)
+            eq8(calls.userId, userId),
+            // Fallback for legacy calls: Check via campaign ownership
+            and2(isNotNull2(calls.campaignId), eq8(campaigns.userId, userId)),
+            // Fallback for legacy calls: Check via incoming connection ownership
+            and2(isNotNull2(calls.incomingConnectionId), eq8(incomingConnections.userId, userId))
+          )
+        ).orderBy(sql13`${calls.createdAt} DESC`);
+        const elevenLabsCalls = elevenLabsResults.map((r) => {
+          const metadataEngine = r.call.metadata?.engine;
+          const engine = metadataEngine || "elevenlabs";
+          return {
+            ...r.call,
+            engine,
+            campaign: r.campaign ? { id: r.campaign.id, name: r.campaign.name } : null,
+            contact: r.contact ? { id: r.contact.id, firstName: r.contact.firstName, lastName: r.contact.lastName, phone: r.contact.phone } : null,
+            incomingConnection: r.incomingConnection ? { id: r.incomingConnection.id, agentId: r.incomingConnection.agentId } : null,
+            widget: r.widget ? { id: r.widget.id, name: r.widget.name } : null
+          };
+        });
+        const twilioOpenAIResults = await db.select({
+          call: twilioOpenaiCalls,
+          campaign: campaigns,
+          contact: contacts,
+          agent: agents
+        }).from(twilioOpenaiCalls).leftJoin(campaigns, eq8(twilioOpenaiCalls.campaignId, campaigns.id)).leftJoin(contacts, eq8(twilioOpenaiCalls.contactId, contacts.id)).leftJoin(agents, eq8(twilioOpenaiCalls.agentId, agents.id)).where(eq8(twilioOpenaiCalls.userId, userId)).orderBy(sql13`${twilioOpenaiCalls.createdAt} DESC`);
+        const twilioOpenAICalls = twilioOpenAIResults.map((r) => ({
+          id: r.call.id,
+          userId: r.call.userId,
+          campaignId: r.call.campaignId,
+          contactId: r.call.contactId,
+          agentId: r.call.agentId,
+          phoneNumber: r.call.fromNumber,
+          fromNumber: r.call.fromNumber,
+          toNumber: r.call.toNumber,
+          twilioSid: r.call.twilioCallSid,
+          status: r.call.status,
+          callDirection: r.call.callDirection === "inbound" ? "incoming" : "outgoing",
+          duration: r.call.duration,
+          recordingUrl: r.call.recordingUrl,
+          transcript: r.call.transcript,
+          aiSummary: r.call.aiSummary,
+          sentiment: r.call.sentiment,
+          wasTransferred: r.call.wasTransferred,
+          transferredTo: r.call.transferredTo,
+          transferredAt: r.call.transferredAt,
+          startedAt: r.call.startedAt,
+          endedAt: r.call.endedAt,
+          createdAt: r.call.createdAt,
+          metadata: r.call.metadata,
+          engine: "twilio-openai",
+          openaiSessionId: r.call.openaiSessionId,
+          openaiVoice: r.call.openaiVoice,
+          openaiModel: r.call.openaiModel,
+          campaign: r.campaign ? { id: r.campaign.id, name: r.campaign.name } : null,
+          contact: r.contact ? { id: r.contact.id, firstName: r.contact.firstName, lastName: r.contact.lastName, phone: r.contact.phone } : null,
+          incomingConnection: null,
+          agent: r.agent ? { id: r.agent.id, name: r.agent.name } : null
+        }));
+        const plivoResults = await db.select({
+          call: plivoCalls,
+          campaign: campaigns,
+          contact: contacts,
+          agent: agents
+        }).from(plivoCalls).leftJoin(campaigns, eq8(plivoCalls.campaignId, campaigns.id)).leftJoin(contacts, eq8(plivoCalls.contactId, contacts.id)).leftJoin(agents, eq8(plivoCalls.agentId, agents.id)).where(eq8(plivoCalls.userId, userId)).orderBy(sql13`${plivoCalls.createdAt} DESC`);
+        const plivoOpenAICalls = plivoResults.map((r) => ({
+          id: r.call.id,
+          userId: r.call.userId,
+          campaignId: r.call.campaignId,
+          contactId: r.call.contactId,
+          agentId: r.call.agentId,
+          phoneNumber: r.call.fromNumber,
+          fromNumber: r.call.fromNumber,
+          toNumber: r.call.toNumber,
+          plivoCallUuid: r.call.plivoCallUuid,
+          status: r.call.status,
+          callDirection: r.call.callDirection === "inbound" ? "incoming" : "outgoing",
+          duration: r.call.duration,
+          recordingUrl: r.call.recordingUrl,
+          transcript: r.call.transcript,
+          aiSummary: r.call.aiSummary,
+          sentiment: r.call.sentiment,
+          leadQualityScore: r.call.leadQualityScore,
+          keyPoints: r.call.keyPoints,
+          nextActions: r.call.nextActions,
+          wasTransferred: r.call.wasTransferred,
+          transferredTo: r.call.transferredTo,
+          transferredAt: r.call.transferredAt,
+          startedAt: r.call.startedAt,
+          answeredAt: r.call.answeredAt,
+          endedAt: r.call.endedAt,
+          createdAt: r.call.createdAt,
+          metadata: r.call.metadata,
+          engine: "plivo-openai",
+          openaiSessionId: r.call.openaiSessionId,
+          openaiVoice: r.call.openaiVoice,
+          openaiModel: r.call.openaiModel,
+          campaign: r.campaign ? { id: r.campaign.id, name: r.campaign.name } : null,
+          contact: r.contact ? { id: r.contact.id, firstName: r.contact.firstName, lastName: r.contact.lastName, phone: r.contact.phone } : null,
+          incomingConnection: null,
+          agent: r.agent ? { id: r.agent.id, name: r.agent.name } : null
+        }));
+        const sipCallResults = await db.select({
+          call: sipCalls,
+          agent: agents,
+          contact: contacts
+        }).from(sipCalls).leftJoin(agents, eq8(sipCalls.agentId, agents.id)).leftJoin(contacts, eq8(sipCalls.contactId, contacts.id)).where(eq8(sipCalls.userId, userId)).orderBy(sql13`${sipCalls.createdAt} DESC`);
+        const sipCallsFormatted = sipCallResults.map((r) => ({
+          id: r.call.id,
+          userId: r.call.userId,
+          campaignId: r.call.campaignId,
+          contactId: r.call.contactId,
+          agentId: r.call.agentId,
+          phoneNumber: r.call.direction === "inbound" ? r.call.fromNumber : r.call.toNumber,
+          fromNumber: r.call.fromNumber,
+          toNumber: r.call.toNumber,
+          status: r.call.status,
+          callDirection: r.call.direction === "inbound" ? "incoming" : "outgoing",
+          duration: r.call.durationSeconds,
+          recordingUrl: r.call.recordingUrl,
+          transcript: r.call.transcript,
+          aiSummary: r.call.aiSummary,
+          sentiment: r.call.sentiment || r.call.metadata?.sentiment || null,
+          classification: r.call.classification || r.call.metadata?.classification || null,
+          startedAt: r.call.startedAt,
+          answeredAt: r.call.answeredAt,
+          endedAt: r.call.endedAt,
+          createdAt: r.call.createdAt,
+          metadata: r.call.metadata,
+          engine: r.call.engine,
+          sipTrunkId: r.call.sipTrunkId,
+          sipPhoneNumberId: r.call.sipPhoneNumberId,
+          elevenLabsConversationId: r.call.elevenlabsConversationId,
+          elevenlabsConversationId: r.call.elevenlabsConversationId,
+          creditsUsed: r.call.creditsUsed,
+          campaign: null,
+          contact: r.contact ? { id: r.contact.id, firstName: r.contact.firstName, lastName: r.contact.lastName, phone: r.contact.phone } : null,
+          incomingConnection: null,
+          agent: r.agent ? { id: r.agent.id, name: r.agent.name } : null
+        }));
+        const twilioOpenAIByCampaignContact = new Set(
+          twilioOpenAICalls.filter((c) => c.campaignId && c.contactId).map((c) => `${c.campaignId}:${c.contactId}`)
+        );
+        const plivoByCampaignContact = new Set(
+          plivoOpenAICalls.filter((c) => c.campaignId && c.contactId).map((c) => `${c.campaignId}:${c.contactId}`)
+        );
+        const filteredElevenLabsCalls = elevenLabsCalls.filter((c) => {
+          if (!c.campaignId || !c.contactId) return true;
+          const md = c.metadata || {};
+          if (md.batchCall !== true) return true;
+          const key = `${c.campaignId}:${c.contactId}`;
+          if (md.telephonyProvider === "twilio_openai" && twilioOpenAIByCampaignContact.has(key)) {
+            return false;
+          }
+          if (md.telephonyProvider === "plivo" && plivoByCampaignContact.has(key)) {
+            return false;
+          }
+          return true;
+        });
+        const allCalls = [...filteredElevenLabsCalls, ...twilioOpenAICalls, ...plivoOpenAICalls, ...sipCallsFormatted];
+        allCalls.sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dateB - dateA;
+        });
+        return allCalls;
+      }
+      async createCall(insertCall) {
+        const [call] = await db.insert(calls).values(insertCall).returning();
+        return call;
+      }
+      async updateCall(id, call) {
+        await db.update(calls).set(call).where(eq8(calls.id, id));
+      }
+      // Credit Transactions
+      async getCreditTransaction(id) {
+        const [transaction] = await db.select().from(creditTransactions).where(eq8(creditTransactions.id, id));
+        return transaction;
+      }
+      async getUserCreditTransactions(userId) {
+        return db.select().from(creditTransactions).where(eq8(creditTransactions.userId, userId));
+      }
+      async createCreditTransaction(insertTransaction) {
+        const [transaction] = await db.insert(creditTransactions).values(insertTransaction).returning();
+        return transaction;
+      }
+      // Atomic credit purchase: creates transaction + adds credits in single DB transaction
+      async addCreditsAtomic(userId, credits, description, reference, executor) {
+        const run = async (tx) => {
+          if (executor) {
+            const [dup] = await tx.select({ id: creditTransactions.id }).from(creditTransactions).where(eq8(creditTransactions.stripePaymentId, reference)).limit(1);
+            if (dup) throw new Error(`duplicate credit reference ${reference}`);
+          }
+          await tx.insert(creditTransactions).values({
+            userId,
+            type: "credit",
+            amount: credits,
+            description,
+            stripePaymentId: reference
+          });
+          await tx.execute(sql13`
+        UPDATE users 
+        SET credits = COALESCE(credits, 0) + ${credits}
+        WHERE id = ${userId}
+      `);
+        };
+        if (executor) {
+          await run(executor);
+        } else {
+          await db.transaction(async (tx) => run(tx));
+        }
+      }
+      // Tools
+      async getTool(id) {
+        const [tool] = await db.select().from(tools).where(eq8(tools.id, id));
+        return tool;
+      }
+      async getUserTools(userId) {
+        return db.select().from(tools).where(eq8(tools.userId, userId));
+      }
+      async createTool(insertTool) {
+        const [tool] = await db.insert(tools).values(insertTool).returning();
+        return tool;
+      }
+      async updateTool(id, tool) {
+        await db.update(tools).set(tool).where(eq8(tools.id, id));
+      }
+      async deleteTool(id) {
+        await db.delete(tools).where(eq8(tools.id, id));
+      }
+      // Phone Number Rentals
+      async createPhoneNumberRental(insertRental) {
+        const [rental] = await db.insert(phoneNumberRentals).values(insertRental).returning();
+        return rental;
+      }
+      async getPhoneNumberRentals(phoneNumberId) {
+        return db.select().from(phoneNumberRentals).where(eq8(phoneNumberRentals.phoneNumberId, phoneNumberId)).orderBy(desc2(phoneNumberRentals.createdAt));
+      }
+      // Voices
+      async getVoice(id) {
+        const [voice] = await db.select().from(voices).where(eq8(voices.id, id));
+        return voice;
+      }
+      async getUserVoices(userId) {
+        return db.select().from(voices).where(eq8(voices.userId, userId));
+      }
+      async createVoice(insertVoice) {
+        const [voice] = await db.insert(voices).values(insertVoice).returning();
+        return voice;
+      }
+      async deleteVoice(id) {
+        await db.delete(voices).where(eq8(voices.id, id));
+      }
+      // Plans
+      async getPlan(id) {
+        const [plan] = await db.select().from(plans).where(eq8(plans.id, id));
+        return plan;
+      }
+      async getPlanByName(name) {
+        const [plan] = await db.select().from(plans).where(eq8(plans.name, name));
+        return plan;
+      }
+      async getAllPlans() {
+        return db.select().from(plans).where(eq8(plans.isActive, true));
+      }
+      async createPlan(insertPlan) {
+        const [plan] = await db.insert(plans).values(insertPlan).returning();
+        return plan;
+      }
+      async updatePlan(id, plan) {
+        const result = await db.update(plans).set(plan).where(eq8(plans.id, id)).returning({ id: plans.id });
+        if (result.length === 0) {
+          throw new Error(`Failed to update plan: Plan with id '${id}' not found`);
+        }
+      }
+      async deletePlan(id) {
+        await db.delete(plans).where(eq8(plans.id, id));
+      }
+      // Global Settings
+      async getGlobalSetting(key) {
+        const [setting] = await db.select().from(globalSettings).where(eq8(globalSettings.key, key));
+        if (setting && setting.value !== null && setting.value !== void 0) {
+          let val = setting.value;
+          if (typeof val === "string" && val.startsWith('"') && val.endsWith('"')) {
+            try {
+              val = JSON.parse(val);
+            } catch {
+            }
+          }
+          return { ...setting, value: val };
+        }
+        return setting;
+      }
+      async updateGlobalSetting(key, value) {
+        try {
+          const jsonValue = JSON.stringify(value);
+          await db.execute(sql13`
+        INSERT INTO global_settings (id, key, value, updated_at)
+        VALUES (gen_random_uuid(), ${key}, ${jsonValue}::jsonb, NOW())
+        ON CONFLICT (key) DO UPDATE SET 
+          value = ${jsonValue}::jsonb,
+          updated_at = NOW()
+      `);
+          console.log(`\u2705 [Settings] Saved setting '${key}' successfully`);
+        } catch (error) {
+          console.error(`\u274C [Settings] Failed to save setting '${key}':`, error.message);
+          throw new Error(`Failed to save setting '${key}': ${error.message}`);
+        }
+      }
+      // Credit Packages
+      async getCreditPackage(id) {
+        const [pack] = await db.select().from(creditPackages).where(eq8(creditPackages.id, id));
+        return pack;
+      }
+      async getAllCreditPackages() {
+        return db.select().from(creditPackages).where(eq8(creditPackages.isActive, true));
+      }
+      async createCreditPackage(insertPack) {
+        const [pack] = await db.insert(creditPackages).values(insertPack).returning();
+        return pack;
+      }
+      async updateCreditPackage(id, pack) {
+        const result = await db.update(creditPackages).set(pack).where(eq8(creditPackages.id, id)).returning({ id: creditPackages.id });
+        if (result.length === 0) {
+          throw new Error(`Failed to update credit package: Package with id '${id}' not found`);
+        }
+      }
+      // Admin Functions
+      async getAllUsers() {
+        return db.select().from(users).orderBy(desc2(users.createdAt));
+      }
+      async getAllAdminUsers() {
+        return db.select().from(users).where(
+          sql13`${users.role} = 'admin'`
+        ).orderBy(desc2(users.createdAt));
+      }
+      async updateUser(id, user) {
+        const result = await db.update(users).set(user).where(eq8(users.id, id)).returning({ id: users.id });
+        if (result.length === 0) {
+          throw new Error(`Failed to update user: User with id '${id}' not found`);
+        }
+      }
+      async getSystemPhoneNumbers() {
+        const results = await db.select({
+          phone: phoneNumbers,
+          user: users
+        }).from(phoneNumbers).leftJoin(users, eq8(phoneNumbers.userId, users.id));
+        return results.map((r) => ({
+          ...r.phone,
+          userEmail: r.user?.email
+        }));
+      }
+      async getGlobalAnalytics(timeRange) {
+        return calculateGlobalAnalytics(timeRange);
+      }
+      // User Subscriptions
+      async getUserSubscription(userId) {
+        const result = await db.select({
+          subscription: userSubscriptions,
+          plan: plans
+        }).from(userSubscriptions).leftJoin(plans, eq8(userSubscriptions.planId, plans.id)).where(eq8(userSubscriptions.userId, userId)).orderBy(...userSubscriptionPreferenceOrder()).limit(1);
+        if (result.length > 0 && result[0].subscription && result[0].plan) {
+          return {
+            ...result[0].subscription,
+            plan: result[0].plan
+          };
+        }
+        const [freePlan] = await db.select().from(plans).where(eq8(plans.name, "free")).limit(1);
+        if (!freePlan) {
+          return null;
+        }
+        return null;
+      }
+      async getAllUserSubscriptions() {
+        return await db.select().from(userSubscriptions);
+      }
+      async createUserSubscription(insertSubscription) {
+        const [subscription] = await db.insert(userSubscriptions).values(insertSubscription).returning();
+        return subscription;
+      }
+      async updateUserSubscription(id, subscription) {
+        await db.update(userSubscriptions).set(subscription).where(eq8(userSubscriptions.id, id));
+      }
+      async updateUserSubscriptionByUserId(userId, subscription) {
+        await db.update(userSubscriptions).set({ ...subscription, updatedAt: /* @__PURE__ */ new Date() }).where(eq8(userSubscriptions.userId, userId));
+      }
+      // Get effective limits for a user - merges plan defaults with per-user overrides
+      async getUserEffectiveLimits(userId) {
+        const subscriptionWithPlan = await this.getUserSubscription(userId);
+        const defaultLimits = {
+          maxAgents: 1,
+          maxCampaigns: 1,
+          maxContactsPerCampaign: 5,
+          maxWebhooks: 3,
+          maxKnowledgeBases: 5,
+          maxFlows: 3,
+          maxPhoneNumbers: 0,
+          includedCredits: 0,
+          sources: {
+            maxAgents: "plan",
+            maxCampaigns: "plan",
+            maxContactsPerCampaign: "plan",
+            maxWebhooks: "plan",
+            maxKnowledgeBases: "plan",
+            maxFlows: "plan",
+            maxPhoneNumbers: "plan",
+            includedCredits: "plan"
+          },
+          planName: "free",
+          planDisplayName: "Free"
+        };
+        if (!subscriptionWithPlan || !subscriptionWithPlan.plan) {
+          const [freePlan] = await db.select().from(plans).where(eq8(plans.name, "free")).limit(1);
+          if (freePlan) {
+            return {
+              maxAgents: freePlan.maxAgents,
+              maxCampaigns: freePlan.maxCampaigns,
+              maxContactsPerCampaign: freePlan.maxContactsPerCampaign,
+              maxWebhooks: freePlan.maxWebhooks ?? 3,
+              maxKnowledgeBases: freePlan.maxKnowledgeBases ?? 5,
+              maxFlows: freePlan.maxFlows ?? 3,
+              maxPhoneNumbers: freePlan.maxPhoneNumbers ?? 0,
+              includedCredits: freePlan.includedCredits,
+              sources: {
+                maxAgents: "plan",
+                maxCampaigns: "plan",
+                maxContactsPerCampaign: "plan",
+                maxWebhooks: "plan",
+                maxKnowledgeBases: "plan",
+                maxFlows: "plan",
+                maxPhoneNumbers: "plan",
+                includedCredits: "plan"
+              },
+              planName: freePlan.name,
+              planDisplayName: freePlan.displayName
+            };
+          }
+          return defaultLimits;
+        }
+        const plan = subscriptionWithPlan.plan;
+        const sub = subscriptionWithPlan;
+        return {
+          maxAgents: sub.overrideMaxAgents ?? plan.maxAgents,
+          maxCampaigns: sub.overrideMaxCampaigns ?? plan.maxCampaigns,
+          maxContactsPerCampaign: sub.overrideMaxContactsPerCampaign ?? plan.maxContactsPerCampaign,
+          maxWebhooks: sub.overrideMaxWebhooks ?? plan.maxWebhooks ?? 3,
+          maxKnowledgeBases: sub.overrideMaxKnowledgeBases ?? plan.maxKnowledgeBases ?? 5,
+          maxFlows: sub.overrideMaxFlows ?? plan.maxFlows ?? 3,
+          maxPhoneNumbers: sub.overrideMaxPhoneNumbers ?? plan.maxPhoneNumbers ?? 0,
+          includedCredits: sub.overrideIncludedCredits ?? plan.includedCredits,
+          sources: {
+            maxAgents: sub.overrideMaxAgents !== null ? "override" : "plan",
+            maxCampaigns: sub.overrideMaxCampaigns !== null ? "override" : "plan",
+            maxContactsPerCampaign: sub.overrideMaxContactsPerCampaign !== null ? "override" : "plan",
+            maxWebhooks: sub.overrideMaxWebhooks !== null ? "override" : "plan",
+            maxKnowledgeBases: sub.overrideMaxKnowledgeBases !== null ? "override" : "plan",
+            maxFlows: sub.overrideMaxFlows !== null ? "override" : "plan",
+            maxPhoneNumbers: sub.overrideMaxPhoneNumbers !== null ? "override" : "plan",
+            includedCredits: sub.overrideIncludedCredits !== null ? "override" : "plan"
+          },
+          planName: plan.name,
+          planDisplayName: plan.displayName
+        };
+      }
+      // Phone Numbers
+      async getPhoneNumber(id) {
+        const [phoneNumber] = await db.select().from(phoneNumbers).where(eq8(phoneNumbers.id, id));
+        return phoneNumber;
+      }
+      async getUserPhoneNumbers(userId) {
+        return db.select().from(phoneNumbers).where(eq8(phoneNumbers.userId, userId));
+      }
+      async getAllPhoneNumbers() {
+        return db.select().from(phoneNumbers);
+      }
+      async createPhoneNumber(insertPhoneNumber) {
+        const [phoneNumber] = await db.insert(phoneNumbers).values(insertPhoneNumber).returning();
+        return phoneNumber;
+      }
+      async updatePhoneNumber(id, phoneNumber) {
+        await db.update(phoneNumbers).set(phoneNumber).where(eq8(phoneNumbers.id, id));
+      }
+      async deletePhoneNumber(id) {
+        await db.delete(phoneNumbers).where(eq8(phoneNumbers.id, id));
+      }
+      // Usage Records
+      async createUsageRecord(insertRecord) {
+        const [record] = await db.insert(usageRecords).values(insertRecord).returning();
+        return record;
+      }
+      async getUserUsageRecords(userId) {
+        return db.select().from(usageRecords).where(eq8(usageRecords.userId, userId));
+      }
+      // Analytics methods - delegate to extracted helper functions
+      async getUserAnalytics(userId, timeRange = "7days", callType = "all") {
+        return calculateUserAnalytics(userId, timeRange, callType);
+      }
+      async getDashboardData(userId) {
+        return calculateDashboardData(userId);
+      }
+      // Webhooks (Subscriptions)
+      async getWebhook(id) {
+        const [webhook] = await db.select().from(webhookSubscriptions).where(eq8(webhookSubscriptions.id, id));
+        return webhook;
+      }
+      async getUserWebhooks(userId) {
+        return await db.select().from(webhookSubscriptions).where(eq8(webhookSubscriptions.userId, userId)).orderBy(desc2(webhookSubscriptions.createdAt));
+      }
+      async getUserWebhookCount(userId) {
+        const result = await db.select({ count: sql13`count(*)` }).from(webhookSubscriptions).where(eq8(webhookSubscriptions.userId, userId));
+        return Number(result[0]?.count || 0);
+      }
+      async getWebhooksForEvent(userId, event, campaignId) {
+        const allUserWebhooks = await db.select().from(webhookSubscriptions).where(and2(
+          eq8(webhookSubscriptions.userId, userId),
+          eq8(webhookSubscriptions.isActive, true)
+        ));
+        return allUserWebhooks.filter((webhook) => {
+          if (!webhook.events.includes(event)) return false;
+          if (campaignId && webhook.campaignIds && webhook.campaignIds.length > 0) {
+            return webhook.campaignIds.includes(campaignId);
+          }
+          return true;
+        });
+      }
+      async createWebhook(webhook) {
+        const [newWebhook] = await db.insert(webhookSubscriptions).values({
+          ...webhook,
+          id: nanoid()
+        }).returning();
+        return newWebhook;
+      }
+      async updateWebhook(id, webhook) {
+        const updateData = { ...webhook, updatedAt: /* @__PURE__ */ new Date() };
+        await db.update(webhookSubscriptions).set(updateData).where(eq8(webhookSubscriptions.id, id));
+      }
+      async deleteWebhook(id) {
+        await db.delete(webhookSubscriptions).where(eq8(webhookSubscriptions.id, id));
+      }
+      // Webhook Delivery Logs
+      async getWebhookLog(id) {
+        const [log] = await db.select().from(webhookDeliveryLogs).where(eq8(webhookDeliveryLogs.id, id));
+        return log;
+      }
+      async getWebhookLogs(webhookId, limit = 50) {
+        return await db.select().from(webhookDeliveryLogs).where(eq8(webhookDeliveryLogs.webhookId, webhookId)).orderBy(desc2(webhookDeliveryLogs.createdAt)).limit(limit);
+      }
+      async createWebhookLog(log) {
+        const [newLog] = await db.insert(webhookDeliveryLogs).values(log).returning();
+        return newLog;
+      }
+      async updateWebhookLog(id, log) {
+        await db.update(webhookDeliveryLogs).set(log).where(eq8(webhookDeliveryLogs.id, id));
+      }
+      async getFailedWebhookLogs(limit = 100) {
+        return await db.select().from(webhookDeliveryLogs).where(and2(
+          eq8(webhookDeliveryLogs.success, false),
+          isNotNull2(webhookDeliveryLogs.nextRetryAt)
+        )).orderBy(asc(webhookDeliveryLogs.nextRetryAt)).limit(limit);
+      }
+      // Notifications
+      async getNotification(id) {
+        const [notification] = await db.select().from(notifications).where(eq8(notifications.id, id));
+        return notification;
+      }
+      async getUserNotifications(userId, limit = 50) {
+        return await db.select().from(notifications).where(eq8(notifications.userId, userId)).orderBy(desc2(notifications.createdAt)).limit(limit);
+      }
+      async getUnreadNotificationCount(userId) {
+        const result = await db.select({ count: sql13`count(*)` }).from(notifications).where(and2(eq8(notifications.userId, userId), eq8(notifications.isRead, false)));
+        return Number(result[0]?.count || 0);
+      }
+      async createNotification(notification) {
+        const [newNotification] = await db.insert(notifications).values(notification).returning();
+        return newNotification;
+      }
+      async markNotificationAsRead(id) {
+        await db.update(notifications).set({ isRead: true }).where(eq8(notifications.id, id));
+      }
+      async markAllNotificationsAsRead(userId) {
+        await db.update(notifications).set({ isRead: true }).where(eq8(notifications.userId, userId));
+      }
+      async getBannerNotifications(userId) {
+        return await db.select().from(notifications).where(and2(
+          eq8(notifications.userId, userId),
+          or2(
+            eq8(notifications.displayType, "banner"),
+            eq8(notifications.displayType, "both")
+          ),
+          eq8(notifications.isDismissed, false),
+          or2(
+            isNull2(notifications.expiresAt),
+            gte2(notifications.expiresAt, /* @__PURE__ */ new Date())
+          )
+        )).orderBy(desc2(notifications.priority), desc2(notifications.createdAt));
+      }
+      async dismissNotification(id, userId) {
+        if (userId) {
+          await db.update(notifications).set({ isDismissed: true }).where(and2(eq8(notifications.id, id), eq8(notifications.userId, userId)));
+        } else {
+          await db.update(notifications).set({ isDismissed: true }).where(eq8(notifications.id, id));
+        }
+      }
+      async deleteNotification(id) {
+        await db.delete(notifications).where(eq8(notifications.id, id));
+      }
+      // Email Templates
+      async getEmailTemplates() {
+        return await db.select().from(emailTemplates).orderBy(emailTemplates.templateType);
+      }
+      async getEmailTemplate(templateType) {
+        const [template] = await db.select().from(emailTemplates).where(eq8(emailTemplates.templateType, templateType));
+        return template;
+      }
+      async updateEmailTemplate(id, data) {
+        await db.update(emailTemplates).set({ ...data, updatedAt: /* @__PURE__ */ new Date() }).where(eq8(emailTemplates.id, id));
+      }
+      async createEmailTemplate(data) {
+        const [template] = await db.insert(emailTemplates).values(data).returning();
+        return template;
+      }
+      // Prompt Templates
+      async getPromptTemplate(id) {
+        const [template] = await db.select().from(promptTemplates).where(eq8(promptTemplates.id, id));
+        return template;
+      }
+      async getUserPromptTemplates(userId) {
+        return await db.select().from(promptTemplates).where(eq8(promptTemplates.userId, userId)).orderBy(desc2(promptTemplates.createdAt));
+      }
+      async getSystemPromptTemplates() {
+        return await db.select().from(promptTemplates).where(eq8(promptTemplates.isSystemTemplate, true)).orderBy(asc(promptTemplates.category), asc(promptTemplates.name));
+      }
+      async getPublicPromptTemplates() {
+        return await db.select().from(promptTemplates).where(eq8(promptTemplates.isPublic, true)).orderBy(desc2(promptTemplates.usageCount), asc(promptTemplates.name));
+      }
+      async createPromptTemplate(template) {
+        const [newTemplate] = await db.insert(promptTemplates).values(template).returning();
+        return newTemplate;
+      }
+      async updatePromptTemplate(id, template) {
+        await db.update(promptTemplates).set({ ...template, updatedAt: /* @__PURE__ */ new Date() }).where(eq8(promptTemplates.id, id));
+      }
+      async deletePromptTemplate(id) {
+        await db.delete(promptTemplates).where(eq8(promptTemplates.id, id));
+      }
+      async incrementPromptTemplateUsage(id) {
+        await db.update(promptTemplates).set({
+          usageCount: sql13`${promptTemplates.usageCount} + 1`,
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where(eq8(promptTemplates.id, id));
+      }
+      // Agent Versions
+      async getAgentVersion(id) {
+        const [version] = await db.select().from(agentVersions).where(eq8(agentVersions.id, id));
+        return version;
+      }
+      async getAgentVersions(agentId) {
+        return await db.select().from(agentVersions).where(eq8(agentVersions.agentId, agentId)).orderBy(desc2(agentVersions.versionNumber));
+      }
+      async getAgentVersionByNumber(agentId, versionNumber) {
+        const [version] = await db.select().from(agentVersions).where(and2(
+          eq8(agentVersions.agentId, agentId),
+          eq8(agentVersions.versionNumber, versionNumber)
+        ));
+        return version;
+      }
+      async getLatestAgentVersion(agentId) {
+        const [version] = await db.select().from(agentVersions).where(eq8(agentVersions.agentId, agentId)).orderBy(desc2(agentVersions.versionNumber)).limit(1);
+        return version;
+      }
+      async createAgentVersion(version) {
+        const [newVersion] = await db.insert(agentVersions).values(version).returning();
+        return newVersion;
+      }
+      // SEO Settings
+      async getSeoSettings() {
+        const [settings] = await db.select().from(seoSettings).limit(1);
+        return settings;
+      }
+      async updateSeoSettings(settings) {
+        const existing = await this.getSeoSettings();
+        if (existing) {
+          const updateData = { ...settings, updatedAt: /* @__PURE__ */ new Date() };
+          const [updated] = await db.update(seoSettings).set(updateData).where(eq8(seoSettings.id, existing.id)).returning();
+          return updated;
+        } else {
+          const [created] = await db.insert(seoSettings).values(settings).returning();
+          return created;
+        }
+      }
+      // Analytics Scripts
+      async getAnalyticsScript(id) {
+        const [script] = await db.select().from(analyticsScripts).where(eq8(analyticsScripts.id, id));
+        return script;
+      }
+      async getAllAnalyticsScripts() {
+        return db.select().from(analyticsScripts).orderBy(desc2(analyticsScripts.loadPriority), asc(analyticsScripts.createdAt));
+      }
+      async getEnabledAnalyticsScripts() {
+        return db.select().from(analyticsScripts).where(eq8(analyticsScripts.enabled, true)).orderBy(desc2(analyticsScripts.loadPriority), asc(analyticsScripts.createdAt));
+      }
+      async createAnalyticsScript(script) {
+        const [created] = await db.insert(analyticsScripts).values(script).returning();
+        return created;
+      }
+      async updateAnalyticsScript(id, script) {
+        const updateData = { ...script, updatedAt: /* @__PURE__ */ new Date() };
+        await db.update(analyticsScripts).set(updateData).where(eq8(analyticsScripts.id, id));
+      }
+      async deleteAnalyticsScript(id) {
+        await db.delete(analyticsScripts).where(eq8(analyticsScripts.id, id));
+      }
+      // Payment Transactions
+      async getPaymentTransaction(id) {
+        const [transaction] = await db.select().from(paymentTransactions).where(eq8(paymentTransactions.id, id));
+        return transaction;
+      }
+      async getPaymentTransactionByGatewayId(gateway, gatewayTransactionId) {
+        const [transaction] = await db.select().from(paymentTransactions).where(and2(
+          eq8(paymentTransactions.gateway, gateway),
+          eq8(paymentTransactions.gatewayTransactionId, gatewayTransactionId)
+        ));
+        return transaction;
+      }
+      async getPaymentTransactionByOrderId(gatewayOrderId) {
+        const [transaction] = await db.select().from(paymentTransactions).where(eq8(paymentTransactions.gatewayOrderId, gatewayOrderId)).limit(1);
+        return transaction;
+      }
+      async getUserPaymentTransactions(userId) {
+        return db.select().from(paymentTransactions).where(eq8(paymentTransactions.userId, userId)).orderBy(desc2(paymentTransactions.createdAt));
+      }
+      async getAllPaymentTransactions(filters) {
+        const conditions = [];
+        if (filters?.gateway) {
+          conditions.push(eq8(paymentTransactions.gateway, filters.gateway));
+        }
+        if (filters?.type) {
+          conditions.push(eq8(paymentTransactions.type, filters.type));
+        }
+        if (filters?.status) {
+          conditions.push(eq8(paymentTransactions.status, filters.status));
+        }
+        if (filters?.startDate) {
+          conditions.push(gte2(paymentTransactions.createdAt, filters.startDate));
+        }
+        if (filters?.endDate) {
+          conditions.push(lte2(paymentTransactions.createdAt, filters.endDate));
+        }
+        if (conditions.length > 0) {
+          return db.select().from(paymentTransactions).where(and2(...conditions)).orderBy(desc2(paymentTransactions.createdAt));
+        }
+        return db.select().from(paymentTransactions).orderBy(desc2(paymentTransactions.createdAt));
+      }
+      async createPaymentTransaction(transaction) {
+        const [created] = await db.insert(paymentTransactions).values(transaction).returning();
+        return created;
+      }
+      async updatePaymentTransaction(id, transaction) {
+        await db.update(paymentTransactions).set({ ...transaction, updatedAt: /* @__PURE__ */ new Date() }).where(eq8(paymentTransactions.id, id));
+      }
+      async getPaymentAnalytics(startDate, endDate) {
+        const revenueStatuses = ["completed", "refunded", "partially_refunded"];
+        const conditions = [];
+        if (startDate) conditions.push(gte2(paymentTransactions.createdAt, startDate));
+        if (endDate) conditions.push(lte2(paymentTransactions.createdAt, endDate));
+        const transactions = await db.select().from(paymentTransactions).where(
+          conditions.length > 0 ? and2(
+            inArray4(paymentTransactions.status, revenueStatuses),
+            ...conditions
+          ) : inArray4(paymentTransactions.status, revenueStatuses)
+        );
+        const dateConditions = [];
+        if (startDate) dateConditions.push(gte2(paymentTransactions.createdAt, startDate));
+        if (endDate) dateConditions.push(lte2(paymentTransactions.createdAt, endDate));
+        const allTransactions = await db.select().from(paymentTransactions).where(dateConditions.length > 0 ? and2(...dateConditions) : void 0);
+        const refundConditions = [];
+        if (startDate) refundConditions.push(gte2(refunds.createdAt, startDate));
+        if (endDate) refundConditions.push(lte2(refunds.createdAt, endDate));
+        const allRefunds = await db.select().from(refunds).where(refundConditions.length > 0 ? and2(...refundConditions) : void 0);
+        let totalRevenue = 0;
+        const revenueByGateway = {};
+        const revenueByType = {};
+        const transactionsByStatus = {};
+        for (const tx of transactions) {
+          const amount = parseFloat(tx.amount || "0");
+          totalRevenue += amount;
+          revenueByGateway[tx.gateway] = (revenueByGateway[tx.gateway] || 0) + amount;
+          revenueByType[tx.type] = (revenueByType[tx.type] || 0) + amount;
+        }
+        for (const tx of allTransactions) {
+          transactionsByStatus[tx.status] = (transactionsByStatus[tx.status] || 0) + 1;
+        }
+        let totalRefunded = 0;
+        for (const refund of allRefunds) {
+          totalRefunded += parseFloat(refund.amount || "0");
+        }
+        return {
+          totalRevenue,
+          revenueByGateway,
+          revenueByType,
+          transactionCount: allTransactions.length,
+          transactionsByStatus,
+          refundCount: allRefunds.length,
+          totalRefunded
+        };
+      }
+      // Refunds
+      async getRefund(id) {
+        const [refund] = await db.select().from(refunds).where(eq8(refunds.id, id));
+        return refund;
+      }
+      async getTransactionRefunds(transactionId) {
+        return db.select().from(refunds).where(eq8(refunds.transactionId, transactionId)).orderBy(desc2(refunds.createdAt));
+      }
+      async getUserRefunds(userId) {
+        return db.select().from(refunds).where(eq8(refunds.userId, userId)).orderBy(desc2(refunds.createdAt));
+      }
+      async getAllRefunds() {
+        return db.select().from(refunds).orderBy(desc2(refunds.createdAt));
+      }
+      async createRefund(refund) {
+        const [created] = await db.insert(refunds).values(refund).returning();
+        return created;
+      }
+      async updateRefund(id, refund) {
+        await db.update(refunds).set({ ...refund, updatedAt: /* @__PURE__ */ new Date() }).where(eq8(refunds.id, id));
+      }
+      // Invoices
+      async getInvoice(id) {
+        const [invoice] = await db.select().from(invoices).where(eq8(invoices.id, id));
+        return invoice;
+      }
+      async getInvoiceByNumber(invoiceNumber) {
+        const [invoice] = await db.select().from(invoices).where(eq8(invoices.invoiceNumber, invoiceNumber));
+        return invoice;
+      }
+      /** The tax invoice of a transaction (credit notes share the transactionId and are excluded). */
+      async getTransactionInvoice(transactionId) {
+        const [invoice] = await db.select().from(invoices).where(and2(eq8(invoices.transactionId, transactionId), eq8(invoices.invoiceType, "tax_invoice"))).orderBy(asc(invoices.createdAt)).limit(1);
+        return invoice;
+      }
+      async getTransactionCreditNotes(transactionId) {
+        return db.select().from(invoices).where(and2(eq8(invoices.transactionId, transactionId), eq8(invoices.invoiceType, "credit_note"))).orderBy(asc(invoices.createdAt));
+      }
+      async getUserInvoices(userId) {
+        return db.select().from(invoices).where(eq8(invoices.userId, userId)).orderBy(desc2(invoices.createdAt));
+      }
+      async getAllInvoices() {
+        return db.select().from(invoices).orderBy(desc2(invoices.createdAt));
+      }
+      async createInvoice(invoice) {
+        const [created] = await db.insert(invoices).values(invoice).returning();
+        return created;
+      }
+      async updateInvoice(id, invoice) {
+        await db.update(invoices).set({ ...invoice, updatedAt: /* @__PURE__ */ new Date() }).where(eq8(invoices.id, id));
+      }
+      async getUserInvoicesPaginated(userId, options) {
+        const limit = Math.min(Math.max(options.limit ?? 20, 1), 100);
+        const offset = Math.max(options.offset ?? 0, 0);
+        const conditions = [eq8(invoices.userId, userId)];
+        if (options.type) conditions.push(eq8(invoices.invoiceType, options.type));
+        const where = and2(...conditions);
+        const [rows, [{ value: total }]] = await Promise.all([
+          db.select().from(invoices).where(where).orderBy(desc2(invoices.issuedAt), desc2(invoices.createdAt)).limit(limit).offset(offset),
+          db.select({ value: count() }).from(invoices).where(where)
+        ]);
+        return { invoices: rows, total: Number(total) };
+      }
+      async getAdminInvoices(filters) {
+        const limit = Math.min(Math.max(filters.limit ?? 50, 1), 200);
+        const offset = Math.max(filters.offset ?? 0, 0);
+        const conditions = [];
+        if (filters.userId) conditions.push(eq8(invoices.userId, filters.userId));
+        if (filters.type) conditions.push(eq8(invoices.invoiceType, filters.type));
+        if (filters.startDate) conditions.push(gte2(invoices.issuedAt, filters.startDate));
+        if (filters.endDate) conditions.push(lte2(invoices.issuedAt, filters.endDate));
+        if (filters.search) {
+          const pattern = `%${filters.search.replace(/[%_\\]/g, "\\$&")}%`;
+          const searchCondition = or2(
+            ilike(invoices.invoiceNumber, pattern),
+            ilike(invoices.customerEmail, pattern),
+            ilike(invoices.customerName, pattern)
+          );
+          if (searchCondition) conditions.push(searchCondition);
+        }
+        const where = conditions.length > 0 ? and2(...conditions) : void 0;
+        const [rows, [{ value: total }]] = await Promise.all([
+          db.select({ invoice: invoices, userName: users.name, userEmail: users.email }).from(invoices).leftJoin(users, eq8(invoices.userId, users.id)).where(where).orderBy(desc2(invoices.issuedAt), desc2(invoices.createdAt)).limit(limit).offset(offset),
+          db.select({ value: count() }).from(invoices).where(where)
+        ]);
+        return {
+          invoices: rows.map((r) => ({ ...r.invoice, userName: r.userName, userEmail: r.userEmail })),
+          total: Number(total)
+        };
+      }
+      /**
+       * Computes the next sequence for `<prefix>/<FY>/<NNNN>`. Numbering is per prefix (tax invoice prefix
+       * or 'CN' for credit notes) and per financial year. Must run inside the advisory lock to be safe.
+       */
+      async computeNextInvoiceNumber(executor, numbering) {
+        const prefix = numbering.prefix.replace(/[^A-Za-z0-9]/g, "").substring(0, 10) || "INV";
+        const fy = numbering.financialYear;
+        const likePattern = `${prefix}/${fy}/%`;
+        const result = await executor.execute(sql13`
+      SELECT MAX(CAST(SPLIT_PART(${invoices.invoiceNumber}, '/', 3) AS INTEGER)) as max_num
+      FROM ${invoices}
+      WHERE ${invoices.invoiceNumber} LIKE ${likePattern}
+        AND SPLIT_PART(${invoices.invoiceNumber}, '/', 3) ~ '^[0-9]+$'
+    `);
+        const maxNum = result.rows?.[0]?.max_num;
+        let nextNum = 1;
+        if (numbering.startNumber && numbering.startNumber > 0) nextNum = numbering.startNumber;
+        if (maxNum !== null && maxNum !== void 0 && !isNaN(Number(maxNum))) {
+          nextNum = Math.max(Number(maxNum) + 1, nextNum);
+        }
+        return `${prefix}/${fy}/${String(nextNum).padStart(4, "0")}`;
+      }
+      async getNextInvoiceNumber(numbering) {
+        const resolved = numbering ?? await this.defaultInvoiceNumbering();
+        return this.computeNextInvoiceNumber(db, resolved);
+      }
+      async defaultInvoiceNumbering() {
+        const [prefixSetting] = await db.select().from(globalSettings).where(eq8(globalSettings.key, "invoice_prefix"));
+        const rawPrefix = prefixSetting?.value ? String(prefixSetting.value).replace(/"/g, "") : "AIC";
+        const now = /* @__PURE__ */ new Date();
+        const ist = new Date(now.getTime() + 330 * 60 * 1e3);
+        const year = ist.getUTCFullYear();
+        const startYear = ist.getUTCMonth() + 1 >= 4 ? year : year - 1;
+        const yy = (n) => String(n % 100).padStart(2, "0");
+        return { prefix: rawPrefix || "AIC", financialYear: `${yy(startYear)}-${yy(startYear + 1)}` };
+      }
+      async createInvoiceWithNumber(invoice, numbering) {
+        const lockKey = `invoice_number:${numbering.prefix}:${numbering.financialYear}`;
+        return db.transaction(async (tx) => {
+          await tx.execute(sql13`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`);
+          const invoiceNumber = await this.computeNextInvoiceNumber(tx, numbering);
+          const [created] = await tx.insert(invoices).values({ ...invoice, invoiceNumber }).returning();
+          return created;
+        });
+      }
+      async getNextRefundNoteNumber() {
+        const [prefixSetting] = await db.select().from(globalSettings).where(eq8(globalSettings.key, "refund_note_prefix"));
+        let rawPrefix = prefixSetting?.value ? String(prefixSetting.value).replace(/"/g, "") : "RF";
+        const prefix = rawPrefix.replace(/[^A-Za-z0-9]/g, "").substring(0, 10) || "RF";
+        const result = await db.execute(sql13`
+      SELECT MAX(
+        CAST(
+          REGEXP_REPLACE(refund_note_number, '^[A-Za-z]+', '', 'g') 
+          AS INTEGER
+        )
+      ) as max_num
+      FROM refunds
+      WHERE refund_note_number ~ ${`^${prefix}[0-9]+$`}
+    `);
+        let nextNum = 1;
+        const maxNum = result.rows?.[0]?.max_num;
+        if (maxNum !== null && maxNum !== void 0 && !isNaN(Number(maxNum))) {
+          nextNum = Number(maxNum) + 1;
+        }
+        return `${prefix}${String(nextNum).padStart(2, "0")}`;
+      }
+      // Payment Webhook Queue
+      async getWebhookQueueItem(id) {
+        const [item] = await db.select().from(paymentWebhookQueue).where(eq8(paymentWebhookQueue.id, id));
+        return item;
+      }
+      async getPendingWebhooks() {
+        return db.select().from(paymentWebhookQueue).where(eq8(paymentWebhookQueue.status, "pending")).orderBy(asc(paymentWebhookQueue.receivedAt));
+      }
+      async getWebhookByEventId(gateway, eventId) {
+        const [item] = await db.select().from(paymentWebhookQueue).where(and2(
+          eq8(paymentWebhookQueue.gateway, gateway),
+          eq8(paymentWebhookQueue.eventId, eventId)
+        ));
+        return item;
+      }
+      async createWebhookQueueItem(item) {
+        const [created] = await db.insert(paymentWebhookQueue).values(item).returning();
+        return created;
+      }
+      async updateWebhookQueueItem(id, item) {
+        await db.update(paymentWebhookQueue).set(item).where(eq8(paymentWebhookQueue.id, id));
+      }
+      async getExpiredWebhooks() {
+        const now = /* @__PURE__ */ new Date();
+        return db.select().from(paymentWebhookQueue).where(and2(
+          eq8(paymentWebhookQueue.status, "pending"),
+          lte2(paymentWebhookQueue.expiresAt, now)
+        ));
+      }
+      async getRetryableWebhooks() {
+        const now = /* @__PURE__ */ new Date();
+        return db.select().from(paymentWebhookQueue).where(and2(
+          or2(
+            eq8(paymentWebhookQueue.status, "pending"),
+            eq8(paymentWebhookQueue.status, "failed")
+          ),
+          sql13`${paymentWebhookQueue.attemptCount} < ${paymentWebhookQueue.maxAttempts}`,
+          or2(
+            isNull2(paymentWebhookQueue.nextRetryAt),
+            lte2(paymentWebhookQueue.nextRetryAt, now)
+          ),
+          gte2(paymentWebhookQueue.expiresAt, now)
+        )).orderBy(asc(paymentWebhookQueue.receivedAt));
+      }
+      // Email Notification Settings
+      async getEmailNotificationSetting(eventType) {
+        const [setting] = await db.select().from(emailNotificationSettings).where(eq8(emailNotificationSettings.eventType, eventType));
+        return setting;
+      }
+      async getAllEmailNotificationSettings() {
+        return db.select().from(emailNotificationSettings).orderBy(asc(emailNotificationSettings.category), asc(emailNotificationSettings.eventType));
+      }
+      async getEmailNotificationSettingsByCategory(category) {
+        return db.select().from(emailNotificationSettings).where(eq8(emailNotificationSettings.category, category)).orderBy(asc(emailNotificationSettings.eventType));
+      }
+      async createEmailNotificationSetting(setting) {
+        const [created] = await db.insert(emailNotificationSettings).values(setting).returning();
+        return created;
+      }
+      async updateEmailNotificationSetting(eventType, setting) {
+        await db.update(emailNotificationSettings).set({ ...setting, updatedAt: /* @__PURE__ */ new Date() }).where(eq8(emailNotificationSettings.eventType, eventType));
+      }
+      // Admin Call Monitoring
+      async getAdminCalls(options) {
+        const page = options.page || 1;
+        const pageSize = options.pageSize || 20;
+        const offset = (page - 1) * pageSize;
+        const conditions = [];
+        if (options.userId) {
+          conditions.push(eq8(calls.userId, options.userId));
+        }
+        if (options.status) {
+          conditions.push(eq8(calls.status, options.status));
+        }
+        if (options.startDate) {
+          conditions.push(gte2(calls.createdAt, options.startDate));
+        }
+        if (options.endDate) {
+          conditions.push(lte2(calls.createdAt, options.endDate));
+        }
+        if (options.search) {
+          const escapeLike2 = (term) => term.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+          const searchPattern = `%${escapeLike2(options.search)}%`;
+          conditions.push(
+            or2(
+              sql13`${calls.phoneNumber} ILIKE ${searchPattern} ESCAPE '\\'`,
+              sql13`${calls.transcript} ILIKE ${searchPattern} ESCAPE '\\'`
+            )
+          );
+        }
+        const whereClause = conditions.length > 0 ? and2(...conditions) : void 0;
+        const violationCountSubquery = db.select({
+          callId: contentViolations.callId,
+          count: sql13`count(*)`.as("violation_count"),
+          summary: sql13`string_agg(${contentViolations.detectedWord}, ', ' ORDER BY ${contentViolations.createdAt} DESC)`.as("violation_summary")
+        }).from(contentViolations).groupBy(contentViolations.callId).as("violation_counts");
+        let query = db.select({
+          call: calls,
+          user: {
+            id: users.id,
+            email: users.email,
+            name: users.name
+          },
+          campaign: {
+            id: campaigns.id,
+            name: campaigns.name
+          },
+          violationCount: sql13`COALESCE(${violationCountSubquery.count}, 0)`,
+          violationSummary: sql13`${violationCountSubquery.summary}`
+        }).from(calls).leftJoin(users, eq8(calls.userId, users.id)).leftJoin(campaigns, eq8(calls.campaignId, campaigns.id)).leftJoin(violationCountSubquery, eq8(calls.id, violationCountSubquery.callId));
+        if (whereClause) {
+          query = query.where(whereClause);
+        }
+        if (options.hasViolations === true) {
+          query = query.where(sql13`COALESCE(${violationCountSubquery.count}, 0) > 0`);
+        } else if (options.hasViolations === false) {
+          query = query.where(sql13`COALESCE(${violationCountSubquery.count}, 0) = 0`);
+        }
+        const results = await query.orderBy(desc2(calls.createdAt)).limit(pageSize).offset(offset);
+        const countResult = await db.select({ count: sql13`count(*)` }).from(calls).where(whereClause);
+        const totalItems = Number(countResult[0]?.count || 0);
+        const totalPages = Math.ceil(totalItems / pageSize);
+        return {
+          data: results.map((r) => ({
+            ...r.call,
+            user: r.user,
+            campaign: r.campaign,
+            violationCount: Number(r.violationCount),
+            violationSummary: r.violationSummary || null
+          })),
+          pagination: { page, pageSize, totalItems, totalPages }
+        };
+      }
+      async getAdminCallById(id) {
+        const [result] = await db.select({
+          call: calls,
+          user: {
+            id: users.id,
+            email: users.email,
+            name: users.name
+          },
+          campaign: {
+            id: campaigns.id,
+            name: campaigns.name
+          },
+          contact: {
+            id: contacts.id,
+            firstName: contacts.firstName,
+            lastName: contacts.lastName,
+            phone: contacts.phone,
+            email: contacts.email
+          }
+        }).from(calls).leftJoin(users, eq8(calls.userId, users.id)).leftJoin(campaigns, eq8(calls.campaignId, campaigns.id)).leftJoin(contacts, eq8(calls.contactId, contacts.id)).where(eq8(calls.id, id));
+        if (!result) return void 0;
+        const violations = await this.getViolationsByCallId(id);
+        return {
+          ...result.call,
+          user: result.user,
+          campaign: result.campaign,
+          contact: result.contact,
+          violations
+        };
+      }
+      async getUserById(id) {
+        return this.getUser(id);
+      }
+      // Content Violations
+      async getViolationsByCallId(callId) {
+        return db.select().from(contentViolations).where(eq8(contentViolations.callId, callId)).orderBy(desc2(contentViolations.createdAt));
+      }
+      async getContentViolations(options) {
+        const page = options.page || 1;
+        const pageSize = options.pageSize || 20;
+        const offset = (page - 1) * pageSize;
+        const conditions = [];
+        if (options.userId) {
+          conditions.push(eq8(contentViolations.userId, options.userId));
+        }
+        if (options.status) {
+          conditions.push(eq8(contentViolations.status, options.status));
+        }
+        if (options.severity) {
+          conditions.push(eq8(contentViolations.severity, options.severity));
+        }
+        if (options.startDate) {
+          conditions.push(gte2(contentViolations.createdAt, options.startDate));
+        }
+        if (options.endDate) {
+          conditions.push(lte2(contentViolations.createdAt, options.endDate));
+        }
+        const whereClause = conditions.length > 0 ? and2(...conditions) : void 0;
+        let query = db.select({
+          violation: contentViolations,
+          user: {
+            id: users.id,
+            email: users.email,
+            name: users.name
+          },
+          call: {
+            id: calls.id,
+            phoneNumber: calls.phoneNumber,
+            status: calls.status
+          }
+        }).from(contentViolations).leftJoin(users, eq8(contentViolations.userId, users.id)).leftJoin(calls, eq8(contentViolations.callId, calls.id));
+        if (whereClause) {
+          query = query.where(whereClause);
+        }
+        const results = await query.orderBy(desc2(contentViolations.createdAt)).limit(pageSize).offset(offset);
+        const countResult = await db.select({ count: sql13`count(*)` }).from(contentViolations).where(whereClause);
+        const totalItems = Number(countResult[0]?.count || 0);
+        const totalPages = Math.ceil(totalItems / pageSize);
+        return {
+          data: results.map((r) => ({
+            ...r.violation,
+            user: r.user,
+            call: r.call
+          })),
+          pagination: { page, pageSize, totalItems, totalPages }
+        };
+      }
+      async updateContentViolation(id, data) {
+        const [updated] = await db.update(contentViolations).set(data).where(eq8(contentViolations.id, id)).returning();
+        return updated;
+      }
+      async createContentViolation(data) {
+        const [violation] = await db.insert(contentViolations).values(data).returning();
+        return violation;
+      }
+      // Banned Words
+      async getBannedWords() {
+        return db.select().from(bannedWords).orderBy(asc(bannedWords.word));
+      }
+      async getActiveBannedWords() {
+        return db.select().from(bannedWords).where(eq8(bannedWords.isActive, true)).orderBy(asc(bannedWords.word));
+      }
+      async createBannedWord(data) {
+        const [word] = await db.insert(bannedWords).values(data).returning();
+        return word;
+      }
+      async updateBannedWord(id, data) {
+        const [updated] = await db.update(bannedWords).set({ ...data, updatedAt: /* @__PURE__ */ new Date() }).where(eq8(bannedWords.id, id)).returning();
+        return updated;
+      }
+      async deleteBannedWord(id) {
+        const result = await db.delete(bannedWords).where(eq8(bannedWords.id, id)).returning();
+        return result.length > 0;
+      }
+      async getCallsWithTranscripts() {
+        return db.select().from(calls).where(and2(
+          isNotNull2(calls.transcript),
+          sql13`${calls.transcript} != ''`
+        ));
+      }
+      // Demo Sessions - Browser-based demo calls
+      async createDemoSession(data) {
+        const [session] = await db.insert(demoSessions).values(data).returning();
+        return session;
+      }
+      async getDemoSession(id) {
+        const [session] = await db.select().from(demoSessions).where(eq8(demoSessions.id, id));
+        return session;
+      }
+      async getDemoSessionByToken(token) {
+        const [session] = await db.select().from(demoSessions).where(eq8(demoSessions.sessionToken, token));
+        return session;
+      }
+      async updateDemoSession(id, data) {
+        await db.update(demoSessions).set(data).where(eq8(demoSessions.id, id));
+      }
+      async getActiveDemoSessionCount() {
+        const result = await db.select({ count: sql13`count(*)` }).from(demoSessions).where(eq8(demoSessions.status, "active"));
+        return Number(result[0]?.count || 0);
+      }
+      async getRecentDemoSessionByIp(ip, cooldownMinutes) {
+        const cooldownTime = new Date(Date.now() - cooldownMinutes * 60 * 1e3);
+        const [session] = await db.select().from(demoSessions).where(and2(
+          eq8(demoSessions.visitorIp, ip),
+          gte2(demoSessions.createdAt, cooldownTime)
+        )).orderBy(desc2(demoSessions.createdAt)).limit(1);
+        return session;
+      }
+      async getDemoSessionStats(days = 30) {
+        const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1e3);
+        const sessions = await db.select().from(demoSessions).where(gte2(demoSessions.createdAt, startDate));
+        const completed = sessions.filter((s) => s.status === "completed");
+        const totalDuration = completed.reduce((sum, s) => sum + (s.duration || 0), 0);
+        const languageBreakdown = {};
+        for (const session of sessions) {
+          languageBreakdown[session.language] = (languageBreakdown[session.language] || 0) + 1;
+        }
+        return {
+          totalSessions: sessions.length,
+          completedSessions: completed.length,
+          averageDuration: completed.length > 0 ? Math.round(totalDuration / completed.length) : 0,
+          languageBreakdown
+        };
+      }
+    };
+    storage = new DbStorage();
+  }
+});
+
+// server/services/notification-service.ts
+async function getLowCreditsThreshold() {
+  const now = Date.now();
+  if (cachedLowCreditsThreshold !== null && now - thresholdCacheTime < THRESHOLD_CACHE_TTL) {
+    return cachedLowCreditsThreshold;
+  }
+  try {
+    const setting = await storage.getGlobalSetting("low_credits_threshold");
+    const threshold = typeof setting?.value === "number" ? setting.value : DEFAULT_LOW_CREDITS_THRESHOLD;
+    cachedLowCreditsThreshold = threshold;
+    thresholdCacheTime = now;
+    return threshold;
+  } catch (error) {
+    console.error("[NotificationService] Failed to fetch low_credits_threshold, using default:", error);
+    return DEFAULT_LOW_CREDITS_THRESHOLD;
+  }
+}
+async function getAppName() {
+  const now = Date.now();
+  if (cachedAppName !== null && now - appNameCacheTime < THRESHOLD_CACHE_TTL) {
+    return cachedAppName;
+  }
+  try {
+    const setting = await storage.getGlobalSetting("app_name");
+    const appName = typeof setting?.value === "string" ? setting.value : DEFAULT_APP_NAME;
+    cachedAppName = appName;
+    appNameCacheTime = now;
+    return appName;
+  } catch (error) {
+    console.error("[NotificationService] Failed to fetch app_name, using default:", error);
+    return DEFAULT_APP_NAME;
+  }
+}
+var DEFAULT_LOW_CREDITS_THRESHOLD, DEFAULT_APP_NAME, cachedLowCreditsThreshold, thresholdCacheTime, THRESHOLD_CACHE_TTL, cachedAppName, appNameCacheTime, EVENT_NOTIFICATION_STYLE, NotificationService;
+var init_notification_service = __esm({
+  "server/services/notification-service.ts"() {
+    "use strict";
+    init_storage();
+    DEFAULT_LOW_CREDITS_THRESHOLD = 50;
+    DEFAULT_APP_NAME = "";
+    cachedLowCreditsThreshold = null;
+    thresholdCacheTime = 0;
+    THRESHOLD_CACHE_TTL = 5 * 60 * 1e3;
+    cachedAppName = null;
+    appNameCacheTime = 0;
+    EVENT_NOTIFICATION_STYLE = {
+      welcome: { icon: "sparkles", priority: 0 },
+      purchase_completed: { icon: "credit-card", priority: 10 },
+      invoice_created: { icon: "file-text", priority: 5 },
+      payment_failed: { icon: "alert-triangle", priority: 80 },
+      refund_processed: { icon: "rotate-ccw", priority: 20 },
+      credits_added: { icon: "coins", priority: 10 },
+      credits_added_by_admin: { icon: "gift", priority: 10 },
+      low_credits: { icon: "alert-circle", priority: 60 },
+      plan_activated: { icon: "crown", priority: 20 },
+      plan_renewed: { icon: "refresh-cw", priority: 10 },
+      plan_expiring: { icon: "clock", priority: 50 },
+      plan_expired: { icon: "alert-triangle", priority: 70 },
+      phone_number_purchased: { icon: "phone", priority: 10 },
+      phone_number_expiring: { icon: "clock", priority: 40 },
+      phone_number_released: { icon: "phone-off", priority: 70 },
+      phone_billing_failed: { icon: "alert-triangle", priority: 80 },
+      campaign_completed: { icon: "check-circle", priority: 10 },
+      campaign_failed: { icon: "x-circle", priority: 70 },
+      kyc_approved: { icon: "shield-check", priority: 20 },
+      kyc_rejected: { icon: "shield-alert", priority: 60 },
+      account_reactivated: { icon: "check-circle", priority: 20 }
+    };
+    NotificationService = {
+      async create(options) {
+        try {
+          await storage.createNotification({
+            userId: options.userId,
+            type: options.type,
+            title: options.title,
+            message: options.message,
+            link: options.link || null,
+            icon: options.icon || null,
+            displayType: options.displayType || "bell",
+            priority: options.priority ?? 0,
+            dismissible: options.dismissible ?? true,
+            expiresAt: options.expiresAt || null
+          });
+        } catch (error) {
+          console.error("Failed to create notification:", error);
+        }
+      },
+      /**
+       * Generic in-app notification for a dispatcher event (used by event-dispatcher).
+       * Returns true when the row was created, false on failure (never throws).
+       */
+      async createForEvent(eventKey, userId, title, message, link) {
+        const style = EVENT_NOTIFICATION_STYLE[eventKey] || { icon: "bell", priority: 0 };
+        try {
+          await storage.createNotification({
+            userId,
+            type: eventKey,
+            title,
+            message,
+            link: link || null,
+            icon: style.icon,
+            displayType: style.priority >= 50 ? "both" : "bell",
+            priority: style.priority,
+            dismissible: true,
+            expiresAt: null
+          });
+          return true;
+        } catch (error) {
+          console.error(`[NotificationService] Failed to create ${eventKey} notification for ${userId}:`, error);
+          return false;
+        }
+      },
+      async notifyLowCredits(userId, currentCredits) {
+        await this.create({
+          userId,
+          type: "low_credits",
+          title: "Low Credits Warning",
+          message: `Your credit balance is low (${currentCredits} credits remaining). Purchase more credits to continue using phone numbers and making calls.`,
+          link: "/app/billing"
+        });
+      },
+      async notifyMembershipUpgraded(userId, planName) {
+        await this.create({
+          userId,
+          type: "membership_upgraded",
+          title: "Welcome to Pro",
+          message: `Your membership has been upgraded to ${planName}. You now have unlimited agents, campaigns, and contacts!`,
+          link: "/app/billing"
+        });
+      },
+      async notifyMembershipCancelled(userId) {
+        await this.create({
+          userId,
+          type: "membership_expiry",
+          title: "Membership Cancelled",
+          message: "Your Pro membership has been cancelled. You'll continue to have Pro access until the end of your billing period.",
+          link: "/app/billing"
+        });
+      },
+      async notifyCampaignCompleted(userId, campaignId, campaignName, callCount) {
+        await this.create({
+          userId,
+          type: "campaign_completed",
+          title: "Campaign Completed",
+          message: `Campaign "${campaignName}" has completed with ${callCount} calls made.`,
+          link: `/app/campaigns/${campaignId}`
+        });
+      },
+      async notifyCampaignFailed(userId, campaignId, campaignName, error) {
+        await this.create({
+          userId,
+          type: "campaign_failed",
+          title: "Campaign Failed",
+          message: `Campaign "${campaignName}" failed: ${error}`,
+          link: `/app/campaigns/${campaignId}`
+        });
+      },
+      async notifyCampaignPaused(userId, campaignId, campaignName, reason) {
+        await this.create({
+          userId,
+          type: "campaign_paused",
+          title: "Campaign Paused",
+          message: `Campaign "${campaignName}" has been paused: ${reason}`,
+          link: `/app/campaigns/${campaignId}`
+        });
+      },
+      async notifyPhoneBillingSuccess(userId, phoneNumber, creditsCharged) {
+        await this.create({
+          userId,
+          type: "phone_billing_success",
+          title: "Phone Number Renewed",
+          message: `Phone number ${phoneNumber} has been renewed for ${creditsCharged} credits.`,
+          link: "/app/phone-numbers"
+        });
+      },
+      async notifyPhoneBillingFailed(userId, phoneNumber, reason) {
+        await this.create({
+          userId,
+          type: "phone_billing_failed",
+          title: "Phone Number Billing Failed",
+          message: `Phone number ${phoneNumber} billing failed: ${reason}. The number has been released.`,
+          link: "/app/phone-numbers"
+        });
+      },
+      async notifyCallCreditFailed(userId, options) {
+        const { callId, creditsRequired, currentBalance, durationSeconds } = options;
+        const durationText = durationSeconds && durationSeconds > 0 ? ` (${Math.ceil(durationSeconds / 60)} min call)` : "";
+        await this.create({
+          userId,
+          type: "call_credit_failed",
+          title: "Call Could Not Be Billed",
+          message: `A call ended but your credit balance was too low to bill it${durationText}. Required ${creditsRequired} credits, balance ${currentBalance}. Top up to keep new calls running.`,
+          link: `/app/calls/${callId}`,
+          icon: "alert-triangle",
+          priority: 70,
+          displayType: "both"
+        });
+      },
+      async notifyPhoneReleased(userId, phoneNumber) {
+        await this.create({
+          userId,
+          type: "phone_released",
+          title: "Phone Number Released",
+          message: `Phone number ${phoneNumber} has been released due to insufficient credits.`,
+          link: "/app/phone-numbers"
+        });
+      },
+      async notifyWelcome(userId, userName) {
+        const appName = await getAppName();
+        await this.create({
+          userId,
+          type: "welcome",
+          title: `Welcome to ${appName}, ${userName}`,
+          message: "Get started by creating your first AI agent and launching a campaign. Check out our knowledge base for tips and best practices.",
+          link: "/app/agents"
+        });
+      },
+      async createNotificationForAllAdmins(options) {
+        try {
+          const adminUsers = await storage.getAllAdminUsers();
+          for (const admin of adminUsers) {
+            await this.create({
+              ...options,
+              userId: admin.id
+            });
+          }
+        } catch (error) {
+          console.error("Failed to create admin notifications:", error);
+        }
+      },
+      async notifyAdmins(title, message, severity = "info") {
+        const icon = severity === "critical" ? "alert-triangle" : severity === "warning" ? "alert-circle" : "info";
+        await this.createNotificationForAllAdmins({
+          type: `admin_${severity}`,
+          title,
+          message,
+          icon,
+          priority: severity === "critical" ? 100 : severity === "warning" ? 50 : 0,
+          displayType: severity === "critical" ? "both" : "bell"
+        });
+      },
+      async notifyPaymentFailed(userId) {
+        await this.create({
+          userId,
+          type: "payment_failed",
+          title: "Payment Failed",
+          message: "Your subscription payment failed. Please update your payment method to maintain your Pro membership.",
+          link: "/app/billing",
+          icon: "credit-card",
+          priority: 80,
+          displayType: "both"
+        });
+      },
+      async notifySubscriptionPastDue(userId) {
+        await this.create({
+          userId,
+          type: "subscription_past_due",
+          title: "Payment Overdue",
+          message: "Your subscription is past due. Please update your payment method to avoid losing access to Pro features.",
+          link: "/app/billing",
+          icon: "alert-triangle",
+          priority: 90,
+          displayType: "both"
+        });
+      },
+      async shouldNotifyLowCredits(currentCredits) {
+        const threshold = await getLowCreditsThreshold();
+        return currentCredits > 0 && currentCredits <= threshold;
+      },
+      // Utility to get current threshold (for email service, etc.)
+      async getLowCreditsThreshold() {
+        return getLowCreditsThreshold();
+      }
+    };
+  }
+});
+
+// server/engines/plivo/services/openai-pool.service.ts
+var openai_pool_service_exports = {};
+__export(openai_pool_service_exports, {
+  OpenAIPoolService: () => OpenAIPoolService
+});
+import { eq as eq11, and as and3, desc as desc3, asc as asc2, sql as sql14 } from "drizzle-orm";
+var lastNotificationThreshold, OpenAIPoolService;
+var init_openai_pool_service = __esm({
+  "server/engines/plivo/services/openai-pool.service.ts"() {
+    "use strict";
+    init_db();
+    init_schema();
+    init_notification_service();
+    lastNotificationThreshold = /* @__PURE__ */ new Map();
+    OpenAIPoolService = class {
+      /**
+       * Add a new OpenAI API key to the pool
+       */
+      static async addCredential(data) {
+        const isValid = await this.testCredential(data.apiKey);
+        if (!isValid) {
+          throw new Error("Invalid OpenAI API key");
+        }
+        const [credential] = await db.insert(openaiCredentials).values({
+          ...data,
+          healthStatus: "healthy",
+          lastHealthCheck: /* @__PURE__ */ new Date()
+        }).returning();
+        console.log(`\u2705 Added OpenAI credential: ${credential.name} (tier: ${credential.modelTier})`);
+        return credential;
+      }
+      /**
+       * Update an existing credential
+       */
+      static async updateCredential(id, data) {
+        const [updated] = await db.update(openaiCredentials).set({
+          ...data,
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where(eq11(openaiCredentials.id, id)).returning();
+        if (!updated) {
+          throw new Error("Credential not found");
+        }
+        console.log(`\u2705 Updated OpenAI credential: ${updated.name}`);
+        return updated;
+      }
+      /**
+       * Test if an API key is valid by making a simple API call
+       */
+      static async testCredential(apiKey) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15e3);
+        try {
+          const response = await fetch("https://api.openai.com/v1/models", {
+            signal: controller.signal,
+            headers: {
+              "Authorization": `Bearer ${apiKey}`,
+              "Content-Type": "application/json"
+            }
+          });
+          if (!response.ok) {
+            console.error("\u274C OpenAI API key test failed");
+            return false;
+          }
+          console.log("\u2705 OpenAI API key validated");
+          return true;
+        } catch (error) {
+          if (error.name === "AbortError") {
+            console.error("\u274C OpenAI API key test timed out after 15s");
+          } else {
+            console.error("\u274C OpenAI API key test failed:", error);
+          }
+          return false;
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      }
+      /**
+       * Get credential by ID
+       */
+      static async getCredentialById(credentialId) {
+        const [credential] = await db.select().from(openaiCredentials).where(eq11(openaiCredentials.id, credentialId)).limit(1);
+        return credential || null;
+      }
+      /**
+       * Get the least-loaded active credential for a given model tier
+       * Considers both current load and total assigned agents for optimal distribution
+       */
+      static async getLeastLoadedCredential(tier) {
+        const baseConditions = [eq11(openaiCredentials.isActive, true)];
+        if (tier) {
+          baseConditions.push(eq11(openaiCredentials.modelTier, tier));
+        }
+        const credentials = await db.select().from(openaiCredentials).where(and3(...baseConditions));
+        if (credentials.length === 0) {
+          return null;
+        }
+        const sorted = credentials.map((c) => ({
+          ...c,
+          utilization: c.maxConcurrency > 0 ? c.currentLoad / c.maxConcurrency : 0,
+          agentDensity: c.totalAssignedAgents
+        })).sort((a, b) => {
+          if (Math.abs(a.utilization - b.utilization) > 0.1) {
+            return a.utilization - b.utilization;
+          }
+          return a.agentDensity - b.agentDensity;
+        });
+        return sorted[0];
+      }
+      /**
+       * Get credential for a specific agent (with load balancing fallback)
+       */
+      static async getCredentialForAgent(agentId) {
+        const [agent] = await db.select().from(agents).where(eq11(agents.id, agentId)).limit(1);
+        if (agent?.openaiCredentialId) {
+          const [credential] = await db.select().from(openaiCredentials).where(
+            and3(
+              eq11(openaiCredentials.id, agent.openaiCredentialId),
+              eq11(openaiCredentials.isActive, true)
+            )
+          ).limit(1);
+          if (credential) {
+            return credential;
+          }
+        }
+        return this.getLeastLoadedCredential();
+      }
+      /**
+       * Get credential with available capacity for making calls
+       * Checks both current load, concurrency limit, and model tier
+       */
+      static async getAvailableCredential(tier) {
+        const baseConditions = [eq11(openaiCredentials.isActive, true)];
+        if (tier) {
+          baseConditions.push(eq11(openaiCredentials.modelTier, tier));
+        }
+        const credentials = await db.select().from(openaiCredentials).where(and3(...baseConditions)).orderBy(asc2(openaiCredentials.currentLoad));
+        for (const credential of credentials) {
+          if (credential.currentLoad < credential.maxConcurrency) {
+            return credential;
+          }
+        }
+        return null;
+      }
+      /**
+       * Atomically reserve a slot on the least-loaded credential with available capacity.
+       * Uses a single UPDATE with WHERE condition to atomically find and reserve.
+       * 
+       * @param tier - Optional model tier to filter by ('free' or 'pro')
+       * @returns The credential with reserved slot, or null if no capacity available
+       */
+      static async reserveSlot(tier) {
+        try {
+          let result;
+          if (tier) {
+            result = await db.execute(sql14`
+          UPDATE openai_credentials
+          SET current_load = current_load + 1,
+              updated_at = NOW()
+          WHERE id = (
+            SELECT id FROM openai_credentials
+            WHERE is_active = true
+              AND current_load < max_concurrency
+            ORDER BY 
+              CASE WHEN model_tier = ${tier} THEN 0 ELSE 1 END,
+              (current_load::float / NULLIF(max_concurrency, 0)) ASC,
+              total_assigned_agents ASC
+            LIMIT 1
+            FOR UPDATE SKIP LOCKED
+          )
+          RETURNING *
+        `);
+          } else {
+            result = await db.execute(sql14`
+          UPDATE openai_credentials
+          SET current_load = current_load + 1,
+              updated_at = NOW()
+          WHERE id = (
+            SELECT id FROM openai_credentials
+            WHERE is_active = true
+              AND current_load < max_concurrency
+            ORDER BY 
+              (current_load::float / NULLIF(max_concurrency, 0)) ASC,
+              total_assigned_agents ASC
+            LIMIT 1
+            FOR UPDATE SKIP LOCKED
+          )
+          RETURNING *
+        `);
+          }
+          if (result.rows && result.rows.length > 0) {
+            const row = result.rows[0];
+            const tierMatch = tier && row.model_tier !== tier ? ` (fallback from '${tier}')` : "";
+            console.log(`[OpenAI Pool] Reserved slot on ${row.name} (tier: ${row.model_tier}${tierMatch}, load: ${row.current_load}/${row.max_concurrency})`);
+            return this.mapRowToCredential(row);
+          }
+          console.log(`[OpenAI Pool] No available capacity${tier ? ` for tier ${tier}` : ""} - all credentials at max load or none configured`);
+          return null;
+        } catch (error) {
+          console.error(`[OpenAI Pool] Failed to reserve slot:`, error);
+          return null;
+        }
+      }
+      /**
+       * Reserve a slot on a specific credential
+       */
+      static async reserveSlotOnCredential(credentialId) {
+        try {
+          const result = await db.execute(sql14`
+        UPDATE openai_credentials
+        SET current_load = current_load + 1,
+            updated_at = NOW()
+        WHERE id = ${credentialId}
+          AND is_active = true
+          AND current_load < max_concurrency
+        RETURNING *
+      `);
+          if (result.rows && result.rows.length > 0) {
+            const row = result.rows[0];
+            console.log(`\u{1F512} [OpenAI Pool] Reserved slot on ${row.name} (load: ${row.current_load}/${row.max_concurrency})`);
+            return this.mapRowToCredential(row);
+          }
+          console.log(`\u26A0\uFE0F [OpenAI Pool] Credential ${credentialId} has no capacity or is inactive`);
+          return null;
+        } catch (error) {
+          console.error(`\u274C [OpenAI Pool] Failed to reserve slot on credential ${credentialId}:`, error);
+          return null;
+        }
+      }
+      /**
+       * Release a slot when call ends
+       */
+      static async releaseSlot(credentialId) {
+        await db.update(openaiCredentials).set({
+          currentLoad: sql14`GREATEST(0, ${openaiCredentials.currentLoad} - 1)`,
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where(eq11(openaiCredentials.id, credentialId));
+        console.log(`\u{1F513} [OpenAI Pool] Released slot on credential ${credentialId}`);
+      }
+      /**
+       * Update agent assignment count for a credential
+       */
+      static async updateAssignmentCount(credentialId, increment) {
+        if (increment) {
+          await db.update(openaiCredentials).set({
+            totalAssignedAgents: sql14`${openaiCredentials.totalAssignedAgents} + 1`,
+            updatedAt: /* @__PURE__ */ new Date()
+          }).where(eq11(openaiCredentials.id, credentialId));
+        } else {
+          await db.update(openaiCredentials).set({
+            totalAssignedAgents: sql14`GREATEST(0, ${openaiCredentials.totalAssignedAgents} - 1)`,
+            updatedAt: /* @__PURE__ */ new Date()
+          }).where(eq11(openaiCredentials.id, credentialId));
+        }
+      }
+      /**
+       * Get all credentials with stats (sanitized - no API keys)
+       */
+      static async getAllWithStats() {
+        const credentials = await db.select().from(openaiCredentials).orderBy(desc3(openaiCredentials.createdAt));
+        return credentials.map(({ apiKey, ...rest }) => rest);
+      }
+      /**
+       * Get pool statistics with tier breakdown
+       */
+      static async getPoolStats() {
+        const credentials = await db.select().from(openaiCredentials).where(eq11(openaiCredentials.isActive, true));
+        const totalCapacity = credentials.reduce((sum, c) => sum + c.maxConcurrency, 0);
+        const totalLoad = credentials.reduce((sum, c) => sum + c.currentLoad, 0);
+        const totalAgents = credentials.reduce((sum, c) => sum + c.totalAssignedAgents, 0);
+        const totalUsers = credentials.reduce((sum, c) => sum + c.totalAssignedUsers, 0);
+        const availableCapacity = totalCapacity - totalLoad;
+        const utilizationPercent = totalCapacity > 0 ? totalLoad / totalCapacity * 100 : 0;
+        const freeCredentials = credentials.filter((c) => c.modelTier === "free");
+        const proCredentials = credentials.filter((c) => c.modelTier === "pro");
+        const byTier = {
+          free: {
+            keys: freeCredentials.length,
+            capacity: freeCredentials.reduce((sum, c) => sum + c.maxConcurrency, 0),
+            load: freeCredentials.reduce((sum, c) => sum + c.currentLoad, 0),
+            available: freeCredentials.reduce((sum, c) => sum + (c.maxConcurrency - c.currentLoad), 0)
+          },
+          pro: {
+            keys: proCredentials.length,
+            capacity: proCredentials.reduce((sum, c) => sum + c.maxConcurrency, 0),
+            load: proCredentials.reduce((sum, c) => sum + c.currentLoad, 0),
+            available: proCredentials.reduce((sum, c) => sum + (c.maxConcurrency - c.currentLoad), 0)
+          }
+        };
+        await this.checkCapacityAndNotify(utilizationPercent);
+        return {
+          totalKeys: credentials.length,
+          totalCapacity,
+          totalLoad,
+          availableCapacity,
+          utilizationPercent: Math.round(utilizationPercent * 100) / 100,
+          totalAgents,
+          totalUsers,
+          byTier,
+          credentials: credentials.map((c) => ({
+            id: c.id,
+            name: c.name,
+            modelTier: c.modelTier,
+            maxConcurrency: c.maxConcurrency,
+            currentLoad: c.currentLoad,
+            totalAssignedAgents: c.totalAssignedAgents,
+            totalAssignedUsers: c.totalAssignedUsers,
+            maxAgentsThreshold: c.maxAgentsThreshold,
+            utilizationPercent: c.maxConcurrency > 0 ? Math.round(c.currentLoad / c.maxConcurrency * 1e4) / 100 : 0,
+            healthStatus: c.healthStatus,
+            isActive: c.isActive
+          }))
+        };
+      }
+      /**
+       * Check capacity and send notifications to admins if needed (throttled)
+       */
+      static async checkCapacityAndNotify(utilizationPercent) {
+        const now = Date.now();
+        const THROTTLE_PERIOD = 4 * 60 * 60 * 1e3;
+        let threshold = 0;
+        if (utilizationPercent >= 95) {
+          threshold = 95;
+        } else if (utilizationPercent >= 90) {
+          threshold = 90;
+        } else if (utilizationPercent >= 80) {
+          threshold = 80;
+        }
+        if (threshold === 0) {
+          lastNotificationThreshold.clear();
+          return;
+        }
+        const lastSent = lastNotificationThreshold.get(threshold);
+        if (lastSent && now - lastSent < THROTTLE_PERIOD) {
+          return;
+        }
+        if (threshold === 95) {
+          await NotificationService.createNotificationForAllAdmins({
+            type: "system",
+            title: "CRITICAL: OpenAI Pool at 95%+ Capacity",
+            message: `The OpenAI API key pool is at ${utilizationPercent.toFixed(1)}% capacity. Add more API keys immediately to prevent service disruption.`,
+            link: "/admin/openai-pool"
+          });
+          lastNotificationThreshold.set(95, now);
+        } else if (threshold === 90) {
+          await NotificationService.createNotificationForAllAdmins({
+            type: "system",
+            title: "WARNING: OpenAI Pool at 90%+ Capacity",
+            message: `The OpenAI API key pool is at ${utilizationPercent.toFixed(1)}% capacity. Consider adding more API keys soon.`,
+            link: "/admin/openai-pool"
+          });
+          lastNotificationThreshold.set(90, now);
+        } else if (threshold === 80) {
+          await NotificationService.createNotificationForAllAdmins({
+            type: "system",
+            title: "Notice: OpenAI Pool at 80%+ Capacity",
+            message: `The OpenAI API key pool is at ${utilizationPercent.toFixed(1)}% capacity. Monitor usage and plan to add more keys if needed.`,
+            link: "/admin/openai-pool"
+          });
+          lastNotificationThreshold.set(80, now);
+        }
+      }
+      /**
+       * Deactivate a credential
+       */
+      static async deactivateCredential(id) {
+        await db.update(openaiCredentials).set({
+          isActive: false,
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where(eq11(openaiCredentials.id, id));
+      }
+      /**
+       * Activate a credential
+       */
+      static async activateCredential(id) {
+        await db.update(openaiCredentials).set({
+          isActive: true,
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where(eq11(openaiCredentials.id, id));
+      }
+      /**
+       * Delete a credential (only if no agents are using it)
+       */
+      static async deleteCredential(id) {
+        const [credential] = await db.select().from(openaiCredentials).where(eq11(openaiCredentials.id, id)).limit(1);
+        if (!credential) {
+          throw new Error("Credential not found");
+        }
+        if (credential.totalAssignedAgents > 0) {
+          throw new Error(`Cannot delete credential. ${credential.totalAssignedAgents} agents are still using it.`);
+        }
+        await db.delete(openaiCredentials).where(eq11(openaiCredentials.id, id));
+        console.log(`\u{1F5D1}\uFE0F [OpenAI Pool] Deleted credential: ${credential.name}`);
+      }
+      /**
+       * Perform health check on all credentials
+       */
+      static async performHealthChecks() {
+        const credentials = await db.select().from(openaiCredentials);
+        for (const credential of credentials) {
+          const isHealthy = await this.testCredential(credential.apiKey);
+          await db.update(openaiCredentials).set({
+            healthStatus: isHealthy ? "healthy" : "unhealthy",
+            lastHealthCheck: /* @__PURE__ */ new Date(),
+            updatedAt: /* @__PURE__ */ new Date()
+          }).where(eq11(openaiCredentials.id, credential.id));
+        }
+        console.log(`\u{1F3E5} [OpenAI Pool] Health checks completed for ${credentials.length} credentials`);
+      }
+      /**
+       * Recalculate agent counts for all credentials based on actual agents in database
+       */
+      static async recalculateAgentCounts() {
+        const credentials = await db.select().from(openaiCredentials);
+        const updates = [];
+        for (const credential of credentials) {
+          const [result] = await db.select({ count: sql14`count(*)::int` }).from(agents).where(eq11(agents.openaiCredentialId, credential.id));
+          const actualCount = result?.count || 0;
+          const oldCount = credential.totalAssignedAgents;
+          if (actualCount !== oldCount) {
+            await db.update(openaiCredentials).set({
+              totalAssignedAgents: actualCount,
+              updatedAt: /* @__PURE__ */ new Date()
+            }).where(eq11(openaiCredentials.id, credential.id));
+            updates.push({
+              id: credential.id,
+              name: credential.name,
+              oldCount,
+              newCount: actualCount
+            });
+            console.log(`\u{1F504} [OpenAI Pool] Recalculated ${credential.name}: ${oldCount} \u2192 ${actualCount} agents`);
+          }
+        }
+        return {
+          updated: updates.length,
+          credentials: updates
+        };
+      }
+      /**
+       * Get or assign a credential for a user based on their plan
+       * Free plan users get 'free' tier, Pro plan users get 'pro' tier
+       */
+      static async getOrAssignCredentialForUser(userId, requiredTier = "free") {
+        const [user] = await db.select().from(users).where(eq11(users.id, userId)).limit(1);
+        if (!user) {
+          return null;
+        }
+        const credential = await this.getLeastLoadedCredential(requiredTier);
+        if (credential) {
+          await db.update(openaiCredentials).set({
+            totalAssignedUsers: sql14`${openaiCredentials.totalAssignedUsers} + 1`,
+            updatedAt: /* @__PURE__ */ new Date()
+          }).where(eq11(openaiCredentials.id, credential.id));
+        }
+        return credential;
+      }
+      /**
+       * Get model tier for user based on subscription
+       */
+      static getModelTierForUser(subscriptionPlan) {
+        if (!subscriptionPlan) return "free";
+        const plan = subscriptionPlan.toLowerCase();
+        if (plan === "pro" || plan === "enterprise" || plan === "premium") {
+          return "pro";
+        }
+        return "free";
+      }
+      /**
+       * Get available models for a tier
+       */
+      static getModelsForTier(tier) {
+        if (tier === "pro") {
+          return ["gpt-realtime-2", "gpt-realtime-translate", "gpt-realtime-whisper", "gpt-realtime-1.5", "gpt-realtime", "gpt-realtime-mini", "gpt-4o-realtime-preview", "gpt-4o-mini-realtime-preview"];
+        }
+        return ["gpt-realtime-mini", "gpt-4o-mini-realtime-preview"];
+      }
+      /**
+       * Map database row to TypeScript OpenaiCredential type
+       */
+      static mapRowToCredential(row) {
+        return {
+          id: row.id,
+          name: row.name,
+          apiKey: row.api_key,
+          modelTier: row.model_tier,
+          maxConcurrency: row.max_concurrency,
+          currentLoad: row.current_load,
+          totalAssignedAgents: row.total_assigned_agents,
+          totalAssignedUsers: row.total_assigned_users,
+          maxAgentsThreshold: row.max_agents_threshold,
+          isActive: row.is_active,
+          healthStatus: row.health_status,
+          lastHealthCheck: row.last_health_check ? new Date(row.last_health_check) : null,
+          metadata: row.metadata,
+          createdAt: row.created_at ? new Date(row.created_at) : /* @__PURE__ */ new Date(),
+          updatedAt: row.updated_at ? new Date(row.updated_at) : /* @__PURE__ */ new Date()
+        };
+      }
+    };
+  }
+});
+
 // server/storage/crm-storage.ts
-import { eq as eq13, and as and5, desc as desc3, asc as asc2, sql as sql17, ilike, or as or3, inArray as inArray6, notInArray, gte as gte3, lte as lte3, count, isNotNull as isNotNull3 } from "drizzle-orm";
+import { eq as eq14, and as and6, desc as desc4, asc as asc3, sql as sql18, ilike as ilike2, or as or3, inArray as inArray6, notInArray, gte as gte3, lte as lte3, count as count2, isNotNull as isNotNull3 } from "drizzle-orm";
 function escapeLike(term) {
   return term.replace(/[\\%_]/g, (ch) => `\\${ch}`);
 }
@@ -2931,7 +6363,7 @@ var init_crm_storage = __esm({
       // Lead Stages
       // ============================================================
       static async getStagesByUser(userId) {
-        return db.select().from(leadStages).where(eq13(leadStages.userId, userId)).orderBy(asc2(leadStages.order));
+        return db.select().from(leadStages).where(eq14(leadStages.userId, userId)).orderBy(asc3(leadStages.order));
       }
       static async ensureDefaultStages(userId) {
         const existing = await this.getStagesByUser(userId);
@@ -2950,7 +6382,7 @@ var init_crm_storage = __esm({
         return inserted;
       }
       static async createStage(data) {
-        const maxOrder = await db.select({ maxOrder: sql17`COALESCE(MAX("order"), 0)` }).from(leadStages).where(eq13(leadStages.userId, data.userId));
+        const maxOrder = await db.select({ maxOrder: sql18`COALESCE(MAX("order"), 0)` }).from(leadStages).where(eq14(leadStages.userId, data.userId));
         const [stage] = await db.insert(leadStages).values({
           ...data,
           order: (maxOrder[0]?.maxOrder || 0) + 1,
@@ -2960,41 +6392,41 @@ var init_crm_storage = __esm({
         return stage;
       }
       static async updateStage(id, userId, data) {
-        const [stage] = await db.update(leadStages).set({ ...data, updatedAt: /* @__PURE__ */ new Date() }).where(and5(eq13(leadStages.id, id), eq13(leadStages.userId, userId))).returning();
+        const [stage] = await db.update(leadStages).set({ ...data, updatedAt: /* @__PURE__ */ new Date() }).where(and6(eq14(leadStages.id, id), eq14(leadStages.userId, userId))).returning();
         return stage || null;
       }
       static async deleteStage(id, userId) {
-        const result = await db.delete(leadStages).where(and5(
-          eq13(leadStages.id, id),
-          eq13(leadStages.userId, userId),
-          eq13(leadStages.isCustom, true)
+        const result = await db.delete(leadStages).where(and6(
+          eq14(leadStages.id, id),
+          eq14(leadStages.userId, userId),
+          eq14(leadStages.isCustom, true)
         )).returning();
         return result.length > 0;
       }
       static async reorderStages(userId, stageIds) {
         for (let i = 0; i < stageIds.length; i++) {
-          await db.update(leadStages).set({ order: i, updatedAt: /* @__PURE__ */ new Date() }).where(and5(eq13(leadStages.id, stageIds[i]), eq13(leadStages.userId, userId)));
+          await db.update(leadStages).set({ order: i, updatedAt: /* @__PURE__ */ new Date() }).where(and6(eq14(leadStages.id, stageIds[i]), eq14(leadStages.userId, userId)));
         }
       }
       // ============================================================
       // Leads
       // ============================================================
       static async getLeadById(id, userId) {
-        const [lead] = await db.select().from(leads).where(and5(eq13(leads.id, id), eq13(leads.userId, userId)));
+        const [lead] = await db.select().from(leads).where(and6(eq14(leads.id, id), eq14(leads.userId, userId)));
         return lead || null;
       }
       static async getLeadsBySource(userId, sourceType, sourceId, filters) {
         const conditions = [
-          eq13(leads.userId, userId),
-          eq13(leads.sourceType, sourceType)
+          eq14(leads.userId, userId),
+          eq14(leads.sourceType, sourceType)
         ];
         if (sourceType === "campaign") {
-          conditions.push(eq13(leads.campaignId, sourceId));
+          conditions.push(eq14(leads.campaignId, sourceId));
         } else {
-          conditions.push(eq13(leads.incomingConnectionId, sourceId));
+          conditions.push(eq14(leads.incomingConnectionId, sourceId));
         }
         if (filters?.stage) {
-          conditions.push(eq13(leads.stage, filters.stage));
+          conditions.push(eq14(leads.stage, filters.stage));
         }
         if (filters?.minScore) {
           conditions.push(gte3(leads.leadScore, filters.minScore));
@@ -3011,24 +6443,24 @@ var init_crm_storage = __esm({
         if (filters?.search) {
           const searchPattern = `%${escapeLike(filters.search)}%`;
           conditions.push(or3(
-            ilike(leads.firstName, searchPattern),
-            ilike(leads.lastName, searchPattern),
-            ilike(leads.phone, searchPattern),
-            ilike(leads.email, searchPattern),
-            ilike(leads.company, searchPattern)
+            ilike2(leads.firstName, searchPattern),
+            ilike2(leads.lastName, searchPattern),
+            ilike2(leads.phone, searchPattern),
+            ilike2(leads.email, searchPattern),
+            ilike2(leads.company, searchPattern)
           ));
         }
         if (filters?.hideLeadsWithoutPhone) {
           conditions.push(isNotNull3(leads.phone));
-          conditions.push(sql17`TRIM(${leads.phone}) != ''`);
-          conditions.push(sql17`LOWER(TRIM(${leads.phone})) != 'unknown'`);
+          conditions.push(sql18`TRIM(${leads.phone}) != ''`);
+          conditions.push(sql18`LOWER(TRIM(${leads.phone})) != 'unknown'`);
         }
-        return db.select().from(leads).where(and5(...conditions)).orderBy(desc3(leads.createdAt));
+        return db.select().from(leads).where(and6(...conditions)).orderBy(desc4(leads.createdAt));
       }
       static async getAllLeads(userId, filters) {
-        const conditions = [eq13(leads.userId, userId)];
+        const conditions = [eq14(leads.userId, userId)];
         if (filters?.stage) {
-          conditions.push(eq13(leads.stage, filters.stage));
+          conditions.push(eq14(leads.stage, filters.stage));
         }
         if (filters?.minScore) {
           conditions.push(gte3(leads.leadScore, filters.minScore));
@@ -3045,27 +6477,27 @@ var init_crm_storage = __esm({
         if (filters?.search) {
           const searchPattern = `%${escapeLike(filters.search)}%`;
           conditions.push(or3(
-            ilike(leads.firstName, searchPattern),
-            ilike(leads.lastName, searchPattern),
-            ilike(leads.phone, searchPattern),
-            ilike(leads.email, searchPattern),
-            ilike(leads.company, searchPattern)
+            ilike2(leads.firstName, searchPattern),
+            ilike2(leads.lastName, searchPattern),
+            ilike2(leads.phone, searchPattern),
+            ilike2(leads.email, searchPattern),
+            ilike2(leads.company, searchPattern)
           ));
         }
         if (filters?.hideLeadsWithoutPhone) {
           conditions.push(isNotNull3(leads.phone));
-          conditions.push(sql17`TRIM(${leads.phone}) != ''`);
-          conditions.push(sql17`LOWER(TRIM(${leads.phone})) != 'unknown'`);
+          conditions.push(sql18`TRIM(${leads.phone}) != ''`);
+          conditions.push(sql18`LOWER(TRIM(${leads.phone})) != 'unknown'`);
         }
-        return db.select().from(leads).where(and5(...conditions)).orderBy(desc3(leads.createdAt));
+        return db.select().from(leads).where(and6(...conditions)).orderBy(desc4(leads.createdAt));
       }
       static async getLeadsBySourceType(userId, sourceType, filters) {
         const conditions = [
-          eq13(leads.userId, userId),
-          eq13(leads.sourceType, sourceType)
+          eq14(leads.userId, userId),
+          eq14(leads.sourceType, sourceType)
         ];
         if (filters?.stage) {
-          conditions.push(eq13(leads.stage, filters.stage));
+          conditions.push(eq14(leads.stage, filters.stage));
         }
         if (filters?.minScore) {
           conditions.push(gte3(leads.leadScore, filters.minScore));
@@ -3082,19 +6514,19 @@ var init_crm_storage = __esm({
         if (filters?.search) {
           const searchPattern = `%${escapeLike(filters.search)}%`;
           conditions.push(or3(
-            ilike(leads.firstName, searchPattern),
-            ilike(leads.lastName, searchPattern),
-            ilike(leads.phone, searchPattern),
-            ilike(leads.email, searchPattern),
-            ilike(leads.company, searchPattern)
+            ilike2(leads.firstName, searchPattern),
+            ilike2(leads.lastName, searchPattern),
+            ilike2(leads.phone, searchPattern),
+            ilike2(leads.email, searchPattern),
+            ilike2(leads.company, searchPattern)
           ));
         }
         if (filters?.hideLeadsWithoutPhone) {
           conditions.push(isNotNull3(leads.phone));
-          conditions.push(sql17`TRIM(${leads.phone}) != ''`);
-          conditions.push(sql17`LOWER(TRIM(${leads.phone})) != 'unknown'`);
+          conditions.push(sql18`TRIM(${leads.phone}) != ''`);
+          conditions.push(sql18`LOWER(TRIM(${leads.phone})) != 'unknown'`);
         }
-        return db.select().from(leads).where(and5(...conditions)).orderBy(desc3(leads.createdAt));
+        return db.select().from(leads).where(and6(...conditions)).orderBy(desc4(leads.createdAt));
       }
       static async getLeadsGroupedByStage(userId, sourceType, sourceId, options) {
         const allLeads = await this.getLeadsBySource(userId, sourceType, sourceId, {
@@ -3122,12 +6554,12 @@ var init_crm_storage = __esm({
         const limit = options.limit || 50;
         const offset = options.offset || 0;
         const conditions = [
-          eq13(leads.userId, userId),
+          eq14(leads.userId, userId),
           isNotNull3(leads.aiCategory)
           // Only categorized leads
         ];
         if (options.aiCategory) {
-          conditions.push(eq13(leads.aiCategory, options.aiCategory));
+          conditions.push(eq14(leads.aiCategory, options.aiCategory));
         }
         if (options.hiddenCategories && options.hiddenCategories.length > 0) {
           if (options.aiCategory && options.hiddenCategories.includes(options.aiCategory)) {
@@ -3139,46 +6571,46 @@ var init_crm_storage = __esm({
         }
         if (options.hideLeadsWithoutPhone) {
           conditions.push(isNotNull3(leads.phone));
-          conditions.push(sql17`TRIM(${leads.phone}) != ''`);
-          conditions.push(sql17`LOWER(TRIM(${leads.phone})) != 'unknown'`);
+          conditions.push(sql18`TRIM(${leads.phone}) != ''`);
+          conditions.push(sql18`LOWER(TRIM(${leads.phone})) != 'unknown'`);
         }
         if (options.sourceType) {
-          conditions.push(eq13(leads.sourceType, options.sourceType));
+          conditions.push(eq14(leads.sourceType, options.sourceType));
           if (options.sourceId) {
             if (options.sourceType === "campaign") {
-              conditions.push(eq13(leads.campaignId, options.sourceId));
+              conditions.push(eq14(leads.campaignId, options.sourceId));
             } else {
-              conditions.push(eq13(leads.incomingConnectionId, options.sourceId));
+              conditions.push(eq14(leads.incomingConnectionId, options.sourceId));
             }
           }
         }
         if (options.search) {
           const searchPattern = `%${escapeLike(options.search)}%`;
           conditions.push(or3(
-            ilike(leads.firstName, searchPattern),
-            ilike(leads.lastName, searchPattern),
-            ilike(leads.phone, searchPattern),
-            ilike(leads.email, searchPattern),
-            ilike(leads.company, searchPattern)
+            ilike2(leads.firstName, searchPattern),
+            ilike2(leads.lastName, searchPattern),
+            ilike2(leads.phone, searchPattern),
+            ilike2(leads.email, searchPattern),
+            ilike2(leads.company, searchPattern)
           ));
         }
-        const [countResult] = await db.select({ count: count() }).from(leads).where(and5(...conditions));
+        const [countResult] = await db.select({ count: count2() }).from(leads).where(and6(...conditions));
         const total = countResult?.count || 0;
         let orderBy;
         switch (options.sortBy) {
           case "oldest":
-            orderBy = asc2(leads.createdAt);
+            orderBy = asc3(leads.createdAt);
             break;
           case "score-high":
-            orderBy = desc3(leads.leadScore);
+            orderBy = desc4(leads.leadScore);
             break;
           case "score-low":
-            orderBy = asc2(leads.leadScore);
+            orderBy = asc3(leads.leadScore);
             break;
           default:
-            orderBy = desc3(leads.createdAt);
+            orderBy = desc4(leads.createdAt);
         }
-        const results = await db.select().from(leads).where(and5(...conditions)).orderBy(orderBy).limit(limit).offset(offset);
+        const results = await db.select().from(leads).where(and6(...conditions)).orderBy(orderBy).limit(limit).offset(offset);
         return {
           leads: results,
           total,
@@ -3191,31 +6623,31 @@ var init_crm_storage = __esm({
        */
       static async getLeadCountsByCategory(userId, options) {
         const conditions = [
-          eq13(leads.userId, userId),
+          eq14(leads.userId, userId),
           isNotNull3(leads.aiCategory)
         ];
         if (options?.hideLeadsWithoutPhone) {
           conditions.push(isNotNull3(leads.phone));
-          conditions.push(sql17`TRIM(${leads.phone}) != ''`);
-          conditions.push(sql17`LOWER(TRIM(${leads.phone})) != 'unknown'`);
+          conditions.push(sql18`TRIM(${leads.phone}) != ''`);
+          conditions.push(sql18`LOWER(TRIM(${leads.phone})) != 'unknown'`);
         }
         if (options?.hiddenCategories && options.hiddenCategories.length > 0) {
           conditions.push(notInArray(leads.aiCategory, options.hiddenCategories));
         }
         if (options?.sourceType) {
-          conditions.push(eq13(leads.sourceType, options.sourceType));
+          conditions.push(eq14(leads.sourceType, options.sourceType));
           if (options.sourceId) {
             if (options.sourceType === "campaign") {
-              conditions.push(eq13(leads.campaignId, options.sourceId));
+              conditions.push(eq14(leads.campaignId, options.sourceId));
             } else {
-              conditions.push(eq13(leads.incomingConnectionId, options.sourceId));
+              conditions.push(eq14(leads.incomingConnectionId, options.sourceId));
             }
           }
         }
         const results = await db.select({
           category: leads.aiCategory,
-          count: count()
-        }).from(leads).where(and5(...conditions)).groupBy(leads.aiCategory);
+          count: count2()
+        }).from(leads).where(and6(...conditions)).groupBy(leads.aiCategory);
         const counts = {
           [AI_LEAD_CATEGORIES.WARM]: 0,
           [AI_LEAD_CATEGORIES.HOT]: 0,
@@ -3251,7 +6683,7 @@ var init_crm_storage = __esm({
         return lead;
       }
       static async updateLead(id, userId, data) {
-        const [lead] = await db.update(leads).set({ ...data, updatedAt: /* @__PURE__ */ new Date() }).where(and5(eq13(leads.id, id), eq13(leads.userId, userId))).returning();
+        const [lead] = await db.update(leads).set({ ...data, updatedAt: /* @__PURE__ */ new Date() }).where(and6(eq14(leads.id, id), eq14(leads.userId, userId))).returning();
         return lead || null;
       }
       static async updateLeadStage(id, userId, stage, stageId) {
@@ -3259,16 +6691,16 @@ var init_crm_storage = __esm({
           stage,
           stageId: stageId || null,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(and5(eq13(leads.id, id), eq13(leads.userId, userId))).returning();
+        }).where(and6(eq14(leads.id, id), eq14(leads.userId, userId))).returning();
         return lead || null;
       }
       static async deleteLead(id, userId) {
-        const result = await db.delete(leads).where(and5(eq13(leads.id, id), eq13(leads.userId, userId))).returning();
+        const result = await db.delete(leads).where(and6(eq14(leads.id, id), eq14(leads.userId, userId))).returning();
         return result.length > 0;
       }
       static async bulkDeleteLeads(ids, userId) {
         if (ids.length === 0) return 0;
-        const result = await db.delete(leads).where(and5(eq13(leads.userId, userId), inArray6(leads.id, ids))).returning();
+        const result = await db.delete(leads).where(and6(eq14(leads.userId, userId), inArray6(leads.id, ids))).returning();
         return result.length;
       }
       static async bulkUpdateStage(ids, userId, stage, stageId) {
@@ -3276,19 +6708,19 @@ var init_crm_storage = __esm({
           stage,
           stageId: stageId || null,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(and5(
+        }).where(and6(
           inArray6(leads.id, ids),
-          eq13(leads.userId, userId)
+          eq14(leads.userId, userId)
         )).returning();
         return result.length;
       }
       static async bulkAddTags(ids, userId, newTags) {
-        const leadsToUpdate = await db.select().from(leads).where(and5(inArray6(leads.id, ids), eq13(leads.userId, userId)));
+        const leadsToUpdate = await db.select().from(leads).where(and6(inArray6(leads.id, ids), eq14(leads.userId, userId)));
         let updated = 0;
         for (const lead of leadsToUpdate) {
           const existingTags = lead.tags || [];
           const mergedTags = Array.from(/* @__PURE__ */ new Set([...existingTags, ...newTags]));
-          await db.update(leads).set({ tags: mergedTags, updatedAt: /* @__PURE__ */ new Date() }).where(eq13(leads.id, lead.id));
+          await db.update(leads).set({ tags: mergedTags, updatedAt: /* @__PURE__ */ new Date() }).where(eq14(leads.id, lead.id));
           updated++;
         }
         return updated;
@@ -3297,38 +6729,38 @@ var init_crm_storage = __esm({
         const result = await db.update(leads).set({
           assignedUserId,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(and5(
+        }).where(and6(
           inArray6(leads.id, ids),
-          eq13(leads.userId, userId)
+          eq14(leads.userId, userId)
         )).returning();
         return result.length;
       }
       static async getLeadCountsByStage(userId, sourceType, sourceId, options) {
         const conditions = [
-          eq13(leads.userId, userId),
-          eq13(leads.sourceType, sourceType)
+          eq14(leads.userId, userId),
+          eq14(leads.sourceType, sourceType)
         ];
         if (sourceType === "campaign") {
-          conditions.push(eq13(leads.campaignId, sourceId));
+          conditions.push(eq14(leads.campaignId, sourceId));
         } else {
-          conditions.push(eq13(leads.incomingConnectionId, sourceId));
+          conditions.push(eq14(leads.incomingConnectionId, sourceId));
         }
         if (options?.hideLeadsWithoutPhone) {
           conditions.push(isNotNull3(leads.phone));
-          conditions.push(sql17`TRIM(${leads.phone}) != ''`);
-          conditions.push(sql17`LOWER(TRIM(${leads.phone})) != 'unknown'`);
+          conditions.push(sql18`TRIM(${leads.phone}) != ''`);
+          conditions.push(sql18`LOWER(TRIM(${leads.phone})) != 'unknown'`);
         }
         const counts = await db.select({
           stage: leads.stage,
-          count: sql17`COUNT(*)::int`
-        }).from(leads).where(and5(...conditions)).groupBy(leads.stage);
+          count: sql18`COUNT(*)::int`
+        }).from(leads).where(and6(...conditions)).groupBy(leads.stage);
         return counts;
       }
       // ============================================================
       // Lead Notes
       // ============================================================
       static async getNotesByLead(leadId) {
-        return db.select().from(leadNotes).where(eq13(leadNotes.leadId, leadId)).orderBy(desc3(leadNotes.createdAt));
+        return db.select().from(leadNotes).where(eq14(leadNotes.leadId, leadId)).orderBy(desc4(leadNotes.createdAt));
       }
       /**
        * Get notes count for multiple leads at once (batch operation)
@@ -3337,7 +6769,7 @@ var init_crm_storage = __esm({
         if (leadIds.length === 0) return /* @__PURE__ */ new Map();
         const counts = await db.select({
           leadId: leadNotes.leadId,
-          count: sql17`COUNT(*)::int`
+          count: sql18`COUNT(*)::int`
         }).from(leadNotes).where(inArray6(leadNotes.leadId, leadIds)).groupBy(leadNotes.leadId);
         const map = /* @__PURE__ */ new Map();
         for (const row of counts) {
@@ -3362,11 +6794,11 @@ var init_crm_storage = __esm({
         return note;
       }
       static async updateNote(id, userId, content) {
-        const [note] = await db.update(leadNotes).set({ content, updatedAt: /* @__PURE__ */ new Date() }).where(and5(eq13(leadNotes.id, id), eq13(leadNotes.userId, userId))).returning();
+        const [note] = await db.update(leadNotes).set({ content, updatedAt: /* @__PURE__ */ new Date() }).where(and6(eq14(leadNotes.id, id), eq14(leadNotes.userId, userId))).returning();
         return note || null;
       }
       static async deleteNote(id, userId) {
-        const result = await db.delete(leadNotes).where(and5(eq13(leadNotes.id, id), eq13(leadNotes.userId, userId))).returning();
+        const result = await db.delete(leadNotes).where(and6(eq14(leadNotes.id, id), eq14(leadNotes.userId, userId))).returning();
         return result.length > 0;
       }
       // ============================================================
@@ -3376,10 +6808,10 @@ var init_crm_storage = __esm({
         const campaignList = await db.select({
           id: campaigns.id,
           name: campaigns.name
-        }).from(campaigns).where(eq13(campaigns.userId, userId)).orderBy(desc3(campaigns.createdAt));
+        }).from(campaigns).where(eq14(campaigns.userId, userId)).orderBy(desc4(campaigns.createdAt));
         const result = [];
         for (const c of campaignList) {
-          const [countResult] = await db.select({ count: sql17`COUNT(*)::int` }).from(leads).where(and5(eq13(leads.campaignId, c.id), eq13(leads.userId, userId)));
+          const [countResult] = await db.select({ count: sql18`COUNT(*)::int` }).from(leads).where(and6(eq14(leads.campaignId, c.id), eq14(leads.userId, userId)));
           result.push({
             id: c.id,
             name: c.name,
@@ -3389,10 +6821,10 @@ var init_crm_storage = __esm({
         return result;
       }
       static async getUserIncomingConnections(userId) {
-        const connections = await db.select().from(incomingConnections).where(eq13(incomingConnections.userId, userId));
+        const connections = await db.select().from(incomingConnections).where(eq14(incomingConnections.userId, userId));
         const result = [];
         for (const conn of connections) {
-          const [countResult] = await db.select({ count: sql17`COUNT(*)::int` }).from(leads).where(and5(eq13(leads.incomingConnectionId, conn.id), eq13(leads.userId, userId)));
+          const [countResult] = await db.select({ count: sql18`COUNT(*)::int` }).from(leads).where(and6(eq14(leads.incomingConnectionId, conn.id), eq14(leads.userId, userId)));
           result.push({
             id: conn.id,
             name: `Incoming - ${conn.id.slice(0, 8)}`,
@@ -3457,7 +6889,7 @@ var init_crm_storage = __esm({
       // Lead Activities - Activity Timeline
       // ============================================================
       static async getActivitiesByLead(leadId, userId) {
-        return db.select().from(leadActivities).where(and5(eq13(leadActivities.leadId, leadId), eq13(leadActivities.userId, userId))).orderBy(desc3(leadActivities.createdAt));
+        return db.select().from(leadActivities).where(and6(eq14(leadActivities.leadId, leadId), eq14(leadActivities.userId, userId))).orderBy(desc4(leadActivities.createdAt));
       }
       static async createActivity(data) {
         const [activity] = await db.insert(leadActivities).values(data).returning();
@@ -3529,34 +6961,34 @@ var init_crm_storage = __esm({
         return leadsWithDetails;
       }
       static async getAnalytics(userId) {
-        const [totalResult] = await db.select({ count: count() }).from(leads).where(eq13(leads.userId, userId));
+        const [totalResult] = await db.select({ count: count2() }).from(leads).where(eq14(leads.userId, userId));
         const totalLeads = totalResult?.count || 0;
-        const categoryResults = await db.select({ category: leads.aiCategory, count: count() }).from(leads).where(and5(eq13(leads.userId, userId), isNotNull3(leads.aiCategory))).groupBy(leads.aiCategory);
+        const categoryResults = await db.select({ category: leads.aiCategory, count: count2() }).from(leads).where(and6(eq14(leads.userId, userId), isNotNull3(leads.aiCategory))).groupBy(leads.aiCategory);
         const leadsByCategory = categoryResults.map((r) => ({
           category: r.category || "uncategorized",
           count: Number(r.count)
         }));
-        const stageResults = await db.select({ stage: leads.stage, count: count() }).from(leads).where(eq13(leads.userId, userId)).groupBy(leads.stage);
+        const stageResults = await db.select({ stage: leads.stage, count: count2() }).from(leads).where(eq14(leads.userId, userId)).groupBy(leads.stage);
         const leadsByStage = stageResults.map((r) => ({ stage: r.stage, count: Number(r.count) }));
-        const sourceResults = await db.select({ sourceType: leads.sourceType, count: count() }).from(leads).where(eq13(leads.userId, userId)).groupBy(leads.sourceType);
+        const sourceResults = await db.select({ sourceType: leads.sourceType, count: count2() }).from(leads).where(eq14(leads.userId, userId)).groupBy(leads.sourceType);
         const leadsBySource = sourceResults.map((r) => ({ sourceType: r.sourceType, count: Number(r.count) }));
         const thirtyDaysAgo = /* @__PURE__ */ new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         const dateResults = await db.select({
-          date: sql17`DATE(${leads.createdAt})`,
-          count: count()
-        }).from(leads).where(and5(eq13(leads.userId, userId), gte3(leads.createdAt, thirtyDaysAgo))).groupBy(sql17`DATE(${leads.createdAt})`).orderBy(sql17`DATE(${leads.createdAt})`);
+          date: sql18`DATE(${leads.createdAt})`,
+          count: count2()
+        }).from(leads).where(and6(eq14(leads.userId, userId), gte3(leads.createdAt, thirtyDaysAgo))).groupBy(sql18`DATE(${leads.createdAt})`).orderBy(sql18`DATE(${leads.createdAt})`);
         const leadsByDate = dateResults.map((r) => ({ date: r.date, count: Number(r.count) }));
-        const [scoreResult] = await db.select({ avg: sql17`COALESCE(AVG(${leads.leadScore}), 0)` }).from(leads).where(and5(eq13(leads.userId, userId), sql17`${leads.leadScore} IS NOT NULL`));
+        const [scoreResult] = await db.select({ avg: sql18`COALESCE(AVG(${leads.leadScore}), 0)` }).from(leads).where(and6(eq14(leads.userId, userId), sql18`${leads.leadScore} IS NOT NULL`));
         const avgLeadScore = Math.round(scoreResult?.avg || 0);
-        const sentimentResults = await db.select({ sentiment: leads.sentiment, count: count() }).from(leads).where(and5(eq13(leads.userId, userId), sql17`${leads.sentiment} IS NOT NULL`)).groupBy(leads.sentiment);
+        const sentimentResults = await db.select({ sentiment: leads.sentiment, count: count2() }).from(leads).where(and6(eq14(leads.userId, userId), sql18`${leads.sentiment} IS NOT NULL`)).groupBy(leads.sentiment);
         const sentimentBreakdown = sentimentResults.map((r) => ({
           sentiment: r.sentiment || "unknown",
           count: Number(r.count)
         }));
-        const stageChanges = await db.select().from(leadActivities).where(and5(
-          eq13(leadActivities.userId, userId),
-          eq13(leadActivities.activityType, "stage_change")
+        const stageChanges = await db.select().from(leadActivities).where(and6(
+          eq14(leadActivities.userId, userId),
+          eq14(leadActivities.activityType, "stage_change")
         ));
         const conversionMap = /* @__PURE__ */ new Map();
         for (const change of stageChanges) {
@@ -3596,7 +7028,7 @@ var init_crm_storage = __esm({
         };
       }
       static async getAllUniqueTags(userId) {
-        const allLeads = await db.select({ tags: leads.tags }).from(leads).where(eq13(leads.userId, userId));
+        const allLeads = await db.select({ tags: leads.tags }).from(leads).where(eq14(leads.userId, userId));
         const tagsSet = /* @__PURE__ */ new Set();
         for (const lead of allLeads) {
           if (lead.tags) {
@@ -3611,7 +7043,7 @@ var init_crm_storage = __esm({
       // CRM Category Preferences
       // ============================================================
       static async getCategoryPreferences(userId) {
-        const [prefs] = await db.select().from(crmCategoryPreferences).where(eq13(crmCategoryPreferences.userId, userId));
+        const [prefs] = await db.select().from(crmCategoryPreferences).where(eq14(crmCategoryPreferences.userId, userId));
         return prefs || null;
       }
       static async getOrCreateCategoryPreferences(userId) {
@@ -3647,7 +7079,7 @@ var init_crm_storage = __esm({
         if (updates.hiddenCategories !== void 0) {
           updateData.hiddenCategories = updates.hiddenCategories;
         }
-        const [updated] = await db.update(crmCategoryPreferences).set(updateData).where(eq13(crmCategoryPreferences.id, existing.id)).returning();
+        const [updated] = await db.update(crmCategoryPreferences).set(updateData).where(eq14(crmCategoryPreferences.id, existing.id)).returning();
         return updated;
       }
       static async updateCategoryColor(userId, categoryId, color) {
@@ -3673,7 +7105,7 @@ __export(lead_processor_service_exports, {
   CRMLeadProcessor: () => CRMLeadProcessor,
   default: () => lead_processor_service_default
 });
-import { eq as eq14, and as and6, sql as sql18 } from "drizzle-orm";
+import { eq as eq15, and as and7, sql as sql19 } from "drizzle-orm";
 var CRMLeadProcessor, lead_processor_service_default;
 var init_lead_processor_service = __esm({
   "server/engines/crm/lead-processor.service.ts"() {
@@ -4013,7 +7445,7 @@ var init_lead_processor_service = __esm({
               bookedAt: appt.createdAt?.toISOString()
             };
           };
-          const byCallId = await db.select().from(appointments).where(eq14(appointments.callId, callData.id)).limit(1);
+          const byCallId = await db.select().from(appointments).where(eq15(appointments.callId, callData.id)).limit(1);
           if (byCallId.length > 0) {
             return formatAppt(byCallId[0], "callId");
           }
@@ -4021,10 +7453,10 @@ var init_lead_processor_service = __esm({
           if (!phone) return null;
           const normalizedPhone = phone.replace(/\D/g, "").slice(-10);
           if (normalizedPhone.length < 7) return null;
-          const byPhone = await db.select().from(appointments).where(and6(
-            eq14(appointments.userId, callData.userId),
-            sql18`${appointments.createdAt} > NOW() - INTERVAL '30 minutes'`,
-            sql18`RIGHT(REGEXP_REPLACE(${appointments.contactPhone}, '[^0-9]', '', 'g'), 10) = ${normalizedPhone}`
+          const byPhone = await db.select().from(appointments).where(and7(
+            eq15(appointments.userId, callData.userId),
+            sql19`${appointments.createdAt} > NOW() - INTERVAL '30 minutes'`,
+            sql19`RIGHT(REGEXP_REPLACE(${appointments.contactPhone}, '[^0-9]', '', 'g'), 10) = ${normalizedPhone}`
           )).limit(1);
           if (byPhone.length > 0) {
             return formatAppt(byPhone[0], `userId+phone(${normalizedPhone})`);
@@ -4083,33 +7515,33 @@ var init_lead_processor_service = __esm({
         const phoneNumber = this.resolveLeadPhone(callData);
         const hasValidPhone = phoneNumber && phoneNumber !== "Unknown";
         if (callData.engine === "elevenlabs-twilio") {
-          const [existingByCallId] = await db.select().from(leads).where(and6(
-            eq14(leads.userId, callData.userId),
-            eq14(leads.callId, callData.id)
+          const [existingByCallId] = await db.select().from(leads).where(and7(
+            eq15(leads.userId, callData.userId),
+            eq15(leads.callId, callData.id)
           )).limit(1);
           if (existingByCallId) return existingByCallId;
         }
         if (callData.campaignId && hasValidPhone) {
-          const [existingByCampaign] = await db.select().from(leads).where(and6(
-            eq14(leads.userId, callData.userId),
-            eq14(leads.phone, phoneNumber),
-            eq14(leads.campaignId, callData.campaignId)
+          const [existingByCampaign] = await db.select().from(leads).where(and7(
+            eq15(leads.userId, callData.userId),
+            eq15(leads.phone, phoneNumber),
+            eq15(leads.campaignId, callData.campaignId)
           )).limit(1);
           if (existingByCampaign) return existingByCampaign;
         }
         if (callData.incomingConnectionId && hasValidPhone) {
-          const [existingByConnection] = await db.select().from(leads).where(and6(
-            eq14(leads.userId, callData.userId),
-            eq14(leads.phone, phoneNumber),
-            eq14(leads.incomingConnectionId, callData.incomingConnectionId)
+          const [existingByConnection] = await db.select().from(leads).where(and7(
+            eq15(leads.userId, callData.userId),
+            eq15(leads.phone, phoneNumber),
+            eq15(leads.incomingConnectionId, callData.incomingConnectionId)
           )).limit(1);
           if (existingByConnection) return existingByConnection;
         }
         if (hasValidPhone && !callData.campaignId) {
-          const [existingByPhone] = await db.select().from(leads).where(and6(
-            eq14(leads.userId, callData.userId),
-            eq14(leads.phone, phoneNumber),
-            eq14(leads.sourceType, "incoming")
+          const [existingByPhone] = await db.select().from(leads).where(and7(
+            eq15(leads.userId, callData.userId),
+            eq15(leads.phone, phoneNumber),
+            eq15(leads.sourceType, "incoming")
           )).limit(1);
           return existingByPhone || null;
         }
@@ -4240,7 +7672,7 @@ var init_lead_processor_service = __esm({
        * Process a call from the ElevenLabs-Twilio engine (calls table)
        */
       static async processElevenLabsTwilioCall(callId) {
-        const [call] = await db.select().from(calls).where(eq14(calls.id, callId)).limit(1);
+        const [call] = await db.select().from(calls).where(eq15(calls.id, callId)).limit(1);
         if (!call || !call.userId) {
           console.log(`${this.LOG_PREFIX} Call not found or no user: ${callId}`);
           return null;
@@ -4279,7 +7711,7 @@ var init_lead_processor_service = __esm({
        * Process a call from the Plivo+OpenAI engine (plivo_calls table)
        */
       static async processPlivoOpenAICall(callId) {
-        const [call] = await db.select().from(plivoCalls).where(eq14(plivoCalls.id, callId)).limit(1);
+        const [call] = await db.select().from(plivoCalls).where(eq15(plivoCalls.id, callId)).limit(1);
         if (!call || !call.userId) {
           console.log(`${this.LOG_PREFIX} Plivo call not found or no user: ${callId}`);
           return null;
@@ -4318,7 +7750,7 @@ var init_lead_processor_service = __esm({
        * Process a call from the Twilio+OpenAI engine (twilio_openai_calls table)
        */
       static async processTwilioOpenAICall(callId) {
-        const [call] = await db.select().from(twilioOpenaiCalls).where(eq14(twilioOpenaiCalls.id, callId)).limit(1);
+        const [call] = await db.select().from(twilioOpenaiCalls).where(eq15(twilioOpenaiCalls.id, callId)).limit(1);
         if (!call || !call.userId) {
           console.log(`${this.LOG_PREFIX} Twilio-OpenAI call not found or no user: ${callId}`);
           return null;
@@ -4357,7 +7789,7 @@ var init_lead_processor_service = __esm({
        * Process a call from the SIP engine (sip_calls table)
        */
       static async processSipCall(callId) {
-        const [call] = await db.select().from(sipCalls).where(eq14(sipCalls.id, callId)).limit(1);
+        const [call] = await db.select().from(sipCalls).where(eq15(sipCalls.id, callId)).limit(1);
         if (!call || !call.userId) {
           console.log(`${this.LOG_PREFIX} SIP call not found or no user: ${callId}`);
           return null;
@@ -5990,12 +9422,12 @@ init_db();
 import { EventEmitter } from "events";
 import * as fs from "fs";
 import * as path from "path";
-import { sql as sql16 } from "drizzle-orm";
+import { sql as sql17 } from "drizzle-orm";
 
 // plugins/custom-voice-engine/services/tools/tool-executor.ts
 init_db();
 init_schema();
-import { sql as sql15, eq as eq12 } from "drizzle-orm";
+import { sql as sql16, eq as eq13 } from "drizzle-orm";
 import { nanoid as nanoid2 } from "nanoid";
 
 // server/services/google-calendar/google-calendar.service.ts
@@ -6006,2557 +9438,8 @@ import { eq as eq10 } from "drizzle-orm";
 // server/services/google-sheets/google-sheets.service.ts
 init_db();
 init_schema();
+init_storage();
 import { eq as eq9 } from "drizzle-orm";
-
-// server/storage.ts
-init_db();
-init_schema();
-import { nanoid } from "nanoid";
-import { eq as eq8, sql as sql13, and as and2, gte as gte2, lte as lte2, desc as desc2, asc, isNull as isNull2, isNotNull as isNotNull2, or as or2, inArray as inArray4 } from "drizzle-orm";
-
-// server/storage/analytics-helpers.ts
-init_db();
-init_schema();
-import { eq as eq7, sql as sql12, and, gte, lt, desc, isNull, or, inArray as inArray3 } from "drizzle-orm";
-async function calculateGlobalAnalytics(timeRange) {
-  const now = /* @__PURE__ */ new Date();
-  let startDate;
-  let previousStartDate;
-  let previousEndDate;
-  let groupByWeek = false;
-  let isAllTime = false;
-  switch (timeRange) {
-    case "7d":
-      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1e3);
-      previousEndDate = new Date(startDate.getTime());
-      previousStartDate = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1e3);
-      break;
-    case "30d":
-      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1e3);
-      previousEndDate = new Date(startDate.getTime());
-      previousStartDate = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1e3);
-      break;
-    case "90d":
-      startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1e3);
-      previousEndDate = new Date(startDate.getTime());
-      previousStartDate = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1e3);
-      groupByWeek = true;
-      break;
-    case "all":
-      startDate = /* @__PURE__ */ new Date(0);
-      previousStartDate = /* @__PURE__ */ new Date(0);
-      previousEndDate = /* @__PURE__ */ new Date(0);
-      groupByWeek = true;
-      isAllTime = true;
-      break;
-    default:
-      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1e3);
-      previousEndDate = new Date(startDate.getTime());
-      previousStartDate = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1e3);
-  }
-  const allUsers = await db.select().from(users);
-  const allPhoneNumbers = await db.select().from(phoneNumbers);
-  const allContacts = await db.select().from(contacts);
-  const allKnowledgeBases = await db.select().from(knowledgeBase);
-  let filteredCalls = [];
-  const filteredCampaigns = await db.select().from(campaigns).where(gte(campaigns.createdAt, startDate));
-  const filteredUsers = await db.select().from(users).where(gte(users.createdAt, startDate));
-  try {
-    filteredCalls = await db.select().from(calls).where(gte(calls.createdAt, startDate));
-  } catch (callFetchError) {
-    if (callFetchError?.code === "42703") {
-      console.warn("[GlobalAnalytics] Missing database column (run pre-upgrade-cleanup.sql then drizzle-kit push):", callFetchError.message);
-    } else {
-      console.error("[GlobalAnalytics] Error fetching filtered calls:", callFetchError.message);
-    }
-  }
-  let previousUsers = [];
-  let previousCalls = [];
-  let previousCampaigns = [];
-  if (!isAllTime) {
-    previousUsers = await db.select().from(users).where(
-      and(gte(users.createdAt, previousStartDate), lt(users.createdAt, previousEndDate))
-    );
-    try {
-      previousCalls = await db.select().from(calls).where(
-        and(gte(calls.createdAt, previousStartDate), lt(calls.createdAt, previousEndDate))
-      );
-    } catch (callFetchError) {
-      if (callFetchError?.code === "42703") {
-        console.warn("[GlobalAnalytics] Missing database column for previous calls:", callFetchError.message);
-      } else {
-        console.error("[GlobalAnalytics] Error fetching previous calls:", callFetchError.message);
-      }
-    }
-    previousCampaigns = await db.select().from(campaigns).where(
-      and(gte(campaigns.createdAt, previousStartDate), lt(campaigns.createdAt, previousEndDate))
-    );
-  }
-  const calculateGrowthPercent = (current, previous) => {
-    if (previous === 0) {
-      return current > 0 ? 100 : 0;
-    }
-    return (current - previous) / previous * 100;
-  };
-  const userGrowthPercent = isAllTime ? 0 : calculateGrowthPercent(filteredUsers.length, previousUsers.length);
-  const callGrowthPercent = isAllTime ? 0 : calculateGrowthPercent(filteredCalls.length, previousCalls.length);
-  const campaignGrowthPercent = isAllTime ? 0 : calculateGrowthPercent(filteredCampaigns.length, previousCampaigns.length);
-  const totalCalls = filteredCalls.length;
-  const completedCalls = filteredCalls.filter((c) => c.status === "completed").length;
-  const successRate = totalCalls > 0 ? completedCalls / totalCalls * 100 : 0;
-  const qualifiedLeads = filteredCalls.filter((c) => c.classification === "hot" || c.classification === "warm").length;
-  const growthData = calculateGrowthData(
-    filteredUsers,
-    filteredCalls,
-    filteredCampaigns,
-    startDate,
-    now,
-    groupByWeek,
-    isAllTime
-  );
-  const activeSubscriptions = await db.select({
-    userId: userSubscriptions.userId,
-    planName: plans.name,
-    status: userSubscriptions.status,
-    currentPeriodEnd: userSubscriptions.currentPeriodEnd
-  }).from(userSubscriptions).innerJoin(plans, eq7(userSubscriptions.planId, plans.id)).where(
-    and(
-      eq7(userSubscriptions.status, "active"),
-      or(
-        isNull(userSubscriptions.currentPeriodEnd),
-        gte(userSubscriptions.currentPeriodEnd, now)
-      )
-    )
-  );
-  const proUserIds = /* @__PURE__ */ new Set();
-  for (const sub of activeSubscriptions) {
-    if (sub.planName !== "free") {
-      proUserIds.add(sub.userId);
-    }
-  }
-  const proPlanUsers = proUserIds.size;
-  const freePlanUsers = allUsers.length - proPlanUsers;
-  return {
-    totalUsers: filteredUsers.length,
-    totalCampaigns: filteredCampaigns.length,
-    totalCalls,
-    successRate,
-    qualifiedLeads,
-    activeUsers: filteredUsers.filter((u) => u.isActive).length,
-    proPlanUsers,
-    freePlanUsers,
-    totalPhoneNumbers: allPhoneNumbers.length,
-    totalContacts: allContacts.length,
-    totalKnowledgeBases: allKnowledgeBases.length,
-    growthData,
-    userGrowthPercent: Math.round(userGrowthPercent * 10) / 10,
-    callGrowthPercent: Math.round(callGrowthPercent * 10) / 10,
-    campaignGrowthPercent: Math.round(campaignGrowthPercent * 10) / 10
-  };
-}
-function calculateGrowthData(filteredUsers, filteredCalls, filteredCampaigns, startDate, now, groupByWeek, isAllTime) {
-  const growthMap = /* @__PURE__ */ new Map();
-  const getIsoDateKey = (date2) => {
-    const d = new Date(date2);
-    d.setHours(0, 0, 0, 0);
-    return d.toISOString().split("T")[0];
-  };
-  const getMonthKey = (date2) => {
-    const d = new Date(date2);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  };
-  const formatDateLabel = (isoDate, isMonthly = false) => {
-    if (isMonthly) {
-      const [year, month] = isoDate.split("-");
-      const d2 = new Date(parseInt(year, 10), parseInt(month, 10) - 1, 1);
-      return d2.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
-    }
-    const d = /* @__PURE__ */ new Date(isoDate + "T00:00:00");
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  };
-  let chartStartDate = startDate;
-  let useMonthlyBuckets = false;
-  if (isAllTime) {
-    const allDates = [];
-    for (const user of filteredUsers) {
-      if (user.createdAt) allDates.push(new Date(user.createdAt));
-    }
-    for (const call of filteredCalls) {
-      if (call.createdAt) allDates.push(new Date(call.createdAt));
-    }
-    for (const campaign of filteredCampaigns) {
-      if (campaign.createdAt) allDates.push(new Date(campaign.createdAt));
-    }
-    if (allDates.length > 0) {
-      chartStartDate = allDates.reduce((min, d) => d < min ? d : min, allDates[0]);
-      chartStartDate = new Date(chartStartDate.getFullYear(), chartStartDate.getMonth(), 1);
-    } else {
-      chartStartDate = new Date(now.getFullYear(), now.getMonth() - 11, 1);
-    }
-    useMonthlyBuckets = true;
-  }
-  const startDateIso = useMonthlyBuckets ? getMonthKey(chartStartDate) : getIsoDateKey(chartStartDate);
-  const nowDateIso = useMonthlyBuckets ? getMonthKey(now) : getIsoDateKey(now);
-  const bucketKeys = [];
-  const currentDate = new Date(chartStartDate);
-  currentDate.setHours(0, 0, 0, 0);
-  if (useMonthlyBuckets) {
-    while (getMonthKey(currentDate) <= nowDateIso) {
-      bucketKeys.push(getMonthKey(currentDate));
-      currentDate.setMonth(currentDate.getMonth() + 1);
-    }
-  } else {
-    const interval = groupByWeek ? 7 : 1;
-    while (getIsoDateKey(currentDate) <= nowDateIso) {
-      bucketKeys.push(getIsoDateKey(currentDate));
-      currentDate.setDate(currentDate.getDate() + interval);
-    }
-  }
-  if (bucketKeys.length === 0) {
-    bucketKeys.push(startDateIso);
-  }
-  for (const key of bucketKeys) {
-    growthMap.set(key, { users: 0, calls: 0, campaigns: 0 });
-  }
-  const getBucketKey = (date2) => {
-    if (useMonthlyBuckets) {
-      const monthKey = getMonthKey(date2);
-      if (monthKey < startDateIso || monthKey > nowDateIso) {
-        return null;
-      }
-      return growthMap.has(monthKey) ? monthKey : null;
-    }
-    const dateKey = getIsoDateKey(date2);
-    if (dateKey < startDateIso || dateKey > nowDateIso) {
-      return null;
-    }
-    if (groupByWeek) {
-      for (let i = bucketKeys.length - 1; i >= 0; i--) {
-        if (dateKey >= bucketKeys[i]) {
-          return bucketKeys[i];
-        }
-      }
-      return bucketKeys[0];
-    } else {
-      return growthMap.has(dateKey) ? dateKey : null;
-    }
-  };
-  for (const user of filteredUsers) {
-    if (user.createdAt) {
-      const bucketKey = getBucketKey(new Date(user.createdAt));
-      if (bucketKey) {
-        const entry = growthMap.get(bucketKey);
-        if (entry) entry.users++;
-      }
-    }
-  }
-  for (const call of filteredCalls) {
-    if (call.createdAt) {
-      const bucketKey = getBucketKey(new Date(call.createdAt));
-      if (bucketKey) {
-        const entry = growthMap.get(bucketKey);
-        if (entry) entry.calls++;
-      }
-    }
-  }
-  for (const campaign of filteredCampaigns) {
-    if (campaign.createdAt) {
-      const bucketKey = getBucketKey(new Date(campaign.createdAt));
-      if (bucketKey) {
-        const entry = growthMap.get(bucketKey);
-        if (entry) entry.campaigns++;
-      }
-    }
-  }
-  return Array.from(growthMap.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([isoDate, data]) => ({
-    date: formatDateLabel(isoDate, useMonthlyBuckets),
-    ...data
-  }));
-}
-async function calculateUserAnalytics(userId, timeRange = "7days", callType = "all") {
-  const now = /* @__PURE__ */ new Date();
-  let startDate = /* @__PURE__ */ new Date();
-  switch (timeRange) {
-    case "7days":
-      startDate.setDate(now.getDate() - 7);
-      break;
-    case "30days":
-      startDate.setDate(now.getDate() - 30);
-      break;
-    case "90days":
-      startDate.setDate(now.getDate() - 90);
-      break;
-    case "year":
-      startDate.setFullYear(now.getFullYear() - 1);
-      break;
-    case "all":
-      startDate = /* @__PURE__ */ new Date(0);
-      break;
-    default:
-      startDate.setDate(now.getDate() - 7);
-  }
-  const userCampaigns = await db.select().from(campaigns).where(eq7(campaigns.userId, userId));
-  const campaignIds = userCampaigns.map((c) => c.id);
-  const userIncomingConnections = await db.select().from(incomingConnections).where(eq7(incomingConnections.userId, userId));
-  const incomingConnectionIds = userIncomingConnections.map((c) => c.id);
-  let allUserCalls = [];
-  try {
-    const directOwnershipCalls = await db.select().from(calls).where(and(eq7(calls.userId, userId), gte(calls.createdAt, startDate)));
-    allUserCalls.push(...directOwnershipCalls);
-    if (campaignIds.length > 0) {
-      const campaignCalls = await db.select().from(calls).where(and(inArray3(calls.campaignId, campaignIds), gte(calls.createdAt, startDate)));
-      for (const call of campaignCalls) {
-        if (!allUserCalls.find((c) => c.id === call.id)) {
-          allUserCalls.push(call);
-        }
-      }
-    }
-    if (incomingConnectionIds.length > 0) {
-      const incomingCalls = await db.select().from(calls).where(and(inArray3(calls.incomingConnectionId, incomingConnectionIds), gte(calls.createdAt, startDate)));
-      for (const call of incomingCalls) {
-        if (!allUserCalls.find((c) => c.id === call.id)) {
-          allUserCalls.push(call);
-        }
-      }
-    }
-    const twilioOpenAICallsData = await db.select().from(twilioOpenaiCalls).where(and(eq7(twilioOpenaiCalls.userId, userId), gte(twilioOpenaiCalls.createdAt, startDate)));
-    for (const toc of twilioOpenAICallsData) {
-      allUserCalls.push({
-        id: toc.id,
-        userId: toc.userId,
-        campaignId: toc.campaignId,
-        contactId: toc.contactId,
-        phoneNumber: toc.fromNumber,
-        status: toc.status,
-        callDirection: toc.callDirection,
-        duration: toc.duration,
-        classification: null,
-        sentiment: toc.sentiment,
-        createdAt: toc.createdAt,
-        metadata: toc.metadata,
-        incomingConnectionId: null
-      });
-    }
-    const plivoAnalyticsCallsData = await db.select().from(plivoCalls).where(and(eq7(plivoCalls.userId, userId), gte(plivoCalls.createdAt, startDate)));
-    for (const pc of plivoAnalyticsCallsData) {
-      allUserCalls.push({
-        id: pc.id,
-        userId: pc.userId,
-        campaignId: pc.campaignId,
-        contactId: pc.contactId,
-        phoneNumber: pc.fromNumber,
-        status: pc.status,
-        callDirection: pc.callDirection,
-        duration: pc.duration,
-        classification: null,
-        sentiment: pc.sentiment,
-        createdAt: pc.createdAt,
-        metadata: pc.metadata,
-        incomingConnectionId: null
-      });
-    }
-  } catch (callFetchError) {
-    if (callFetchError?.code === "42703") {
-      console.warn("[Analytics] Missing database column (run pre-upgrade-cleanup.sql then drizzle-kit push):", callFetchError.message);
-    } else {
-      console.error("[Analytics] Error fetching calls:", callFetchError.message);
-    }
-  }
-  const isBatchCall = (c) => {
-    const meta = c.metadata;
-    return !!(meta?.batch_call || meta?.batchId || meta?.batch_calling);
-  };
-  const incomingDirections = ["incoming", "inbound", "bridged", "simulcall"];
-  const outgoingDirections = ["outgoing", "outbound"];
-  const isIncomingCall = (c) => incomingDirections.includes(c.callDirection || "") || !!c.incomingConnectionId;
-  const isOutgoingCall = (c) => {
-    if (isBatchCall(c)) return false;
-    if (outgoingDirections.includes(c.callDirection || "")) return true;
-    if (c.campaignId && !c.incomingConnectionId && !incomingDirections.includes(c.callDirection || "")) return true;
-    if (!isIncomingCall(c)) return true;
-    return false;
-  };
-  let filteredCalls = allUserCalls;
-  if (callType === "incoming") filteredCalls = allUserCalls.filter(isIncomingCall);
-  else if (callType === "outgoing") filteredCalls = allUserCalls.filter(isOutgoingCall);
-  else if (callType === "batch") filteredCalls = allUserCalls.filter(isBatchCall);
-  const allCalls = filteredCalls;
-  const typeBreakdown = {
-    incoming: allUserCalls.filter(isIncomingCall).length,
-    outgoing: allUserCalls.filter(isOutgoingCall).length,
-    batch: allUserCalls.filter(isBatchCall).length,
-    total: allUserCalls.length
-  };
-  const totalCalls = allCalls.length;
-  const completedCalls = allCalls.filter((c) => c.status === "completed").length;
-  const successRate = totalCalls > 0 ? completedCalls / totalCalls * 100 : 0;
-  const qualifiedLeads = allCalls.filter(
-    (c) => c.classification === "hot" || c.classification === "warm"
-  ).length;
-  const totalDuration = allCalls.reduce((sum, call) => sum + (call.duration || 0), 0);
-  const avgDuration = totalCalls > 0 ? totalDuration / totalCalls : 0;
-  const leadCounts = {
-    hot: allCalls.filter((c) => c.classification === "hot" || c.classification === "qualified").length,
-    warm: allCalls.filter((c) => c.classification === "warm" || c.classification === "interested").length,
-    cold: allCalls.filter((c) => c.classification === "cold" || c.classification === "not_interested").length,
-    lost: allCalls.filter((c) => c.classification === "lost" || c.classification === "do_not_call").length
-  };
-  const leadDistribution = [
-    { name: "Hot", value: leadCounts.hot },
-    { name: "Warm", value: leadCounts.warm },
-    { name: "Cold", value: leadCounts.cold },
-    { name: "Lost", value: leadCounts.lost }
-  ].filter((item) => item.value > 0);
-  const sentimentCounts = {
-    positive: allCalls.filter((c) => c.sentiment === "positive").length,
-    neutral: allCalls.filter((c) => c.sentiment === "neutral").length,
-    negative: allCalls.filter((c) => c.sentiment === "negative").length
-  };
-  const sentimentDistribution = [
-    { name: "Positive", value: sentimentCounts.positive },
-    { name: "Neutral", value: sentimentCounts.neutral },
-    { name: "Negative", value: sentimentCounts.negative }
-  ].filter((item) => item.value > 0);
-  const campaignPerformance = userCampaigns.map((campaign) => {
-    const campaignCalls = allCalls.filter((c) => c.campaignId === campaign.id);
-    const completed = campaignCalls.filter((c) => c.status === "completed").length;
-    const total = campaignCalls.length;
-    const rate = total > 0 ? completed / total * 100 : 0;
-    return {
-      name: campaign.name,
-      value: parseFloat(rate.toFixed(1)),
-      totalCalls: total,
-      completedCalls: completed
-    };
-  });
-  const dailyCalls = calculateDailyCalls(allCalls, timeRange);
-  return {
-    totalCalls,
-    successRate: parseFloat(successRate.toFixed(1)),
-    qualifiedLeads,
-    avgDuration: Math.round(avgDuration),
-    leadDistribution,
-    sentimentDistribution,
-    campaignPerformance,
-    dailyCalls,
-    typeBreakdown
-  };
-}
-function calculateDailyCalls(allCalls, timeRange) {
-  const dailyCalls = [];
-  let daysToShow = 7;
-  if (timeRange === "30days") daysToShow = 30;
-  else if (timeRange === "90days") daysToShow = 90;
-  else if (timeRange === "year") daysToShow = 365;
-  if (daysToShow <= 14) {
-    for (let i = daysToShow - 1; i >= 0; i--) {
-      const date2 = /* @__PURE__ */ new Date();
-      date2.setDate(date2.getDate() - i);
-      date2.setHours(0, 0, 0, 0);
-      const nextDay = new Date(date2);
-      nextDay.setDate(nextDay.getDate() + 1);
-      const dayCount = allCalls.filter((call) => {
-        const callDate = new Date(call.createdAt);
-        return callDate >= date2 && callDate < nextDay;
-      }).length;
-      dailyCalls.push({ date: date2.toISOString(), count: dayCount });
-    }
-  } else if (daysToShow <= 90) {
-    const weeksToShow = Math.ceil(daysToShow / 7);
-    for (let i = weeksToShow - 1; i >= 0; i--) {
-      const weekEnd = /* @__PURE__ */ new Date();
-      weekEnd.setDate(weekEnd.getDate() - i * 7);
-      weekEnd.setHours(23, 59, 59, 999);
-      const weekStart = new Date(weekEnd);
-      weekStart.setDate(weekStart.getDate() - 6);
-      weekStart.setHours(0, 0, 0, 0);
-      const weekCount = allCalls.filter((call) => {
-        const callDate = new Date(call.createdAt);
-        return callDate >= weekStart && callDate <= weekEnd;
-      }).length;
-      dailyCalls.push({ date: weekStart.toISOString(), count: weekCount });
-    }
-  } else {
-    for (let i = 11; i >= 0; i--) {
-      const monthStart = /* @__PURE__ */ new Date();
-      monthStart.setMonth(monthStart.getMonth() - i);
-      monthStart.setDate(1);
-      monthStart.setHours(0, 0, 0, 0);
-      const monthEnd = new Date(monthStart);
-      monthEnd.setMonth(monthEnd.getMonth() + 1);
-      monthEnd.setDate(0);
-      monthEnd.setHours(23, 59, 59, 999);
-      const monthCount = allCalls.filter((call) => {
-        const callDate = new Date(call.createdAt);
-        return callDate >= monthStart && callDate <= monthEnd;
-      }).length;
-      dailyCalls.push({ date: monthStart.toISOString(), count: monthCount });
-    }
-  }
-  return dailyCalls;
-}
-async function calculateDashboardData(userId) {
-  const now = /* @__PURE__ */ new Date();
-  const weekAgo = /* @__PURE__ */ new Date();
-  weekAgo.setDate(now.getDate() - 7);
-  const userCampaigns = await db.select().from(campaigns).where(eq7(campaigns.userId, userId));
-  const campaignIds = userCampaigns.map((c) => c.id);
-  const userIncomingConnections = await db.select().from(incomingConnections).where(eq7(incomingConnections.userId, userId));
-  const incomingConnectionIds = userIncomingConnections.map((c) => c.id);
-  let allUserCalls = [];
-  try {
-    const directOwnershipCalls = await db.select().from(calls).where(eq7(calls.userId, userId));
-    allUserCalls.push(...directOwnershipCalls);
-    if (campaignIds.length > 0) {
-      const campaignCalls = await db.select().from(calls).where(inArray3(calls.campaignId, campaignIds));
-      for (const call of campaignCalls) {
-        if (!allUserCalls.find((c) => c.id === call.id)) {
-          allUserCalls.push(call);
-        }
-      }
-    }
-    if (incomingConnectionIds.length > 0) {
-      const incomingCalls = await db.select().from(calls).where(inArray3(calls.incomingConnectionId, incomingConnectionIds));
-      for (const call of incomingCalls) {
-        if (!allUserCalls.find((c) => c.id === call.id)) {
-          allUserCalls.push(call);
-        }
-      }
-    }
-    const twilioOpenAICallsData = await db.select().from(twilioOpenaiCalls).where(eq7(twilioOpenaiCalls.userId, userId));
-    for (const toc of twilioOpenAICallsData) {
-      allUserCalls.push({
-        id: toc.id,
-        userId: toc.userId,
-        campaignId: toc.campaignId,
-        contactId: toc.contactId,
-        phoneNumber: toc.fromNumber,
-        status: toc.status,
-        callDirection: toc.callDirection,
-        duration: toc.duration,
-        classification: toc.classification,
-        sentiment: toc.sentiment,
-        createdAt: toc.createdAt,
-        metadata: toc.metadata,
-        incomingConnectionId: null
-      });
-    }
-    const plivoCallsData = await db.select().from(plivoCalls).where(eq7(plivoCalls.userId, userId));
-    for (const pc of plivoCallsData) {
-      allUserCalls.push({
-        id: pc.id,
-        userId: pc.userId,
-        campaignId: pc.campaignId,
-        contactId: pc.contactId,
-        phoneNumber: pc.fromNumber,
-        status: pc.status,
-        callDirection: pc.callDirection,
-        duration: pc.duration,
-        classification: pc.classification,
-        sentiment: pc.sentiment,
-        createdAt: pc.createdAt,
-        metadata: pc.metadata,
-        incomingConnectionId: null
-      });
-    }
-    const sipCallsData = await db.select().from(sipCalls).where(eq7(sipCalls.userId, userId));
-    for (const sc of sipCallsData) {
-      allUserCalls.push({
-        id: sc.id,
-        userId: sc.userId,
-        campaignId: sc.campaignId,
-        contactId: sc.contactId,
-        phoneNumber: sc.direction === "inbound" ? sc.fromNumber : sc.toNumber,
-        status: sc.status,
-        callDirection: sc.direction === "inbound" ? "incoming" : "outgoing",
-        duration: sc.durationSeconds,
-        classification: null,
-        sentiment: null,
-        createdAt: sc.createdAt,
-        metadata: sc.metadata,
-        incomingConnectionId: null
-      });
-    }
-  } catch (callFetchError) {
-    if (callFetchError?.code === "42703") {
-      console.warn("[Dashboard] Missing database column (run pre-upgrade-cleanup.sql then drizzle-kit push):", callFetchError.message);
-    } else {
-      console.error("[Dashboard] Error fetching calls:", callFetchError.message);
-    }
-  }
-  const incomingDirections = ["incoming", "inbound", "bridged", "simulcall"];
-  const outgoingDirections = ["outgoing", "outbound"];
-  const isBatchCall = (c) => {
-    const meta = c.metadata;
-    return !!(meta?.batch_call || meta?.batchId || meta?.batch_calling);
-  };
-  const isIncomingCall = (c) => incomingDirections.includes(c.callDirection || "") || !!c.incomingConnectionId;
-  const isOutgoingCall = (c) => {
-    if (isBatchCall(c)) return false;
-    if (outgoingDirections.includes(c.callDirection || "")) return true;
-    if (c.campaignId && !c.incomingConnectionId && !incomingDirections.includes(c.callDirection || "")) return true;
-    if (!isIncomingCall(c)) return true;
-    return false;
-  };
-  const prevWeekStart = /* @__PURE__ */ new Date();
-  prevWeekStart.setDate(now.getDate() - 14);
-  const thisWeekCalls = allUserCalls.filter((c) => new Date(c.createdAt) >= weekAgo);
-  const prevWeekCalls = allUserCalls.filter((c) => {
-    const date2 = new Date(c.createdAt);
-    return date2 >= prevWeekStart && date2 < weekAgo;
-  });
-  const incomingThisWeek = thisWeekCalls.filter(isIncomingCall);
-  const outgoingThisWeek = thisWeekCalls.filter(isOutgoingCall);
-  const incomingPrevWeek = prevWeekCalls.filter(isIncomingCall);
-  const outgoingPrevWeek = prevWeekCalls.filter(isOutgoingCall);
-  const calcTrend = (current, previous) => {
-    if (previous === 0) return current > 0 ? 100 : 0;
-    return Math.round((current - previous) / previous * 100);
-  };
-  const calcStats = (callList) => {
-    const completed = callList.filter((c) => c.status === "completed");
-    const successRate = callList.length > 0 ? Math.round(completed.length / callList.length * 100) : 0;
-    const avgDuration = completed.length > 0 ? Math.round(completed.reduce((sum, c) => sum + (c.duration || 0), 0) / completed.length) : 0;
-    return { successRate, avgDuration };
-  };
-  const dailyBreakdown = [];
-  for (let i = 6; i >= 0; i--) {
-    const day = /* @__PURE__ */ new Date();
-    day.setDate(now.getDate() - i);
-    day.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(day);
-    dayEnd.setHours(23, 59, 59, 999);
-    const dayCalls = thisWeekCalls.filter((c) => {
-      const callDate = new Date(c.createdAt);
-      return callDate >= day && callDate <= dayEnd;
-    });
-    dailyBreakdown.push({
-      date: day.toISOString(),
-      incoming: dayCalls.filter(isIncomingCall).length,
-      outgoing: dayCalls.filter(isOutgoingCall).length
-    });
-  }
-  const leadDistribution = {
-    hot: allUserCalls.filter((c) => c.classification?.toLowerCase() === "hot" || c.classification?.toLowerCase() === "qualified").length,
-    warm: allUserCalls.filter((c) => c.classification?.toLowerCase() === "warm" || c.classification?.toLowerCase() === "interested").length,
-    cold: allUserCalls.filter((c) => c.classification?.toLowerCase() === "cold" || c.classification?.toLowerCase() === "not_interested").length,
-    lost: allUserCalls.filter((c) => c.classification?.toLowerCase() === "lost" || c.classification?.toLowerCase() === "do_not_call").length
-  };
-  let recentCalls = [];
-  try {
-    recentCalls = await db.select({
-      id: calls.id,
-      phoneNumber: calls.phoneNumber,
-      status: calls.status,
-      duration: calls.duration,
-      classification: calls.classification,
-      callDirection: calls.callDirection,
-      createdAt: calls.createdAt,
-      campaignId: calls.campaignId,
-      incomingConnectionId: calls.incomingConnectionId,
-      metadata: calls.metadata
-    }).from(calls).where(eq7(calls.userId, userId)).orderBy(desc(calls.createdAt)).limit(10);
-  } catch (callFetchError) {
-    if (callFetchError?.code === "42703") {
-      console.warn("[Dashboard] Missing database column for recent calls:", callFetchError.message);
-    } else {
-      console.error("[Dashboard] Error fetching recent calls:", callFetchError.message);
-    }
-  }
-  let recentUsers = [];
-  const [currentUser] = await db.select().from(users).where(eq7(users.id, userId));
-  if (currentUser?.role === "admin" || currentUser?.role === "super_admin") {
-    recentUsers = await db.select({
-      id: users.id,
-      email: users.email,
-      createdAt: users.createdAt
-    }).from(users).orderBy(desc(users.createdAt)).limit(5);
-  }
-  const totalCampaigns = userCampaigns.length;
-  const activeCampaigns = userCampaigns.filter(
-    (c) => c.status === "in_progress" || c.status === "scheduled" || c.status === "pending"
-  ).length;
-  const completedCampaigns = userCampaigns.filter((c) => c.status === "completed").length;
-  let allCampaignCalls = [];
-  if (campaignIds.length > 0) {
-    try {
-      allCampaignCalls = await db.select().from(calls).where(inArray3(calls.campaignId, campaignIds));
-    } catch (callFetchError) {
-      if (callFetchError?.code === "42703") {
-        console.warn("[Dashboard] Missing database column for campaign calls:", callFetchError.message);
-      } else {
-        console.error("[Dashboard] Error fetching campaign calls:", callFetchError.message);
-      }
-    }
-  }
-  const campaignCallsCompleted = allCampaignCalls.filter((c) => c.status === "completed");
-  const campaignSuccessRate = allCampaignCalls.length > 0 ? Math.round(campaignCallsCompleted.length / allCampaignCalls.length * 100) : 0;
-  const campaignAvgDuration = campaignCallsCompleted.length > 0 ? Math.round(campaignCallsCompleted.reduce((sum, c) => sum + (c.duration || 0), 0) / campaignCallsCompleted.length) : 0;
-  const [appointmentsResult] = await db.select({ count: sql12`count(*)` }).from(appointments).where(eq7(appointments.userId, userId));
-  const appointmentsCount = Number(appointmentsResult?.count || 0);
-  const userForms = await db.select({ id: forms.id }).from(forms).where(eq7(forms.userId, userId));
-  const formsCount = userForms.length;
-  let formSubmissionsCount = 0;
-  if (userForms.length > 0) {
-    const formIds = userForms.map((f) => f.id);
-    const [submissionsResult] = await db.select({ count: sql12`count(*)` }).from(formSubmissions).where(inArray3(formSubmissions.formId, formIds));
-    formSubmissionsCount = Number(submissionsResult?.count || 0);
-  }
-  const [kbResult] = await db.select({ count: sql12`count(*)` }).from(knowledgeBase).where(eq7(knowledgeBase.userId, userId));
-  const knowledgeBaseCount = Number(kbResult?.count || 0);
-  const [webhooksResult] = await db.select({ count: sql12`count(*)` }).from(webhookSubscriptions).where(eq7(webhookSubscriptions.userId, userId));
-  const webhooksCount = Number(webhooksResult?.count || 0);
-  const [userTemplatesResult] = await db.select({ count: sql12`count(*)` }).from(promptTemplates).where(eq7(promptTemplates.userId, userId));
-  const userTemplatesCount = Number(userTemplatesResult?.count || 0);
-  const [systemTemplatesResult] = await db.select({ count: sql12`count(*)` }).from(promptTemplates).where(eq7(promptTemplates.isSystemTemplate, true));
-  const systemTemplatesCount = Number(systemTemplatesResult?.count || 0);
-  const templatesCount = userTemplatesCount + systemTemplatesCount;
-  const sentimentDistribution = {
-    positive: allUserCalls.filter((c) => c.sentiment === "positive").length,
-    neutral: allUserCalls.filter((c) => c.sentiment === "neutral").length,
-    negative: allUserCalls.filter((c) => c.sentiment === "negative").length
-  };
-  const incomingAllTime = allUserCalls.filter(isIncomingCall);
-  const outgoingAllTime = allUserCalls.filter(isOutgoingCall);
-  const incomingAllStats = calcStats(incomingAllTime);
-  const outgoingAllStats = calcStats(outgoingAllTime);
-  return {
-    callTypeStats: {
-      incoming: {
-        count: incomingAllTime.length,
-        trend: calcTrend(incomingThisWeek.length, incomingPrevWeek.length),
-        successRate: incomingAllStats.successRate,
-        avgDuration: incomingAllStats.avgDuration
-      },
-      outgoing: {
-        count: outgoingAllTime.length,
-        trend: calcTrend(outgoingThisWeek.length, outgoingPrevWeek.length),
-        successRate: outgoingAllStats.successRate,
-        avgDuration: outgoingAllStats.avgDuration
-      },
-      campaign: {
-        count: totalCampaigns,
-        active: activeCampaigns,
-        completed: completedCampaigns,
-        successRate: campaignSuccessRate,
-        avgDuration: campaignAvgDuration,
-        totalCalls: allCampaignCalls.length
-      }
-    },
-    weeklyCallsChart: dailyBreakdown,
-    leadDistribution,
-    sentimentDistribution,
-    recentCalls: recentCalls.map((c) => ({
-      ...c,
-      callType: isBatchCall(c) ? "batch" : c.callDirection === "incoming" || c.incomingConnectionId ? "incoming" : "outgoing"
-    })),
-    recentUsers,
-    userName: currentUser?.name || currentUser?.email?.split("@")[0] || "User",
-    totalCalls: allUserCalls.length,
-    totalThisWeek: thisWeekCalls.length,
-    totalPrevWeek: prevWeekCalls.length,
-    weeklyTrend: calcTrend(thisWeekCalls.length, prevWeekCalls.length),
-    appointmentsBooked: appointmentsCount,
-    formsSubmitted: formSubmissionsCount,
-    formsCount,
-    knowledgeBaseCount,
-    webhooksCount,
-    templatesCount
-  };
-}
-
-// server/storage.ts
-var DbStorage = class {
-  // Users
-  async getUser(id) {
-    const [user] = await db.select().from(users).where(eq8(users.id, id));
-    return user;
-  }
-  async getUserByEmail(email) {
-    const [user] = await db.select().from(users).where(eq8(users.email, email));
-    return user;
-  }
-  async createUser(insertUser) {
-    const [user] = await db.insert(users).values(insertUser).returning();
-    return user;
-  }
-  async updateUserCredits(userId, credits) {
-    await db.update(users).set({ credits }).where(eq8(users.id, userId));
-  }
-  // Agents
-  async getAgent(id) {
-    const [agent] = await db.select().from(agents).where(eq8(agents.id, id));
-    return agent;
-  }
-  async getUserAgents(userId) {
-    return db.select().from(agents).where(eq8(agents.userId, userId));
-  }
-  async createAgent(insertAgent) {
-    const [agent] = await db.insert(agents).values(insertAgent).returning();
-    return agent;
-  }
-  async updateAgent(id, agent) {
-    await db.update(agents).set(agent).where(eq8(agents.id, id));
-  }
-  async deleteAgent(id) {
-    await db.delete(agents).where(eq8(agents.id, id));
-  }
-  // Knowledge Base
-  async getKnowledgeBaseItem(id) {
-    const [item] = await db.select().from(knowledgeBase).where(eq8(knowledgeBase.id, id));
-    return item;
-  }
-  async getUserKnowledgeBase(userId) {
-    return db.select().from(knowledgeBase).where(eq8(knowledgeBase.userId, userId));
-  }
-  async getUserKnowledgeBaseCount(userId) {
-    const result = await db.select({ count: sql13`count(*)` }).from(knowledgeBase).where(eq8(knowledgeBase.userId, userId));
-    return Number(result[0]?.count || 0);
-  }
-  async createKnowledgeBaseItem(insertItem) {
-    const [item] = await db.insert(knowledgeBase).values(insertItem).returning();
-    return item;
-  }
-  async updateKnowledgeBaseItem(id, item) {
-    await db.update(knowledgeBase).set(item).where(eq8(knowledgeBase.id, id));
-  }
-  async deleteKnowledgeBaseItem(id) {
-    await db.delete(knowledgeBase).where(eq8(knowledgeBase.id, id));
-  }
-  // Campaigns
-  async getCampaign(id) {
-    const [campaign] = await db.select().from(campaigns).where(and2(
-      eq8(campaigns.id, id),
-      isNull2(campaigns.deletedAt)
-    ));
-    return campaign;
-  }
-  async getCampaignIncludingDeleted(id) {
-    const [campaign] = await db.select().from(campaigns).where(eq8(campaigns.id, id));
-    return campaign;
-  }
-  async getUserCampaigns(userId) {
-    return db.select().from(campaigns).where(and2(
-      eq8(campaigns.userId, userId),
-      isNull2(campaigns.deletedAt)
-    )).orderBy(desc2(campaigns.createdAt));
-  }
-  async getUserDeletedCampaigns(userId) {
-    return db.select().from(campaigns).where(and2(
-      eq8(campaigns.userId, userId),
-      isNotNull2(campaigns.deletedAt)
-    )).orderBy(desc2(campaigns.createdAt));
-  }
-  async createCampaign(insertCampaign) {
-    const [campaign] = await db.insert(campaigns).values(insertCampaign).returning();
-    return campaign;
-  }
-  async updateCampaign(id, campaign) {
-    await db.update(campaigns).set(campaign).where(eq8(campaigns.id, id));
-  }
-  async deleteCampaign(id) {
-    await db.update(campaigns).set({ deletedAt: /* @__PURE__ */ new Date() }).where(eq8(campaigns.id, id));
-  }
-  async restoreCampaign(id) {
-    await db.update(campaigns).set({ deletedAt: null }).where(eq8(campaigns.id, id));
-  }
-  // Contacts
-  async getContact(id) {
-    const [contact] = await db.select().from(contacts).where(eq8(contacts.id, id));
-    return contact;
-  }
-  async getCampaignContacts(campaignId) {
-    return db.select().from(contacts).where(eq8(contacts.campaignId, campaignId));
-  }
-  async getUserContacts(userId) {
-    const results = await db.select({
-      contact: contacts,
-      campaign: campaigns
-    }).from(contacts).innerJoin(campaigns, eq8(contacts.campaignId, campaigns.id)).where(and2(
-      eq8(campaigns.userId, userId),
-      isNull2(campaigns.deletedAt)
-    ));
-    return results.map((r) => ({
-      ...r.contact,
-      campaign: r.campaign ? { id: r.campaign.id, name: r.campaign.name } : null
-    }));
-  }
-  async getUserContactsDeduplicated(userId) {
-    const normalizePhone = (phone) => {
-      let cleaned = phone.replace(/[\s\-().]/g, "");
-      if (cleaned.startsWith("00")) cleaned = "+" + cleaned.slice(2);
-      if (!cleaned.startsWith("+") && cleaned.length >= 10) cleaned = "+" + cleaned;
-      return cleaned;
-    };
-    const results = await db.select({
-      contact: contacts,
-      campaign: campaigns
-    }).from(contacts).innerJoin(campaigns, eq8(contacts.campaignId, campaigns.id)).where(and2(
-      eq8(campaigns.userId, userId),
-      isNull2(campaigns.deletedAt)
-    )).orderBy(desc2(contacts.createdAt));
-    const phoneGroups = /* @__PURE__ */ new Map();
-    for (const result of results) {
-      const { contact, campaign } = result;
-      const phone = normalizePhone(contact.phone);
-      if (!phoneGroups.has(phone)) {
-        phoneGroups.set(phone, {
-          phone,
-          email: contact.email,
-          names: /* @__PURE__ */ new Set(),
-          namesList: [],
-          campaigns: /* @__PURE__ */ new Set(),
-          campaignsList: [],
-          statuses: /* @__PURE__ */ new Set(),
-          latestContactId: contact.id,
-          latestStatus: contact.status,
-          latestEmail: contact.email,
-          latestCreatedAt: contact.createdAt,
-          source: "campaign",
-          callCount: 0
-        });
-      }
-      const group = phoneGroups.get(phone);
-      const nameKey = `${contact.firstName.toLowerCase()}|${(contact.lastName || "").toLowerCase()}`;
-      if (!group.names.has(nameKey)) {
-        group.names.add(nameKey);
-        group.namesList.push({
-          firstName: contact.firstName,
-          lastName: contact.lastName
-        });
-      }
-      if (!group.campaigns.has(campaign.id) && campaign) {
-        group.campaigns.add(campaign.id);
-        group.campaignsList.push({
-          id: campaign.id,
-          name: campaign.name
-        });
-      }
-      group.statuses.add(contact.status);
-      if (contact.createdAt > group.latestCreatedAt) {
-        group.latestContactId = contact.id;
-        group.latestStatus = contact.status;
-        group.latestEmail = contact.email;
-        group.latestCreatedAt = contact.createdAt;
-      }
-    }
-    const callsWithoutContacts = await db.select({
-      phoneNumber: calls.phoneNumber,
-      callDirection: calls.callDirection,
-      createdAt: calls.createdAt,
-      status: calls.status
-    }).from(calls).where(and2(
-      eq8(calls.userId, userId),
-      isNull2(calls.contactId),
-      isNotNull2(calls.phoneNumber)
-    )).orderBy(desc2(calls.createdAt));
-    for (const call of callsWithoutContacts) {
-      const rawPhone = call.phoneNumber;
-      if (!rawPhone || rawPhone === "Unknown Caller" || rawPhone === "unknown") continue;
-      const phone = normalizePhone(rawPhone);
-      const callStatus = call.callDirection === "incoming" ? "incoming_call" : "outgoing_call";
-      if (!phoneGroups.has(phone)) {
-        phoneGroups.set(phone, {
-          phone,
-          email: null,
-          names: /* @__PURE__ */ new Set(),
-          namesList: [],
-          campaigns: /* @__PURE__ */ new Set(),
-          campaignsList: [],
-          statuses: /* @__PURE__ */ new Set([callStatus]),
-          latestContactId: `call-${phone}`,
-          // Virtual ID for call-only contacts
-          latestStatus: callStatus,
-          latestEmail: null,
-          latestCreatedAt: call.createdAt,
-          source: "call",
-          callCount: 1
-        });
-      } else {
-        const group = phoneGroups.get(phone);
-        group.callCount = (group.callCount || 0) + 1;
-        group.statuses.add(callStatus);
-        if (call.createdAt > group.latestCreatedAt) {
-          group.latestStatus = callStatus;
-          group.latestCreatedAt = call.createdAt;
-        }
-      }
-    }
-    const leadsResults = await db.select({
-      phone: leads.phone,
-      firstName: leads.firstName,
-      lastName: leads.lastName,
-      email: leads.email,
-      stage: leads.stage,
-      sourceType: leads.sourceType,
-      createdAt: leads.createdAt,
-      id: leads.id
-    }).from(leads).where(eq8(leads.userId, userId)).orderBy(desc2(leads.createdAt));
-    for (const lead of leadsResults) {
-      if (!lead.phone || lead.phone === "Unknown Caller" || lead.phone === "unknown") continue;
-      const phone = normalizePhone(lead.phone);
-      const leadStatus = `lead_${lead.stage || "new"}`;
-      const leadSource = lead.sourceType === "campaign" ? "campaign" : "call";
-      if (!phoneGroups.has(phone)) {
-        phoneGroups.set(phone, {
-          phone,
-          email: lead.email,
-          names: /* @__PURE__ */ new Set(),
-          namesList: [],
-          campaigns: /* @__PURE__ */ new Set(),
-          campaignsList: [],
-          statuses: /* @__PURE__ */ new Set([leadStatus]),
-          latestContactId: lead.id,
-          latestStatus: leadStatus,
-          latestEmail: lead.email,
-          latestCreatedAt: lead.createdAt,
-          source: leadSource,
-          callCount: 0
-        });
-        if (lead.firstName) {
-          const nameKey = `${lead.firstName.toLowerCase()}|${(lead.lastName || "").toLowerCase()}`;
-          phoneGroups.get(phone).names.add(nameKey);
-          phoneGroups.get(phone).namesList.push({
-            firstName: lead.firstName,
-            lastName: lead.lastName
-          });
-        }
-      } else {
-        const group = phoneGroups.get(phone);
-        group.statuses.add(leadStatus);
-        if (lead.email) {
-          group.latestEmail = lead.email;
-        }
-        if (lead.firstName) {
-          const nameKey = `${lead.firstName.toLowerCase()}|${(lead.lastName || "").toLowerCase()}`;
-          if (!group.names.has(nameKey)) {
-            group.names.add(nameKey);
-            group.namesList.unshift({
-              firstName: lead.firstName,
-              lastName: lead.lastName
-            });
-          }
-        }
-        if (lead.createdAt > group.latestCreatedAt) {
-          group.latestContactId = lead.id;
-          group.latestStatus = leadStatus;
-          group.latestCreatedAt = lead.createdAt;
-        }
-      }
-    }
-    const twilioOpenaiCallsResults = await db.select({
-      fromNumber: twilioOpenaiCalls.fromNumber,
-      toNumber: twilioOpenaiCalls.toNumber,
-      callDirection: twilioOpenaiCalls.callDirection,
-      createdAt: twilioOpenaiCalls.createdAt,
-      status: twilioOpenaiCalls.status
-    }).from(twilioOpenaiCalls).where(and2(
-      eq8(twilioOpenaiCalls.userId, userId),
-      isNull2(twilioOpenaiCalls.contactId)
-    )).orderBy(desc2(twilioOpenaiCalls.createdAt));
-    for (const call of twilioOpenaiCallsResults) {
-      const rawTwPhone = call.callDirection === "inbound" ? call.fromNumber : call.toNumber;
-      if (!rawTwPhone || rawTwPhone === "Unknown Caller" || rawTwPhone === "unknown") continue;
-      const phone = normalizePhone(rawTwPhone);
-      const callStatus = call.callDirection === "inbound" ? "incoming_call" : "outgoing_call";
-      if (!phoneGroups.has(phone)) {
-        phoneGroups.set(phone, {
-          phone,
-          email: null,
-          names: /* @__PURE__ */ new Set(),
-          namesList: [],
-          campaigns: /* @__PURE__ */ new Set(),
-          campaignsList: [],
-          statuses: /* @__PURE__ */ new Set([callStatus]),
-          latestContactId: `twilio-openai-call-${phone}`,
-          latestStatus: callStatus,
-          latestEmail: null,
-          latestCreatedAt: call.createdAt,
-          source: "call",
-          callCount: 1
-        });
-      } else {
-        const group = phoneGroups.get(phone);
-        group.callCount = (group.callCount || 0) + 1;
-        group.statuses.add(callStatus);
-        if (call.createdAt > group.latestCreatedAt) {
-          group.latestStatus = callStatus;
-          group.latestCreatedAt = call.createdAt;
-        }
-      }
-    }
-    const plivoCallsResults = await db.select({
-      fromNumber: plivoCalls.fromNumber,
-      toNumber: plivoCalls.toNumber,
-      callDirection: plivoCalls.callDirection,
-      createdAt: plivoCalls.createdAt,
-      status: plivoCalls.status
-    }).from(plivoCalls).where(and2(
-      eq8(plivoCalls.userId, userId),
-      isNull2(plivoCalls.contactId)
-    )).orderBy(desc2(plivoCalls.createdAt));
-    for (const call of plivoCallsResults) {
-      const rawPlPhone = call.callDirection === "inbound" ? call.fromNumber : call.toNumber;
-      if (!rawPlPhone || rawPlPhone === "Unknown Caller" || rawPlPhone === "unknown") continue;
-      const phone = normalizePhone(rawPlPhone);
-      const callStatus = call.callDirection === "inbound" ? "incoming_call" : "outgoing_call";
-      if (!phoneGroups.has(phone)) {
-        phoneGroups.set(phone, {
-          phone,
-          email: null,
-          names: /* @__PURE__ */ new Set(),
-          namesList: [],
-          campaigns: /* @__PURE__ */ new Set(),
-          campaignsList: [],
-          statuses: /* @__PURE__ */ new Set([callStatus]),
-          latestContactId: `plivo-call-${phone}`,
-          latestStatus: callStatus,
-          latestEmail: null,
-          latestCreatedAt: call.createdAt,
-          source: "call",
-          callCount: 1
-        });
-      } else {
-        const group = phoneGroups.get(phone);
-        group.callCount = (group.callCount || 0) + 1;
-        group.statuses.add(callStatus);
-        if (call.createdAt > group.latestCreatedAt) {
-          group.latestStatus = callStatus;
-          group.latestCreatedAt = call.createdAt;
-        }
-      }
-    }
-    const sipCallsResults = await db.select({
-      fromNumber: sipCalls.fromNumber,
-      toNumber: sipCalls.toNumber,
-      direction: sipCalls.direction,
-      createdAt: sipCalls.createdAt,
-      status: sipCalls.status
-    }).from(sipCalls).where(and2(
-      eq8(sipCalls.userId, userId),
-      isNull2(sipCalls.contactId)
-    )).orderBy(desc2(sipCalls.createdAt));
-    for (const call of sipCallsResults) {
-      const rawSipPhone = call.direction === "inbound" ? call.fromNumber : call.toNumber;
-      if (!rawSipPhone || rawSipPhone === "Unknown Caller" || rawSipPhone === "unknown") continue;
-      const phone = normalizePhone(rawSipPhone);
-      const callStatus = call.direction === "inbound" ? "incoming_call" : "outgoing_call";
-      if (!phoneGroups.has(phone)) {
-        phoneGroups.set(phone, {
-          phone,
-          email: null,
-          names: /* @__PURE__ */ new Set(),
-          namesList: [],
-          campaigns: /* @__PURE__ */ new Set(),
-          campaignsList: [],
-          statuses: /* @__PURE__ */ new Set([callStatus]),
-          latestContactId: `sip-call-${phone}`,
-          latestStatus: callStatus,
-          latestEmail: null,
-          latestCreatedAt: call.createdAt || /* @__PURE__ */ new Date(0),
-          source: "call",
-          callCount: 1
-        });
-      } else {
-        const group = phoneGroups.get(phone);
-        group.callCount = (group.callCount || 0) + 1;
-        group.statuses.add(callStatus);
-        if (call.createdAt && call.createdAt > group.latestCreatedAt) {
-          group.latestStatus = callStatus;
-          group.latestCreatedAt = call.createdAt;
-        }
-      }
-    }
-    return Array.from(phoneGroups.values()).map((group) => ({
-      id: group.latestContactId,
-      phone: group.phone,
-      email: group.latestEmail,
-      names: group.namesList,
-      campaigns: group.campaignsList,
-      status: group.latestStatus,
-      allStatuses: Array.from(group.statuses),
-      source: group.source,
-      callCount: group.callCount
-    }));
-  }
-  async createContact(insertContact) {
-    const [contact] = await db.insert(contacts).values(insertContact).returning();
-    return contact;
-  }
-  async createContacts(insertContacts) {
-    return db.insert(contacts).values(insertContacts).returning();
-  }
-  async deleteContact(id) {
-    await db.delete(contacts).where(eq8(contacts.id, id));
-  }
-  // Calls
-  async getCall(id) {
-    const [call] = await db.select().from(calls).where(eq8(calls.id, id));
-    return call;
-  }
-  async getCallWithDetails(id) {
-    const elevenLabsResults = await db.select({
-      call: calls,
-      campaign: campaigns,
-      contact: contacts,
-      incomingConnection: incomingConnections,
-      widget: websiteWidgets
-    }).from(calls).leftJoin(campaigns, eq8(calls.campaignId, campaigns.id)).leftJoin(contacts, eq8(calls.contactId, contacts.id)).leftJoin(incomingConnections, eq8(calls.incomingConnectionId, incomingConnections.id)).leftJoin(websiteWidgets, eq8(calls.widgetId, websiteWidgets.id)).where(eq8(calls.id, id));
-    if (elevenLabsResults.length > 0) {
-      const r = elevenLabsResults[0];
-      const metadataEngine = r.call.metadata?.engine;
-      const engine = metadataEngine || "elevenlabs";
-      return {
-        ...r.call,
-        engine,
-        campaign: r.campaign ? { id: r.campaign.id, name: r.campaign.name } : null,
-        contact: r.contact ? { id: r.contact.id, firstName: r.contact.firstName, lastName: r.contact.lastName, phone: r.contact.phone } : null,
-        incomingConnection: r.incomingConnection ? { id: r.incomingConnection.id, agentId: r.incomingConnection.agentId } : null,
-        widget: r.widget ? { id: r.widget.id, name: r.widget.name } : null
-      };
-    }
-    const twilioOpenAIResults = await db.select({
-      call: twilioOpenaiCalls,
-      campaign: campaigns,
-      contact: contacts,
-      agent: agents
-    }).from(twilioOpenaiCalls).leftJoin(campaigns, eq8(twilioOpenaiCalls.campaignId, campaigns.id)).leftJoin(contacts, eq8(twilioOpenaiCalls.contactId, contacts.id)).leftJoin(agents, eq8(twilioOpenaiCalls.agentId, agents.id)).where(eq8(twilioOpenaiCalls.id, id));
-    if (twilioOpenAIResults.length > 0) {
-      const r = twilioOpenAIResults[0];
-      return {
-        id: r.call.id,
-        userId: r.call.userId,
-        campaignId: r.call.campaignId,
-        contactId: r.call.contactId,
-        agentId: r.call.agentId,
-        phoneNumber: r.call.fromNumber,
-        fromNumber: r.call.fromNumber,
-        toNumber: r.call.toNumber,
-        twilioSid: r.call.twilioCallSid,
-        status: r.call.status,
-        callDirection: r.call.callDirection === "inbound" ? "incoming" : r.call.callDirection === "outbound" ? "outgoing" : r.call.callDirection,
-        duration: r.call.duration,
-        recordingUrl: r.call.recordingUrl,
-        transcript: r.call.transcript,
-        aiSummary: r.call.aiSummary,
-        sentiment: r.call.sentiment,
-        wasTransferred: r.call.wasTransferred,
-        transferredTo: r.call.transferredTo,
-        transferredAt: r.call.transferredAt,
-        startedAt: r.call.startedAt,
-        endedAt: r.call.endedAt,
-        createdAt: r.call.createdAt,
-        metadata: r.call.metadata,
-        engine: "twilio-openai",
-        openaiSessionId: r.call.openaiSessionId,
-        openaiVoice: r.call.openaiVoice,
-        openaiModel: r.call.openaiModel,
-        campaign: r.campaign ? { id: r.campaign.id, name: r.campaign.name } : null,
-        contact: r.contact ? { id: r.contact.id, firstName: r.contact.firstName, lastName: r.contact.lastName, phone: r.contact.phone } : null,
-        incomingConnection: null,
-        agent: r.agent ? { id: r.agent.id, name: r.agent.name } : null
-      };
-    }
-    const plivoResults = await db.select({
-      call: plivoCalls,
-      campaign: campaigns,
-      contact: contacts,
-      agent: agents
-    }).from(plivoCalls).leftJoin(campaigns, eq8(plivoCalls.campaignId, campaigns.id)).leftJoin(contacts, eq8(plivoCalls.contactId, contacts.id)).leftJoin(agents, eq8(plivoCalls.agentId, agents.id)).where(eq8(plivoCalls.id, id));
-    if (plivoResults.length > 0) {
-      const r = plivoResults[0];
-      return {
-        id: r.call.id,
-        userId: r.call.userId,
-        campaignId: r.call.campaignId,
-        contactId: r.call.contactId,
-        agentId: r.call.agentId,
-        phoneNumber: r.call.fromNumber,
-        fromNumber: r.call.fromNumber,
-        toNumber: r.call.toNumber,
-        plivoCallUuid: r.call.plivoCallUuid,
-        status: r.call.status,
-        callDirection: r.call.callDirection === "inbound" ? "incoming" : r.call.callDirection === "outbound" ? "outgoing" : r.call.callDirection,
-        duration: r.call.duration,
-        recordingUrl: r.call.recordingUrl,
-        transcript: r.call.transcript,
-        aiSummary: r.call.aiSummary,
-        sentiment: r.call.sentiment,
-        leadQualityScore: r.call.leadQualityScore,
-        keyPoints: r.call.keyPoints,
-        nextActions: r.call.nextActions,
-        wasTransferred: r.call.wasTransferred,
-        transferredTo: r.call.transferredTo,
-        transferredAt: r.call.transferredAt,
-        startedAt: r.call.startedAt,
-        answeredAt: r.call.answeredAt,
-        endedAt: r.call.endedAt,
-        createdAt: r.call.createdAt,
-        metadata: r.call.metadata,
-        engine: "plivo-openai",
-        openaiSessionId: r.call.openaiSessionId,
-        openaiVoice: r.call.openaiVoice,
-        openaiModel: r.call.openaiModel,
-        campaign: r.campaign ? { id: r.campaign.id, name: r.campaign.name } : null,
-        contact: r.contact ? { id: r.contact.id, firstName: r.contact.firstName, lastName: r.contact.lastName, phone: r.contact.phone } : null,
-        incomingConnection: null,
-        agent: r.agent ? { id: r.agent.id, name: r.agent.name } : null
-      };
-    }
-    const sipResults = await db.select({
-      call: sipCalls,
-      agent: agents,
-      contact: contacts
-    }).from(sipCalls).leftJoin(agents, eq8(sipCalls.agentId, agents.id)).leftJoin(contacts, eq8(sipCalls.contactId, contacts.id)).where(eq8(sipCalls.id, id));
-    if (sipResults.length > 0) {
-      const r = sipResults[0];
-      return {
-        id: r.call.id,
-        userId: r.call.userId,
-        campaignId: r.call.campaignId,
-        contactId: r.call.contactId,
-        agentId: r.call.agentId,
-        phoneNumber: r.call.direction === "inbound" ? r.call.fromNumber : r.call.toNumber,
-        fromNumber: r.call.fromNumber,
-        toNumber: r.call.toNumber,
-        status: r.call.status,
-        callDirection: r.call.direction === "inbound" ? "incoming" : "outgoing",
-        duration: r.call.durationSeconds,
-        recordingUrl: r.call.recordingUrl,
-        transcript: r.call.transcript,
-        aiSummary: r.call.aiSummary,
-        sentiment: r.call.sentiment || r.call.metadata?.sentiment || null,
-        classification: r.call.classification || r.call.metadata?.classification || null,
-        startedAt: r.call.startedAt,
-        answeredAt: r.call.answeredAt,
-        endedAt: r.call.endedAt,
-        createdAt: r.call.createdAt,
-        metadata: r.call.metadata,
-        engine: r.call.engine,
-        sipTrunkId: r.call.sipTrunkId,
-        sipPhoneNumberId: r.call.sipPhoneNumberId,
-        elevenLabsConversationId: r.call.elevenlabsConversationId,
-        elevenlabsConversationId: r.call.elevenlabsConversationId,
-        externalCallId: r.call.externalCallId,
-        openaiCallId: r.call.openaiCallId,
-        creditsUsed: r.call.creditsUsed,
-        sipHeaders: r.call.sipHeaders,
-        campaign: null,
-        contact: r.contact ? { id: r.contact.id, firstName: r.contact.firstName, lastName: r.contact.lastName, phone: r.contact.phone } : null,
-        incomingConnection: null,
-        agent: r.agent ? { id: r.agent.id, name: r.agent.name } : null
-      };
-    }
-    return void 0;
-  }
-  async getCampaignCalls(campaignId) {
-    return db.select().from(calls).where(eq8(calls.campaignId, campaignId));
-  }
-  async getUserCalls(userId) {
-    const results = await db.select({ calls }).from(calls).leftJoin(campaigns, eq8(calls.campaignId, campaigns.id)).leftJoin(incomingConnections, eq8(calls.incomingConnectionId, incomingConnections.id)).where(
-      or2(
-        eq8(calls.userId, userId),
-        and2(isNotNull2(calls.campaignId), eq8(campaigns.userId, userId)),
-        and2(isNotNull2(calls.incomingConnectionId), eq8(incomingConnections.userId, userId))
-      )
-    );
-    return results.map((r) => r.calls);
-  }
-  async getUserCallsWithDetails(userId) {
-    const elevenLabsResults = await db.select({
-      call: calls,
-      campaign: campaigns,
-      contact: contacts,
-      incomingConnection: incomingConnections,
-      widget: websiteWidgets
-    }).from(calls).leftJoin(campaigns, eq8(calls.campaignId, campaigns.id)).leftJoin(contacts, eq8(calls.contactId, contacts.id)).leftJoin(incomingConnections, eq8(calls.incomingConnectionId, incomingConnections.id)).leftJoin(websiteWidgets, eq8(calls.widgetId, websiteWidgets.id)).where(
-      or2(
-        // Primary filter: Direct user ownership (guaranteed isolation)
-        eq8(calls.userId, userId),
-        // Fallback for legacy calls: Check via campaign ownership
-        and2(isNotNull2(calls.campaignId), eq8(campaigns.userId, userId)),
-        // Fallback for legacy calls: Check via incoming connection ownership
-        and2(isNotNull2(calls.incomingConnectionId), eq8(incomingConnections.userId, userId))
-      )
-    ).orderBy(sql13`${calls.createdAt} DESC`);
-    const elevenLabsCalls = elevenLabsResults.map((r) => {
-      const metadataEngine = r.call.metadata?.engine;
-      const engine = metadataEngine || "elevenlabs";
-      return {
-        ...r.call,
-        engine,
-        campaign: r.campaign ? { id: r.campaign.id, name: r.campaign.name } : null,
-        contact: r.contact ? { id: r.contact.id, firstName: r.contact.firstName, lastName: r.contact.lastName, phone: r.contact.phone } : null,
-        incomingConnection: r.incomingConnection ? { id: r.incomingConnection.id, agentId: r.incomingConnection.agentId } : null,
-        widget: r.widget ? { id: r.widget.id, name: r.widget.name } : null
-      };
-    });
-    const twilioOpenAIResults = await db.select({
-      call: twilioOpenaiCalls,
-      campaign: campaigns,
-      contact: contacts,
-      agent: agents
-    }).from(twilioOpenaiCalls).leftJoin(campaigns, eq8(twilioOpenaiCalls.campaignId, campaigns.id)).leftJoin(contacts, eq8(twilioOpenaiCalls.contactId, contacts.id)).leftJoin(agents, eq8(twilioOpenaiCalls.agentId, agents.id)).where(eq8(twilioOpenaiCalls.userId, userId)).orderBy(sql13`${twilioOpenaiCalls.createdAt} DESC`);
-    const twilioOpenAICalls = twilioOpenAIResults.map((r) => ({
-      id: r.call.id,
-      userId: r.call.userId,
-      campaignId: r.call.campaignId,
-      contactId: r.call.contactId,
-      agentId: r.call.agentId,
-      phoneNumber: r.call.fromNumber,
-      fromNumber: r.call.fromNumber,
-      toNumber: r.call.toNumber,
-      twilioSid: r.call.twilioCallSid,
-      status: r.call.status,
-      callDirection: r.call.callDirection === "inbound" ? "incoming" : "outgoing",
-      duration: r.call.duration,
-      recordingUrl: r.call.recordingUrl,
-      transcript: r.call.transcript,
-      aiSummary: r.call.aiSummary,
-      sentiment: r.call.sentiment,
-      wasTransferred: r.call.wasTransferred,
-      transferredTo: r.call.transferredTo,
-      transferredAt: r.call.transferredAt,
-      startedAt: r.call.startedAt,
-      endedAt: r.call.endedAt,
-      createdAt: r.call.createdAt,
-      metadata: r.call.metadata,
-      engine: "twilio-openai",
-      openaiSessionId: r.call.openaiSessionId,
-      openaiVoice: r.call.openaiVoice,
-      openaiModel: r.call.openaiModel,
-      campaign: r.campaign ? { id: r.campaign.id, name: r.campaign.name } : null,
-      contact: r.contact ? { id: r.contact.id, firstName: r.contact.firstName, lastName: r.contact.lastName, phone: r.contact.phone } : null,
-      incomingConnection: null,
-      agent: r.agent ? { id: r.agent.id, name: r.agent.name } : null
-    }));
-    const plivoResults = await db.select({
-      call: plivoCalls,
-      campaign: campaigns,
-      contact: contacts,
-      agent: agents
-    }).from(plivoCalls).leftJoin(campaigns, eq8(plivoCalls.campaignId, campaigns.id)).leftJoin(contacts, eq8(plivoCalls.contactId, contacts.id)).leftJoin(agents, eq8(plivoCalls.agentId, agents.id)).where(eq8(plivoCalls.userId, userId)).orderBy(sql13`${plivoCalls.createdAt} DESC`);
-    const plivoOpenAICalls = plivoResults.map((r) => ({
-      id: r.call.id,
-      userId: r.call.userId,
-      campaignId: r.call.campaignId,
-      contactId: r.call.contactId,
-      agentId: r.call.agentId,
-      phoneNumber: r.call.fromNumber,
-      fromNumber: r.call.fromNumber,
-      toNumber: r.call.toNumber,
-      plivoCallUuid: r.call.plivoCallUuid,
-      status: r.call.status,
-      callDirection: r.call.callDirection === "inbound" ? "incoming" : "outgoing",
-      duration: r.call.duration,
-      recordingUrl: r.call.recordingUrl,
-      transcript: r.call.transcript,
-      aiSummary: r.call.aiSummary,
-      sentiment: r.call.sentiment,
-      leadQualityScore: r.call.leadQualityScore,
-      keyPoints: r.call.keyPoints,
-      nextActions: r.call.nextActions,
-      wasTransferred: r.call.wasTransferred,
-      transferredTo: r.call.transferredTo,
-      transferredAt: r.call.transferredAt,
-      startedAt: r.call.startedAt,
-      answeredAt: r.call.answeredAt,
-      endedAt: r.call.endedAt,
-      createdAt: r.call.createdAt,
-      metadata: r.call.metadata,
-      engine: "plivo-openai",
-      openaiSessionId: r.call.openaiSessionId,
-      openaiVoice: r.call.openaiVoice,
-      openaiModel: r.call.openaiModel,
-      campaign: r.campaign ? { id: r.campaign.id, name: r.campaign.name } : null,
-      contact: r.contact ? { id: r.contact.id, firstName: r.contact.firstName, lastName: r.contact.lastName, phone: r.contact.phone } : null,
-      incomingConnection: null,
-      agent: r.agent ? { id: r.agent.id, name: r.agent.name } : null
-    }));
-    const sipCallResults = await db.select({
-      call: sipCalls,
-      agent: agents,
-      contact: contacts
-    }).from(sipCalls).leftJoin(agents, eq8(sipCalls.agentId, agents.id)).leftJoin(contacts, eq8(sipCalls.contactId, contacts.id)).where(eq8(sipCalls.userId, userId)).orderBy(sql13`${sipCalls.createdAt} DESC`);
-    const sipCallsFormatted = sipCallResults.map((r) => ({
-      id: r.call.id,
-      userId: r.call.userId,
-      campaignId: r.call.campaignId,
-      contactId: r.call.contactId,
-      agentId: r.call.agentId,
-      phoneNumber: r.call.direction === "inbound" ? r.call.fromNumber : r.call.toNumber,
-      fromNumber: r.call.fromNumber,
-      toNumber: r.call.toNumber,
-      status: r.call.status,
-      callDirection: r.call.direction === "inbound" ? "incoming" : "outgoing",
-      duration: r.call.durationSeconds,
-      recordingUrl: r.call.recordingUrl,
-      transcript: r.call.transcript,
-      aiSummary: r.call.aiSummary,
-      sentiment: r.call.sentiment || r.call.metadata?.sentiment || null,
-      classification: r.call.classification || r.call.metadata?.classification || null,
-      startedAt: r.call.startedAt,
-      answeredAt: r.call.answeredAt,
-      endedAt: r.call.endedAt,
-      createdAt: r.call.createdAt,
-      metadata: r.call.metadata,
-      engine: r.call.engine,
-      sipTrunkId: r.call.sipTrunkId,
-      sipPhoneNumberId: r.call.sipPhoneNumberId,
-      elevenLabsConversationId: r.call.elevenlabsConversationId,
-      elevenlabsConversationId: r.call.elevenlabsConversationId,
-      creditsUsed: r.call.creditsUsed,
-      campaign: null,
-      contact: r.contact ? { id: r.contact.id, firstName: r.contact.firstName, lastName: r.contact.lastName, phone: r.contact.phone } : null,
-      incomingConnection: null,
-      agent: r.agent ? { id: r.agent.id, name: r.agent.name } : null
-    }));
-    const twilioOpenAIByCampaignContact = new Set(
-      twilioOpenAICalls.filter((c) => c.campaignId && c.contactId).map((c) => `${c.campaignId}:${c.contactId}`)
-    );
-    const plivoByCampaignContact = new Set(
-      plivoOpenAICalls.filter((c) => c.campaignId && c.contactId).map((c) => `${c.campaignId}:${c.contactId}`)
-    );
-    const filteredElevenLabsCalls = elevenLabsCalls.filter((c) => {
-      if (!c.campaignId || !c.contactId) return true;
-      const md = c.metadata || {};
-      if (md.batchCall !== true) return true;
-      const key = `${c.campaignId}:${c.contactId}`;
-      if (md.telephonyProvider === "twilio_openai" && twilioOpenAIByCampaignContact.has(key)) {
-        return false;
-      }
-      if (md.telephonyProvider === "plivo" && plivoByCampaignContact.has(key)) {
-        return false;
-      }
-      return true;
-    });
-    const allCalls = [...filteredElevenLabsCalls, ...twilioOpenAICalls, ...plivoOpenAICalls, ...sipCallsFormatted];
-    allCalls.sort((a, b) => {
-      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return dateB - dateA;
-    });
-    return allCalls;
-  }
-  async createCall(insertCall) {
-    const [call] = await db.insert(calls).values(insertCall).returning();
-    return call;
-  }
-  async updateCall(id, call) {
-    await db.update(calls).set(call).where(eq8(calls.id, id));
-  }
-  // Credit Transactions
-  async getCreditTransaction(id) {
-    const [transaction] = await db.select().from(creditTransactions).where(eq8(creditTransactions.id, id));
-    return transaction;
-  }
-  async getUserCreditTransactions(userId) {
-    return db.select().from(creditTransactions).where(eq8(creditTransactions.userId, userId));
-  }
-  async createCreditTransaction(insertTransaction) {
-    const [transaction] = await db.insert(creditTransactions).values(insertTransaction).returning();
-    return transaction;
-  }
-  // Atomic credit purchase: creates transaction + adds credits in single DB transaction
-  async addCreditsAtomic(userId, credits, description, stripePaymentId) {
-    await db.transaction(async (tx) => {
-      await tx.insert(creditTransactions).values({
-        userId,
-        type: "credit",
-        amount: credits,
-        description,
-        stripePaymentId
-      });
-      await tx.execute(sql13`
-        UPDATE users 
-        SET credits = COALESCE(credits, 0) + ${credits}
-        WHERE id = ${userId}
-      `);
-    });
-  }
-  // Tools
-  async getTool(id) {
-    const [tool] = await db.select().from(tools).where(eq8(tools.id, id));
-    return tool;
-  }
-  async getUserTools(userId) {
-    return db.select().from(tools).where(eq8(tools.userId, userId));
-  }
-  async createTool(insertTool) {
-    const [tool] = await db.insert(tools).values(insertTool).returning();
-    return tool;
-  }
-  async updateTool(id, tool) {
-    await db.update(tools).set(tool).where(eq8(tools.id, id));
-  }
-  async deleteTool(id) {
-    await db.delete(tools).where(eq8(tools.id, id));
-  }
-  // Phone Number Rentals
-  async createPhoneNumberRental(insertRental) {
-    const [rental] = await db.insert(phoneNumberRentals).values(insertRental).returning();
-    return rental;
-  }
-  async getPhoneNumberRentals(phoneNumberId) {
-    return db.select().from(phoneNumberRentals).where(eq8(phoneNumberRentals.phoneNumberId, phoneNumberId)).orderBy(desc2(phoneNumberRentals.createdAt));
-  }
-  // Voices
-  async getVoice(id) {
-    const [voice] = await db.select().from(voices).where(eq8(voices.id, id));
-    return voice;
-  }
-  async getUserVoices(userId) {
-    return db.select().from(voices).where(eq8(voices.userId, userId));
-  }
-  async createVoice(insertVoice) {
-    const [voice] = await db.insert(voices).values(insertVoice).returning();
-    return voice;
-  }
-  async deleteVoice(id) {
-    await db.delete(voices).where(eq8(voices.id, id));
-  }
-  // Plans
-  async getPlan(id) {
-    const [plan] = await db.select().from(plans).where(eq8(plans.id, id));
-    return plan;
-  }
-  async getPlanByName(name) {
-    const [plan] = await db.select().from(plans).where(eq8(plans.name, name));
-    return plan;
-  }
-  async getAllPlans() {
-    return db.select().from(plans).where(eq8(plans.isActive, true));
-  }
-  async createPlan(insertPlan) {
-    const [plan] = await db.insert(plans).values(insertPlan).returning();
-    return plan;
-  }
-  async updatePlan(id, plan) {
-    const result = await db.update(plans).set(plan).where(eq8(plans.id, id)).returning({ id: plans.id });
-    if (result.length === 0) {
-      throw new Error(`Failed to update plan: Plan with id '${id}' not found`);
-    }
-  }
-  async deletePlan(id) {
-    await db.delete(plans).where(eq8(plans.id, id));
-  }
-  // Global Settings
-  async getGlobalSetting(key) {
-    const [setting] = await db.select().from(globalSettings).where(eq8(globalSettings.key, key));
-    if (setting && setting.value !== null && setting.value !== void 0) {
-      let val = setting.value;
-      if (typeof val === "string" && val.startsWith('"') && val.endsWith('"')) {
-        try {
-          val = JSON.parse(val);
-        } catch {
-        }
-      }
-      return { ...setting, value: val };
-    }
-    return setting;
-  }
-  async updateGlobalSetting(key, value) {
-    try {
-      const jsonValue = JSON.stringify(value);
-      await db.execute(sql13`
-        INSERT INTO global_settings (id, key, value, updated_at)
-        VALUES (gen_random_uuid(), ${key}, ${jsonValue}::jsonb, NOW())
-        ON CONFLICT (key) DO UPDATE SET 
-          value = ${jsonValue}::jsonb,
-          updated_at = NOW()
-      `);
-      console.log(`\u2705 [Settings] Saved setting '${key}' successfully`);
-    } catch (error) {
-      console.error(`\u274C [Settings] Failed to save setting '${key}':`, error.message);
-      throw new Error(`Failed to save setting '${key}': ${error.message}`);
-    }
-  }
-  // Credit Packages
-  async getCreditPackage(id) {
-    const [pack] = await db.select().from(creditPackages).where(eq8(creditPackages.id, id));
-    return pack;
-  }
-  async getAllCreditPackages() {
-    return db.select().from(creditPackages).where(eq8(creditPackages.isActive, true));
-  }
-  async createCreditPackage(insertPack) {
-    const [pack] = await db.insert(creditPackages).values(insertPack).returning();
-    return pack;
-  }
-  async updateCreditPackage(id, pack) {
-    const result = await db.update(creditPackages).set(pack).where(eq8(creditPackages.id, id)).returning({ id: creditPackages.id });
-    if (result.length === 0) {
-      throw new Error(`Failed to update credit package: Package with id '${id}' not found`);
-    }
-  }
-  // Admin Functions
-  async getAllUsers() {
-    return db.select().from(users).orderBy(desc2(users.createdAt));
-  }
-  async getAllAdminUsers() {
-    return db.select().from(users).where(
-      sql13`${users.role} = 'admin'`
-    ).orderBy(desc2(users.createdAt));
-  }
-  async updateUser(id, user) {
-    const result = await db.update(users).set(user).where(eq8(users.id, id)).returning({ id: users.id });
-    if (result.length === 0) {
-      throw new Error(`Failed to update user: User with id '${id}' not found`);
-    }
-  }
-  async getSystemPhoneNumbers() {
-    const results = await db.select({
-      phone: phoneNumbers,
-      user: users
-    }).from(phoneNumbers).leftJoin(users, eq8(phoneNumbers.userId, users.id));
-    return results.map((r) => ({
-      ...r.phone,
-      userEmail: r.user?.email
-    }));
-  }
-  async getGlobalAnalytics(timeRange) {
-    return calculateGlobalAnalytics(timeRange);
-  }
-  // User Subscriptions
-  async getUserSubscription(userId) {
-    const result = await db.select({
-      subscription: userSubscriptions,
-      plan: plans
-    }).from(userSubscriptions).leftJoin(plans, eq8(userSubscriptions.planId, plans.id)).where(eq8(userSubscriptions.userId, userId)).orderBy(desc2(userSubscriptions.createdAt)).limit(1);
-    if (result.length > 0 && result[0].subscription && result[0].plan) {
-      return {
-        ...result[0].subscription,
-        plan: result[0].plan
-      };
-    }
-    const [freePlan] = await db.select().from(plans).where(eq8(plans.name, "free")).limit(1);
-    if (!freePlan) {
-      return null;
-    }
-    return null;
-  }
-  async getAllUserSubscriptions() {
-    return await db.select().from(userSubscriptions);
-  }
-  async getUserSubscriptionByPaystackCode(subscriptionCode) {
-    const [subscription] = await db.select().from(userSubscriptions).where(eq8(userSubscriptions.paystackSubscriptionCode, subscriptionCode)).limit(1);
-    return subscription;
-  }
-  async createUserSubscription(insertSubscription) {
-    const [subscription] = await db.insert(userSubscriptions).values(insertSubscription).returning();
-    return subscription;
-  }
-  async updateUserSubscription(id, subscription) {
-    await db.update(userSubscriptions).set(subscription).where(eq8(userSubscriptions.id, id));
-  }
-  async updateUserSubscriptionByUserId(userId, subscription) {
-    await db.update(userSubscriptions).set({ ...subscription, updatedAt: /* @__PURE__ */ new Date() }).where(eq8(userSubscriptions.userId, userId));
-  }
-  // Get effective limits for a user - merges plan defaults with per-user overrides
-  async getUserEffectiveLimits(userId) {
-    const subscriptionWithPlan = await this.getUserSubscription(userId);
-    const defaultLimits = {
-      maxAgents: 1,
-      maxCampaigns: 1,
-      maxContactsPerCampaign: 5,
-      maxWebhooks: 3,
-      maxKnowledgeBases: 5,
-      maxFlows: 3,
-      maxPhoneNumbers: 0,
-      includedCredits: 0,
-      sources: {
-        maxAgents: "plan",
-        maxCampaigns: "plan",
-        maxContactsPerCampaign: "plan",
-        maxWebhooks: "plan",
-        maxKnowledgeBases: "plan",
-        maxFlows: "plan",
-        maxPhoneNumbers: "plan",
-        includedCredits: "plan"
-      },
-      planName: "free",
-      planDisplayName: "Free"
-    };
-    if (!subscriptionWithPlan || !subscriptionWithPlan.plan) {
-      const [freePlan] = await db.select().from(plans).where(eq8(plans.name, "free")).limit(1);
-      if (freePlan) {
-        return {
-          maxAgents: freePlan.maxAgents,
-          maxCampaigns: freePlan.maxCampaigns,
-          maxContactsPerCampaign: freePlan.maxContactsPerCampaign,
-          maxWebhooks: freePlan.maxWebhooks ?? 3,
-          maxKnowledgeBases: freePlan.maxKnowledgeBases ?? 5,
-          maxFlows: freePlan.maxFlows ?? 3,
-          maxPhoneNumbers: freePlan.maxPhoneNumbers ?? 0,
-          includedCredits: freePlan.includedCredits,
-          sources: {
-            maxAgents: "plan",
-            maxCampaigns: "plan",
-            maxContactsPerCampaign: "plan",
-            maxWebhooks: "plan",
-            maxKnowledgeBases: "plan",
-            maxFlows: "plan",
-            maxPhoneNumbers: "plan",
-            includedCredits: "plan"
-          },
-          planName: freePlan.name,
-          planDisplayName: freePlan.displayName
-        };
-      }
-      return defaultLimits;
-    }
-    const plan = subscriptionWithPlan.plan;
-    const sub = subscriptionWithPlan;
-    return {
-      maxAgents: sub.overrideMaxAgents ?? plan.maxAgents,
-      maxCampaigns: sub.overrideMaxCampaigns ?? plan.maxCampaigns,
-      maxContactsPerCampaign: sub.overrideMaxContactsPerCampaign ?? plan.maxContactsPerCampaign,
-      maxWebhooks: sub.overrideMaxWebhooks ?? plan.maxWebhooks ?? 3,
-      maxKnowledgeBases: sub.overrideMaxKnowledgeBases ?? plan.maxKnowledgeBases ?? 5,
-      maxFlows: sub.overrideMaxFlows ?? plan.maxFlows ?? 3,
-      maxPhoneNumbers: sub.overrideMaxPhoneNumbers ?? plan.maxPhoneNumbers ?? 0,
-      includedCredits: sub.overrideIncludedCredits ?? plan.includedCredits,
-      sources: {
-        maxAgents: sub.overrideMaxAgents !== null ? "override" : "plan",
-        maxCampaigns: sub.overrideMaxCampaigns !== null ? "override" : "plan",
-        maxContactsPerCampaign: sub.overrideMaxContactsPerCampaign !== null ? "override" : "plan",
-        maxWebhooks: sub.overrideMaxWebhooks !== null ? "override" : "plan",
-        maxKnowledgeBases: sub.overrideMaxKnowledgeBases !== null ? "override" : "plan",
-        maxFlows: sub.overrideMaxFlows !== null ? "override" : "plan",
-        maxPhoneNumbers: sub.overrideMaxPhoneNumbers !== null ? "override" : "plan",
-        includedCredits: sub.overrideIncludedCredits !== null ? "override" : "plan"
-      },
-      planName: plan.name,
-      planDisplayName: plan.displayName
-    };
-  }
-  // Phone Numbers
-  async getPhoneNumber(id) {
-    const [phoneNumber] = await db.select().from(phoneNumbers).where(eq8(phoneNumbers.id, id));
-    return phoneNumber;
-  }
-  async getUserPhoneNumbers(userId) {
-    return db.select().from(phoneNumbers).where(eq8(phoneNumbers.userId, userId));
-  }
-  async getAllPhoneNumbers() {
-    return db.select().from(phoneNumbers);
-  }
-  async createPhoneNumber(insertPhoneNumber) {
-    const [phoneNumber] = await db.insert(phoneNumbers).values(insertPhoneNumber).returning();
-    return phoneNumber;
-  }
-  async updatePhoneNumber(id, phoneNumber) {
-    await db.update(phoneNumbers).set(phoneNumber).where(eq8(phoneNumbers.id, id));
-  }
-  async deletePhoneNumber(id) {
-    await db.delete(phoneNumbers).where(eq8(phoneNumbers.id, id));
-  }
-  // Usage Records
-  async createUsageRecord(insertRecord) {
-    const [record] = await db.insert(usageRecords).values(insertRecord).returning();
-    return record;
-  }
-  async getUserUsageRecords(userId) {
-    return db.select().from(usageRecords).where(eq8(usageRecords.userId, userId));
-  }
-  // Analytics methods - delegate to extracted helper functions
-  async getUserAnalytics(userId, timeRange = "7days", callType = "all") {
-    return calculateUserAnalytics(userId, timeRange, callType);
-  }
-  async getDashboardData(userId) {
-    return calculateDashboardData(userId);
-  }
-  // Webhooks (Subscriptions)
-  async getWebhook(id) {
-    const [webhook] = await db.select().from(webhookSubscriptions).where(eq8(webhookSubscriptions.id, id));
-    return webhook;
-  }
-  async getUserWebhooks(userId) {
-    return await db.select().from(webhookSubscriptions).where(eq8(webhookSubscriptions.userId, userId)).orderBy(desc2(webhookSubscriptions.createdAt));
-  }
-  async getUserWebhookCount(userId) {
-    const result = await db.select({ count: sql13`count(*)` }).from(webhookSubscriptions).where(eq8(webhookSubscriptions.userId, userId));
-    return Number(result[0]?.count || 0);
-  }
-  async getWebhooksForEvent(userId, event, campaignId) {
-    const allUserWebhooks = await db.select().from(webhookSubscriptions).where(and2(
-      eq8(webhookSubscriptions.userId, userId),
-      eq8(webhookSubscriptions.isActive, true)
-    ));
-    return allUserWebhooks.filter((webhook) => {
-      if (!webhook.events.includes(event)) return false;
-      if (campaignId && webhook.campaignIds && webhook.campaignIds.length > 0) {
-        return webhook.campaignIds.includes(campaignId);
-      }
-      return true;
-    });
-  }
-  async createWebhook(webhook) {
-    const [newWebhook] = await db.insert(webhookSubscriptions).values({
-      ...webhook,
-      id: nanoid()
-    }).returning();
-    return newWebhook;
-  }
-  async updateWebhook(id, webhook) {
-    const updateData = { ...webhook, updatedAt: /* @__PURE__ */ new Date() };
-    await db.update(webhookSubscriptions).set(updateData).where(eq8(webhookSubscriptions.id, id));
-  }
-  async deleteWebhook(id) {
-    await db.delete(webhookSubscriptions).where(eq8(webhookSubscriptions.id, id));
-  }
-  // Webhook Delivery Logs
-  async getWebhookLog(id) {
-    const [log] = await db.select().from(webhookDeliveryLogs).where(eq8(webhookDeliveryLogs.id, id));
-    return log;
-  }
-  async getWebhookLogs(webhookId, limit = 50) {
-    return await db.select().from(webhookDeliveryLogs).where(eq8(webhookDeliveryLogs.webhookId, webhookId)).orderBy(desc2(webhookDeliveryLogs.createdAt)).limit(limit);
-  }
-  async createWebhookLog(log) {
-    const [newLog] = await db.insert(webhookDeliveryLogs).values(log).returning();
-    return newLog;
-  }
-  async updateWebhookLog(id, log) {
-    await db.update(webhookDeliveryLogs).set(log).where(eq8(webhookDeliveryLogs.id, id));
-  }
-  async getFailedWebhookLogs(limit = 100) {
-    return await db.select().from(webhookDeliveryLogs).where(and2(
-      eq8(webhookDeliveryLogs.success, false),
-      isNotNull2(webhookDeliveryLogs.nextRetryAt)
-    )).orderBy(asc(webhookDeliveryLogs.nextRetryAt)).limit(limit);
-  }
-  // Notifications
-  async getNotification(id) {
-    const [notification] = await db.select().from(notifications).where(eq8(notifications.id, id));
-    return notification;
-  }
-  async getUserNotifications(userId, limit = 50) {
-    return await db.select().from(notifications).where(eq8(notifications.userId, userId)).orderBy(desc2(notifications.createdAt)).limit(limit);
-  }
-  async getUnreadNotificationCount(userId) {
-    const result = await db.select({ count: sql13`count(*)` }).from(notifications).where(and2(eq8(notifications.userId, userId), eq8(notifications.isRead, false)));
-    return Number(result[0]?.count || 0);
-  }
-  async createNotification(notification) {
-    const [newNotification] = await db.insert(notifications).values(notification).returning();
-    return newNotification;
-  }
-  async markNotificationAsRead(id) {
-    await db.update(notifications).set({ isRead: true }).where(eq8(notifications.id, id));
-  }
-  async markAllNotificationsAsRead(userId) {
-    await db.update(notifications).set({ isRead: true }).where(eq8(notifications.userId, userId));
-  }
-  async getBannerNotifications(userId) {
-    return await db.select().from(notifications).where(and2(
-      eq8(notifications.userId, userId),
-      or2(
-        eq8(notifications.displayType, "banner"),
-        eq8(notifications.displayType, "both")
-      ),
-      eq8(notifications.isDismissed, false),
-      or2(
-        isNull2(notifications.expiresAt),
-        gte2(notifications.expiresAt, /* @__PURE__ */ new Date())
-      )
-    )).orderBy(desc2(notifications.priority), desc2(notifications.createdAt));
-  }
-  async dismissNotification(id, userId) {
-    if (userId) {
-      await db.update(notifications).set({ isDismissed: true }).where(and2(eq8(notifications.id, id), eq8(notifications.userId, userId)));
-    } else {
-      await db.update(notifications).set({ isDismissed: true }).where(eq8(notifications.id, id));
-    }
-  }
-  async deleteNotification(id) {
-    await db.delete(notifications).where(eq8(notifications.id, id));
-  }
-  // Email Templates
-  async getEmailTemplates() {
-    return await db.select().from(emailTemplates).orderBy(emailTemplates.templateType);
-  }
-  async getEmailTemplate(templateType) {
-    const [template] = await db.select().from(emailTemplates).where(eq8(emailTemplates.templateType, templateType));
-    return template;
-  }
-  async updateEmailTemplate(id, data) {
-    await db.update(emailTemplates).set({ ...data, updatedAt: /* @__PURE__ */ new Date() }).where(eq8(emailTemplates.id, id));
-  }
-  async createEmailTemplate(data) {
-    const [template] = await db.insert(emailTemplates).values(data).returning();
-    return template;
-  }
-  // Prompt Templates
-  async getPromptTemplate(id) {
-    const [template] = await db.select().from(promptTemplates).where(eq8(promptTemplates.id, id));
-    return template;
-  }
-  async getUserPromptTemplates(userId) {
-    return await db.select().from(promptTemplates).where(eq8(promptTemplates.userId, userId)).orderBy(desc2(promptTemplates.createdAt));
-  }
-  async getSystemPromptTemplates() {
-    return await db.select().from(promptTemplates).where(eq8(promptTemplates.isSystemTemplate, true)).orderBy(asc(promptTemplates.category), asc(promptTemplates.name));
-  }
-  async getPublicPromptTemplates() {
-    return await db.select().from(promptTemplates).where(eq8(promptTemplates.isPublic, true)).orderBy(desc2(promptTemplates.usageCount), asc(promptTemplates.name));
-  }
-  async createPromptTemplate(template) {
-    const [newTemplate] = await db.insert(promptTemplates).values(template).returning();
-    return newTemplate;
-  }
-  async updatePromptTemplate(id, template) {
-    await db.update(promptTemplates).set({ ...template, updatedAt: /* @__PURE__ */ new Date() }).where(eq8(promptTemplates.id, id));
-  }
-  async deletePromptTemplate(id) {
-    await db.delete(promptTemplates).where(eq8(promptTemplates.id, id));
-  }
-  async incrementPromptTemplateUsage(id) {
-    await db.update(promptTemplates).set({
-      usageCount: sql13`${promptTemplates.usageCount} + 1`,
-      updatedAt: /* @__PURE__ */ new Date()
-    }).where(eq8(promptTemplates.id, id));
-  }
-  // Agent Versions
-  async getAgentVersion(id) {
-    const [version] = await db.select().from(agentVersions).where(eq8(agentVersions.id, id));
-    return version;
-  }
-  async getAgentVersions(agentId) {
-    return await db.select().from(agentVersions).where(eq8(agentVersions.agentId, agentId)).orderBy(desc2(agentVersions.versionNumber));
-  }
-  async getAgentVersionByNumber(agentId, versionNumber) {
-    const [version] = await db.select().from(agentVersions).where(and2(
-      eq8(agentVersions.agentId, agentId),
-      eq8(agentVersions.versionNumber, versionNumber)
-    ));
-    return version;
-  }
-  async getLatestAgentVersion(agentId) {
-    const [version] = await db.select().from(agentVersions).where(eq8(agentVersions.agentId, agentId)).orderBy(desc2(agentVersions.versionNumber)).limit(1);
-    return version;
-  }
-  async createAgentVersion(version) {
-    const [newVersion] = await db.insert(agentVersions).values(version).returning();
-    return newVersion;
-  }
-  // SEO Settings
-  async getSeoSettings() {
-    const [settings] = await db.select().from(seoSettings).limit(1);
-    return settings;
-  }
-  async updateSeoSettings(settings) {
-    const existing = await this.getSeoSettings();
-    if (existing) {
-      const updateData = { ...settings, updatedAt: /* @__PURE__ */ new Date() };
-      const [updated] = await db.update(seoSettings).set(updateData).where(eq8(seoSettings.id, existing.id)).returning();
-      return updated;
-    } else {
-      const [created] = await db.insert(seoSettings).values(settings).returning();
-      return created;
-    }
-  }
-  // Analytics Scripts
-  async getAnalyticsScript(id) {
-    const [script] = await db.select().from(analyticsScripts).where(eq8(analyticsScripts.id, id));
-    return script;
-  }
-  async getAllAnalyticsScripts() {
-    return db.select().from(analyticsScripts).orderBy(desc2(analyticsScripts.loadPriority), asc(analyticsScripts.createdAt));
-  }
-  async getEnabledAnalyticsScripts() {
-    return db.select().from(analyticsScripts).where(eq8(analyticsScripts.enabled, true)).orderBy(desc2(analyticsScripts.loadPriority), asc(analyticsScripts.createdAt));
-  }
-  async createAnalyticsScript(script) {
-    const [created] = await db.insert(analyticsScripts).values(script).returning();
-    return created;
-  }
-  async updateAnalyticsScript(id, script) {
-    const updateData = { ...script, updatedAt: /* @__PURE__ */ new Date() };
-    await db.update(analyticsScripts).set(updateData).where(eq8(analyticsScripts.id, id));
-  }
-  async deleteAnalyticsScript(id) {
-    await db.delete(analyticsScripts).where(eq8(analyticsScripts.id, id));
-  }
-  // Payment Transactions
-  async getPaymentTransaction(id) {
-    const [transaction] = await db.select().from(paymentTransactions).where(eq8(paymentTransactions.id, id));
-    return transaction;
-  }
-  async getPaymentTransactionByGatewayId(gateway, gatewayTransactionId) {
-    const [transaction] = await db.select().from(paymentTransactions).where(and2(
-      eq8(paymentTransactions.gateway, gateway),
-      eq8(paymentTransactions.gatewayTransactionId, gatewayTransactionId)
-    ));
-    return transaction;
-  }
-  async getUserPaymentTransactions(userId) {
-    return db.select().from(paymentTransactions).where(eq8(paymentTransactions.userId, userId)).orderBy(desc2(paymentTransactions.createdAt));
-  }
-  async getAllPaymentTransactions(filters) {
-    const conditions = [];
-    if (filters?.gateway) {
-      conditions.push(eq8(paymentTransactions.gateway, filters.gateway));
-    }
-    if (filters?.type) {
-      conditions.push(eq8(paymentTransactions.type, filters.type));
-    }
-    if (filters?.status) {
-      conditions.push(eq8(paymentTransactions.status, filters.status));
-    }
-    if (filters?.startDate) {
-      conditions.push(gte2(paymentTransactions.createdAt, filters.startDate));
-    }
-    if (filters?.endDate) {
-      conditions.push(lte2(paymentTransactions.createdAt, filters.endDate));
-    }
-    if (conditions.length > 0) {
-      return db.select().from(paymentTransactions).where(and2(...conditions)).orderBy(desc2(paymentTransactions.createdAt));
-    }
-    return db.select().from(paymentTransactions).orderBy(desc2(paymentTransactions.createdAt));
-  }
-  async createPaymentTransaction(transaction) {
-    const [created] = await db.insert(paymentTransactions).values(transaction).returning();
-    return created;
-  }
-  async updatePaymentTransaction(id, transaction) {
-    await db.update(paymentTransactions).set({ ...transaction, updatedAt: /* @__PURE__ */ new Date() }).where(eq8(paymentTransactions.id, id));
-  }
-  async getPaymentAnalytics(startDate, endDate) {
-    const revenueStatuses = ["completed", "refunded", "partially_refunded"];
-    const conditions = [];
-    if (startDate) conditions.push(gte2(paymentTransactions.createdAt, startDate));
-    if (endDate) conditions.push(lte2(paymentTransactions.createdAt, endDate));
-    const transactions = await db.select().from(paymentTransactions).where(
-      conditions.length > 0 ? and2(
-        inArray4(paymentTransactions.status, revenueStatuses),
-        ...conditions
-      ) : inArray4(paymentTransactions.status, revenueStatuses)
-    );
-    const dateConditions = [];
-    if (startDate) dateConditions.push(gte2(paymentTransactions.createdAt, startDate));
-    if (endDate) dateConditions.push(lte2(paymentTransactions.createdAt, endDate));
-    const allTransactions = await db.select().from(paymentTransactions).where(dateConditions.length > 0 ? and2(...dateConditions) : void 0);
-    const refundConditions = [];
-    if (startDate) refundConditions.push(gte2(refunds.createdAt, startDate));
-    if (endDate) refundConditions.push(lte2(refunds.createdAt, endDate));
-    const allRefunds = await db.select().from(refunds).where(refundConditions.length > 0 ? and2(...refundConditions) : void 0);
-    let totalRevenue = 0;
-    const revenueByGateway = {};
-    const revenueByType = {};
-    const transactionsByStatus = {};
-    for (const tx of transactions) {
-      const amount = parseFloat(tx.amount || "0");
-      totalRevenue += amount;
-      revenueByGateway[tx.gateway] = (revenueByGateway[tx.gateway] || 0) + amount;
-      revenueByType[tx.type] = (revenueByType[tx.type] || 0) + amount;
-    }
-    for (const tx of allTransactions) {
-      transactionsByStatus[tx.status] = (transactionsByStatus[tx.status] || 0) + 1;
-    }
-    let totalRefunded = 0;
-    for (const refund of allRefunds) {
-      totalRefunded += parseFloat(refund.amount || "0");
-    }
-    return {
-      totalRevenue,
-      revenueByGateway,
-      revenueByType,
-      transactionCount: allTransactions.length,
-      transactionsByStatus,
-      refundCount: allRefunds.length,
-      totalRefunded
-    };
-  }
-  // Refunds
-  async getRefund(id) {
-    const [refund] = await db.select().from(refunds).where(eq8(refunds.id, id));
-    return refund;
-  }
-  async getTransactionRefunds(transactionId) {
-    return db.select().from(refunds).where(eq8(refunds.transactionId, transactionId)).orderBy(desc2(refunds.createdAt));
-  }
-  async getUserRefunds(userId) {
-    return db.select().from(refunds).where(eq8(refunds.userId, userId)).orderBy(desc2(refunds.createdAt));
-  }
-  async getAllRefunds() {
-    return db.select().from(refunds).orderBy(desc2(refunds.createdAt));
-  }
-  async createRefund(refund) {
-    const [created] = await db.insert(refunds).values(refund).returning();
-    return created;
-  }
-  async updateRefund(id, refund) {
-    await db.update(refunds).set({ ...refund, updatedAt: /* @__PURE__ */ new Date() }).where(eq8(refunds.id, id));
-  }
-  // Invoices
-  async getInvoice(id) {
-    const [invoice] = await db.select().from(invoices).where(eq8(invoices.id, id));
-    return invoice;
-  }
-  async getInvoiceByNumber(invoiceNumber) {
-    const [invoice] = await db.select().from(invoices).where(eq8(invoices.invoiceNumber, invoiceNumber));
-    return invoice;
-  }
-  async getTransactionInvoice(transactionId) {
-    const [invoice] = await db.select().from(invoices).where(eq8(invoices.transactionId, transactionId));
-    return invoice;
-  }
-  async getUserInvoices(userId) {
-    return db.select().from(invoices).where(eq8(invoices.userId, userId)).orderBy(desc2(invoices.createdAt));
-  }
-  async getAllInvoices() {
-    return db.select().from(invoices).orderBy(desc2(invoices.createdAt));
-  }
-  async createInvoice(invoice) {
-    const [created] = await db.insert(invoices).values(invoice).returning();
-    return created;
-  }
-  async updateInvoice(id, invoice) {
-    await db.update(invoices).set({ ...invoice, updatedAt: /* @__PURE__ */ new Date() }).where(eq8(invoices.id, id));
-  }
-  async getNextInvoiceNumber() {
-    const year = (/* @__PURE__ */ new Date()).getFullYear();
-    const [prefixSetting] = await db.select().from(globalSettings).where(eq8(globalSettings.key, "invoice_prefix"));
-    let rawPrefix = prefixSetting?.value ? String(prefixSetting.value).replace(/"/g, "") : "INV";
-    const prefix = rawPrefix.replace(/[^A-Za-z0-9_]/g, "").substring(0, 10) || "INV";
-    const [startSetting] = await db.select().from(globalSettings).where(eq8(globalSettings.key, "invoice_start_number"));
-    const startNumber = startSetting?.value ? parseInt(String(startSetting.value).replace(/"/g, ""), 10) || 1 : 1;
-    const likePattern = `${prefix}-${year}-%`;
-    const result = await db.execute(sql13`
-      SELECT MAX(CAST(SPLIT_PART(${invoices.invoiceNumber}, '-', 3) AS INTEGER)) as max_num
-      FROM ${invoices}
-      WHERE ${invoices.invoiceNumber} LIKE ${likePattern}
-    `);
-    let nextNum = startNumber;
-    const maxNum = result.rows?.[0]?.max_num;
-    if (maxNum !== null && maxNum !== void 0 && !isNaN(Number(maxNum))) {
-      nextNum = Math.max(Number(maxNum) + 1, startNumber);
-    }
-    return `${prefix}-${year}-${String(nextNum).padStart(5, "0")}`;
-  }
-  async getNextRefundNoteNumber() {
-    const [prefixSetting] = await db.select().from(globalSettings).where(eq8(globalSettings.key, "refund_note_prefix"));
-    let rawPrefix = prefixSetting?.value ? String(prefixSetting.value).replace(/"/g, "") : "RF";
-    const prefix = rawPrefix.replace(/[^A-Za-z0-9]/g, "").substring(0, 10) || "RF";
-    const result = await db.execute(sql13`
-      SELECT MAX(
-        CAST(
-          REGEXP_REPLACE(refund_note_number, '^[A-Za-z]+', '', 'g') 
-          AS INTEGER
-        )
-      ) as max_num
-      FROM refunds
-      WHERE refund_note_number ~ ${`^${prefix}[0-9]+$`}
-    `);
-    let nextNum = 1;
-    const maxNum = result.rows?.[0]?.max_num;
-    if (maxNum !== null && maxNum !== void 0 && !isNaN(Number(maxNum))) {
-      nextNum = Number(maxNum) + 1;
-    }
-    return `${prefix}${String(nextNum).padStart(2, "0")}`;
-  }
-  // Payment Webhook Queue
-  async getWebhookQueueItem(id) {
-    const [item] = await db.select().from(paymentWebhookQueue).where(eq8(paymentWebhookQueue.id, id));
-    return item;
-  }
-  async getPendingWebhooks() {
-    return db.select().from(paymentWebhookQueue).where(eq8(paymentWebhookQueue.status, "pending")).orderBy(asc(paymentWebhookQueue.receivedAt));
-  }
-  async getWebhookByEventId(gateway, eventId) {
-    const [item] = await db.select().from(paymentWebhookQueue).where(and2(
-      eq8(paymentWebhookQueue.gateway, gateway),
-      eq8(paymentWebhookQueue.eventId, eventId)
-    ));
-    return item;
-  }
-  async createWebhookQueueItem(item) {
-    const [created] = await db.insert(paymentWebhookQueue).values(item).returning();
-    return created;
-  }
-  async updateWebhookQueueItem(id, item) {
-    await db.update(paymentWebhookQueue).set(item).where(eq8(paymentWebhookQueue.id, id));
-  }
-  async getExpiredWebhooks() {
-    const now = /* @__PURE__ */ new Date();
-    return db.select().from(paymentWebhookQueue).where(and2(
-      eq8(paymentWebhookQueue.status, "pending"),
-      lte2(paymentWebhookQueue.expiresAt, now)
-    ));
-  }
-  async getRetryableWebhooks() {
-    const now = /* @__PURE__ */ new Date();
-    return db.select().from(paymentWebhookQueue).where(and2(
-      or2(
-        eq8(paymentWebhookQueue.status, "pending"),
-        eq8(paymentWebhookQueue.status, "failed")
-      ),
-      sql13`${paymentWebhookQueue.attemptCount} < ${paymentWebhookQueue.maxAttempts}`,
-      or2(
-        isNull2(paymentWebhookQueue.nextRetryAt),
-        lte2(paymentWebhookQueue.nextRetryAt, now)
-      ),
-      gte2(paymentWebhookQueue.expiresAt, now)
-    )).orderBy(asc(paymentWebhookQueue.receivedAt));
-  }
-  // Email Notification Settings
-  async getEmailNotificationSetting(eventType) {
-    const [setting] = await db.select().from(emailNotificationSettings).where(eq8(emailNotificationSettings.eventType, eventType));
-    return setting;
-  }
-  async getAllEmailNotificationSettings() {
-    return db.select().from(emailNotificationSettings).orderBy(asc(emailNotificationSettings.category), asc(emailNotificationSettings.eventType));
-  }
-  async getEmailNotificationSettingsByCategory(category) {
-    return db.select().from(emailNotificationSettings).where(eq8(emailNotificationSettings.category, category)).orderBy(asc(emailNotificationSettings.eventType));
-  }
-  async createEmailNotificationSetting(setting) {
-    const [created] = await db.insert(emailNotificationSettings).values(setting).returning();
-    return created;
-  }
-  async updateEmailNotificationSetting(eventType, setting) {
-    await db.update(emailNotificationSettings).set({ ...setting, updatedAt: /* @__PURE__ */ new Date() }).where(eq8(emailNotificationSettings.eventType, eventType));
-  }
-  // Admin Call Monitoring
-  async getAdminCalls(options) {
-    const page = options.page || 1;
-    const pageSize = options.pageSize || 20;
-    const offset = (page - 1) * pageSize;
-    const conditions = [];
-    if (options.userId) {
-      conditions.push(eq8(calls.userId, options.userId));
-    }
-    if (options.status) {
-      conditions.push(eq8(calls.status, options.status));
-    }
-    if (options.startDate) {
-      conditions.push(gte2(calls.createdAt, options.startDate));
-    }
-    if (options.endDate) {
-      conditions.push(lte2(calls.createdAt, options.endDate));
-    }
-    if (options.search) {
-      const escapeLike2 = (term) => term.replace(/[\\%_]/g, (ch) => `\\${ch}`);
-      const searchPattern = `%${escapeLike2(options.search)}%`;
-      conditions.push(
-        or2(
-          sql13`${calls.phoneNumber} ILIKE ${searchPattern} ESCAPE '\\'`,
-          sql13`${calls.transcript} ILIKE ${searchPattern} ESCAPE '\\'`
-        )
-      );
-    }
-    const whereClause = conditions.length > 0 ? and2(...conditions) : void 0;
-    const violationCountSubquery = db.select({
-      callId: contentViolations.callId,
-      count: sql13`count(*)`.as("violation_count"),
-      summary: sql13`string_agg(${contentViolations.detectedWord}, ', ' ORDER BY ${contentViolations.createdAt} DESC)`.as("violation_summary")
-    }).from(contentViolations).groupBy(contentViolations.callId).as("violation_counts");
-    let query = db.select({
-      call: calls,
-      user: {
-        id: users.id,
-        email: users.email,
-        name: users.name
-      },
-      campaign: {
-        id: campaigns.id,
-        name: campaigns.name
-      },
-      violationCount: sql13`COALESCE(${violationCountSubquery.count}, 0)`,
-      violationSummary: sql13`${violationCountSubquery.summary}`
-    }).from(calls).leftJoin(users, eq8(calls.userId, users.id)).leftJoin(campaigns, eq8(calls.campaignId, campaigns.id)).leftJoin(violationCountSubquery, eq8(calls.id, violationCountSubquery.callId));
-    if (whereClause) {
-      query = query.where(whereClause);
-    }
-    if (options.hasViolations === true) {
-      query = query.where(sql13`COALESCE(${violationCountSubquery.count}, 0) > 0`);
-    } else if (options.hasViolations === false) {
-      query = query.where(sql13`COALESCE(${violationCountSubquery.count}, 0) = 0`);
-    }
-    const results = await query.orderBy(desc2(calls.createdAt)).limit(pageSize).offset(offset);
-    const countResult = await db.select({ count: sql13`count(*)` }).from(calls).where(whereClause);
-    const totalItems = Number(countResult[0]?.count || 0);
-    const totalPages = Math.ceil(totalItems / pageSize);
-    return {
-      data: results.map((r) => ({
-        ...r.call,
-        user: r.user,
-        campaign: r.campaign,
-        violationCount: Number(r.violationCount),
-        violationSummary: r.violationSummary || null
-      })),
-      pagination: { page, pageSize, totalItems, totalPages }
-    };
-  }
-  async getAdminCallById(id) {
-    const [result] = await db.select({
-      call: calls,
-      user: {
-        id: users.id,
-        email: users.email,
-        name: users.name
-      },
-      campaign: {
-        id: campaigns.id,
-        name: campaigns.name
-      },
-      contact: {
-        id: contacts.id,
-        firstName: contacts.firstName,
-        lastName: contacts.lastName,
-        phone: contacts.phone,
-        email: contacts.email
-      }
-    }).from(calls).leftJoin(users, eq8(calls.userId, users.id)).leftJoin(campaigns, eq8(calls.campaignId, campaigns.id)).leftJoin(contacts, eq8(calls.contactId, contacts.id)).where(eq8(calls.id, id));
-    if (!result) return void 0;
-    const violations = await this.getViolationsByCallId(id);
-    return {
-      ...result.call,
-      user: result.user,
-      campaign: result.campaign,
-      contact: result.contact,
-      violations
-    };
-  }
-  async getUserById(id) {
-    return this.getUser(id);
-  }
-  // Content Violations
-  async getViolationsByCallId(callId) {
-    return db.select().from(contentViolations).where(eq8(contentViolations.callId, callId)).orderBy(desc2(contentViolations.createdAt));
-  }
-  async getContentViolations(options) {
-    const page = options.page || 1;
-    const pageSize = options.pageSize || 20;
-    const offset = (page - 1) * pageSize;
-    const conditions = [];
-    if (options.userId) {
-      conditions.push(eq8(contentViolations.userId, options.userId));
-    }
-    if (options.status) {
-      conditions.push(eq8(contentViolations.status, options.status));
-    }
-    if (options.severity) {
-      conditions.push(eq8(contentViolations.severity, options.severity));
-    }
-    if (options.startDate) {
-      conditions.push(gte2(contentViolations.createdAt, options.startDate));
-    }
-    if (options.endDate) {
-      conditions.push(lte2(contentViolations.createdAt, options.endDate));
-    }
-    const whereClause = conditions.length > 0 ? and2(...conditions) : void 0;
-    let query = db.select({
-      violation: contentViolations,
-      user: {
-        id: users.id,
-        email: users.email,
-        name: users.name
-      },
-      call: {
-        id: calls.id,
-        phoneNumber: calls.phoneNumber,
-        status: calls.status
-      }
-    }).from(contentViolations).leftJoin(users, eq8(contentViolations.userId, users.id)).leftJoin(calls, eq8(contentViolations.callId, calls.id));
-    if (whereClause) {
-      query = query.where(whereClause);
-    }
-    const results = await query.orderBy(desc2(contentViolations.createdAt)).limit(pageSize).offset(offset);
-    const countResult = await db.select({ count: sql13`count(*)` }).from(contentViolations).where(whereClause);
-    const totalItems = Number(countResult[0]?.count || 0);
-    const totalPages = Math.ceil(totalItems / pageSize);
-    return {
-      data: results.map((r) => ({
-        ...r.violation,
-        user: r.user,
-        call: r.call
-      })),
-      pagination: { page, pageSize, totalItems, totalPages }
-    };
-  }
-  async updateContentViolation(id, data) {
-    const [updated] = await db.update(contentViolations).set(data).where(eq8(contentViolations.id, id)).returning();
-    return updated;
-  }
-  async createContentViolation(data) {
-    const [violation] = await db.insert(contentViolations).values(data).returning();
-    return violation;
-  }
-  // Banned Words
-  async getBannedWords() {
-    return db.select().from(bannedWords).orderBy(asc(bannedWords.word));
-  }
-  async getActiveBannedWords() {
-    return db.select().from(bannedWords).where(eq8(bannedWords.isActive, true)).orderBy(asc(bannedWords.word));
-  }
-  async createBannedWord(data) {
-    const [word] = await db.insert(bannedWords).values(data).returning();
-    return word;
-  }
-  async updateBannedWord(id, data) {
-    const [updated] = await db.update(bannedWords).set({ ...data, updatedAt: /* @__PURE__ */ new Date() }).where(eq8(bannedWords.id, id)).returning();
-    return updated;
-  }
-  async deleteBannedWord(id) {
-    const result = await db.delete(bannedWords).where(eq8(bannedWords.id, id)).returning();
-    return result.length > 0;
-  }
-  async getCallsWithTranscripts() {
-    return db.select().from(calls).where(and2(
-      isNotNull2(calls.transcript),
-      sql13`${calls.transcript} != ''`
-    ));
-  }
-  // Demo Sessions - Browser-based demo calls
-  async createDemoSession(data) {
-    const [session] = await db.insert(demoSessions).values(data).returning();
-    return session;
-  }
-  async getDemoSession(id) {
-    const [session] = await db.select().from(demoSessions).where(eq8(demoSessions.id, id));
-    return session;
-  }
-  async getDemoSessionByToken(token) {
-    const [session] = await db.select().from(demoSessions).where(eq8(demoSessions.sessionToken, token));
-    return session;
-  }
-  async updateDemoSession(id, data) {
-    await db.update(demoSessions).set(data).where(eq8(demoSessions.id, id));
-  }
-  async getActiveDemoSessionCount() {
-    const result = await db.select({ count: sql13`count(*)` }).from(demoSessions).where(eq8(demoSessions.status, "active"));
-    return Number(result[0]?.count || 0);
-  }
-  async getRecentDemoSessionByIp(ip, cooldownMinutes) {
-    const cooldownTime = new Date(Date.now() - cooldownMinutes * 60 * 1e3);
-    const [session] = await db.select().from(demoSessions).where(and2(
-      eq8(demoSessions.visitorIp, ip),
-      gte2(demoSessions.createdAt, cooldownTime)
-    )).orderBy(desc2(demoSessions.createdAt)).limit(1);
-    return session;
-  }
-  async getDemoSessionStats(days = 30) {
-    const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1e3);
-    const sessions = await db.select().from(demoSessions).where(gte2(demoSessions.createdAt, startDate));
-    const completed = sessions.filter((s) => s.status === "completed");
-    const totalDuration = completed.reduce((sum, s) => sum + (s.duration || 0), 0);
-    const languageBreakdown = {};
-    for (const session of sessions) {
-      languageBreakdown[session.language] = (languageBreakdown[session.language] || 0) + 1;
-    }
-    return {
-      totalSessions: sessions.length,
-      completedSessions: completed.length,
-      averageDuration: completed.length > 0 ? Math.round(totalDuration / completed.length) : 0,
-      languageBreakdown
-    };
-  }
-};
-var storage = new DbStorage();
-
-// server/services/google-sheets/google-sheets.service.ts
 var GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 var GOOGLE_SHEETS_API = "https://sheets.googleapis.com/v4/spreadsheets";
 async function getGoogleCredentials() {
@@ -8840,7 +9723,7 @@ async function isCalendarSyncEnabled(userId) {
 init_db();
 init_schema();
 import OpenAI from "openai";
-import { eq as eq11, and as and3, inArray as inArray5, sql as sql14 } from "drizzle-orm";
+import { eq as eq12, and as and4, inArray as inArray5, sql as sql15 } from "drizzle-orm";
 var EMBEDDING_MODEL = "text-embedding-3-small";
 var MAX_CHUNK_CHARS = 2e3;
 var DEFAULT_STORAGE_LIMIT_BYTES = 20 * 1024 * 1024;
@@ -8848,7 +9731,7 @@ var openaiClient = null;
 var lastApiKey = null;
 async function getOpenAIApiKey() {
   try {
-    const [dbSetting] = await db.select().from(globalSettings).where(eq11(globalSettings.key, "openai_api_key")).limit(1);
+    const [dbSetting] = await db.select().from(globalSettings).where(eq12(globalSettings.key, "openai_api_key")).limit(1);
     if (dbSetting?.value) {
       return dbSetting.value;
     }
@@ -8856,6 +9739,12 @@ async function getOpenAIApiKey() {
   }
   if (process.env.OPENAI_API_KEY) {
     return process.env.OPENAI_API_KEY;
+  }
+  try {
+    const { OpenAIPoolService: OpenAIPoolService2 } = await Promise.resolve().then(() => (init_openai_pool_service(), openai_pool_service_exports));
+    const cred = await OpenAIPoolService2.getLeastLoadedCredential();
+    if (cred?.apiKey) return cred.apiKey;
+  } catch {
   }
   throw new Error("OPENAI_API_KEY is required for RAG knowledge system. Configure it in Admin Settings or as an environment variable.");
 }
@@ -8924,7 +9813,7 @@ var RAGKnowledgeService = class {
    * Get or create storage limit for user
    */
   static async getUserStorageLimit(userId) {
-    const [existing] = await db.select().from(userKnowledgeStorageLimits).where(eq11(userKnowledgeStorageLimits.userId, userId));
+    const [existing] = await db.select().from(userKnowledgeStorageLimits).where(eq12(userKnowledgeStorageLimits.userId, userId));
     if (existing) {
       return { maxBytes: existing.maxStorageBytes, usedBytes: existing.usedStorageBytes };
     }
@@ -8940,9 +9829,9 @@ var RAGKnowledgeService = class {
    */
   static async updateUsedStorage(userId, deltaBytes) {
     await db.update(userKnowledgeStorageLimits).set({
-      usedStorageBytes: sql14`${userKnowledgeStorageLimits.usedStorageBytes} + ${deltaBytes}`,
+      usedStorageBytes: sql15`${userKnowledgeStorageLimits.usedStorageBytes} + ${deltaBytes}`,
       updatedAt: /* @__PURE__ */ new Date()
-    }).where(eq11(userKnowledgeStorageLimits.userId, userId));
+    }).where(eq12(userKnowledgeStorageLimits.userId, userId));
   }
   /**
    * Check if user has enough storage space
@@ -8973,7 +9862,7 @@ var RAGKnowledgeService = class {
       }).returning();
       const chunks = chunkText(content);
       console.log(`[RAG] Created ${chunks.length} chunks from content`);
-      await db.update(knowledgeProcessingQueue).set({ totalChunks: chunks.length }).where(eq11(knowledgeProcessingQueue.id, queueEntry.id));
+      await db.update(knowledgeProcessingQueue).set({ totalChunks: chunks.length }).where(eq12(knowledgeProcessingQueue.id, queueEntry.id));
       let processedCount = 0;
       for (let i = 0; i < chunks.length; i++) {
         const chunkText2 = chunks[i];
@@ -8990,7 +9879,7 @@ var RAGKnowledgeService = class {
             metadata: { ...metadata, chunkIndex: i, totalChunks: chunks.length }
           });
           processedCount++;
-          await db.update(knowledgeProcessingQueue).set({ processedChunks: processedCount, updatedAt: /* @__PURE__ */ new Date() }).where(eq11(knowledgeProcessingQueue.id, queueEntry.id));
+          await db.update(knowledgeProcessingQueue).set({ processedChunks: processedCount, updatedAt: /* @__PURE__ */ new Date() }).where(eq12(knowledgeProcessingQueue.id, queueEntry.id));
         } catch (chunkError) {
           console.error(`[RAG] Error processing chunk ${i}:`, chunkError.message);
         }
@@ -8999,14 +9888,30 @@ var RAGKnowledgeService = class {
         }
       }
       await this.updateUsedStorage(userId, contentSize);
-      await db.update(knowledgeProcessingQueue).set({ status: "completed", updatedAt: /* @__PURE__ */ new Date() }).where(eq11(knowledgeProcessingQueue.id, queueEntry.id));
+      await db.update(knowledgeProcessingQueue).set({ status: "completed", updatedAt: /* @__PURE__ */ new Date() }).where(eq12(knowledgeProcessingQueue.id, queueEntry.id));
       console.log(`[RAG] Successfully processed ${processedCount}/${chunks.length} chunks`);
       return { success: true, chunksCreated: processedCount };
     } catch (error) {
       console.error(`[RAG] Error processing knowledge item:`, error.message);
-      await db.update(knowledgeProcessingQueue).set({ status: "failed", errorMessage: error.message, updatedAt: /* @__PURE__ */ new Date() }).where(eq11(knowledgeProcessingQueue.knowledgeBaseId, knowledgeBaseId));
+      await db.update(knowledgeProcessingQueue).set({ status: "failed", errorMessage: error.message, updatedAt: /* @__PURE__ */ new Date() }).where(eq12(knowledgeProcessingQueue.knowledgeBaseId, knowledgeBaseId));
       return { success: false, chunksCreated: 0, error: error.message };
     }
+  }
+  /**
+   * Chunks with embeddings for in-memory search (one load per call on the Sarvam pipeline).
+   */
+  static async loadChunksForSearch(knowledgeBaseIds, userId, limit) {
+    if (knowledgeBaseIds.length === 0) return [];
+    const rows = await db.select({ text: knowledgeChunks.chunkText, embedding: knowledgeChunks.embedding }).from(knowledgeChunks).where(and4(inArray5(knowledgeChunks.knowledgeBaseId, knowledgeBaseIds), eq12(knowledgeChunks.userId, userId))).limit(limit);
+    return rows.filter((row) => Array.isArray(row.embedding) && row.embedding.length > 0).map((row) => ({ text: row.text, embedding: row.embedding }));
+  }
+  /**
+   * Re-runs chunking + embeddings for an item from its stored content (failed runs, items created
+   * before RAG existed). Existing chunks and queue rows are dropped first so the status is fresh.
+   */
+  static async reprocessKnowledgeItem(knowledgeBaseId, userId, content, metadata) {
+    await this.deleteKnowledgeChunks(knowledgeBaseId, userId);
+    return this.processKnowledgeItem(knowledgeBaseId, userId, content, metadata);
   }
   /**
    * Search knowledge base using semantic similarity
@@ -9019,9 +9924,9 @@ var RAGKnowledgeService = class {
       }
       const queryEmbedding = await generateEmbedding(query);
       const chunks = await db.select().from(knowledgeChunks).where(
-        and3(
+        and4(
           inArray5(knowledgeChunks.knowledgeBaseId, knowledgeBaseIds),
-          eq11(knowledgeChunks.userId, userId)
+          eq12(knowledgeChunks.userId, userId)
         )
       );
       if (chunks.length === 0) {
@@ -9073,16 +9978,16 @@ var RAGKnowledgeService = class {
    */
   static async deleteKnowledgeChunks(knowledgeBaseId, userId) {
     const chunks = await db.select().from(knowledgeChunks).where(
-      and3(
-        eq11(knowledgeChunks.knowledgeBaseId, knowledgeBaseId),
-        eq11(knowledgeChunks.userId, userId)
+      and4(
+        eq12(knowledgeChunks.knowledgeBaseId, knowledgeBaseId),
+        eq12(knowledgeChunks.userId, userId)
       )
     );
     const totalSize = chunks.reduce((sum, chunk) => {
       return sum + Buffer.byteLength(chunk.chunkText, "utf8");
     }, 0);
-    await db.delete(knowledgeChunks).where(eq11(knowledgeChunks.knowledgeBaseId, knowledgeBaseId));
-    await db.delete(knowledgeProcessingQueue).where(eq11(knowledgeProcessingQueue.knowledgeBaseId, knowledgeBaseId));
+    await db.delete(knowledgeChunks).where(eq12(knowledgeChunks.knowledgeBaseId, knowledgeBaseId));
+    await db.delete(knowledgeProcessingQueue).where(eq12(knowledgeProcessingQueue.knowledgeBaseId, knowledgeBaseId));
     if (totalSize > 0) {
       await this.updateUsedStorage(userId, -totalSize);
     }
@@ -9092,7 +9997,7 @@ var RAGKnowledgeService = class {
    * Get processing status for a knowledge base item
    */
   static async getProcessingStatus(knowledgeBaseId) {
-    const [entry] = await db.select().from(knowledgeProcessingQueue).where(eq11(knowledgeProcessingQueue.knowledgeBaseId, knowledgeBaseId)).orderBy(sql14`${knowledgeProcessingQueue.createdAt} DESC`).limit(1);
+    const [entry] = await db.select().from(knowledgeProcessingQueue).where(eq12(knowledgeProcessingQueue.knowledgeBaseId, knowledgeBaseId)).orderBy(sql15`${knowledgeProcessingQueue.createdAt} DESC`).limit(1);
     if (!entry) {
       return null;
     }
@@ -9107,7 +10012,7 @@ var RAGKnowledgeService = class {
    * Get chunk count for a knowledge base item
    */
   static async getChunkCount(knowledgeBaseId) {
-    const result = await db.select({ count: sql14`count(*)` }).from(knowledgeChunks).where(eq11(knowledgeChunks.knowledgeBaseId, knowledgeBaseId));
+    const result = await db.select({ count: sql15`count(*)` }).from(knowledgeChunks).where(eq12(knowledgeChunks.knowledgeBaseId, knowledgeBaseId));
     return Number(result[0]?.count || 0);
   }
 };
@@ -9218,15 +10123,15 @@ var ToolExecutor = class _ToolExecutor {
         return { success: false, result: "Please provide name, phone, date and time for the appointment." };
       }
       let resolvedFlowId = null;
-      const agentRow = await db.execute(sql15`SELECT flow_id FROM agents WHERE id = ${agentId} LIMIT 1`);
+      const agentRow = await db.execute(sql16`SELECT flow_id FROM agents WHERE id = ${agentId} LIMIT 1`);
       const agentData = agentRow.rows?.[0];
       if (agentData?.flow_id) {
         resolvedFlowId = agentData.flow_id;
       } else {
-        const flowRow = await db.execute(sql15`SELECT id FROM flows WHERE agent_id = ${agentId} AND is_active = true LIMIT 1`);
+        const flowRow = await db.execute(sql16`SELECT id FROM flows WHERE agent_id = ${agentId} AND is_active = true LIMIT 1`);
         resolvedFlowId = flowRow.rows?.[0]?.id || null;
       }
-      const settingsResult = await db.execute(sql15`
+      const settingsResult = await db.execute(sql16`
         SELECT * FROM appointment_settings WHERE user_id = ${userId} LIMIT 1
       `);
       const settings = settingsResult.rows?.[0];
@@ -9275,7 +10180,7 @@ var ToolExecutor = class _ToolExecutor {
         }
       }
       if (callId) {
-        const dupResult = await db.execute(sql15`
+        const dupResult = await db.execute(sql16`
           SELECT id FROM appointments
           WHERE call_id = ${callId} AND appointment_date = ${appointmentDate} AND status = 'scheduled'
           LIMIT 1
@@ -9285,7 +10190,7 @@ var ToolExecutor = class _ToolExecutor {
           return { success: true, result: `Your appointment is already confirmed for ${appointmentDate}.`, appointmentId: existing.id, alreadyBooked: true };
         }
       }
-      const dupByContact = await db.execute(sql15`
+      const dupByContact = await db.execute(sql16`
         SELECT id FROM appointments
         WHERE user_id = ${userId} AND contact_phone = ${params.contactPhone}
           AND appointment_date = ${appointmentDate} AND appointment_time = ${appointmentTime}
@@ -9297,7 +10202,7 @@ var ToolExecutor = class _ToolExecutor {
         return { success: true, result: `Your appointment is confirmed for ${appointmentDate} at ${appointmentTime}.`, appointmentId: existing.id, alreadyBooked: true };
       }
       if (settings && !settings.allow_overlapping) {
-        const overlapResult = await db.execute(sql15`
+        const overlapResult = await db.execute(sql16`
           SELECT id FROM appointments
           WHERE user_id = ${userId} AND appointment_date = ${appointmentDate}
             AND appointment_time = ${appointmentTime} AND status = 'scheduled'
@@ -9308,7 +10213,7 @@ var ToolExecutor = class _ToolExecutor {
         }
       }
       const appointmentId = nanoid2();
-      await db.execute(sql15`
+      await db.execute(sql16`
         INSERT INTO appointments (id, user_id, call_id, flow_id, contact_name, contact_phone, contact_email, appointment_date, appointment_time, duration, service_name, notes, status, metadata)
         VALUES (${appointmentId}, ${userId}, ${callId || null}, ${resolvedFlowId}, ${params.contactName}, ${params.contactPhone}, ${params.contactEmail || null}, ${params.appointmentDate}, ${params.appointmentTime}, ${params.duration || 30}, ${params.serviceName || null}, ${params.notes || null}, 'scheduled', ${JSON.stringify({ source: "custom-voice-engine", agentId })})
       `);
@@ -9317,7 +10222,7 @@ var ToolExecutor = class _ToolExecutor {
         try {
           let sheetTab = googleSheetName || "";
           if (!sheetTab) {
-            const tabsResult = await db.execute(sql15`SELECT list_sheet_tabs(${userId}, ${googleSheetId})`);
+            const tabsResult = await db.execute(sql16`SELECT list_sheet_tabs(${userId}, ${googleSheetId})`);
             sheetTab = tabsResult.rows?.[0]?.list_sheet_tabs?.[0]?.title || "Sheet1";
           }
           const row = [
@@ -9357,7 +10262,7 @@ var ToolExecutor = class _ToolExecutor {
           };
           const eventId = await createCalendarEvent(userId, calendarApt);
           if (eventId) {
-            await db.update(appointments).set({ googleCalendarEventId: eventId, updatedAt: /* @__PURE__ */ new Date() }).where(eq12(appointments.id, appointmentId));
+            await db.update(appointments).set({ googleCalendarEventId: eventId, updatedAt: /* @__PURE__ */ new Date() }).where(eq13(appointments.id, appointmentId));
             console.log(`\u{1F4C5} [GoogleCalendar] Auto-synced appointment ${appointmentId} \u2192 event ${eventId}`);
           }
         }
@@ -9380,14 +10285,14 @@ var ToolExecutor = class _ToolExecutor {
         return { success: false, result: "Form configuration not found." };
       }
       console.log(`[Form Tool] Submitting to form ${formId}:`, JSON.stringify(params));
-      const formResult = await db.execute(sql15`
+      const formResult = await db.execute(sql16`
         SELECT id, name FROM forms WHERE id = ${formId} LIMIT 1
       `);
       const form = formResult.rows?.[0];
       if (!form) {
         return { success: false, result: "Form configuration not found." };
       }
-      const fieldsResult = await db.execute(sql15`
+      const fieldsResult = await db.execute(sql16`
         SELECT id, question, field_type, is_required FROM form_fields WHERE form_id = ${formId} ORDER BY "order" ASC
       `);
       const formFieldRows = fieldsResult.rows || [];
@@ -9417,7 +10322,7 @@ var ToolExecutor = class _ToolExecutor {
         }
       }
       const submissionId = nanoid2();
-      await db.execute(sql15`
+      await db.execute(sql16`
         INSERT INTO form_submissions (id, form_id, call_id, contact_name, contact_phone, responses)
         VALUES (${submissionId}, ${formId}, ${callId || null}, ${params.contactName || params.fullName || null}, ${params.contactPhone || params.phone || null}, ${JSON.stringify(responses)})
       `);
@@ -10429,7 +11334,7 @@ var AudioSession = class extends EventEmitter {
         timestamp: (/* @__PURE__ */ new Date()).toISOString()
       });
       try {
-        const userResult = await db.execute(sql16`
+        const userResult = await db.execute(sql17`
           SELECT email FROM users WHERE id = ${this.userId} LIMIT 1
         `);
         if (userResult.rows[0]?.email === "demo@diploy.in") {
@@ -10741,7 +11646,7 @@ var AudioSession = class extends EventEmitter {
         console.log(`[AudioSession:${this.id}] WAV file successfully written to disk. File size: ${wavBuffer.length} bytes`);
         const textTranscript = typeof this.session.transcript === "string" ? this.session.transcript : JSON.stringify(this.session.transcript || []);
         console.log(`[AudioSession:${this.id}] Inserting recording metadata into ve_call_recordings table...`);
-        await db.execute(sql16`
+        await db.execute(sql17`
           INSERT INTO ve_call_recordings (
             session_id, user_id, call_id, storage_backend, storage_path, storage_url, file_size, duration_seconds, format, status, transcript, created_at
           ) VALUES (
@@ -11415,7 +12320,7 @@ var AudioSession = class extends EventEmitter {
 
 // plugins/custom-voice-engine/services/audio-pipeline/ws-audio-server.ts
 init_db();
-import { sql as sql19 } from "drizzle-orm";
+import { sql as sql20 } from "drizzle-orm";
 
 // plugins/custom-voice-engine/services/freeswitch/esl-connection.ts
 import { Socket } from "net";
@@ -11805,7 +12710,7 @@ var AudioWebSocketServer = class {
   async initializeEslConnections(wsUrl) {
     await this.closeEslConnections();
     try {
-      const nodesResult = await db.execute(sql19`
+      const nodesResult = await db.execute(sql20`
         SELECT * FROM ve_freeswitch_nodes WHERE status = 'online'
       `);
       for (const node of camelizeKeys(nodesResult.rows)) {
@@ -11876,7 +12781,7 @@ var AudioWebSocketServer = class {
                 if (isUnanswered) {
                   console.log(`[AudioWS] CHANNEL_HANGUP (${hangupCause}) \u2014 call never answered for ${channelUuid}. Marking as failed.`);
                   try {
-                    await db.execute(sql19`
+                    await db.execute(sql20`
                       UPDATE ve_sessions
                       SET status = 'failed',
                           end_reason = ${hangupCause.toLowerCase()},
@@ -11899,7 +12804,7 @@ var AudioWebSocketServer = class {
                 if (isUnanswered) {
                   console.log(`[AudioWS] CHANNEL_HANGUP (${hangupCause}) \u2014 no session in memory for ${channelUuid}, updating DB status.`);
                   try {
-                    await db.execute(sql19`
+                    await db.execute(sql20`
                       UPDATE ve_sessions
                       SET status = 'failed',
                           end_reason = ${hangupCause.toLowerCase()},
@@ -11912,7 +12817,7 @@ var AudioWebSocketServer = class {
                   }
                 } else {
                   try {
-                    const sessionResult = await db.execute(sql19`
+                    const sessionResult = await db.execute(sql20`
                       SELECT * FROM ve_sessions WHERE id = ${channelUuid} LIMIT 1
                     `);
                     const sessionData = sessionResult.rows?.[0];
@@ -11927,7 +12832,7 @@ var AudioWebSocketServer = class {
                         const additionalMinutes = newMinutes - oldMinutes;
                         let newCreditsUsed = sessionData.credits_used || 0;
                         if (additionalMinutes > 0) {
-                          const creditPriceResult = await db.execute(sql19`
+                          const creditPriceResult = await db.execute(sql20`
                             SELECT value FROM global_settings WHERE key = 'credit_price_per_minute' LIMIT 1
                           `);
                           const creditPriceSetting = creditPriceResult.rows?.[0];
@@ -11956,7 +12861,7 @@ var AudioWebSocketServer = class {
                             }
                           }
                         }
-                        await db.execute(sql19`
+                        await db.execute(sql20`
                           UPDATE ve_sessions
                           SET duration_seconds = ${totalDuration},
                               credits_used = ${newCreditsUsed},
@@ -12124,7 +13029,7 @@ var AudioWebSocketServer = class {
           const userId = session.userId;
           let activeGateway = null;
           if (userId) {
-            const userGatewayResult = await db.execute(sql19`
+            const userGatewayResult = await db.execute(sql20`
               SELECT name FROM user_sip_gateways WHERE user_id = ${userId} AND is_active = true LIMIT 1
             `);
             activeGateway = userGatewayResult.rows[0];
@@ -12149,7 +13054,7 @@ var AudioWebSocketServer = class {
           }
         }
         try {
-          await db.execute(sql19`
+          await db.execute(sql20`
             UPDATE ve_sessions
             SET end_reason = 'transferred',
                 updated_at = NOW()
@@ -12252,7 +13157,7 @@ var AudioWebSocketServer = class {
   }
   async resolveSessionDynamically(sessionId) {
     try {
-      const sessionResult = await db.execute(sql19`
+      const sessionResult = await db.execute(sql20`
         SELECT * FROM ve_sessions WHERE id = ${sessionId} LIMIT 1
       `);
       let sessionData = null;
@@ -12264,7 +13169,7 @@ var AudioWebSocketServer = class {
         console.log(`[AudioWS] Found pre-registered session for ID: ${sessionId}`);
       } else {
         console.log(`[AudioWS] Inbound call detected. Querying FreeSWITCH for channel ${sessionId}...`);
-        const nodesResult = await db.execute(sql19`
+        const nodesResult = await db.execute(sql20`
           SELECT * FROM ve_freeswitch_nodes WHERE status = 'online' ORDER BY created_at ASC
         `);
         const nodes = camelizeKeys(nodesResult.rows);
@@ -12306,7 +13211,7 @@ var AudioWebSocketServer = class {
       if (!targetAgentId && toNumber) {
         const cleanToNumber = toNumber.startsWith("+") ? toNumber.substring(1) : toNumber;
         const plusToNumber = toNumber.startsWith("+") ? toNumber : "+" + toNumber;
-        let connResult = await db.execute(sql19`
+        let connResult = await db.execute(sql20`
           SELECT agent_id FROM incoming_connections ic
           JOIN phone_numbers pn ON ic.phone_number_id = pn.id
           WHERE pn.phone_number = ${toNumber} OR pn.phone_number = ${cleanToNumber} OR pn.phone_number = ${plusToNumber} LIMIT 1
@@ -12315,7 +13220,7 @@ var AudioWebSocketServer = class {
           targetAgentId = connResult.rows[0].agent_id;
           console.log(`[AudioWS] Found incoming connection mapping for ${toNumber} -> agentId: ${targetAgentId}`);
         } else {
-          connResult = await db.execute(sql19`
+          connResult = await db.execute(sql20`
             SELECT assigned_agent_id as agent_id FROM plivo_phone_numbers
             WHERE phone_number = ${toNumber} OR phone_number = ${cleanToNumber} OR phone_number = ${plusToNumber} LIMIT 1
           `);
@@ -12325,7 +13230,7 @@ var AudioWebSocketServer = class {
           }
         }
         if (!targetAgentId) {
-          connResult = await db.execute(sql19`
+          connResult = await db.execute(sql20`
             SELECT agent_id FROM user_sip_phone_numbers
             WHERE phone_number = ${toNumber} OR phone_number = ${cleanToNumber} OR phone_number = ${plusToNumber} LIMIT 1
           `);
@@ -12336,23 +13241,23 @@ var AudioWebSocketServer = class {
         }
       }
       if (targetAgentId) {
-        agentResult = await db.execute(sql19`
+        agentResult = await db.execute(sql20`
           SELECT * FROM ve_voice_agents WHERE id = ${targetAgentId} LIMIT 1
         `);
         if (agentResult.rows.length === 0) {
-          agentResult = await db.execute(sql19`
+          agentResult = await db.execute(sql20`
             SELECT * FROM agents WHERE id = ${targetAgentId} LIMIT 1
           `);
         }
       } else {
         if (toNumber) {
-          agentResult = await db.execute(sql19`
+          agentResult = await db.execute(sql20`
             SELECT * FROM ve_voice_agents 
             WHERE is_active = true AND (name = ${toNumber} OR description LIKE ${"%" + toNumber + "%"})
             LIMIT 1
           `);
           if (agentResult.rows.length === 0) {
-            agentResult = await db.execute(sql19`
+            agentResult = await db.execute(sql20`
               SELECT * FROM agents 
               WHERE is_active = true AND telephony_provider = 'custom-voice-engine' AND name = ${toNumber}
               LIMIT 1
@@ -12373,11 +13278,11 @@ var AudioWebSocketServer = class {
             }
             return null;
           }
-          agentResult = await db.execute(sql19`
+          agentResult = await db.execute(sql20`
             SELECT * FROM ve_voice_agents WHERE is_active = true ORDER BY created_at ASC LIMIT 1
           `);
           if (agentResult.rows.length === 0) {
-            agentResult = await db.execute(sql19`
+            agentResult = await db.execute(sql20`
               SELECT * FROM agents WHERE is_active = true AND telephony_provider = 'custom-voice-engine' ORDER BY created_at ASC LIMIT 1
             `);
           }
@@ -12393,12 +13298,12 @@ var AudioWebSocketServer = class {
         agent.firstMessage = agent.firstMessage.replace(/\{\{(phone|phone_number)\}\}/gi, spacedDigits);
       }
       let flow = null;
-      const flowExecResult = await db.execute(sql19`
+      const flowExecResult = await db.execute(sql20`
         SELECT * FROM flow_executions WHERE call_id = ${sessionId} AND status = 'running' LIMIT 1
       `);
       if (flowExecResult.rows.length > 0) {
         const flowExec = camelizeKeys(flowExecResult.rows[0]);
-        const flowResult = await db.execute(sql19`
+        const flowResult = await db.execute(sql20`
           SELECT * FROM flows WHERE id = ${flowExec.flowId} LIMIT 1
         `);
         if (flowResult.rows.length > 0) {
@@ -12418,7 +13323,7 @@ var AudioWebSocketServer = class {
       if (!flow) {
         if (agent.type === "flow" && agent.flowId) {
           console.log(`[AudioWS] Agent is flow-based, loading flow ${agent.flowId}`);
-          const flowResult = await db.execute(sql19`
+          const flowResult = await db.execute(sql20`
             SELECT * FROM flows WHERE id = ${agent.flowId} LIMIT 1
           `);
           if (flowResult.rows.length > 0) {
@@ -12433,7 +13338,7 @@ var AudioWebSocketServer = class {
           }
         } else {
           console.log(`[AudioWS] Agent ${agent.id} type is ${agent.type || "unknown"}, checking for active flow assigned to this agent`);
-          const flowResult = await db.execute(sql19`
+          const flowResult = await db.execute(sql20`
             SELECT * FROM flows WHERE agent_id = ${agent.id} AND is_active = true LIMIT 1
           `);
           if (flowResult.rows.length > 0) {
@@ -12523,13 +13428,13 @@ ${agent.systemPrompt || ""}`;
       }
       const userId = agent.userId;
       if (isNewSession) {
-        const checkAgentInVe = await db.execute(sql19`
+        const checkAgentInVe = await db.execute(sql20`
           SELECT id FROM ve_voice_agents WHERE id = ${agent.id} LIMIT 1
         `);
         const isVeAgent = checkAgentInVe.rows.length > 0;
         const dbAgentId = isVeAgent ? agent.id : null;
         const metadata = !isVeAgent ? { agentId: agent.id } : null;
-        const insertResult = await db.execute(sql19`
+        const insertResult = await db.execute(sql20`
           INSERT INTO ve_sessions (
             id, user_id, agent_id, from_number, to_number, direction, status, channel_uuid, metadata
           ) VALUES (
@@ -12541,7 +13446,7 @@ ${agent.systemPrompt || ""}`;
       }
       let apptSettingsText = "";
       try {
-        const apptSettingsResult = await db.execute(sql19`
+        const apptSettingsResult = await db.execute(sql20`
           SELECT * FROM appointment_settings WHERE user_id = ${userId} LIMIT 1
         `);
         const apptSettings = apptSettingsResult.rows?.[0];
@@ -12571,7 +13476,7 @@ ${agent.systemPrompt || ""}`;
       } catch (apptErr) {
         console.warn(`[AudioWS] Failed to fetch appointment settings for user ${userId}:`, apptErr.message);
       }
-      const globalSettingsResult = await db.execute(sql19`
+      const globalSettingsResult = await db.execute(sql20`
         SELECT key, value FROM global_settings WHERE key IN (
           've_stt_active_provider', 've_llm_active_provider', 've_tts_active_provider',
           've_deepgram_api_key', 've_sarvam_api_key', 've_openrouter_api_key',
@@ -12598,7 +13503,7 @@ ${agent.systemPrompt || ""}`;
       let ttsModel = ttsProvider === "sarvam" ? globalSettingsMap["ve_tts_sarvam_model"] || "bulbul:v3" : globalSettingsMap["ve_tts_deepgram_model"] || "aura-asteria-en";
       let ttsSpeaker = ttsProvider === "sarvam" ? globalSettingsMap["ve_tts_sarvam_speaker"] || "neha" : "";
       let ttsConfig = {};
-      const providerConfigResult = await db.execute(sql19`
+      const providerConfigResult = await db.execute(sql20`
         SELECT * FROM ve_provider_configs WHERE user_id = ${userId} LIMIT 1
       `);
       if (providerConfigResult.rows.length > 0) {
@@ -12768,7 +13673,7 @@ You MUST speak ONLY in ${languageName}. From the very first word you say, speak 
       try {
         const sess = session.getSession();
         const channelUuid = sess.channelUuid || session.id;
-        await db.execute(sql19`
+        await db.execute(sql20`
           UPDATE ve_sessions
           SET status = ${sess.status},
               duration_seconds = GREATEST(duration_seconds, ${sess.durationSeconds || 0}),
@@ -12794,7 +13699,7 @@ You MUST speak ONLY in ${languageName}. From the very first word you say, speak 
           const sess = session.getSession();
           const duration = sess.durationSeconds || 0;
           if (duration > 0) {
-            const creditPriceResult = await db.execute(sql19`
+            const creditPriceResult = await db.execute(sql20`
               SELECT value FROM global_settings WHERE key = 'credit_price_per_minute' LIMIT 1
             `);
             const creditPriceSetting = creditPriceResult.rows?.[0];

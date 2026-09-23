@@ -28,6 +28,7 @@ import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { webhookDeliveryService } from '../../../services/webhook-delivery';
 import { validateWebhookUrl } from '../../../utils/url-validator';
+import { bodyVariableKeys, describeWhatsappVariables, parseWhatsappVariables, type WhatsappTemplateVariables } from '../../../services/call-messaging-tools';
 
 /**
  * Context passed to tool handlers during calls
@@ -727,6 +728,7 @@ export class OpenAIAgentFactory {
           },
           template_name: {
             type: 'string',
+            ...(templateNames.length > 0 ? { enum: templateNames } : {}),
             description: templateName
               ? `The email template to use. ALWAYS use "${templateName}".`
               : `The name of the email template to use. ${templateInstruction}`
@@ -790,67 +792,43 @@ export class OpenAIAgentFactory {
     callId: string | undefined,
     templateName?: string | null,
     templateNames: string[] = [],
-    variableDescriptions?: string | null
+    templateVariables: WhatsappTemplateVariables = {}
   ): AgentConfigWithContext {
     if (config.tools?.some(t => t.name === 'send_whatsapp')) {
       console.log(`[Agent Factory] send_whatsapp tool already exists, skipping`);
       return config;
     }
 
+    // Templates the agent may choose from: the explicit list wins over the legacy single template
+    const lockedTemplate = templateNames.length === 0 && templateName ? templateName : null;
+    const allowed = templateNames.length > 0 ? templateNames : lockedTemplate ? [lockedTemplate] : Object.keys(templateVariables);
+    const describe = (name: string) => `"${name}": ${describeWhatsappVariables(templateVariables[name])}`;
+
     let templateInstruction: string;
-    if (templateName) {
-      templateInstruction = `You MUST use the template named "${templateName}".`;
-    } else if (templateNames.length > 0) {
-      templateInstruction = `Available WhatsApp templates: ${templateNames.join(', ')}.`;
+    if (lockedTemplate) {
+      templateInstruction = `You MUST use the template named "${lockedTemplate}". Its body variables: ${describeWhatsappVariables(templateVariables[lockedTemplate])}.`;
+    } else if (allowed.length > 0) {
+      templateInstruction = `Available WhatsApp templates and their body variables: ${allowed.map(describe).join('; ')}.`;
     } else {
       templateInstruction = 'Use the template name configured by the user.';
     }
+    const hasCollectVars = allowed.some(name => {
+      const spec = templateVariables[name];
+      return bodyVariableKeys(spec).some(k => spec[k].mode === 'collect');
+    });
+    const variableInstruction = hasCollectVars
+      ? ' Collect every "collect" variable from the caller before sending. Fixed variables are filled automatically — never ask the caller for those.'
+      : '';
 
-    let parsedVars: Record<string, any> = {};
-    try {
-      if (variableDescriptions) parsedVars = JSON.parse(variableDescriptions);
-    } catch { /* ignore */ }
-
-    const fixedVars: Record<string, string> = {};
-    const collectVars: Record<string, string> = {};
-    const fixedButtonVars: Record<number, string> = {};
-    for (const [idx, val] of Object.entries(parsedVars)) {
-      if (typeof val === 'string') {
-        collectVars[idx] = val;
-      } else if (val && typeof val === 'object' && (val as any).componentType === 'button') {
-        const btnIdx = idx.startsWith('btn_') ? parseInt(idx.replace('btn_', ''), 10) : parseInt(idx, 10);
-        if (!isNaN(btnIdx)) {
-          fixedButtonVars[btnIdx] = (val as any).value || '';
-        }
-      } else if (val && typeof val === 'object' && (val as any).mode === 'fixed') {
-        fixedVars[idx] = (val as any).value || '';
-      } else if (val && typeof val === 'object' && (val as any).mode === 'collect') {
-        collectVars[idx] = (val as any).value || '';
-      }
-    }
-
-    const hasCollectVars = Object.keys(collectVars).length > 0;
-    const hasFixedVars = Object.keys(fixedVars).length > 0;
-    const hasAnyVars = hasCollectVars || hasFixedVars;
-
-    let variableInstruction = '';
-    if (hasCollectVars) {
-      const varList = Object.entries(collectVars).map(([idx, desc]) => `{{${idx}}} = ${desc}`).join(', ');
-      variableInstruction += ` This template has variables you MUST collect from the caller: ${varList}. Collect these values from the conversation before sending.`;
-    }
-    if (hasFixedVars) {
-      const fixedList = Object.entries(fixedVars).map(([idx, val]) => `{{${idx}}}`).join(', ');
-      variableInstruction += ` The following variables are pre-filled automatically: ${fixedList}. Do NOT ask the caller for these values.`;
-    }
-
-    console.log(`[Agent Factory] Adding send_whatsapp tool (${hasCollectVars ? Object.keys(collectVars).length + ' collect' : '0 collect'}, ${hasFixedVars ? Object.keys(fixedVars).length + ' fixed' : '0 fixed'})`);
+    console.log(`[Agent Factory] Adding send_whatsapp tool (${allowed.length} template(s), ${hasCollectVars ? 'with' : 'no'} collect variables)`);
 
     const properties: Record<string, any> = {
       template_name: {
         type: 'string',
-        description: templateName
-          ? `The WhatsApp template to send. ALWAYS use "${templateName}".`
-          : `The name of the WhatsApp template to send. ${templateInstruction}`
+        ...(allowed.length > 0 ? { enum: allowed } : {}),
+        description: lockedTemplate
+          ? `The WhatsApp template to send. ALWAYS use "${lockedTemplate}".`
+          : 'The name of the WhatsApp template to send.'
       },
       language: {
         type: 'string',
@@ -859,27 +837,13 @@ export class OpenAIAgentFactory {
       phone_number: {
         type: 'string',
         description: 'The phone number to send the WhatsApp message to. Use the caller phone number from the call if available.'
+      },
+      variables: {
+        type: 'object',
+        description: 'Body variable values keyed by position, e.g. {"1": "Rahul", "2": "Monday 5pm"}. Provide every collect variable of the chosen template.',
+        additionalProperties: { type: 'string' }
       }
     };
-
-    if (hasCollectVars) {
-      const varProperties: Record<string, any> = {};
-      const varRequired: string[] = [];
-      for (const [idx, desc] of Object.entries(collectVars)) {
-        const key = `var_${idx}`;
-        varProperties[key] = {
-          type: 'string',
-          description: `Value for template variable {{${idx}}}: ${desc}`
-        };
-        varRequired.push(key);
-      }
-      properties.variables = {
-        type: 'object',
-        description: 'Template variable values to collect from the caller. Each key corresponds to a placeholder in the template.',
-        properties: varProperties,
-        required: varRequired,
-      };
-    }
 
     const whatsappTool: AgentTool = {
       name: 'send_whatsapp',
@@ -887,9 +851,9 @@ export class OpenAIAgentFactory {
       parameters: {
         type: 'object',
         properties,
-        required: hasCollectVars ? ['template_name', 'variables'] : ['template_name'],
+        required: ['template_name'],
       },
-      _messagingContext: { userId, agentId, callId, defaultTemplate: templateName || undefined, fixedVariables: hasFixedVars ? fixedVars : undefined, fixedButtonVariables: Object.keys(fixedButtonVars).length > 0 ? fixedButtonVars : undefined },
+      _messagingContext: { userId, agentId, callId, defaultTemplate: lockedTemplate || undefined, templateVariables },
     } as any;
 
     return {
@@ -2054,6 +2018,8 @@ LANGUAGE DETECTION: You have automatic language detection enabled. Listen carefu
       messagingEmailTemplate?: string | null;
       messagingWhatsappTemplate?: string | null;
       messagingWhatsappVariables?: string | null;
+      messagingEmailTemplates?: string[] | null;
+      messagingWhatsappTemplates?: string[] | null;
     },
     userTier: 'free' | 'pro',
     callId?: string,
@@ -2121,12 +2087,18 @@ LANGUAGE DETECTION: You have automatic language detection enabled. Listen carefu
 
     // Add messaging email tool if enabled
     if (agent.messagingEmailEnabled) {
-      config = this.addMessagingEmailTool(config, agent.userId, agent.id, callId, agent.messagingEmailTemplate);
+      const emailNames = (agent.messagingEmailTemplates || []).filter(Boolean);
+      config = this.addMessagingEmailTool(config, agent.userId, agent.id, callId, emailNames.length ? null : agent.messagingEmailTemplate, emailNames);
     }
 
     // Add messaging WhatsApp tool if enabled
     if (agent.messagingWhatsappEnabled) {
-      config = this.addMessagingWhatsAppTool(config, agent.userId, agent.id, callId, agent.messagingWhatsappTemplate, [], agent.messagingWhatsappVariables);
+      const whatsappNames = (agent.messagingWhatsappTemplates || []).filter(Boolean);
+      config = this.addMessagingWhatsAppTool(
+        config, agent.userId, agent.id, callId,
+        whatsappNames.length ? null : agent.messagingWhatsappTemplate, whatsappNames,
+        parseWhatsappVariables(agent.messagingWhatsappVariables, agent.messagingWhatsappTemplate)
+      );
     }
 
     console.log(`[Agent Factory] Created config with ${config.tools?.length || 0} tools`);

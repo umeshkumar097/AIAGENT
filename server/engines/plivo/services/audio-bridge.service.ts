@@ -23,6 +23,17 @@ import { db } from '../../../db';
 import { plivoCredentials, plivoCalls, agents, appointments } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
 import { openaiPoolManager } from '../../../infrastructure';
+import { resolveWhatsappVariables, type WhatsappTemplateVariables } from '../../../services/call-messaging-tools';
+
+/** `_messagingContext` attached to the send_email / send_whatsapp tools by the agent factory. */
+interface MessagingToolContext {
+  userId: string;
+  agentId: string;
+  callId?: string;
+  defaultTemplate?: string;
+  /** Per-template body variable specs (keyed by template name) */
+  templateVariables?: WhatsappTemplateVariables;
+}
 
 /**
  * Mulaw decoding table (256 entries for byte values 0-255)
@@ -1445,13 +1456,13 @@ CONVERSATION PACING (CRITICAL):
    * 
    * The audio file must be publicly accessible (mp3 or wav)
    */
-  private static getMessagingContext(session: AudioBridgeSession, toolName: string): { userId: string; agentId: string; callId?: string; defaultTemplate?: string; fixedVariables?: Record<string, string>; fixedButtonVariables?: Record<number, string> } | null {
+  private static getMessagingContext(session: AudioBridgeSession, toolName: string): MessagingToolContext | null {
     if (!session.agentConfig.tools) return null;
     for (const tool of session.agentConfig.tools) {
       if (tool.name === toolName) {
         const toolAny = tool as unknown as Record<string, unknown>;
         if (toolAny._messagingContext) {
-          return toolAny._messagingContext as { userId: string; agentId: string; callId?: string; defaultTemplate?: string; fixedVariables?: Record<string, string>; fixedButtonVariables?: Record<number, string> };
+          return toolAny._messagingContext as MessagingToolContext;
         }
       }
     }
@@ -1627,33 +1638,15 @@ CONVERSATION PACING (CRITICAL):
       return { success: false, message: 'Could not determine the recipient phone number.' };
     }
 
-    const collectedVars = params.variables as Record<string, string> | undefined;
-    const fixedVars = ctx.fixedVariables;
-
-    const mergedVars: Record<number, string> = {};
-    if (fixedVars) {
-      for (const [idx, val] of Object.entries(fixedVars)) {
-        mergedVars[parseInt(idx, 10)] = val;
-      }
+    // Fixed variables come from the agent's per-template config; every collect variable must be supplied
+    const { components: bodyComponents, missing, buttonOverrides } = resolveWhatsappVariables(
+      ctx.templateVariables?.[templateName],
+      params.variables
+    );
+    if (missing.length > 0) {
+      return { success: false, message: `Ask the caller for: ${missing.join(', ')}.` };
     }
-    if (collectedVars && typeof collectedVars === 'object') {
-      for (const [key, val] of Object.entries(collectedVars)) {
-        if (key.startsWith('var_')) {
-          const idx = parseInt(key.replace('var_', ''), 10);
-          mergedVars[idx] = String(val || ' ');
-        }
-      }
-    }
-
-    let components: any[] = [];
-    const sortedIndices = Object.keys(mergedVars).map(Number).sort((a, b) => a - b);
-    if (sortedIndices.length > 0) {
-      const parameters = sortedIndices.map(idx => ({
-        type: 'text',
-        text: mergedVars[idx] || ' ',
-      }));
-      components = [{ type: 'body', parameters }];
-    }
+    let components: any[] = bodyComponents;
 
     try {
       const { metaWhatsAppService, MetaWhatsAppService } = await import('../../../../plugins/messaging/services/meta-whatsapp.service');
@@ -1666,7 +1659,7 @@ CONVERSATION PACING (CRITICAL):
         try {
           const templateDef = await metaWhatsAppService.getTemplateByName(ctx.userId, templateName);
           if (templateDef && templateDef.components) {
-            const buttonComponents = MetaWhatsAppService.buildButtonComponents(templateDef.components, ctx.fixedButtonVariables);
+            const buttonComponents = MetaWhatsAppService.buildButtonComponents(templateDef.components, buttonOverrides);
             if (buttonComponents.length > 0) {
               components = [...components, ...buttonComponents];
               logger.info(`[send_whatsapp] Auto-added ${buttonComponents.length} button component(s) for template "${templateName}"`, undefined, 'AudioBridge');

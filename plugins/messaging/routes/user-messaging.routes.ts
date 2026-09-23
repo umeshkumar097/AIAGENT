@@ -201,8 +201,8 @@ router.get('/whatsway/settings', async (req: Request, res: Response) => {
       res.json({ success: true, data: null });
     }
   } catch (error: any) {
-    console.error('[Messaging] Error fetching WhatsWay settings:', error.message);
-    res.status(500).json({ success: false, error: 'Failed to fetch WhatsWay settings' });
+    console.error('[Messaging] Error fetching Waki settings:', error.message);
+    res.status(500).json({ success: false, error: 'Failed to fetch Waki settings' });
   }
 });
 
@@ -213,7 +213,7 @@ router.post('/whatsway/settings', async (req: Request, res: Response) => {
 
     const whatswayAllowed = await metaWhatsAppAdminService.isWhatswayAllowed();
     if (!whatswayAllowed) {
-      return res.status(403).json({ success: false, error: 'WhatsWay is not enabled by the administrator' });
+      return res.status(403).json({ success: false, error: 'Waki is not enabled by the administrator' });
     }
 
     const { apiKey, apiSecret, baseUrl, channelId } = req.body;
@@ -230,15 +230,15 @@ router.post('/whatsway/settings', async (req: Request, res: Response) => {
       const accountInfo = await whatswayService.testConnection(userId, true);
       verified = true;
       accountName = accountInfo?.name || accountInfo?.businessName || '';
-      console.log(`[Messaging] WhatsWay credentials verified for user ${userId}: ${accountName}`);
+      console.log(`[Messaging] Waki credentials verified for user ${userId}: ${accountName}`);
 
       try {
         await metaWhatsAppService.deactivate(userId);
-        console.log(`[Messaging] Deactivated Meta WhatsApp for user ${userId} (WhatsWay is now active)`);
+        console.log(`[Messaging] Deactivated Meta WhatsApp for user ${userId} (Waki is now active)`);
       } catch (_) {}
     } catch (verErr: any) {
       verifyError = verErr.message || 'Verification failed';
-      console.log(`[Messaging] WhatsWay credentials saved but verification failed for user ${userId}: ${verifyError}`);
+      console.log(`[Messaging] Waki credentials saved but verification failed for user ${userId}: ${verifyError}`);
     }
 
     res.json({
@@ -253,8 +253,8 @@ router.post('/whatsway/settings', async (req: Request, res: Response) => {
       },
     });
   } catch (error: any) {
-    console.error('[Messaging] Error saving WhatsWay settings:', error.message);
-    res.status(500).json({ success: false, error: 'Failed to save WhatsWay settings' });
+    console.error('[Messaging] Error saving Waki settings:', error.message);
+    res.status(500).json({ success: false, error: 'Failed to save Waki settings' });
   }
 });
 
@@ -266,8 +266,8 @@ router.delete('/whatsway/settings', async (req: Request, res: Response) => {
     await whatswayService.deleteSettings(userId);
     res.json({ success: true });
   } catch (error: any) {
-    console.error('[Messaging] Error deleting WhatsWay settings:', error.message);
-    res.status(500).json({ success: false, error: 'Failed to delete WhatsWay settings' });
+    console.error('[Messaging] Error deleting Waki settings:', error.message);
+    res.status(500).json({ success: false, error: 'Failed to delete Waki settings' });
   }
 });
 
@@ -279,8 +279,8 @@ router.post('/whatsway/test-connection', async (req: Request, res: Response) => 
     const accountInfo = await whatswayService.testConnection(userId);
     res.json({ success: true, data: accountInfo });
   } catch (error: any) {
-    console.error('[Messaging] WhatsWay connection test failed:', error.message);
-    res.status(400).json({ success: false, error: 'Failed to test WhatsWay connection' });
+    console.error('[Messaging] Waki connection test failed:', error.message);
+    res.status(400).json({ success: false, error: 'Failed to test Waki connection' });
   }
 });
 
@@ -292,8 +292,8 @@ router.get('/whatsway/templates', async (req: Request, res: Response) => {
     const templates = await whatswayService.getTemplates(userId);
     res.json({ success: true, data: templates });
   } catch (error: any) {
-    console.error('[Messaging] Error fetching WhatsWay templates:', error.message);
-    res.status(400).json({ success: false, error: 'Failed to fetch WhatsWay templates' });
+    console.error('[Messaging] Error fetching Waki templates:', error.message);
+    res.status(400).json({ success: false, error: 'Failed to fetch Waki templates' });
   }
 });
 
@@ -365,7 +365,7 @@ router.post('/meta-whatsapp/settings', async (req: Request, res: Response) => {
 
       try {
         await whatswayService.deactivate(userId);
-        console.log(`[Messaging] Deactivated WhatsWay for user ${userId} (Meta WhatsApp is now active)`);
+        console.log(`[Messaging] Deactivated Waki for user ${userId} (Meta WhatsApp is now active)`);
       } catch (_) {}
     } catch (verErr: any) {
       verifyError = verErr.message || 'Verification failed';
@@ -594,7 +594,7 @@ router.post('/conversations/:id/messages', async (req: Request, res: Response) =
 
     const provider = await getActiveWhatsAppProvider(userId);
     if (!provider) {
-      return res.status(400).json({ success: false, error: 'No WhatsApp provider configured. Please set up WhatsWay or Meta WhatsApp in your messaging settings.' });
+      return res.status(400).json({ success: false, error: 'No WhatsApp provider configured. Please set up Waki or Meta WhatsApp in your messaging settings.' });
     }
 
     const { type, content, templateName, language, components, mediaId, caption, filename, mimeType, latitude, longitude, locationName, address } = req.body;
@@ -960,7 +960,7 @@ router.post('/meta-whatsapp/embedded-signup/callback', async (req: Request, res:
 
     try {
       await whatswayService.deactivate(userId);
-      console.log(`[Messaging] Deactivated WhatsWay for user ${userId} (Embedded Signup completed)`);
+      console.log(`[Messaging] Deactivated Waki for user ${userId} (Embedded Signup completed)`);
     } catch (_) {}
 
     let businessName = '';

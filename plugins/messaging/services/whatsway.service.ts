@@ -3,6 +3,9 @@ import { sql } from 'drizzle-orm';
 import type { WhatswaySettings, WhatswayTemplate, WhatswayAccountInfo } from '../types';
 import { messagingLogService } from './messaging-log.service';
 
+/** Waki (formerly WhatsWay) — the platform's own WhatsApp product. Same API, new home. */
+export const WAKI_DEFAULT_BASE_URL = 'https://app.waki.in';
+
 function snakeToCamel(str: string): string {
   return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
 }
@@ -28,7 +31,7 @@ export class WhatswayService {
     userId: string,
     data: { apiKey: string; apiSecret: string; baseUrl?: string; channelId?: string }
   ): Promise<WhatswaySettings> {
-    const baseUrl = data.baseUrl || 'https://whatsway.diploy.in';
+    const baseUrl = data.baseUrl || WAKI_DEFAULT_BASE_URL;
     const channelId = data.channelId || '';
     const result = await db.execute(sql`
       INSERT INTO whatsway_settings (user_id, api_key, api_secret, base_url, channel_id)
@@ -59,10 +62,10 @@ export class WhatswayService {
   private async getCredentials(userId: string, skipActiveCheck = false): Promise<{ apiKey: string; apiSecret: string; baseUrl: string; channelId: string }> {
     const settings = await this.getSettings(userId);
     if (!settings) {
-      throw new Error('WhatsWay not configured. Please add your API credentials first.');
+      throw new Error('Waki not configured. Please add your Waki API key, secret and channel ID first.');
     }
     if (!skipActiveCheck && !settings.isActive) {
-      throw new Error('WhatsWay integration is disabled.');
+      throw new Error('Waki integration is disabled.');
     }
     return {
       apiKey: settings.apiKey,
@@ -96,17 +99,17 @@ export class WhatswayService {
       options.body = JSON.stringify(body);
     }
 
-    console.log(`[WhatsWay] ${method} ${url}`);
+    console.log(`[Waki] ${method} ${url}`);
 
     const response = await fetch(url, options);
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
-      let errorMessage = `WhatsWay API error (${response.status})`;
+      let errorMessage = `Waki API error (${response.status})`;
       if (response.status === 401 || response.status === 403) {
-        errorMessage = 'Invalid WhatsWay API credentials';
+        errorMessage = 'Invalid Waki API credentials';
       } else if (response.status === 429) {
-        errorMessage = 'WhatsWay rate limit exceeded. Please try again later.';
+        errorMessage = 'Waki rate limit exceeded. Please try again later.';
       } else {
         try {
           const errorJson = JSON.parse(errorText);
@@ -124,7 +127,7 @@ export class WhatswayService {
   async testConnection(userId: string, skipActiveCheck = false): Promise<WhatswayAccountInfo> {
     const response = await this.makeRequest(userId, 'GET', '/api/v1/account', undefined, skipActiveCheck);
     if (!response.success) {
-      throw new Error(response.error || 'Failed to connect to WhatsWay');
+      throw new Error(response.error || 'Failed to connect to Waki');
     }
     return response.data;
   }
@@ -166,7 +169,7 @@ export class WhatswayService {
         responseData: response.data,
       });
 
-      console.log(`✅ [WhatsWay] Template "${templateName}" sent to ${to}`);
+      console.log(`✅ [Waki] Template "${templateName}" sent to ${to}`);
       return response.data;
     } catch (error: any) {
       await messagingLogService.logMessage(userId, 'whatsapp', {
@@ -177,7 +180,7 @@ export class WhatswayService {
         status: 'failed',
         errorMessage: error.message,
       });
-      console.log(`❌ [WhatsWay] Failed to send template "${templateName}" to ${to}: ${error.message}`);
+      console.log(`❌ [Waki] Failed to send template "${templateName}" to ${to}: ${error.message}`);
       throw error;
     }
   }
@@ -207,7 +210,7 @@ export class WhatswayService {
         responseData: response.data,
       });
 
-      console.log(`✅ [WhatsWay] Reply sent to ${to}`);
+      console.log(`✅ [Waki] Reply sent to ${to}`);
       return response.data;
     } catch (error: any) {
       await messagingLogService.logMessage(userId, 'whatsapp', {
@@ -241,7 +244,7 @@ export class WhatswayService {
     };
     if (channelId) headers['X-Channel-Id'] = channelId;
 
-    console.log(`[WhatsWay] Uploading media: ${filename} (${mimeType}, ${fileBuffer.length} bytes)`);
+    console.log(`[Waki] Uploading media: ${filename} (${mimeType}, ${fileBuffer.length} bytes)`);
 
     const response = await fetch(url, {
       method: 'POST',
@@ -251,16 +254,16 @@ export class WhatswayService {
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
-      throw new Error(`WhatsWay media upload failed (${response.status}): ${errorText}`);
+      throw new Error(`Waki media upload failed (${response.status}): ${errorText}`);
     }
 
     const json = await response.json();
     const mediaId = json?.data?.mediaId || json?.data?.id || json?.data?.url || '';
     if (!mediaId) {
-      throw new Error('WhatsWay media upload succeeded but no media ID returned');
+      throw new Error('Waki media upload succeeded but no media ID returned');
     }
 
-    console.log(`[WhatsWay] Media uploaded: ${mediaId}`);
+    console.log(`[Waki] Media uploaded: ${mediaId}`);
     return mediaId;
   }
 
@@ -275,7 +278,7 @@ export class WhatswayService {
       const allowedHost = new URL(baseUrl).host;
       const mediaHost = new URL(mediaId).host;
       if (mediaHost !== allowedHost) {
-        throw new Error('Media URL is not from a trusted WhatsWay host');
+        throw new Error('Media URL is not from a trusted Waki host');
       }
       downloadUrl = mediaId;
     } else {
@@ -290,7 +293,7 @@ export class WhatswayService {
 
     const mediaRes = await fetch(downloadUrl, { headers });
     if (!mediaRes.ok) {
-      throw new Error(`WhatsWay media download failed (${mediaRes.status})`);
+      throw new Error(`Waki media download failed (${mediaRes.status})`);
     }
 
     const contentType = mediaRes.headers.get('content-type') || 'application/octet-stream';
@@ -336,7 +339,7 @@ export class WhatswayService {
         agentId: meta?.agentId,
       });
 
-      console.log(`✅ [WhatsWay] ${mediaType} sent to ${to}`);
+      console.log(`✅ [Waki] ${mediaType} sent to ${to}`);
       return response.data;
     } catch (error: any) {
       const preview = options?.caption || options?.filename || `[${mediaType}]`;
@@ -388,7 +391,7 @@ export class WhatswayService {
         agentId: meta?.agentId,
       });
 
-      console.log(`✅ [WhatsWay] Location sent to ${to}`);
+      console.log(`✅ [Waki] Location sent to ${to}`);
       return response.data;
     } catch (error: any) {
       const preview = name || `${latitude}, ${longitude}`;

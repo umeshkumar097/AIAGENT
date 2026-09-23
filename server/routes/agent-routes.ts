@@ -27,6 +27,16 @@ import { IncomingAgentService } from "../services/incoming-agent";
 import { FlowAgentService } from "../services/flow-agent";
 import { setupRAGToolForAgent, isRAGEnabled } from "../services/rag-elevenlabs-tool";
 
+/**
+ * Agent-selectable template names (messagingEmailTemplates / messagingWhatsappTemplates):
+ * trimmed, non-empty, unique strings, max 50. Non-array input → null (column left untouched).
+ */
+function normalizeTemplateList(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null;
+  const names = value.map(v => (typeof v === 'string' ? v.trim() : '')).filter(Boolean);
+  return Array.from(new Set(names)).slice(0, 50);
+}
+
 async function fetchWhatsappTemplateNames(userId: string): Promise<string[]> {
   try {
     const { importPlugin } = await import('../utils/plugin-import');
@@ -113,6 +123,8 @@ export function createAgentRoutes(ctx: RouteContext): Router {
         messagingEmailTemplate,
         messagingWhatsappTemplate,
         messagingWhatsappVariables,
+        messagingEmailTemplates,
+        messagingWhatsappTemplates,
         expressiveMode,
         voiceStability,
         voiceSimilarityBoost,
@@ -121,6 +133,10 @@ export function createAgentRoutes(ctx: RouteContext): Router {
         telephonyProvider,
         openaiVoice
       } = req.body;
+
+      // Templates the agent may pick at runtime; the legacy single columns follow the first entry
+      const emailTemplateList = normalizeTemplateList(messagingEmailTemplates);
+      const whatsappTemplateList = normalizeTemplateList(messagingWhatsappTemplates);
 
       if (!type || (type !== 'incoming' && type !== 'flow')) {
         return res.status(400).json({ error: "Valid agent type is required (incoming or flow)" });
@@ -468,9 +484,11 @@ export function createAgentRoutes(ctx: RouteContext): Router {
         appointmentBookingEnabled: type === 'incoming' ? (appointmentBookingEnabled || false) : false,
         messagingEmailEnabled: (type === 'incoming' || type === 'flow') ? (messagingEmailEnabled || false) : false,
         messagingWhatsappEnabled: (type === 'incoming' || type === 'flow') ? (messagingWhatsappEnabled || false) : false,
-        messagingEmailTemplate: (type === 'incoming' || type === 'flow') ? (messagingEmailTemplate || null) : null,
-        messagingWhatsappTemplate: (type === 'incoming' || type === 'flow') ? (messagingWhatsappTemplate || null) : null,
+        messagingEmailTemplate: (type === 'incoming' || type === 'flow') ? (messagingEmailTemplate || emailTemplateList?.[0] || null) : null,
+        messagingWhatsappTemplate: (type === 'incoming' || type === 'flow') ? (messagingWhatsappTemplate || whatsappTemplateList?.[0] || null) : null,
         messagingWhatsappVariables: (type === 'incoming' || type === 'flow') ? (messagingWhatsappVariables || null) : null,
+        messagingEmailTemplates: (type === 'incoming' || type === 'flow') ? emailTemplateList : null,
+        messagingWhatsappTemplates: (type === 'incoming' || type === 'flow') ? whatsappTemplateList : null,
         expressiveMode: (type === 'incoming' || type === 'flow') ? (expressiveMode || false) : false,
         flowId: type === 'flow' ? flowId : null,
         maxDurationSeconds: type === 'flow' ? (maxDurationSeconds || 600) : null,
@@ -737,6 +755,19 @@ export function createAgentRoutes(ctx: RouteContext): Router {
         req.body.sipPhoneNumberId = null;
       }
 
+      // Agent-selectable template lists: normalise, and keep the legacy single columns in sync
+      // (first entry) when the request does not set them explicitly
+      const templateListPairs = [
+        ['messagingEmailTemplates', 'messagingEmailTemplate'],
+        ['messagingWhatsappTemplates', 'messagingWhatsappTemplate'],
+      ] as const;
+      for (const [listKey, singleKey] of templateListPairs) {
+        if (!(listKey in req.body)) continue;
+        const list = normalizeTemplateList(req.body[listKey]);
+        req.body[listKey] = list;
+        if (req.body[singleKey] === undefined) req.body[singleKey] = list?.[0] ?? null;
+      }
+
       try {
         console.log(`📝 [Version History] Agent update for ${agent.id} (${agent.type})`);
         console.log(`   Request body keys: ${Object.keys(req.body).join(', ')}`);
@@ -776,8 +807,9 @@ export function createAgentRoutes(ctx: RouteContext): Router {
           'voiceStability', 'voiceSimilarityBoost', 'voiceSpeed', 'turnTimeout',
           'transferPhoneNumber', 'transferEnabled', 'detectLanguageEnabled',
           'endConversationEnabled', 'knowledgeBaseIds', 'maxDurationSeconds',
-          'flowId', 'config'
+          'flowId', 'config', 'messagingEmailTemplates', 'messagingWhatsappTemplates'
         ];
+        const jsonComparedFields = ['config', 'knowledgeBaseIds', 'messagingEmailTemplates', 'messagingWhatsappTemplates'];
 
         for (const field of fieldsToCheck) {
           const reqValue = req.body[field];
@@ -786,7 +818,7 @@ export function createAgentRoutes(ctx: RouteContext): Router {
           if (reqValue !== undefined) {
             let hasChanged = false;
 
-            if (field === 'config' || field === 'knowledgeBaseIds') {
+            if (jsonComparedFields.includes(field)) {
               hasChanged = JSON.stringify(reqValue) !== JSON.stringify(agentValue);
             } else {
               hasChanged = reqValue !== agentValue;

@@ -58,7 +58,7 @@ export function registerMessagingRoutes(
   console.log('[Messaging] Plugin registered (v1.0.3)');
   console.log('[Messaging] Endpoints:');
   console.log('  - /api/messaging/email-templates (user auth)');
-  console.log('  - /api/messaging/whatsway/* (user auth)');
+  console.log('  - /api/messaging/whatsway/* (Waki, user auth)');
   console.log('  - /api/messaging/meta-whatsapp/* (user auth)');
   console.log('  - /api/messaging/conversations (user auth)');
   console.log('  - /api/messaging/logs (user auth)');

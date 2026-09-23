@@ -11,6 +11,7 @@ export interface UserEmailTemplate {
   updatedAt: Date;
 }
 
+/** Waki (formerly WhatsWay) API credentials — table/route names keep the legacy `whatsway` prefix. */
 export interface WhatswaySettings {
   id: string;
   userId: string;
@@ -40,12 +41,14 @@ export interface MessagingLog {
   createdAt: Date;
 }
 
+/** Approved template as returned by Waki (`GET /api/v1/templates?status=APPROVED`). */
 export interface WhatswayTemplate {
   name: string;
   status: string;
   language: string;
 }
 
+/** Waki account/channel info (`GET /api/v1/account`). */
 export interface WhatswayAccountInfo {
   channelId: string;
   name: string;
@@ -103,6 +106,7 @@ export type MessageDirection = 'inbound' | 'outbound';
 export type MessageSenderType = 'customer' | 'user' | 'agent';
 export type WhatsAppMessageType = 'text' | 'template' | 'image' | 'document' | 'audio' | 'video' | 'reaction' | 'button' | 'interactive' | 'sticker' | 'location' | 'contacts' | 'unknown';
 export type WhatsAppMessageStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'failed';
+/** Admin-selected WhatsApp provider. `whatsway_only` = Waki (default); Meta Cloud API stays available for admins who enable it. */
 export type WhatsAppProviderMode = 'whatsway_only' | 'meta_only' | 'both' | 'disabled';
 
 export interface WhatsAppConversation {

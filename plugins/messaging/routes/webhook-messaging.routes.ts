@@ -791,8 +791,8 @@ router.post('/send-whatsapp/:token/:agentId', async (req: Request, res: Response
         { callId: req.query.callId as string, agentId: dbAgentId }
       );
     } else if (whatswaySettings?.isActive) {
-      console.log(`[Messaging Webhook] Using WhatsWay for user ${userId}`);
-      console.log(`💬 [Messaging Webhook] Final Constructed Components for WhatsWay: ${JSON.stringify(components, null, 2)}`);
+      console.log(`[Messaging Webhook] Using Waki for user ${userId}`);
+      console.log(`💬 [Messaging Webhook] Final Constructed Components for Waki: ${JSON.stringify(components, null, 2)}`);
       sendResult = await whatswayService.sendTemplate(
         userId,
         recipientPhone,
@@ -805,7 +805,7 @@ router.post('/send-whatsapp/:token/:agentId', async (req: Request, res: Response
       console.warn(`[Messaging Webhook] No WhatsApp provider configured for user ${userId}`);
       return res.json({
         success: false,
-        message: 'No WhatsApp provider configured. Please set up WhatsWay or Meta WhatsApp in your messaging settings.',
+        message: 'No WhatsApp provider configured. Please set up Waki or Meta WhatsApp in your messaging settings.',
       });
     }
 

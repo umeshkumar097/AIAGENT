@@ -2,7 +2,7 @@
   "name": "messaging",
   "displayName": "Messaging Plugin",
   "version": "1.0.3",
-  "description": "Email and WhatsApp messaging integration for AI agents. Send emails via SMTP and WhatsApp messages via WhatsWay API during or after calls.",
+  "description": "Email and WhatsApp messaging integration for AI agents. Emails go out through the platform email system (Resend/SMTP) and WhatsApp template messages through Waki, during or after calls.",
   "author": "AgentLabs",
   "license": "Commercial",
   "homepage": "https://agentlabs.io/plugins/messaging",
@@ -39,7 +39,7 @@
       },
       {
         "path": "/api/messaging/whatsway",
-        "description": "WhatsWay settings and templates"
+        "description": "Waki (WhatsApp) settings and templates"
       },
       {
         "path": "/api/messaging/meta-whatsapp",
@@ -93,8 +93,8 @@
   },
   "features": [
     "Email Template Management",
-    "SMTP Email Sending",
-    "WhatsWay WhatsApp Integration",
+    "Platform Email Sending (Resend/SMTP)",
+    "Waki WhatsApp Integration",
     "Meta WhatsApp Business API (Cloud API)",
     "WhatsApp Template Messages",
     "WhatsApp Conversations Inbox",
@@ -107,6 +107,7 @@
     "Flow Builder Email Node",
     "Flow Builder WhatsApp Node",
     "Per-Agent Messaging Toggles",
+    "Agent-Selected Templates During Calls",
     "Admin Messaging Dashboard"
   ],
   "settings": {

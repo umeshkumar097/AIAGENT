@@ -69,6 +69,7 @@ const MIGRATIONS = [
   resolve(rootDir, 'migrations', '0007_schema_sync.sql'),
   resolve(rootDir, 'migrations', '0008_cashfree_billing.sql'),
   resolve(rootDir, 'migrations', '0009_cashfree_subscriptions.sql'),
+  resolve(rootDir, 'migrations', '0010_agent_messaging_templates.sql'),
 ];
 
 /**

@@ -637,6 +637,18 @@ export class EmailTemplateService {
     return result;
   }
 
+  /** Account email of the sending user — used as Reply-To on platform-sent emails. */
+  private async getReplyToAddress(userId: string): Promise<string | undefined> {
+    try {
+      const result = await db.execute(sql`SELECT email FROM users WHERE id = ${userId} LIMIT 1`);
+      const email = (result as any).rows?.[0]?.email;
+      return typeof email === 'string' && email.includes('@') ? email : undefined;
+    } catch (error: any) {
+      console.warn(`[Messaging] Could not look up reply-to address for user ${userId}: ${error.message}`);
+      return undefined;
+    }
+  }
+
   async sendEmail(
     userId: string,
     templateId: string,
@@ -662,7 +674,8 @@ export class EmailTemplateService {
     const htmlBody = this.substituteVariables(template.htmlBody, variables);
 
     try {
-      const result = await sendEmail(recipientEmail, subject, htmlBody);
+      const replyTo = await this.getReplyToAddress(userId);
+      const result = await sendEmail(recipientEmail, subject, htmlBody, replyTo);
 
       await messagingLogService.logMessage(userId, 'email', {
         callId: meta?.callId,

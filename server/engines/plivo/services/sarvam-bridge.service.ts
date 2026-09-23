@@ -9,6 +9,11 @@ import { PlivoCallService } from './plivo-call.service';
 import { SARVAM_VOICES } from '../../../routes/sarvam-routes';
 import { SarvamTtsStream } from './sarvam-tts-stream';
 import { SarvamKnowledge } from './sarvam-knowledge';
+import type { CallTool } from '../../../services/call-messaging-tools';
+import {
+  accumulateToolCallDeltas, buildToolRoundMessages, executeStreamedToolCalls, toolFillerText,
+  type ChatMessage, type StreamedToolCall,
+} from './sarvam-tools';
 
 // Persistent HTTPS agent for reusing connection keep-alive (reduces 120ms handshake overhead per TTS request)
 const keepAliveAgent = new https.Agent({
@@ -60,6 +65,8 @@ export interface SarvamAgentConfig {
   knowledgeBaseIds?: string[] | null;
   /** Owner of the knowledge base items */
   userId?: string;
+  /** Call-time tools (send_whatsapp / send_email) built once per call by plivo-stream */
+  tools?: CallTool[];
 }
 
 // ── Per-call latency profiler ────────────────────────────────────────────────
@@ -492,7 +499,7 @@ export class SarvamBridgeService {
   // ── System prompt wrapper ─────────────────────────────────────────────────
   // Deliberately short: long rule lists (and lists of banned words) make the
   // model repeat itself and over-use fillers. Fillers are handled in audio.
-  private static buildWrapper(systemPrompt: string, voice: string, language: string, detectLanguage = false, knowledge: string | null = null): string {
+  private static buildWrapper(systemPrompt: string, voice: string, language: string, detectLanguage = false, knowledge: string | null = null, hasTools = false): string {
     const langNames: Record<string, string> = {
       'hi': 'Hindi/Hinglish', 'en': 'English', 'bn': 'Bengali', 'ta': 'Tamil',
       'te': 'Telugu', 'kn': 'Kannada', 'ml': 'Malayalam', 'mr': 'Marathi',
@@ -521,7 +528,8 @@ ${languageRule}${genderRule}
 - ONLY talk about the job described below. If the caller asks about anything else — general knowledge, news, jokes, maths, coding, other companies or products, personal opinions — do NOT answer it. Say in one short sentence that you can only help with this, then bring the conversation back to the job. Never invent policies, prices or details that are not written below.
 - Confirm important details (names, dates, numbers) briefly before moving on.
 - Never read out template text or variable names.
-- When the conversation is complete or the caller says goodbye, say a short goodbye and call end_call.
+- When the conversation is complete or the caller says goodbye, say a short goodbye and call end_call.${hasTools ? `
+- You can send WhatsApp templates / emails with the tools. Confirm the details with the caller in one sentence before sending, send at most once per request, and after the tool result tell the caller whether it was sent.` : ''}
 
 Your role & goal:
 ${systemPrompt}${knowledge ? `
@@ -644,7 +652,7 @@ ${knowledge}` : ''}`;
     plivoWs: WebSocket,
     openaiApiKey: string,
     systemPrompt: string,
-    history: { role: 'user' | 'assistant'; content: string }[],
+    history: ChatMessage[],
     sarvamApiKey: string,
     language: string,
     voice: string,
@@ -652,10 +660,17 @@ ${knowledge}` : ''}`;
     perf: PerfTimer,
     openaiModel?: string,
     detectLanguage = false,
-    knowledge: string | null = null
+    knowledge: string | null = null,
+    tools: CallTool[] = [],
+    depth = 0,
+    sentenceIdxStart = 0
   ): Promise<string> {
-    const naturalWrapper = SarvamBridgeService.buildWrapper(systemPrompt, voice, language, detectLanguage, knowledge);
-    const messages = [{ role: 'system' as const, content: naturalWrapper }, ...history.slice(-HISTORY_MAX_MESSAGES)];
+    // depth 0: fresh turn (system + trimmed chat history). depth > 0: the tool follow-up pass,
+    // where `history` already carries the system prompt, the assistant tool_calls and tool results.
+    const messages: ChatMessage[] = depth === 0
+      ? [{ role: 'system', content: SarvamBridgeService.buildWrapper(systemPrompt, voice, language, detectLanguage, knowledge, tools.length > 0) },
+         ...history.slice(-HISTORY_MAX_MESSAGES)]
+      : history;
 
     perf.mark('GPT_START');
 
@@ -679,7 +694,8 @@ ${knowledge}` : ''}`;
             name: 'end_call',
             description: 'Call this function to disconnect/hang up the call when the conversation is complete, after you have said goodbye or the user has confirmed they are done.'
           }
-        }
+        },
+        ...tools.map(t => t.definition)
       ]
     };
 
@@ -715,8 +731,10 @@ ${knowledge}` : ''}`;
     let buffer      = '';
     let fullReply   = '';
     let sentenceBuf = '';
-    let sentenceIdx = 0;
+    let sentenceIdx = sentenceIdxStart;
     let firstToken  = false;
+    // Streamed tool_calls arrive as deltas keyed by index (id once, name/arguments in pieces)
+    const toolCallAcc = new Map<number, StreamedToolCall>();
 
     // Collect all TTS promises to await at end
     const ttsTasks: Promise<void>[] = [];
@@ -742,6 +760,7 @@ ${knowledge}` : ''}`;
             // Check for tool calls (specifically end_call)
             const toolCalls = chunk.choices?.[0]?.delta?.tool_calls;
             if (toolCalls && toolCalls.length > 0) {
+              accumulateToolCallDeltas(toolCallAcc, toolCalls);
               for (const tc of toolCalls) {
                 if (tc.function?.name) {
                   (plivoWs as any).sarvamToolNameBuf = ((plivoWs as any).sarvamToolNameBuf || '') + tc.function.name;
@@ -808,13 +827,14 @@ ${knowledge}` : ''}`;
       // Flush remaining buffer
       if (sentenceBuf.trim() && !signal.aborted) {
         perf.mark('GPT_DONE');
+        const idx = sentenceIdx++; // keep sentenceIdx = next free slot for the tool filler / follow-up pass
         const task = SarvamBridgeService.speakViaTTS(
           callUuid, plivoWs, sentenceBuf,
           sarvamApiKey, language, voice,
-          signal, perf, sentenceIdx
+          signal, perf, idx
         );
         ttsTasks.push(task.catch(e => {
-          if (!signal.aborted) logger.error(`[SarvamBridge][${callUuid}] TTS s${sentenceIdx}: ${e.message}`);
+          if (!signal.aborted) logger.error(`[SarvamBridge][${callUuid}] TTS s${idx}: ${e.message}`);
         }));
       } else {
         perf.mark('GPT_DONE');
@@ -830,7 +850,32 @@ ${knowledge}` : ''}`;
     }
 
     // Empty reply (e.g. tool-call only) must not be replaced by text the caller never heard
-    return signal.aborted ? '' : fullReply.trim();
+    if (signal.aborted) return '';
+    const firstPass = fullReply.trim();
+
+    // ── Tool loop: run the collected messaging tools, then let the model tell the caller the outcome ──
+    // end_call is handled by name above; only real tools go through the handlers. Max depth 2.
+    const pending = [...toolCallAcc.values()].filter(tc => tc.name && tc.name !== 'end_call');
+    if (pending.length === 0 || tools.length === 0 || depth >= 2) return firstPass;
+
+    logger.info(`[SarvamBridge][${callUuid}] Running ${pending.length} tool call(s) at depth ${depth}: ${pending.map(t => t.name).join(', ')}`);
+    const execution = executeStreamedToolCalls(callUuid, pending, tools);
+    // Nothing spoken yet this turn → a short filler covers the round trip
+    if (!(plivoWs as any).sarvamReplyAudioQueued) {
+      const filler = toolFillerText(language, SarvamBridgeService.getGenderFromVoice(voice));
+      await SarvamBridgeService.speakViaTTS(callUuid, plivoWs, filler, sarvamApiKey, language, voice, signal, perf, sentenceIdx++)
+        .catch(() => {});
+    }
+    const executed = await execution;
+    if (signal.aborted) return firstPass;
+
+    const followUp = await SarvamBridgeService.streamGPTAndSpeak(
+      callUuid, plivoWs, openaiApiKey, systemPrompt,
+      [...messages, ...buildToolRoundMessages(firstPass, executed)],
+      sarvamApiKey, language, voice, signal, perf,
+      openaiModel, detectLanguage, knowledge, tools, depth + 1, sentenceIdx
+    );
+    return [firstPass, followUp].filter(Boolean).join(' ');
   }
 
   // ── Fire first message ────────────────────────────────────────────────────
@@ -1156,7 +1201,8 @@ ${knowledge}` : ''}`;
             ctrl.signal, perf,
             agentConfig.openaiModel,
             !!agentConfig.detectLanguage,
-            kbContext
+            kbContext,
+            agentConfig.tools || []
           )).then(reply => {
             if ((plivoWs as any).sarvamTurnId !== turnId) { recordInterrupted(); return; }
             spokenByTurn.delete(turnId);

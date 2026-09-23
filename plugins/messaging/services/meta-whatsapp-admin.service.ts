@@ -18,6 +18,7 @@ function transformRow<T>(row: Record<string, any>): T {
   return transformed as T;
 }
 
+/** Default provider is Waki (`whatsway_only`); admins can still switch to Meta or both. */
 export class MetaWhatsAppAdminService {
   async getConfig(): Promise<MetaWhatsAppAdminConfig | null> {
     const result = await db.execute(sql`
@@ -57,7 +58,7 @@ export class MetaWhatsAppAdminService {
           coexistence_enabled,
           webhook_verify_token
         ) VALUES (
-          ${data.whatsappProviderMode || 'both'},
+          ${data.whatsappProviderMode || 'whatsway_only'},
           ${data.metaAppId || ''},
           ${data.metaAppSecret || ''},
           ${data.metaConfigId || ''},
@@ -73,7 +74,7 @@ export class MetaWhatsAppAdminService {
 
   async getProviderMode(): Promise<WhatsAppProviderMode> {
     const config = await this.getConfig();
-    return config?.whatsappProviderMode || 'both';
+    return config?.whatsappProviderMode || 'whatsway_only';
   }
 
   async isMetaAllowed(): Promise<boolean> {

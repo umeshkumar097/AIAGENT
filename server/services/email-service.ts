@@ -1109,3 +1109,5 @@ export class EmailService {
 }
 
 export const emailService = new EmailService();
+// Plugins load from a separate bundle in production; they reach the same instance through this handle
+(globalThis as any).__platformEmailService = emailService;

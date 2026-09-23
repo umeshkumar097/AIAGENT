@@ -181,6 +181,10 @@ export const agents = pgTable("agents", {
   messagingEmailTemplate: text("messaging_email_template"),
   messagingWhatsappTemplate: text("messaging_whatsapp_template"),
   messagingWhatsappVariables: text("messaging_whatsapp_variables"),
+  // Templates the agent may pick at runtime (empty = any active/approved template). The single
+  // *Template columns above stay as the legacy default / first choice.
+  messagingEmailTemplates: text("messaging_email_templates").array(),
+  messagingWhatsappTemplates: text("messaging_whatsapp_templates").array(),
   expressiveMode: boolean("expressive_mode").default(false),
   
   // Knowledge Base (for incoming agents)

@@ -97,6 +97,7 @@ __export(schema_exports, {
   insertLegacyWebhookDeliverySchema: () => insertLegacyWebhookDeliverySchema,
   insertLegacyWebhookSchema: () => insertLegacyWebhookSchema,
   insertLlmModelSchema: () => insertLlmModelSchema,
+  insertNotificationEventSchema: () => insertNotificationEventSchema,
   insertNotificationSchema: () => insertNotificationSchema,
   insertOpenaiCredentialSchema: () => insertOpenaiCredentialSchema,
   insertPaymentTransactionSchema: () => insertPaymentTransactionSchema,
@@ -144,6 +145,7 @@ __export(schema_exports, {
   legacyWebhookDeliveries: () => legacyWebhookDeliveries,
   legacyWebhooks: () => legacyWebhooks,
   llmModels: () => llmModels,
+  notificationEvents: () => notificationEvents,
   notifications: () => notifications,
   openaiCredentials: () => openaiCredentials,
   otpVerifications: () => otpVerifications,
@@ -201,7 +203,7 @@ function determineAICategory(lead) {
   if (lead.sentiment === "positive") return AI_LEAD_CATEGORIES.WARM;
   return null;
 }
-var users, otpVerifications, refreshTokens, elevenLabsCredentials, syncedVoices, agents, knowledgeBase, incomingAgents, phoneNumbers, incomingConnections, campaigns, contacts, calls, creditTransactions, tools, voices, plans, globalSettings, llmModels, supportedLanguages, creditPackages, userSubscriptions, phoneNumberRentals, usageRecords, legacyWebhooks, legacyWebhookDeliveries, notifications, emailTemplates, promptTemplates, agentVersions, auditLogs, platformLanguages, insertUserSchema, insertElevenLabsCredentialSchema, insertSyncedVoiceSchema, insertAgentSchema, insertKnowledgeBaseSchema, insertIncomingAgentSchema, insertPromptTemplateSchema, insertAgentVersionSchema, insertIncomingConnectionSchema, insertCampaignSchema, insertContactSchema, insertCallSchema, insertCreditTransactionSchema, insertToolSchema, insertVoiceSchema, insertPlanSchema, insertGlobalSettingsSchema, insertLlmModelSchema, insertSupportedLanguageSchema, insertPlatformLanguageSchema, insertCreditPackageSchema, insertUserSubscriptionSchema, insertPhoneNumberSchema, insertUsageRecordSchema, insertLegacyWebhookSchema, insertLegacyWebhookDeliverySchema, insertPhoneNumberRentalSchema, insertNotificationSchema, insertEmailTemplateSchema, twilioCountries, insertTwilioCountrySchema, userKnowledgeStorageLimits, knowledgeChunks, knowledgeProcessingQueue, insertUserKnowledgeStorageLimitSchema, insertKnowledgeChunkSchema, insertKnowledgeProcessingQueueSchema, flows, insertFlowSchema, createFlowSchema, flowExecutions, insertFlowExecutionSchema, flowTestQueue, insertFlowTestQueueSchema, webhookSubscriptions, webhooks, insertWebhookSchema, createWebhookSchema, webhookDeliveryLogs, webhookLogs, insertWebhookLogSchema, appointments, insertAppointmentSchema, createAppointmentSchema, appointmentSettings, insertAppointmentSettingsSchema, createAppointmentSettingsSchema, forms, insertFormSchema, createFormSchema, formFields, insertFormFieldSchema, formSubmissions, insertFormSubmissionSchema, seoSettings, insertSeoSettingsSchema, analyticsScripts, insertAnalyticsScriptSchema, paymentTransactions, insertPaymentTransactionSchema, refunds, insertRefundSchema, invoices, insertInvoiceSchema, paymentWebhookQueue, insertPaymentWebhookQueueSchema, emailNotificationSettings, insertEmailNotificationSettingsSchema, bannedWords, insertBannedWordSchema, contentViolations, insertContentViolationSchema, openaiCredentials, insertOpenaiCredentialSchema, plivoCredentials, insertPlivoCredentialSchema, plivoPhoneNumbers, insertPlivoPhoneNumberSchema, plivoCalls, insertPlivoCallSchema, campaignJobs, insertCampaignJobSchema, plivoPhonePricing, insertPlivoPhonePricingSchema, userKycDocuments, insertUserKycDocumentSchema, twilioOpenaiCalls, insertTwilioOpenaiCallSchema, demoSessions, insertDemoSessionSchema, leadStages, insertLeadStageSchema, leads, insertLeadSchema, AI_LEAD_CATEGORIES, AI_CATEGORY_LABELS, AI_CATEGORY_COLORS, AI_CATEGORY_PRIORITY, leadNotes, insertLeadNoteSchema, leadActivities, insertLeadActivitySchema, crmCategoryPreferences, insertCrmCategoryPreferencesSchema, websiteWidgets, insertWebsiteWidgetSchema, widgetCallSessions, insertWidgetCallSessionSchema, API_SCOPES, apiKeys, insertApiKeySchema, apiAuditLogs, insertApiAuditLogSchema, apiRateLimits, sipTrunks, insertSipTrunkSchema, sipPhoneNumbers, insertSipPhoneNumberSchema, sipCalls, insertSipCallSchema, userAddresses, insertUserAddressSchema, userFeedback, insertUserFeedbackSchema, googleCalendarCredentials, insertGoogleCalendarCredentialSchema, googleSheetsCredentials, insertGoogleSheetsCredentialSchema, phoneReleaseRetryQueue, insertPhoneReleaseRetryQueueSchema;
+var users, otpVerifications, refreshTokens, elevenLabsCredentials, syncedVoices, agents, knowledgeBase, incomingAgents, phoneNumbers, incomingConnections, campaigns, contacts, calls, creditTransactions, tools, voices, plans, globalSettings, llmModels, supportedLanguages, creditPackages, userSubscriptions, phoneNumberRentals, usageRecords, legacyWebhooks, legacyWebhookDeliveries, notifications, emailTemplates, promptTemplates, agentVersions, auditLogs, platformLanguages, insertUserSchema, insertElevenLabsCredentialSchema, insertSyncedVoiceSchema, insertAgentSchema, insertKnowledgeBaseSchema, insertIncomingAgentSchema, insertPromptTemplateSchema, insertAgentVersionSchema, insertIncomingConnectionSchema, insertCampaignSchema, insertContactSchema, insertCallSchema, insertCreditTransactionSchema, insertToolSchema, insertVoiceSchema, insertPlanSchema, insertGlobalSettingsSchema, insertLlmModelSchema, insertSupportedLanguageSchema, insertPlatformLanguageSchema, insertCreditPackageSchema, insertUserSubscriptionSchema, insertPhoneNumberSchema, insertUsageRecordSchema, insertLegacyWebhookSchema, insertLegacyWebhookDeliverySchema, insertPhoneNumberRentalSchema, insertNotificationSchema, insertEmailTemplateSchema, twilioCountries, insertTwilioCountrySchema, userKnowledgeStorageLimits, knowledgeChunks, knowledgeProcessingQueue, insertUserKnowledgeStorageLimitSchema, insertKnowledgeChunkSchema, insertKnowledgeProcessingQueueSchema, flows, insertFlowSchema, createFlowSchema, flowExecutions, insertFlowExecutionSchema, flowTestQueue, insertFlowTestQueueSchema, webhookSubscriptions, webhooks, insertWebhookSchema, createWebhookSchema, webhookDeliveryLogs, webhookLogs, insertWebhookLogSchema, appointments, insertAppointmentSchema, createAppointmentSchema, appointmentSettings, insertAppointmentSettingsSchema, createAppointmentSettingsSchema, forms, insertFormSchema, createFormSchema, formFields, insertFormFieldSchema, formSubmissions, insertFormSubmissionSchema, seoSettings, insertSeoSettingsSchema, analyticsScripts, insertAnalyticsScriptSchema, paymentTransactions, insertPaymentTransactionSchema, refunds, insertRefundSchema, invoices, insertInvoiceSchema, paymentWebhookQueue, insertPaymentWebhookQueueSchema, emailNotificationSettings, insertEmailNotificationSettingsSchema, bannedWords, insertBannedWordSchema, contentViolations, insertContentViolationSchema, openaiCredentials, insertOpenaiCredentialSchema, plivoCredentials, insertPlivoCredentialSchema, plivoPhoneNumbers, insertPlivoPhoneNumberSchema, plivoCalls, insertPlivoCallSchema, campaignJobs, insertCampaignJobSchema, plivoPhonePricing, insertPlivoPhonePricingSchema, userKycDocuments, insertUserKycDocumentSchema, twilioOpenaiCalls, insertTwilioOpenaiCallSchema, demoSessions, insertDemoSessionSchema, leadStages, insertLeadStageSchema, leads, insertLeadSchema, AI_LEAD_CATEGORIES, AI_CATEGORY_LABELS, AI_CATEGORY_COLORS, AI_CATEGORY_PRIORITY, leadNotes, insertLeadNoteSchema, leadActivities, insertLeadActivitySchema, crmCategoryPreferences, insertCrmCategoryPreferencesSchema, websiteWidgets, insertWebsiteWidgetSchema, widgetCallSessions, insertWidgetCallSessionSchema, API_SCOPES, apiKeys, insertApiKeySchema, apiAuditLogs, insertApiAuditLogSchema, apiRateLimits, sipTrunks, insertSipTrunkSchema, sipPhoneNumbers, insertSipPhoneNumberSchema, sipCalls, insertSipCallSchema, userAddresses, insertUserAddressSchema, userFeedback, insertUserFeedbackSchema, googleCalendarCredentials, insertGoogleCalendarCredentialSchema, googleSheetsCredentials, insertGoogleSheetsCredentialSchema, phoneReleaseRetryQueue, insertPhoneReleaseRetryQueueSchema, notificationEvents, insertNotificationEventSchema;
 var init_schema = __esm({
   "shared/schema.ts"() {
     "use strict";
@@ -263,6 +265,11 @@ var init_schema = __esm({
       billingState: text("billing_state"),
       billingPostalCode: text("billing_postal_code"),
       billingCountry: text("billing_country"),
+      billingStateCode: text("billing_state_code"),
+      // GST state code (e.g. '09' for UP) — decides CGST/SGST vs IGST
+      billingPhone: text("billing_phone"),
+      gstin: text("gstin"),
+      // Buyer GSTIN for B2B invoices
       company: text("company"),
       // Company name for profile and team naming
       createdAt: timestamp("created_at").defaultNow(),
@@ -383,6 +390,10 @@ var init_schema = __esm({
       messagingEmailTemplate: text("messaging_email_template"),
       messagingWhatsappTemplate: text("messaging_whatsapp_template"),
       messagingWhatsappVariables: text("messaging_whatsapp_variables"),
+      // Templates the agent may pick at runtime (empty = any active/approved template). The single
+      // *Template columns above stay as the legacy default / first choice.
+      messagingEmailTemplates: text("messaging_email_templates").array(),
+      messagingWhatsappTemplates: text("messaging_whatsapp_templates").array(),
       expressiveMode: boolean("expressive_mode").default(false),
       // Knowledge Base (for incoming agents)
       knowledgeBaseIds: text("knowledge_base_ids").array(),
@@ -700,46 +711,9 @@ var init_schema = __esm({
       displayName: text("display_name").notNull(),
       description: text("description").notNull(),
       monthlyPrice: decimal("monthly_price", { precision: 10, scale: 2 }).notNull(),
-      // USD price
+      // INR (Cashfree)
       yearlyPrice: decimal("yearly_price", { precision: 10, scale: 2 }),
-      // USD price
-      razorpayMonthlyPrice: decimal("razorpay_monthly_price", { precision: 10, scale: 2 }),
-      // INR price
-      razorpayYearlyPrice: decimal("razorpay_yearly_price", { precision: 10, scale: 2 }),
-      // INR price
-      stripeMonthlyPriceId: text("stripe_monthly_price_id"),
-      // Stripe Price ID for monthly plan
-      stripeYearlyPriceId: text("stripe_yearly_price_id"),
-      // Stripe Price ID for yearly plan
-      stripeProductId: text("stripe_product_id"),
-      // Stripe Product ID
-      razorpayPlanId: text("razorpay_plan_id"),
-      // Razorpay Plan ID (monthly)
-      razorpayYearlyPlanId: text("razorpay_yearly_plan_id"),
-      // Razorpay Plan ID (yearly)
-      // PayPal pricing and plan IDs
-      paypalMonthlyPrice: decimal("paypal_monthly_price", { precision: 10, scale: 2 }),
-      // PayPal price (supports multiple currencies)
-      paypalYearlyPrice: decimal("paypal_yearly_price", { precision: 10, scale: 2 }),
-      paypalProductId: text("paypal_product_id"),
-      // PayPal Product ID
-      paypalMonthlyPlanId: text("paypal_monthly_plan_id"),
-      // PayPal Plan ID for monthly
-      paypalYearlyPlanId: text("paypal_yearly_plan_id"),
-      // PayPal Plan ID for yearly
-      // Paystack pricing and plan codes (Africa: NGN, GHS, ZAR, KES)
-      paystackMonthlyPrice: decimal("paystack_monthly_price", { precision: 10, scale: 2 }),
-      paystackYearlyPrice: decimal("paystack_yearly_price", { precision: 10, scale: 2 }),
-      paystackMonthlyPlanCode: text("paystack_monthly_plan_code"),
-      // Paystack Plan Code for monthly
-      paystackYearlyPlanCode: text("paystack_yearly_plan_code"),
-      // Paystack Plan Code for yearly
-      // MercadoPago pricing and plan IDs (LATAM: BRL, MXN, ARS, CLP, COP)
-      mercadopagoMonthlyPrice: decimal("mercadopago_monthly_price", { precision: 10, scale: 2 }),
-      mercadopagoYearlyPrice: decimal("mercadopago_yearly_price", { precision: 10, scale: 2 }),
-      mercadopagoMonthlyPlanId: text("mercadopago_monthly_plan_id"),
-      // MercadoPago preapproval_plan_id
-      mercadopagoYearlyPlanId: text("mercadopago_yearly_plan_id"),
+      // INR (Cashfree)
       maxAgents: integer("max_agents").notNull().default(1),
       maxCampaigns: integer("max_campaigns").notNull().default(1),
       maxContactsPerCampaign: integer("max_contacts_per_campaign").notNull().default(5),
@@ -828,22 +802,7 @@ var init_schema = __esm({
       description: text("description"),
       credits: integer("credits").notNull(),
       price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-      // USD price
-      razorpayPrice: decimal("razorpay_price", { precision: 10, scale: 2 }),
-      // INR price
-      stripeProductId: text("stripe_product_id"),
-      stripePriceId: text("stripe_price_id"),
-      razorpayItemId: text("razorpay_item_id"),
-      // Razorpay Item ID for credit package
-      // PayPal credit package pricing
-      paypalPrice: decimal("paypal_price", { precision: 10, scale: 2 }),
-      // PayPal price
-      // Paystack credit package pricing (Africa)
-      paystackPrice: decimal("paystack_price", { precision: 10, scale: 2 }),
-      // Paystack price
-      // MercadoPago credit package pricing (LATAM)
-      mercadopagoPrice: decimal("mercadopago_price", { precision: 10, scale: 2 }),
-      // MercadoPago price
+      // INR (Cashfree)
       isActive: boolean("is_active").notNull().default(true),
       createdAt: timestamp("created_at").notNull().defaultNow(),
       updatedAt: timestamp("updated_at").notNull().defaultNow()
@@ -856,26 +815,29 @@ var init_schema = __esm({
       // 'active', 'cancelled', 'expired'
       currentPeriodStart: timestamp("current_period_start").notNull().defaultNow(),
       currentPeriodEnd: timestamp("current_period_end").notNull(),
-      stripeSubscriptionId: text("stripe_subscription_id").unique(),
-      // Unique constraint for idempotency
-      razorpaySubscriptionId: text("razorpay_subscription_id").unique(),
-      // Razorpay Subscription ID
-      // PayPal subscription tracking
-      paypalSubscriptionId: text("paypal_subscription_id").unique(),
-      // PayPal Subscription ID
-      // Paystack subscription tracking (Africa)
-      paystackSubscriptionCode: text("paystack_subscription_code").unique(),
-      // Paystack Subscription Code
-      paystackCustomerCode: text("paystack_customer_code"),
-      // Paystack Customer Code
-      paystackEmailToken: text("paystack_email_token"),
-      // Token for customer management
-      // MercadoPago subscription tracking (LATAM)
-      mercadopagoSubscriptionId: text("mercadopago_subscription_id").unique(),
-      // MercadoPago preapproval ID
       cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
       billingPeriod: text("billing_period").notNull().default("monthly"),
       // 'monthly' or 'yearly'
+      // Cashfree one-time-per-period model: last paid order + expiry reminder bookkeeping
+      cashfreeOrderId: text("cashfree_order_id"),
+      reminder7SentAt: timestamp("reminder_7_sent_at"),
+      reminder3SentAt: timestamp("reminder_3_sent_at"),
+      reminder1SentAt: timestamp("reminder_1_sent_at"),
+      expiredNotifiedAt: timestamp("expired_notified_at"),
+      // Cashfree Subscriptions auto-renew mandate (UPI AutoPay / card / eNACH). The first period is always
+      // paid with a one-time order; the mandate only charges renewals at current_period_end.
+      autoRenew: boolean("auto_renew").notNull().default(false),
+      cashfreeSubscriptionId: text("cashfree_subscription_id"),
+      // our subscription_id sent to Cashfree (zvsub_…)
+      cfSubscriptionId: text("cf_subscription_id"),
+      // Cashfree's reference id
+      mandateStatus: text("mandate_status"),
+      // INITIALIZED | BANK_APPROVAL_PENDING | ACTIVE | ON_HOLD | PAUSED | CANCELLED | COMPLETED | EXPIRED
+      mandatePaymentMethod: text("mandate_payment_method"),
+      // upi | card | enach
+      mandateAuthorizedAt: timestamp("mandate_authorized_at"),
+      nextChargeAt: timestamp("next_charge_at"),
+      autoRenewCancelledAt: timestamp("auto_renew_cancelled_at"),
       // Admin-set per-user limit overrides (null = use plan defaults)
       overrideMaxAgents: integer("override_max_agents"),
       // Override plan's maxAgents
@@ -1590,6 +1552,15 @@ var init_schema = __esm({
       // 'monthly', 'yearly' for subscriptions
       creditsAwarded: integer("credits_awarded"),
       // For credit purchases
+      gatewayOrderId: text("gateway_order_id"),
+      // Cashfree order_id (idempotency key)
+      paymentMethod: text("payment_method"),
+      // upi, card, netbanking, wallet…
+      failureReason: text("failure_reason"),
+      refundedAmount: decimal("refunded_amount", { precision: 10, scale: 2 }).default("0.00"),
+      refundId: text("refund_id"),
+      phoneNumberId: varchar("phone_number_id"),
+      // For phone number rentals
       // Status
       status: text("status").notNull().default("pending"),
       // 'pending', 'completed', 'failed', 'refunded', 'partially_refunded'
@@ -1683,6 +1654,27 @@ var init_schema = __esm({
       gateway: text("gateway").notNull(),
       paymentMethod: text("payment_method"),
       // 'card', 'bank_transfer', etc.
+      // GST (India) — snapshot of seller/buyer tax details at issue time
+      invoiceType: text("invoice_type").notNull().default("tax_invoice"),
+      // 'tax_invoice' | 'credit_note'
+      relatedInvoiceId: varchar("related_invoice_id"),
+      // credit note → original invoice
+      financialYear: text("financial_year"),
+      // e.g. '25-26'
+      sellerName: text("seller_name"),
+      sellerGstin: text("seller_gstin"),
+      sellerAddress: text("seller_address"),
+      sellerStateCode: text("seller_state_code"),
+      buyerGstin: text("buyer_gstin"),
+      buyerStateCode: text("buyer_state_code"),
+      placeOfSupply: text("place_of_supply"),
+      hsnSac: text("hsn_sac"),
+      taxableAmount: decimal("taxable_amount", { precision: 10, scale: 2 }),
+      cgst: decimal("cgst", { precision: 10, scale: 2 }).default("0.00"),
+      sgst: decimal("sgst", { precision: 10, scale: 2 }).default("0.00"),
+      igst: decimal("igst", { precision: 10, scale: 2 }).default("0.00"),
+      taxRate: decimal("tax_rate", { precision: 5, scale: 2 }),
+      isInterState: boolean("is_inter_state").default(false),
       // PDF Storage
       pdfUrl: text("pdf_url"),
       // URL to stored PDF
@@ -2695,6 +2687,26 @@ var init_schema = __esm({
       createdAt: true,
       updatedAt: true
     });
+    notificationEvents = pgTable("notification_events", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
+      eventKey: text("event_key").notNull(),
+      // e.g. 'purchase_completed', 'plan_expiring'
+      channel: text("channel").notNull(),
+      // 'email' | 'in_app'
+      status: text("status").notNull(),
+      // 'sent' | 'failed' | 'skipped'
+      recipient: text("recipient"),
+      subject: text("subject"),
+      error: text("error"),
+      payload: jsonb("payload"),
+      createdAt: timestamp("created_at").notNull().defaultNow()
+    }, (table) => ({
+      userIdx: index("notification_events_user_id_idx").on(table.userId),
+      eventIdx: index("notification_events_event_key_idx").on(table.eventKey),
+      createdIdx: index("notification_events_created_at_idx").on(table.createdAt)
+    }));
+    insertNotificationEventSchema = createInsertSchema(notificationEvents).omit({ id: true, createdAt: true });
   }
 });
 

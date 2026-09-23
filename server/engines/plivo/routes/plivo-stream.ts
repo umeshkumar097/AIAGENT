@@ -29,6 +29,21 @@ import { plivoCalls, agents, users, flowExecutions, plivoCredentials } from '@sh
 import { eq } from 'drizzle-orm';
 import { logger } from '../../../utils/logger';
 import type { OpenAIVoice, OpenAIRealtimeModel, AgentTool } from '../types';
+import { buildCallMessagingTools, parseWhatsappVariables, type CallTool } from '../../../services/call-messaging-tools';
+
+/**
+ * Which templates the OpenAI-Realtime messaging tools may use: the agent's list
+ * (agent picks at runtime) wins over the legacy single "must use" template.
+ */
+function messagingTemplateChoice(
+  list: string[] | null | undefined,
+  single: string | null | undefined
+): { templateName: string | null; templateNames: string[] } {
+  const names = (list || []).map(s => (typeof s === 'string' ? s.trim() : '')).filter(Boolean);
+  return names.length > 0
+    ? { templateName: null, templateNames: names }
+    : { templateName: single || null, templateNames: [] };
+}
 
 interface PlivoStreamMessage {
   event: string;
@@ -345,6 +360,13 @@ async function initializeSession(
           detectLanguageEnabled: agents.detectLanguageEnabled,
           knowledgeBaseIds:   agents.knowledgeBaseIds,
           userId:             agents.userId,
+          messagingEmailEnabled:      agents.messagingEmailEnabled,
+          messagingWhatsappEnabled:   agents.messagingWhatsappEnabled,
+          messagingEmailTemplate:     agents.messagingEmailTemplate,
+          messagingWhatsappTemplate:  agents.messagingWhatsappTemplate,
+          messagingWhatsappVariables: agents.messagingWhatsappVariables,
+          messagingEmailTemplates:    agents.messagingEmailTemplates,
+          messagingWhatsappTemplates: agents.messagingWhatsappTemplates,
         })
         .from(agents)
         .where(eq(agents.id, call.agentId))
@@ -353,6 +375,21 @@ async function initializeSession(
       // ── Sarvam + Plivo bridge ──────────────────────────────────────────────
       if (agent && agent.telephonyProvider === 'sarvam-plivo') {
         logger.info(`[PlivoStream] Agent ${call.agentId} is Sarvam, routing to SarvamBridge`, undefined, 'PlivoStream');
+
+        // Messaging tools (send_whatsapp / send_email) — templates resolved once per call
+        let callTools: CallTool[] = [];
+        if (agent.messagingEmailEnabled || agent.messagingWhatsappEnabled) {
+          callTools = await buildCallMessagingTools({
+            userId: agent.userId,
+            agentId: call.agentId,
+            callId: call.id,
+            callUuid,
+            fromNumber: call.fromNumber,
+            toNumber: call.toNumber,
+            callDirection: call.callDirection,
+            agent,
+          });
+        }
 
         // Get OpenAI key for GPT-4o LLM
         let openaiKey: string | null = null;
@@ -395,6 +432,7 @@ async function initializeSession(
             detectLanguage: !!agent.detectLanguageEnabled,
             knowledgeBaseIds: agent.knowledgeBaseIds || null,
             userId: agent.userId,
+            tools: callTools,
           },
           call.id
         );
@@ -732,7 +770,8 @@ async function initializeSession(
           });
           config.tools = agentConfig.tools;
           config = OpenAIAgentFactory.addCollectCallerEmailTool(config, flowAgent.userId, flowAgent.id, call.id);
-          config = OpenAIAgentFactory.addMessagingEmailTool(config, flowAgent.userId, flowAgent.id, call.id, flowAgent.messagingEmailTemplate);
+          const emailChoice = messagingTemplateChoice(flowAgent.messagingEmailTemplates, flowAgent.messagingEmailTemplate);
+          config = OpenAIAgentFactory.addMessagingEmailTool(config, flowAgent.userId, flowAgent.id, call.id, emailChoice.templateName, emailChoice.templateNames);
           agentConfig.tools = config.tools || [];
         }
         if (flowAgent.messagingWhatsappEnabled) {
@@ -746,7 +785,12 @@ async function initializeSession(
             language: flowAgentLanguage,
           });
           config.tools = agentConfig.tools;
-          config = OpenAIAgentFactory.addMessagingWhatsAppTool(config, flowAgent.userId, flowAgent.id, call.id, flowAgent.messagingWhatsappTemplate, [], flowAgent.messagingWhatsappVariables);
+          const waChoice = messagingTemplateChoice(flowAgent.messagingWhatsappTemplates, flowAgent.messagingWhatsappTemplate);
+          config = OpenAIAgentFactory.addMessagingWhatsAppTool(
+            config, flowAgent.userId, flowAgent.id, call.id,
+            waChoice.templateName, waChoice.templateNames,
+            parseWhatsappVariables(flowAgent.messagingWhatsappVariables, flowAgent.messagingWhatsappTemplate)
+          );
           agentConfig.tools = config.tools || [];
         }
       }
@@ -830,25 +874,28 @@ async function initializeSession(
 
           // Add messaging email tool if enabled
           if (agent.messagingEmailEnabled) {
+            const emailChoice = messagingTemplateChoice(agent.messagingEmailTemplates, agent.messagingEmailTemplate);
             config = OpenAIAgentFactory.addMessagingEmailTool(
               config,
               agent.userId,
               agent.id,
               call.id,
-              agent.messagingEmailTemplate
+              emailChoice.templateName,
+              emailChoice.templateNames
             );
           }
 
           // Add messaging WhatsApp tool if enabled
           if (agent.messagingWhatsappEnabled) {
+            const waChoice = messagingTemplateChoice(agent.messagingWhatsappTemplates, agent.messagingWhatsappTemplate);
             config = OpenAIAgentFactory.addMessagingWhatsAppTool(
               config,
               agent.userId,
               agent.id,
               call.id,
-              agent.messagingWhatsappTemplate,
-              [],
-              agent.messagingWhatsappVariables
+              waChoice.templateName,
+              waChoice.templateNames,
+              parseWhatsappVariables(agent.messagingWhatsappVariables, agent.messagingWhatsappTemplate)
             );
           }
 
