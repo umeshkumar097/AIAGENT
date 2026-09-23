@@ -38,6 +38,18 @@ const PLIVO_NUMBER_TYPES = ['local', 'toll_free', 'national'] as const;
 type PlivoNumberType = typeof PLIVO_NUMBER_TYPES[number];
 
 /** Cashfree sends the timestamp as epoch seconds or milliseconds — accept both. */
+/** Cashfree's dashboard test sends `{ type: 'WEBHOOK', data: {} }` (no order, no payment). */
+function isCashfreeTestPing(body: unknown): boolean {
+  if (!body || typeof body !== 'object') return false;
+  const b = body as { type?: unknown; data?: unknown };
+  if (b.type !== 'WEBHOOK') return false;
+  const data = b.data;
+  if (data === undefined || data === null) return true;
+  if (typeof data !== 'object') return false;
+  const d = data as Record<string, unknown>;
+  return !d.order && !d.payment && !d.refund;
+}
+
 function isWebhookTimestampFresh(raw: unknown, now = Date.now()): boolean {
   const value = Number(String(raw ?? '').trim());
   if (!Number.isFinite(value) || value <= 0) return false;
@@ -355,6 +367,14 @@ router.post('/webhook', async (req: Request, res: Response) => {
     const rawBody: Buffer = rawReq.rawBody;
     const verified = verifyWebhookSignature(rawBody, timestamp, signature, secretKey);
     const fresh = isWebhookTimestampFresh(timestamp);
+
+    // The dashboard "Test endpoint" ping carries no order/payment data, so acknowledging it has no
+    // side effects and there is nothing a forged ping could do. Real events still need a valid signature.
+    if (!verified && isCashfreeTestPing(req.body)) {
+      logger.info('Acknowledged Cashfree webhook test ping', undefined, 'Cashfree');
+      await recordWebhookReceived('cashfree');
+      return res.status(200).json({ received: true, action: 'test_ping' });
+    }
 
     if (!verified || !fresh) {
       if (!allowUnverifiedWebhooks()) {
