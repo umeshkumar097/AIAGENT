@@ -2,17 +2,22 @@
  * Safe incremental database migration runner.
  *
  * Applies migrations in order:
+ *   - 0000_damp_spectrum.sql         — base schema; applied ONLY when the DB has no base
+ *                                      schema yet (checked via to_regclass('public.plans'))
  *   - 0001_add_missing_columns.sql   — ADD COLUMN IF NOT EXISTS for missing agent/call columns
  *   - 0002_add_google_sheets_credentials.sql — CREATE TABLE IF NOT EXISTS for Google Sheets OAuth
+ *   - ... 0003..0006 incremental, idempotent additions
+ *   - 0007_schema_sync.sql           — additive sync of shared/schema.ts columns/indexes/FKs
  *
  * Usage:  node scripts/run-safe-migration.mjs
  *
  * Requirements:
  *   - DATABASE_URL environment variable must be set (or a .env file in the
  *     project root with DATABASE_URL=...)
- *   - The target database must already have the base schema applied
- *     (either via `npm run db:push` on a fresh install, or via the
- *     migrations/0000_damp_spectrum.sql file)
+ *   - A fresh (empty) database is supported: 0000_damp_spectrum.sql is
+ *     applied automatically when `public.plans` does not exist yet. On a
+ *     database that already has the base schema (db:push or 0000 applied)
+ *     it is skipped.
  *
  * All migrations are idempotent (IF NOT EXISTS) — safe to re-run.
  */
@@ -49,13 +54,19 @@ if (!dbUrl) {
 const { default: pg } = await import('pg');
 const { Pool } = pg;
 
+// Base schema. NOT idempotent (plain CREATE TABLE), so runMigrations() only
+// applies it when the base schema is absent (SELECT to_regclass('public.plans') IS NULL).
+const BASE_MIGRATION = resolve(rootDir, 'migrations', '0000_damp_spectrum.sql');
+
 const MIGRATIONS = [
+  BASE_MIGRATION,
   resolve(rootDir, 'migrations', '0001_add_missing_columns.sql'),
   resolve(rootDir, 'migrations', '0002_add_google_sheets_credentials.sql'),
   resolve(rootDir, 'migrations', '0003_campaign_contact_retry.sql'),
   resolve(rootDir, 'migrations', '0004_add_missing_tables.sql'),
   resolve(rootDir, 'migrations', '0005_add_missing_agent_messaging_columns.sql'),
   resolve(rootDir, 'migrations', '0006_add_legacy_agent_columns.sql'),
+  resolve(rootDir, 'migrations', '0007_schema_sync.sql'),
 ];
 
 /**
@@ -131,6 +142,23 @@ async function runMigrations() {
         const sql = readFileSync(migrationFile, 'utf8');
         const fileName = migrationFile.split('/').pop();
         const statementCount = countStatements(sql);
+
+        if (migrationFile === BASE_MIGRATION) {
+          // 0000 is the non-idempotent base schema: run it only on a fresh DB.
+          const { rows } = await client.query("SELECT to_regclass('public.plans') AS plans");
+          if (rows[0]?.plans) {
+            console.log(`⏭️  Skipping: ${fileName} (base schema already present)`);
+            console.log(`__MIGRATION_RESULT__:${JSON.stringify({
+              file: fileName,
+              statements: statementCount,
+              durationMs: 0,
+              status: 'skipped',
+            })}`);
+            console.log('');
+            continue;
+          }
+          console.log('🆕 Base schema not found — applying 0000_damp_spectrum.sql to fresh database');
+        }
 
         console.log(`📄 Applying: ${fileName} (${statementCount} statements)`);
 
