@@ -71,6 +71,7 @@ import FlowTemplatesPage from "@/pages/FlowTemplatesPage";
 import IncomingConnections from "@/pages/IncomingConnections";
 import ToolsPage from "@/pages/ToolsPage";
 import GoogleCallbackPage from "@/pages/GoogleCallbackPage";
+import IntegrationCallbackPage from "@/pages/IntegrationCallbackPage";
 import PromptTemplates from "@/pages/PromptTemplates";
 import TransactionHistory from "@/pages/TransactionHistory";
 import Blog from "@/pages/Blog";
@@ -355,6 +356,7 @@ function UserRouter() {
                 <Route path="/app/voices" component={Voices} />
                 <Route path="/app/phone-numbers" component={PhoneNumbers} />
                 <Route path="/app/google-callback" component={GoogleCallbackPage} />
+                <Route path="/app/integrations/callback/:provider" component={IntegrationCallbackPage} />
                 <Route path="/app/tools" component={ToolsPage} />
                 <Route path="/app/flows/new" component={FlowBuilderPage} />
                 <Route path="/app/flows/execution">
@@ -430,6 +432,7 @@ function TeamMemberRouter() {
                 <Route path="/app/analytics" component={Analytics} />
                 <Route path="/app/crm" component={CRMPage} />
                 <Route path="/app/tools/widgets" component={WidgetsPage} />
+                <Route path="/app/integrations/callback/:provider" component={IntegrationCallbackPage} />
                 <Route path="/app/tools" component={ToolsPage} />
                 <Route path="/app/billing" component={Billing} />
                 <Route path="/app/checkout" component={CheckoutPage} />

@@ -2,21 +2,26 @@ import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ClipboardList, Calendar, Webhook, Globe, Key, Users, Mail, ContactRound, Link as LinkIcon, TableProperties, ExternalLink, Unlink, Loader2, MessageSquare, Calendar as CalendarIcon, Workflow, Database, Cable } from "lucide-react";
+import { ClipboardList, Calendar, Webhook, Globe, Key, Users, Mail, ContactRound, Link as LinkIcon, TableProperties, ExternalLink, Unlink, Loader2, MessageSquare, Workflow, ScrollText, FlaskConical } from "lucide-react";
 import { usePluginStatus } from "@/hooks/use-plugin-status";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
-import { IntegrationCard } from "@/components/dashboard/IntegrationCard";
-import { SiZapier, SiZoho, SiGooglesheets } from "react-icons/si";
-
-// SiSalesforce removed from react-icons v5 — using inline SVG
-const SiSalesforce = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-    <path d="M9.815 18.235c-.32.169-.684.265-1.07.265-1.29 0-2.337-1.048-2.337-2.337 0-.483.147-.932.4-1.305a3.984 3.984 0 01-1.4.255C3.762 15.113 2.5 13.851 2.5 12.3a2.815 2.815 0 012.315-2.773 2.516 2.516 0 01-.19-.965c0-1.394 1.131-2.525 2.525-2.525.304 0 .594.054.864.152A2.975 2.975 0 0110.8 4.5a2.977 2.977 0 012.894 2.27 2.526 2.526 0 011.281-.348c1.394 0 2.525 1.131 2.525 2.525 0 .13-.01.257-.028.382.066-.003.133-.005.2-.005A2.83 2.83 0 0120.5 12.15a2.83 2.83 0 01-2.828 2.828 2.81 2.81 0 01-.823-.123 2.097 2.097 0 01-1.879 1.168 2.09 2.09 0 01-.907-.206 2.386 2.386 0 01-2.312 1.8 2.382 2.382 0 01-1.936-.99z"/>
-  </svg>
-);
+import { useTranslation } from "react-i18next";
+import { formatDistanceToNow } from "date-fns";
+import { IntegrationCard, type IntegrationCardAction } from "@/components/dashboard/IntegrationCard";
+import { SiGooglesheets } from "react-icons/si";
+import { AuthStorage } from "@/lib/auth-storage";
+import { IntegrationConfigDialog } from "@/components/integrations/IntegrationConfigDialog";
+import { IntegrationLogsDialog } from "@/components/integrations/IntegrationLogsDialog";
+import { IntegrationDisconnectDialog, IntegrationNotConfiguredDialog } from "@/components/integrations/IntegrationDialogs";
+import { PROVIDER_ICONS } from "@/components/integrations/provider-icons";
+import {
+  INTEGRATIONS_QUERY_KEY, PROVIDER_META, PROVIDER_ORDER,
+  disconnectIntegration, fetchIntegrationAuthUrl, integrationErrorMessage, invalidateIntegrations, testIntegration,
+  type IntegrationProviderKey, type IntegrationProviderState, type IntegrationsListResponse,
+} from "@/lib/integrations";
 
 interface ToolCard {
   id: string;
@@ -116,19 +121,31 @@ const allTools: ToolCard[] = [
   },
 ];
 
-
-
 export default function ToolsPage() {
   const [, setLocation] = useLocation();
+  const { t } = useTranslation();
   const { isPluginEnabled, isLoading } = usePluginStatus();
   const { toast } = useToast();
 
   const [connecting, setConnecting] = useState<string | null>(null);
+  const [testing, setTesting] = useState<IntegrationProviderKey | null>(null);
+  const [configProvider, setConfigProvider] = useState<IntegrationProviderKey | null>(null);
+  const [logsProvider, setLogsProvider] = useState<IntegrationProviderKey | null>(null);
+  const [disconnectProvider, setDisconnectProvider] = useState<IntegrationProviderKey | null>(null);
+  const [notConfiguredProvider, setNotConfiguredProvider] = useState<IntegrationProviderKey | null>(null);
+  const isAdmin = AuthStorage.isAdmin();
 
   const { data: googleStatus } = useQuery<{ connected: boolean; email?: string }>({
     queryKey: ["/api/integrations/google/status"],
     retry: false,
   });
+
+  const { data: integrations } = useQuery<IntegrationsListResponse>({
+    queryKey: INTEGRATIONS_QUERY_KEY,
+    retry: false,
+  });
+  const providerState = (key: IntegrationProviderKey): IntegrationProviderState | undefined =>
+    integrations?.providers?.find((p) => p.provider === key);
 
   const disconnectGoogleMutation = useMutation({
     mutationFn: () => apiRequest("DELETE", "/api/integrations/google/disconnect"),
@@ -157,18 +174,96 @@ export default function ToolsPage() {
     }
   };
 
-  const handleConnectPlaceholder = (name: string) => {
-    setConnecting(name);
-    setTimeout(() => {
-      toast({ title: `${name} Integration`, description: "This integration is coming soon in a future update." });
+  const startOAuth = async (provider: IntegrationProviderKey) => {
+    const meta = PROVIDER_META[provider];
+    setConnecting(provider);
+    try {
+      const { url } = await fetchIntegrationAuthUrl(provider);
+      if (!url) throw new Error("No authorization URL returned");
+      window.location.href = url;
+    } catch (err: any) {
+      if (err?.status === 503) {
+        setNotConfiguredProvider(provider);
+      } else {
+        toast({
+          title: t("integrations.providers.connectFailed", { defaultValue: "{{provider}} connection failed", provider: meta.title }),
+          description: integrationErrorMessage(err, t("errors.generic", "Something went wrong")),
+          variant: "destructive",
+        });
+      }
       setConnecting(null);
-    }, 1000);
+    }
   };
+
+  const handlePrimary = (provider: IntegrationProviderKey) => {
+    const state = providerState(provider);
+    const kind = state?.kind ?? PROVIDER_META[provider].kind;
+    if (state?.connected) {
+      setConfigProvider(provider);
+      return;
+    }
+    if (kind === "oauth") {
+      if (state && state.configured === false) {
+        setNotConfiguredProvider(provider);
+        return;
+      }
+      void startOAuth(provider);
+      return;
+    }
+    setConfigProvider(provider);
+  };
+
+  const handleTest = async (provider: IntegrationProviderKey) => {
+    const meta = PROVIDER_META[provider];
+    setTesting(provider);
+    try {
+      const result = await testIntegration(provider);
+      const failed = result.results?.filter((r) => !r.ok) ?? [];
+      if (result.ok && failed.length === 0) {
+        toast({
+          title: t("integrations.providers.testOk", { defaultValue: "{{provider}} is working", provider: meta.title }),
+          description: result.accountName || undefined,
+        });
+      } else {
+        toast({
+          title: t("integrations.providers.testFailed", { defaultValue: "{{provider}} test failed", provider: meta.title }),
+          description: result.error || failed.map((r) => `${r.url}: ${r.error || r.httpStatus || "failed"}`).join("\n"),
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: t("integrations.providers.testFailed", { defaultValue: "{{provider}} test failed", provider: meta.title }),
+        description: integrationErrorMessage(err, t("errors.generic", "Something went wrong")),
+        variant: "destructive",
+      });
+    } finally {
+      invalidateIntegrations();
+      setTesting(null);
+    }
+  };
+
+  const disconnectMutation = useMutation({
+    mutationFn: (provider: IntegrationProviderKey) => disconnectIntegration(provider),
+    onSuccess: (_data, provider) => {
+      invalidateIntegrations();
+      toast({ title: t("integrations.providers.disconnected", { defaultValue: "{{provider}} disconnected", provider: PROVIDER_META[provider].title }) });
+    },
+    onError: (err: unknown) => {
+      toast({
+        title: t("integrations.providers.disconnectFailed", "Failed to disconnect"),
+        description: integrationErrorMessage(err, t("errors.generic", "Something went wrong")),
+        variant: "destructive",
+      });
+    },
+    onSettled: () => setDisconnectProvider(null),
+  });
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const googleConnected = params.get("google_connected");
     const googleError = params.get("google_error");
+    const integration = params.get("integration");
     if (googleConnected === "true") {
       queryClient.invalidateQueries({ queryKey: ["/api/integrations/google/status"] });
       toast({ title: "Google account connected successfully" });
@@ -188,13 +283,101 @@ export default function ToolsPage() {
         variant: "destructive",
       });
       window.history.replaceState({}, "", "/app/tools");
+    } else if (integration) {
+      const meta = PROVIDER_META[integration as IntegrationProviderKey];
+      const title = meta?.title ?? integration;
+      const error = params.get("error");
+      if (params.get("connected") === "true") {
+        invalidateIntegrations();
+        toast({ title: t("integrations.providers.connectedToast", { defaultValue: "{{provider}} connected successfully", provider: title }) });
+      } else if (error) {
+        toast({
+          title: t("integrations.providers.connectFailed", { defaultValue: "{{provider}} connection failed", provider: title }),
+          description: error,
+          variant: "destructive",
+        });
+      }
+      window.history.replaceState({}, "", "/app/tools");
     }
+  // Runs once on mount to consume the OAuth return query.
   }, []);
 
   const visibleTools = allTools.filter((tool) => {
     if (!tool.pluginRequired) return true;
     return isPluginEnabled?.(tool.pluginRequired) ?? false;
   });
+
+  const cardLabels = {
+    connected: t("integrations.providers.status.connected", "Connected"),
+    notConnected: t("integrations.providers.status.notConnected", "Not Connected"),
+    error: t("integrations.providers.status.error", "Needs attention"),
+    status: t("integrations.providers.card.status", "Status"),
+    lastSync: t("integrations.providers.card.lastSync", "Last Sync"),
+    account: t("integrations.providers.card.account", "Connected Account"),
+  };
+
+  const extraRow = (provider: IntegrationProviderKey, state: IntegrationProviderState | undefined): { label: string; value: string } => {
+    const connected = !!state?.connected;
+    switch (provider) {
+      case "zapier":
+      case "pabbly": {
+        const count = state?.config?.webhooks?.length ?? 0;
+        return { label: t("integrations.providers.card.webhooks", "Webhooks"), value: connected ? String(count) : "-" };
+      }
+      case "calcom":
+        return {
+          label: t("integrations.providers.card.eventType", "Event type"),
+          value: connected ? (state?.config?.eventTypeId ? String(state.config.eventTypeId) : t("integrations.providers.card.notSet", "Not set")) : "-",
+        };
+      case "gohighlevel":
+        return {
+          label: t("integrations.providers.card.calendar", "Calendar"),
+          value: connected ? (state?.config?.calendarId ? t("integrations.providers.card.set", "Set") : t("integrations.providers.card.notSet", "Not set")) : "-",
+        };
+      default:
+        return { label: t("integrations.providers.card.sync", "Sync"), value: connected ? t("integrations.providers.card.leadsAppointments", "Leads & appointments") : "-" };
+    }
+  };
+
+  const renderProviderCard = (provider: IntegrationProviderKey) => {
+    const meta = PROVIDER_META[provider];
+    const state = providerState(provider);
+    const connected = !!state?.connected;
+    const status = state?.status === "error" ? "error" : connected ? "connected" : "disconnected";
+    const extra = extraRow(provider, state);
+    const actions: IntegrationCardAction[] = connected ? [
+      { key: "test", label: t("integrations.providers.actions.test", "Test"), icon: <FlaskConical className="w-3.5 h-3.5 mr-1" />, onClick: () => handleTest(provider), loading: testing === provider },
+      { key: "logs", label: t("integrations.providers.actions.logs", "Logs"), icon: <ScrollText className="w-3.5 h-3.5 mr-1" />, onClick: () => setLogsProvider(provider) },
+      { key: "disconnect", label: t("integrations.providers.actions.disconnect", "Disconnect"), icon: <Unlink className="w-3.5 h-3.5 mr-1" />, onClick: () => setDisconnectProvider(provider), variant: "ghost", loading: disconnectMutation.isPending && disconnectMutation.variables === provider },
+    ] : [];
+    return (
+      <IntegrationCard
+        key={provider}
+        id={provider}
+        title={meta.title}
+        category={meta.category}
+        description={meta.description}
+        icon={PROVIDER_ICONS[provider].icon}
+        iconBg={PROVIDER_ICONS[provider].iconBg}
+        isConnected={connected}
+        isConnecting={connecting === provider}
+        status={status}
+        errorMessage={state?.lastError}
+        accountLabel={connected ? (state?.accountName || t("integrations.providers.card.active", "Active")) : "-"}
+        lastSyncLabel={connected
+          ? (state?.lastSyncAt ? formatDistanceToNow(new Date(state.lastSyncAt), { addSuffix: true }) : t("integrations.providers.card.never", "Never"))
+          : "-"}
+        extraLabel={extra.label}
+        extraValue={extra.value}
+        primaryLabel={connected
+          ? t("integrations.providers.actions.configure", "Configure")
+          : meta.kind === "oauth" ? t("integrations.providers.actions.connect", "Connect") : t("integrations.providers.actions.setUp", "Set up")}
+        onConnect={() => handlePrimary(provider)}
+        actions={actions}
+        labels={cardLabels}
+      />
+    );
+  };
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-12 pb-24">
@@ -260,9 +443,9 @@ export default function ToolsPage() {
             </p>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <IntegrationCard 
+          <IntegrationCard
             id="google-sheets"
             title="Google Sheets"
             category="Data & Spreadsheets"
@@ -273,74 +456,36 @@ export default function ToolsPage() {
             isConnecting={connecting === "google-sheets"}
             onConnect={googleStatus?.connected ? () => disconnectGoogleMutation.mutate() : handleConnectGoogle}
           />
-          <IntegrationCard 
-            id="gohighlevel"
-            title="GoHighLevel"
-            category="CRM & Marketing Automation"
-            description="Manage CRM contacts, sync calendars, and automate appointments with GHL."
-            icon={<Database className="w-6 h-6 text-blue-600 dark:text-blue-400" />}
-            iconBg="bg-blue-500/10 dark:bg-blue-500/20"
-            isConnected={false}
-            isConnecting={connecting === "GoHighLevel"}
-            onConnect={() => handleConnectPlaceholder("GoHighLevel")}
-          />
-          <IntegrationCard 
-            id="salesforce"
-            title="Salesforce"
-            category="CRM"
-            description="Sync contacts, deals, and appointments with your Salesforce org via OAuth."
-            icon={<SiSalesforce className="w-6 h-6 text-sky-500 dark:text-sky-400" />}
-            iconBg="bg-sky-500/10 dark:bg-sky-500/20"
-            isConnected={false}
-            isConnecting={connecting === "Salesforce"}
-            onConnect={() => handleConnectPlaceholder("Salesforce")}
-          />
-          <IntegrationCard 
-            id="calcom"
-            title="Cal.com"
-            category="Scheduling & Booking"
-            description="Sync booking pages and let agents handle appointment scheduling directly."
-            icon={<CalendarIcon className="w-6 h-6 text-zinc-800 dark:text-zinc-200" />}
-            iconBg="bg-zinc-500/10 dark:bg-zinc-500/20"
-            isConnected={false}
-            isConnecting={connecting === "Cal.com"}
-            onConnect={() => handleConnectPlaceholder("Cal.com")}
-          />
-          <IntegrationCard 
-            id="zapier"
-            title="Zapier"
-            category="Automation"
-            description="Connect your AI agents to 5000+ apps through Zapier webhooks and triggers."
-            icon={<SiZapier className="w-6 h-6 text-orange-500 dark:text-orange-400" />}
-            iconBg="bg-orange-500/10 dark:bg-orange-500/20"
-            isConnected={false}
-            isConnecting={connecting === "Zapier"}
-            onConnect={() => handleConnectPlaceholder("Zapier")}
-          />
-          <IntegrationCard 
-            id="pabbly"
-            title="Pabbly Connect"
-            category="Automation"
-            description="Create custom workflows and automate tasks without any coding."
-            icon={<Cable className="w-6 h-6 text-emerald-500 dark:text-emerald-400" />}
-            iconBg="bg-emerald-500/10 dark:bg-emerald-500/20"
-            isConnected={false}
-            isConnecting={connecting === "Pabbly Connect"}
-            onConnect={() => handleConnectPlaceholder("Pabbly Connect")}
-          />
-          <IntegrationCard 
-            id="zoho"
-            title="Zoho CRM"
-            category="CRM"
-            description="Sync your leads and contacts with Zoho CRM for better pipeline management."
-            icon={<SiZoho className="w-6 h-6 text-red-500 dark:text-red-400" />}
-            iconBg="bg-red-500/10 dark:bg-red-500/20"
-            isConnected={false}
-            isConnecting={connecting === "Zoho CRM"}
-            onConnect={() => handleConnectPlaceholder("Zoho CRM")}
-          />
+          {PROVIDER_ORDER.map(renderProviderCard)}
         </div>
       </div>
+
+      <IntegrationConfigDialog
+        provider={configProvider}
+        state={configProvider ? providerState(configProvider) : undefined}
+        open={configProvider !== null}
+        onOpenChange={(open) => { if (!open) setConfigProvider(null); }}
+        onReconnect={(provider) => void startOAuth(provider)}
+      />
+
+      <IntegrationLogsDialog
+        provider={logsProvider}
+        open={logsProvider !== null}
+        onOpenChange={(open) => { if (!open) setLogsProvider(null); }}
+      />
+
+      <IntegrationDisconnectDialog
+        provider={disconnectProvider}
+        pending={disconnectMutation.isPending}
+        onConfirm={(provider) => disconnectMutation.mutate(provider)}
+        onClose={() => setDisconnectProvider(null)}
+      />
+
+      <IntegrationNotConfiguredDialog
+        provider={notConfiguredProvider}
+        isAdmin={isAdmin}
+        onClose={() => setNotConfiguredProvider(null)}
+      />
     </div>
   );
 }

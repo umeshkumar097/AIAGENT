@@ -29,6 +29,7 @@ import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { useTranslation } from "react-i18next";
 import BrandingSettings from "./BrandingSettings";
 import SMTPSettings from "./SMTPSettings";
+import { IntegrationsAppKeysCard } from "./IntegrationsAppKeysCard";
 
 interface Settings {
   default_llm_free: string;
@@ -805,6 +806,12 @@ export default function GlobalSettings({ onSwitchTab }: GlobalSettingsProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* 4b. CRM integration OAuth app keys (Zoho / Salesforce / GoHighLevel) */}
+      <IntegrationsAppKeysCard
+        settings={settings as unknown as Record<string, unknown> | undefined}
+        onSave={(key, value) => updateSetting.mutateAsync({ key, value })}
+      />
 
       {/* 5. SMTP Email Settings */}
       <SMTPSettings />

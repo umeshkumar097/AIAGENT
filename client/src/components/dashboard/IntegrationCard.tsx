@@ -2,8 +2,19 @@ import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, RefreshCw, Plug, Webhook, Link as LinkIcon, Loader2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ShieldCheck, RefreshCw, Plug, Webhook, Link as LinkIcon, Loader2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+export interface IntegrationCardAction {
+  key: string;
+  label: string;
+  icon?: React.ReactNode;
+  onClick: () => void;
+  variant?: "outline" | "ghost" | "secondary" | "destructive" | "default";
+  disabled?: boolean;
+  loading?: boolean;
+}
 
 export interface IntegrationCardProps {
   id: string;
@@ -15,9 +26,30 @@ export interface IntegrationCardProps {
   isConnected: boolean;
   onConnect: () => void;
   isConnecting?: boolean;
+  /** "error" renders a red badge with `errorMessage` as tooltip. */
+  status?: "connected" | "error" | "disconnected";
+  errorMessage?: string | null;
+  /** Overrides for the detail rows (defaults keep the legacy Google Sheets look). */
+  accountLabel?: string;
+  lastSyncLabel?: string;
+  extraLabel?: string;
+  extraValue?: string;
+  /** Text of the primary button (defaults: Connect / Manage Connection). */
+  primaryLabel?: string;
+  /** Secondary actions rendered as small buttons under the primary one. */
+  actions?: IntegrationCardAction[];
+  labels?: {
+    connected?: string;
+    notConnected?: string;
+    error?: string;
+    status?: string;
+    lastSync?: string;
+    account?: string;
+  };
 }
 
 export function IntegrationCard({
+  id,
   title,
   category,
   description,
@@ -25,10 +57,36 @@ export function IntegrationCard({
   iconBg,
   isConnected,
   onConnect,
-  isConnecting
+  isConnecting,
+  status,
+  errorMessage,
+  accountLabel,
+  lastSyncLabel,
+  extraLabel,
+  extraValue,
+  primaryLabel,
+  actions,
+  labels,
 }: IntegrationCardProps) {
+  const isError = status === "error";
+  const connectedText = labels?.connected ?? "Connected";
+  const notConnectedText = labels?.notConnected ?? "Not Connected";
+  const errorText = labels?.error ?? "Needs attention";
+  const statusText = isError ? errorText : isConnected ? connectedText : notConnectedText;
+
+  const badge = (
+    <Badge
+      variant={isError ? "destructive" : isConnected ? "default" : "outline"}
+      className={cn("text-xs font-medium", !isConnected && !isError && "text-muted-foreground")}
+      data-testid={`badge-integration-status-${id}`}
+    >
+      {isError && <AlertTriangle className="w-3 h-3 mr-1" />}
+      {statusText}
+    </Badge>
+  );
+
   return (
-    <Card className="flex flex-col overflow-hidden hover-elevate transition-all border-muted/60">
+    <Card className="flex flex-col overflow-hidden hover-elevate transition-all border-muted/60" data-testid={`card-integration-${id}`}>
       <CardHeader className="pb-4 border-b bg-muted/20">
         <div className="flex justify-between items-start">
           <div className="flex gap-3">
@@ -40,9 +98,12 @@ export function IntegrationCard({
               <CardDescription className="text-xs mt-0.5">{category}</CardDescription>
             </div>
           </div>
-          <Badge variant={isConnected ? "default" : "outline"} className={cn("text-xs font-medium", !isConnected && "text-muted-foreground")}>
-            {isConnected ? "Connected" : "Not Connected"}
-          </Badge>
+          {isError && errorMessage ? (
+            <Tooltip>
+              <TooltipTrigger asChild>{badge}</TooltipTrigger>
+              <TooltipContent className="max-w-xs break-words">{errorMessage}</TooltipContent>
+            </Tooltip>
+          ) : badge}
         </div>
         <p className="text-sm text-muted-foreground mt-4 leading-relaxed">
           {description}
@@ -52,48 +113,73 @@ export function IntegrationCard({
         <div className="flex justify-between items-center text-sm">
           <div className="flex items-center gap-2 text-muted-foreground">
             <ShieldCheck className="w-4 h-4" />
-            <span>Status</span>
+            <span>{labels?.status ?? "Status"}</span>
           </div>
-          <span className={isConnected ? "text-foreground font-medium" : "text-muted-foreground"}>
-            {isConnected ? "Connected" : "Not Connected"}
-          </span >
+          <span className={isError ? "text-destructive font-medium" : isConnected ? "text-foreground font-medium" : "text-muted-foreground"}>
+            {statusText}
+          </span>
         </div>
         <div className="flex justify-between items-center text-sm">
           <div className="flex items-center gap-2 text-muted-foreground">
             <RefreshCw className="w-4 h-4" />
-            <span>Last Sync</span>
+            <span>{labels?.lastSync ?? "Last Sync"}</span>
           </div>
-          <span className="text-foreground">{isConnected ? "Just now" : "-"}</span>
+          <span className="text-foreground truncate max-w-[55%] text-right">
+            {lastSyncLabel ?? (isConnected ? "Just now" : "-")}
+          </span>
         </div>
         <div className="flex justify-between items-center text-sm">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Plug className="w-4 h-4" />
-            <span>Connected Account</span>
+            <span>{labels?.account ?? "Connected Account"}</span>
           </div>
-          <span className="text-foreground">{isConnected ? "Active" : "-"}</span>
+          <span className="text-foreground truncate max-w-[55%] text-right" title={accountLabel}>
+            {accountLabel ?? (isConnected ? "Active" : "-")}
+          </span>
         </div>
         <div className="flex justify-between items-center text-sm">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Webhook className="w-4 h-4" />
-            <span>Webhooks</span>
+            <span>{extraLabel ?? "Webhooks"}</span>
           </div>
-          <span className="text-foreground">{isConnected ? "Configured" : "-"}</span>
+          <span className="text-foreground truncate max-w-[55%] text-right">
+            {extraValue ?? (isConnected ? "Configured" : "-")}
+          </span>
         </div>
       </CardContent>
-      <CardFooter className="p-4 pt-0 bg-background border-t mt-auto">
-        <Button 
-          variant={isConnected ? "outline" : "secondary"} 
-          className="w-full text-sm font-medium" 
+      <CardFooter className="p-4 pt-0 bg-background border-t mt-auto flex-col items-stretch gap-2">
+        <Button
+          variant={isConnected ? "outline" : "secondary"}
+          className="w-full text-sm font-medium"
           onClick={onConnect}
           disabled={isConnecting}
+          data-testid={`button-integration-primary-${id}`}
         >
           {isConnecting ? (
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
           ) : (
             <LinkIcon className="w-4 h-4 mr-2" />
           )}
-          {isConnected ? "Manage Connection" : "Connect"}
+          {primaryLabel ?? (isConnected ? "Manage Connection" : "Connect")}
         </Button>
+        {actions && actions.length > 0 && (
+          <div className="grid grid-cols-3 gap-2">
+            {actions.map((action) => (
+              <Button
+                key={action.key}
+                size="sm"
+                variant={action.variant ?? "ghost"}
+                className="text-xs"
+                onClick={action.onClick}
+                disabled={action.disabled || action.loading}
+                data-testid={`button-integration-${action.key}-${id}`}
+              >
+                {action.loading ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : action.icon}
+                {action.label}
+              </Button>
+            ))}
+          </div>
+        )}
       </CardFooter>
     </Card>
   );

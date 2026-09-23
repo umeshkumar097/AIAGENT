@@ -60,7 +60,11 @@ interface ConnectionStatus {
 
 export default function AdminDashboard() {
   const [location] = useLocation();
-  const [activeTab, setActiveTab] = useState("analytics");
+  const [activeTab, setActiveTab] = useState(() => {
+    // Deep links such as /admin?tab=settings (used by the integrations "not configured" dialog)
+    const requested = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("tab") : null;
+    return requested && /^[a-z-]+$/.test(requested) ? requested : "analytics";
+  });
   const [twilioStatus, setTwilioStatus] = useState<ConnectionStatus | null>(null);
   const [elevenLabsStatus, setElevenLabsStatus] = useState<ConnectionStatus | null>(null);
   const [openaiStatus, setOpenaiStatus] = useState<ConnectionStatus | null>(null);
