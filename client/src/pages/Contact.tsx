@@ -15,9 +15,12 @@
  * ============================================================
  */
 import { motion, useReducedMotion } from "framer-motion";
-import { 
-  Mail, 
-  Send, 
+import {
+  Mail,
+  Phone,
+  MapPin,
+  Building2,
+  Send,
   Shield, 
   Loader2,
   ChevronDown,
@@ -53,7 +56,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { SEOHead } from "@/components/landing/SEOHead";
 import { Navbar } from "@/components/landing/Navbar";
-import { Footer } from "@/components/landing/Footer";
+import { Footer, useCompanyInfo } from "@/components/landing/Footer";
 import { useBranding } from "@/components/BrandingProvider";
 import { useSeoSettings } from "@/hooks/useSeoSettings";
 
@@ -133,6 +136,7 @@ const itemVariants = {
 
 export default function Contact() {
   const { branding } = useBranding();
+  const company = useCompanyInfo();
   const { t } = useTranslation();
   const shouldReduceMotion = useReducedMotion();
   const { toast } = useToast();
@@ -432,13 +436,32 @@ export default function Contact() {
               </div>
 
               <div className="space-y-6">
-                {branding.admin_email && (
+                <ContactInfoItem
+                  icon={Building2}
+                  label={t("landing.contactPage.contactInfo.labels.company", "Legal name")}
+                  value={`${company.legalName} (${company.tradingAs})`}
+                  testId="contact-company"
+                />
+                <ContactInfoItem
+                  icon={MapPin}
+                  label={t("landing.contactPage.contactInfo.labels.address", "Registered office")}
+                  value={company.address}
+                  testId="contact-address"
+                />
+                <ContactInfoItem
+                  icon={Mail}
+                  label={t("landing.contactPage.contactInfo.labels.email")}
+                  value={company.supportEmail}
+                  href={`mailto:${company.supportEmail}`}
+                  testId="contact-email"
+                />
+                {company.phone && (
                   <ContactInfoItem
-                    icon={Mail}
-                    label={t("landing.contactPage.contactInfo.labels.email")}
-                    value={branding.admin_email}
-                    href={`mailto:${branding.admin_email}`}
-                    testId="contact-email"
+                    icon={Phone}
+                    label={t("landing.contactPage.contactInfo.labels.phone", "Phone")}
+                    value={company.phone}
+                    href={`tel:${company.phone.replace(/\s+/g, "")}`}
+                    testId="contact-phone"
                   />
                 )}
               </div>

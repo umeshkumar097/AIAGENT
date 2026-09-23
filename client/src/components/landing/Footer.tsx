@@ -20,6 +20,7 @@ import { useBranding } from "@/components/BrandingProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 
@@ -37,9 +38,83 @@ const resourceLinks = [
   { href: "/terms", label: "Terms of Service", isRoute: true },
 ];
 
+const legalLinks = [
+  { href: "/privacy", label: "Privacy Policy" },
+  { href: "/terms", label: "Terms of Service" },
+  { href: "/refund-policy", label: "Refund & Cancellation Policy" },
+  { href: "/contact", label: "Contact" },
+  { href: "/pricing", label: "Pricing" },
+];
+
+/**
+ * Legal-entity defaults. Admin-editable values (company_name, company_address,
+ * support_email, contact_phone) override these once the public settings
+ * endpoint exposes them.
+ */
+export const COMPANY_DEFAULTS = {
+  legalName: "Aiclex Solutions Pvt. Ltd.",
+  tradingAs: "AICLEX\u2122 Technologies",
+  cin: "U62099UW2026PTC254970",
+  gstin: "09ABGCA0151N1ZL",
+  dpiit: "DIPP271379",
+  address: "E58, Sector 3, Noida, Uttar Pradesh \u2013 201301, India",
+  supportEmail: "info@aiclex.in",
+  copyrightYears: "2025-26",
+} as const;
+
+interface PublicCompanySettings {
+  company_name?: string | null;
+  company_address?: string | null;
+  support_email?: string | null;
+  contact_phone?: string | null;
+  support_phone?: string | null;
+}
+
+function nonEmpty(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
+export interface CompanyInfo {
+  legalName: string;
+  tradingAs: string;
+  cin: string;
+  gstin: string;
+  dpiit: string;
+  address: string;
+  supportEmail: string;
+  /** Empty string when no phone is configured — callers should hide the row. */
+  phone: string;
+  copyrightYears: string;
+}
+
+/**
+ * Company / legal contact details for public pages. Reads admin-configurable
+ * settings when available and falls back to the registered-entity defaults.
+ */
+export function useCompanyInfo(): CompanyInfo {
+  const { branding } = useBranding();
+  const { data } = useQuery<PublicCompanySettings>({
+    queryKey: ["/api/settings/public"],
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+
+  return {
+    legalName: nonEmpty(data?.company_name) ?? COMPANY_DEFAULTS.legalName,
+    tradingAs: COMPANY_DEFAULTS.tradingAs,
+    cin: COMPANY_DEFAULTS.cin,
+    gstin: COMPANY_DEFAULTS.gstin,
+    dpiit: COMPANY_DEFAULTS.dpiit,
+    address: nonEmpty(data?.company_address) ?? nonEmpty(branding.app_location) ?? COMPANY_DEFAULTS.address,
+    supportEmail: nonEmpty(data?.support_email) ?? nonEmpty(branding.admin_email) ?? COMPANY_DEFAULTS.supportEmail,
+    phone: nonEmpty(data?.contact_phone) ?? nonEmpty(data?.support_phone) ?? "",
+    copyrightYears: COMPANY_DEFAULTS.copyrightYears,
+  };
+}
 
 export function Footer() {
   const { branding } = useBranding();
+  const company = useCompanyInfo();
   const [email, setEmail] = useState("");
   const { toast } = useToast();
 
@@ -270,6 +345,30 @@ export function Footer() {
               Cookies
             </Link>
           </div>
+        </div>
+
+        <div className="pb-8 space-y-3 text-center md:text-left" data-testid="footer-legal">
+          <p className="text-xs text-slate-500" data-testid="text-legal-entity">
+            © {company.copyrightYears} {company.legalName} (Trading as {company.tradingAs}). All rights reserved.
+          </p>
+          <p className="text-xs text-slate-500" data-testid="text-legal-registration">
+            CIN: {company.cin} · GSTIN: {company.gstin} · DPIIT Recognized Startup ({company.dpiit})
+          </p>
+          <p className="text-xs text-slate-500" data-testid="text-legal-address">
+            Registered Office: {company.address}
+          </p>
+          <nav aria-label="Legal" className="flex flex-wrap items-center justify-center md:justify-start gap-x-4 gap-y-2 text-xs text-slate-500">
+            {legalLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="hover:text-amber-400 transition-colors"
+                data-testid={`link-legal-${link.href.replace(/^\//, "").replace(/\//g, "-")}`}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
         </div>
       </div>
     </footer>

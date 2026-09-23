@@ -18,10 +18,12 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Mic2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useBranding } from "@/components/BrandingProvider";
+import { useCompanyInfo } from "@/components/landing/Footer";
 
 export default function PrivacyPolicy() {
   const [, setLocation] = useLocation();
   const { branding, currentLogo } = useBranding();
+  const company = useCompanyInfo();
 
   return (
     <div className="min-h-screen bg-background">
@@ -66,6 +68,9 @@ export default function PrivacyPolicy() {
             <h2 className="text-3xl font-bold mb-4">Introduction</h2>
             <p className="text-lg leading-relaxed mb-4">
               At {branding.app_name}, we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our AI-powered calling platform.
+            </p>
+            <p className="text-lg leading-relaxed mb-4" data-testid="text-privacy-entity">
+              {branding.app_name} is operated by {company.legalName} ({company.tradingAs}), registered office: {company.address}. {company.legalName} is the data controller for personal data processed through the platform.
             </p>
           </section>
 
@@ -189,7 +194,14 @@ export default function PrivacyPolicy() {
           <section className="mb-12">
             <h2 className="text-3xl font-bold mb-4">Contact Us</h2>
             <p className="text-lg leading-relaxed mb-4">
-              If you have any questions about this Privacy Policy or our data practices, please contact our support team through the application or visit our contact page.
+              If you have any questions about this Privacy Policy or our data practices, please contact our support team through the application, visit our contact page, or write to us at{" "}
+              <a href={`mailto:${company.supportEmail}`} className="underline">{company.supportEmail}</a>.
+            </p>
+            <p className="text-lg leading-relaxed mb-2" data-testid="text-privacy-company">
+              <strong>{company.legalName}</strong> ({company.tradingAs})
+            </p>
+            <p className="text-lg leading-relaxed mb-4" data-testid="text-privacy-address">
+              Registered Office: {company.address}
             </p>
           </section>
         </div>

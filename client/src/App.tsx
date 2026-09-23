@@ -53,6 +53,7 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import AdminCampaignDetail from "@/pages/AdminCampaignDetail";
 import PrivacyPolicy from "@/pages/policies/PrivacyPolicy";
 import TermsOfService from "@/pages/policies/TermsOfService";
+import RefundPolicy from "@/pages/policies/RefundPolicy";
 import CookiePolicy from "@/pages/policies/CookiePolicy";
 import DataDeletion from "@/pages/policies/DataDeletion";
 import InstallWizard from "@/pages/InstallWizard";
@@ -213,6 +214,7 @@ function PublicRouter() {
         <Route path="/blog" component={Blog} />
         <Route path="/privacy" component={PrivacyPolicy} />
         <Route path="/terms" component={TermsOfService} />
+        <Route path="/refund-policy" component={RefundPolicy} />
         <Route path="/cookies" component={CookiePolicy} />
         <Route path="/data-deletion" component={DataDeletion} />
         <Route>

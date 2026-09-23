@@ -15,7 +15,7 @@
  * ============================================================
  */
 import { motion, useReducedMotion } from "framer-motion";
-import { Mail, Clock, Users, Send, Shield, CheckCircle, Loader2, MessageSquare, Phone, Headphones } from "lucide-react";
+import { Mail, Clock, Users, Send, Shield, CheckCircle, Loader2, MessageSquare, Phone, Headphones, MapPin } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useBranding } from "@/components/BrandingProvider";
+import { useCompanyInfo } from "@/components/landing/Footer";
 import { useTranslation } from "react-i18next";
 
 const contactFormSchema = z.object({
@@ -91,6 +92,7 @@ export function ContactSection() {
   const shouldReduceMotion = useReducedMotion();
   const { toast } = useToast();
   const { branding } = useBranding();
+  const company = useCompanyInfo();
   const { t } = useTranslation();
 
   const form = useForm<ContactFormData>({
@@ -172,7 +174,7 @@ export function ContactSection() {
 
             <div className="space-y-6">
               <motion.a
-                href="mailto:info@aiclex.in"
+                href={`mailto:${company.supportEmail}`}
                 className="flex items-center gap-4 group"
                 whileHover={shouldReduceMotion ? {} : { x: 5 }}
                 data-testid="link-contact-email"
@@ -183,27 +185,41 @@ export function ContactSection() {
                 <div>
                   <p className="text-sm text-gray-400">{t('landing.contact.emailLabel')}</p>
                   <p className="text-lg font-semibold text-white group-hover:text-amber-400 transition-colors">
-                    info@aiclex.in
+                    {company.supportEmail}
                   </p>
                 </div>
               </motion.a>
 
-              <motion.a
-                href="tel:+918449488090"
-                className="flex items-center gap-4 group"
-                whileHover={shouldReduceMotion ? {} : { x: 5 }}
-                data-testid="link-contact-phone"
-              >
-                <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform shadow-lg shadow-emerald-500/30">
-                  <Phone className="h-7 w-7 text-white" />
+              {company.phone && (
+                <motion.a
+                  href={`tel:${company.phone.replace(/\s+/g, "")}`}
+                  className="flex items-center gap-4 group"
+                  whileHover={shouldReduceMotion ? {} : { x: 5 }}
+                  data-testid="link-contact-phone"
+                >
+                  <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform shadow-lg shadow-emerald-500/30">
+                    <Phone className="h-7 w-7 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-400">{t("landing.contact.phoneLabel", "Call us")}</p>
+                    <p className="text-lg font-semibold text-white group-hover:text-emerald-400 transition-colors">
+                      {company.phone}
+                    </p>
+                  </div>
+                </motion.a>
+              )}
+
+              <div className="flex items-start gap-4" data-testid="text-contact-company">
+                <div className="h-14 w-14 rounded-2xl bg-white/5 flex items-center justify-center flex-shrink-0">
+                  <MapPin className="h-7 w-7 text-amber-400" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400">Call karein</p>
-                  <p className="text-lg font-semibold text-white group-hover:text-emerald-400 transition-colors">
-                    +91 84494 88090
+                  <p className="text-sm text-gray-400">{company.legalName} ({company.tradingAs})</p>
+                  <p className="text-base font-medium text-white">
+                    {company.address}
                   </p>
                 </div>
-              </motion.a>
+              </div>
 
               <div className="border-t border-white/10 pt-6 space-y-4">
                 <TrustElement

@@ -16,12 +16,14 @@
  */
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Mic2 } from "lucide-react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useBranding } from "@/components/BrandingProvider";
+import { useCompanyInfo } from "@/components/landing/Footer";
 
 export default function TermsOfService() {
   const [, setLocation] = useLocation();
   const { branding, currentLogo } = useBranding();
+  const company = useCompanyInfo();
 
   return (
     <div className="min-h-screen bg-background">
@@ -66,6 +68,9 @@ export default function TermsOfService() {
             <h2 className="text-3xl font-bold mb-4">1. Acceptance of Terms</h2>
             <p className="text-lg leading-relaxed mb-4">
               By accessing or using {branding.app_name} ("the Service"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our Service.
+            </p>
+            <p className="text-lg leading-relaxed mb-4" data-testid="text-terms-entity">
+              The Service is operated by {company.legalName} ({company.tradingAs}), a company incorporated in India with its registered office at {company.address} ("we", "us" or "our").
             </p>
           </section>
 
@@ -119,10 +124,23 @@ export default function TermsOfService() {
             </p>
             <ul className="list-disc pl-6 mb-4 space-y-2 text-lg">
               <li>You authorize us to charge your payment method for subscription fees</li>
-              <li>Credits are non-refundable except as required by law</li>
+              <li>Credits are refundable only as set out in our Refund &amp; Cancellation Policy</li>
               <li>Unused credits expire according to your plan terms</li>
               <li>We may change pricing with 30 days notice</li>
               <li>Phone number costs are billed separately</li>
+            </ul>
+          </section>
+
+          <section className="mb-12">
+            <h2 className="text-3xl font-bold mb-4">5A. Payments</h2>
+            <p className="text-lg leading-relaxed mb-4" data-testid="text-terms-payments">
+              Payments for the Service are processed by Cashfree Payments India Pvt. Ltd. We do not store your card, UPI or bank account details on our servers.
+            </p>
+            <ul className="list-disc pl-6 mb-4 space-y-2 text-lg">
+              <li>All prices are quoted and billed in Indian Rupees (INR)</li>
+              <li>Applicable GST is charged and a GST tax invoice is issued for every successful payment</li>
+              <li>Subscription plans are prepaid per billing period and do not auto-renew</li>
+              <li>Cancellations, refunds and chargebacks are governed by our <Link href="/refund-policy" className="underline">Refund &amp; Cancellation Policy</Link></li>
             </ul>
           </section>
 
@@ -168,9 +186,23 @@ export default function TermsOfService() {
           </section>
 
           <section className="mb-12">
-            <h2 className="text-3xl font-bold mb-4">11. Contact</h2>
+            <h2 className="text-3xl font-bold mb-4">11. Governing Law</h2>
             <p className="text-lg leading-relaxed mb-4">
-              If you have questions about these Terms, please contact our support team through the application.
+              These Terms are governed by the laws of India. Any dispute arising out of or in connection with these Terms is subject to the exclusive jurisdiction of the courts of Gautam Buddha Nagar, Uttar Pradesh.
+            </p>
+          </section>
+
+          <section className="mb-12">
+            <h2 className="text-3xl font-bold mb-4">12. Contact</h2>
+            <p className="text-lg leading-relaxed mb-4">
+              If you have questions about these Terms, please contact our support team through the application or write to us at{" "}
+              <a href={`mailto:${company.supportEmail}`} className="underline">{company.supportEmail}</a>.
+            </p>
+            <p className="text-lg leading-relaxed mb-2" data-testid="text-terms-company">
+              <strong>{company.legalName}</strong> ({company.tradingAs})
+            </p>
+            <p className="text-lg leading-relaxed mb-4" data-testid="text-terms-address">
+              Registered Office: {company.address}
             </p>
           </section>
         </div>
