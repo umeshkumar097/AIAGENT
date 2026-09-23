@@ -25,6 +25,7 @@ import { ArrowLeft, ArrowRight, Play, Pause, Download, Loader2, Phone, Clock, Ca
 import { format } from "date-fns";
 import { AuthStorage } from "@/lib/auth-storage";
 import { formatSipEndpoint } from "@/lib/formatters";
+import { CallQaCard } from "@/components/calls/CallQaCard";
 
 interface Contact {
   id: string;
@@ -574,6 +575,9 @@ export default function CallDetail() {
               </p>
             </div>
           </div>
+
+          {/* Automatic QA score (Sarvam/Plivo calls only) */}
+          {call.engine === "plivo-openai" && <CallQaCard callId={call.id} />}
 
           {/* Call Metrics Grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
