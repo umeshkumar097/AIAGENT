@@ -20,6 +20,7 @@ import { db } from '../db';
 import { webhooks, webhookLogs, Webhook, InsertWebhookLog } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
 import { validateWebhookUrl } from '../utils/url-validator';
+import { integrationHub } from '../integrations/hub';
 
 export interface WebhookPayload {
   event: string;
@@ -214,6 +215,9 @@ export class WebhookDeliveryService {
   ): Promise<void> {
     console.log(`🔔 [Webhook] Triggering event: ${event}`);
     console.log(`   UserId: ${userId}, CampaignId: ${campaignId || 'N/A'}`);
+
+    // Third-party integrations (Zoho, Salesforce, GoHighLevel, Cal.com, Zapier, Pabbly): fire-and-forget, never throws
+    integrationHub.dispatch(userId, event, data);
 
     try {
       const webhooks = await storage.getWebhooksForEvent(userId, event, campaignId || undefined);

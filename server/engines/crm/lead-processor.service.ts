@@ -27,6 +27,7 @@ import { db } from '../../db';
 import { leads, calls, plivoCalls, twilioOpenaiCalls, sipCalls, appointments, AI_LEAD_CATEGORIES, type AILeadCategory } from '@shared/schema';
 import { CRMStorage } from '../../storage/crm-storage';
 import { eq, and, or, sql } from 'drizzle-orm';
+import { integrationHub } from '../../integrations/hub';
 
 export interface CallData {
   id: string;
@@ -280,6 +281,7 @@ export class CRMLeadProcessor {
         // Update existing lead with new call data and qualification
         const updatedLead = await this.updateExistingLead(existingLead, callData, qualification);
         if (updatedLead) {
+          void integrationHub.onLeadUpserted(callData.userId, updatedLead, { created: false, callData });
           const categoryChanged = existingLead.aiCategory !== updatedLead.aiCategory;
           console.log(`${this.LOG_PREFIX} Updated existing lead ${updatedLead.id} - aiCategory: ${existingLead.aiCategory || 'none'} -> ${updatedLead.aiCategory || qualification.category}${categoryChanged ? ' (changed)' : ''}`);
           return {
@@ -298,6 +300,7 @@ export class CRMLeadProcessor {
         return { leadId: null, qualification };
       }
       console.log(`${this.LOG_PREFIX} Created lead ${lead.id} with category: ${qualification.category}`);
+      void integrationHub.onLeadUpserted(callData.userId, lead, { created: true, callData });
 
       // Log activity
       try {

@@ -8,6 +8,7 @@ import { openaiCredentials } from '@shared/schema';
 import { ElevenLabsPoolService } from '../../services/elevenlabs-pool';
 import { getResourceStatus, clearSettingsCache } from '../../services/resource-watchdog';
 import { resyncElevenLabsPhoneCredentials } from '../../services/elevenlabs-phone-resync';
+import { INTEGRATION_SECRET_KEYS, INTEGRATION_SETTING_KEYS, SALESFORCE_LOGIN_URLS, ZOHO_ACCOUNTS_DOMAINS } from '../../integrations/app-keys';
 
 const INVOICE_SETTING_KEYS = [
   'invoice_seller_name', 'invoice_seller_trade_name', 'invoice_seller_gstin', 'invoice_seller_cin', 'invoice_seller_dpiit',
@@ -25,6 +26,7 @@ export function registerSettingsRoutes(router: Router) {
         'twilio_account_sid', 'twilio_auth_token', 'plivo_auth_id', 'plivo_auth_token',
         'elevenlabs_api_key', 'openai_api_key',
         'google_client_id', 'google_client_secret',
+        ...INTEGRATION_SETTING_KEYS,
         'cashfree_enabled', 'cashfree_app_id', 'cashfree_secret_key', 'cashfree_environment', 'cashfree_last_webhook_at',
         'phone_number_price_inr',
         ...INVOICE_SETTING_KEYS,
@@ -83,7 +85,7 @@ export function registerSettingsRoutes(router: Router) {
       
       const secretKeys = [
         'cashfree_secret_key', 'twilio_auth_token', 'plivo_auth_token', 'openai_api_key',
-        'google_client_secret'
+        'google_client_secret', ...INTEGRATION_SECRET_KEYS
       ];
       for (const key of secretKeys) {
         if (settings[key]) {
@@ -177,6 +179,7 @@ export function registerSettingsRoutes(router: Router) {
         'smtp_host', 'smtp_port', 'smtp_username', 'smtp_password', 'smtp_from_email', 'smtp_from_name', 'email_provider', 'resend_api_key',
         'app_name', 'app_tagline', 'logo_url', 'favicon_url', 'branding_updated_at',
         'google_client_id', 'google_client_secret',
+        ...INTEGRATION_SETTING_KEYS,
         'cashfree_enabled', 'cashfree_app_id', 'cashfree_secret_key', 'cashfree_environment',
         'phone_number_price_inr', ...INVOICE_SETTING_KEYS, 'password_reset_expiry_minutes'
       ];
@@ -188,6 +191,16 @@ export function registerSettingsRoutes(router: Router) {
 
       if (key === 'cashfree_environment' && value !== 'sandbox' && value !== 'production') {
         return res.status(400).json({ error: "cashfree_environment must be 'sandbox' or 'production'" });
+      }
+      if (INTEGRATION_SETTING_KEYS.includes(key)) {
+        if (typeof value !== 'string') return res.status(400).json({ error: `${key} must be a string` });
+        finalValue = value.trim();
+        if (key === 'salesforce_login_url' && finalValue && !SALESFORCE_LOGIN_URLS.includes(finalValue)) {
+          return res.status(400).json({ error: `salesforce_login_url must be one of: ${SALESFORCE_LOGIN_URLS.join(', ')}` });
+        }
+        if (key === 'zoho_accounts_domain' && finalValue && !ZOHO_ACCOUNTS_DOMAINS.includes(finalValue)) {
+          return res.status(400).json({ error: `zoho_accounts_domain must be one of: ${ZOHO_ACCOUNTS_DOMAINS.join(', ')}` });
+        }
       }
       if (key === 'cashfree_enabled') {
         finalValue = value === true || value === 'true';

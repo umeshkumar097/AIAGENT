@@ -84,6 +84,7 @@ import { ElevenLabsFlowCompiler } from "./services/elevenlabs-flow-compiler";
 import incomingConnectionsRouter from "./routes/incoming-connections-routes";
 import llmModelsRouter from "./routes/llm-models-routes";
 import { googleSheetsRouter } from "./services/google-sheets/google-sheets.routes";
+import { integrationsRouter } from "./integrations/routes";
 import platformLanguagesRouter, { platformLanguagesPublicRouter } from "./routes/platform-languages-routes";
 import transactionsRouter from "./routes/transactions-routes";
 import refundRouter from "./routes/refund-routes";
@@ -1840,6 +1841,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Google Sheets authenticated endpoints (auth, status, disconnect, sheets list)
   app.use("/api/integrations/google", authenticateToken as unknown as import('express').RequestHandler, googleSheetsRouter);
+
+  // Third-party integrations (Zoho, Salesforce, GoHighLevel, Cal.com, Zapier, Pabbly) — after the Google router so /google keeps its own handlers
+  app.use("/api/integrations", authenticateToken as unknown as import('express').RequestHandler, integrationsRouter);
 
   // Google Calendar authenticated endpoints (auth, exchange, status, disconnect)
   const { googleCalendarRouter } = await import("./services/google-calendar/google-calendar.routes");

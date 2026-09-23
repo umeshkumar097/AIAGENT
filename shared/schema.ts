@@ -3137,6 +3137,60 @@ export const insertGoogleSheetsCredentialSchema = createInsertSchema(googleSheet
 export type InsertGoogleSheetsCredential = z.infer<typeof insertGoogleSheetsCredentialSchema>;
 export type GoogleSheetsCredential = typeof googleSheetsCredentials.$inferSelect;
 
+// Third-party integrations (GoHighLevel, Salesforce, Zoho CRM, Cal.com, Zapier, Pabbly).
+// One row per user + provider; OAuth tokens live here, provider-specific options in `config`.
+export const INTEGRATION_PROVIDERS = ['gohighlevel', 'salesforce', 'zoho', 'calcom', 'zapier', 'pabbly'] as const;
+export type IntegrationProvider = typeof INTEGRATION_PROVIDERS[number];
+
+export const userIntegrations = pgTable("user_integrations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull(), // IntegrationProvider
+  status: text("status").notNull().default("connected"), // 'connected' | 'error' | 'disconnected'
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  tokenExpiry: timestamp("token_expiry"),
+  /** Salesforce instance_url / Zoho api_domain / GoHighLevel API base */
+  instanceUrl: text("instance_url"),
+  /** GoHighLevel locationId, Salesforce org id, Zoho org, Cal.com user id */
+  externalAccountId: text("external_account_id"),
+  accountName: text("account_name"),
+  /** Provider options: zapier/pabbly { webhooks:[{url,events[]}] }, calcom { apiKey, eventTypeId, timeZone }, gohighlevel { calendarId }, … */
+  config: jsonb("config").$type<Record<string, unknown>>(),
+  lastSyncAt: timestamp("last_sync_at"),
+  lastError: text("last_error"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  userIntegrationsUserProviderIdx: uniqueIndex("user_integrations_user_provider_idx").on(table.userId, table.provider),
+}));
+
+export const insertUserIntegrationSchema = createInsertSchema(userIntegrations).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertUserIntegration = z.infer<typeof insertUserIntegrationSchema>;
+export type UserIntegration = typeof userIntegrations.$inferSelect;
+
+// Every push to a provider (success or failure) — powers "Last sync" and the activity log on the Tools page
+export const integrationSyncLogs = pgTable("integration_sync_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull(),
+  event: text("event").notNull(), // lead.upserted | appointment.booked | form.submitted | call.completed | test …
+  action: text("action").notNull(), // e.g. 'lead.create', 'contact.upsert', 'booking.create', 'webhook.post'
+  status: text("status").notNull(), // 'success' | 'failed' | 'skipped'
+  /** Local record the push was about (lead id, appointment id, call id) */
+  sourceId: varchar("source_id"),
+  /** Provider-side id (Lead Id, contact id, booking uid, …) */
+  externalId: text("external_id"),
+  error: text("error"),
+  payload: jsonb("payload").$type<Record<string, unknown>>(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  integrationSyncLogsUserProviderIdx: index("integration_sync_logs_user_provider_idx").on(table.userId, table.provider, table.createdAt),
+  integrationSyncLogsSourceIdx: index("integration_sync_logs_source_idx").on(table.provider, table.sourceId),
+}));
+
+export type IntegrationSyncLog = typeof integrationSyncLogs.$inferSelect;
+
 // Phone Release Retry Queue - Durable retry queue for Twilio/Plivo phone number releases
 // When a provider release call fails transiently (timeout, 5xx, rate-limit), we enqueue the
 // release so a background worker can retry with backoff instead of silently dropping it.
