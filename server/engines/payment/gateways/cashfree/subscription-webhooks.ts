@@ -105,7 +105,13 @@ export async function handleSubscriptionWebhook(payload: CashfreeWebhookPayload)
     return { action: 'ignored', orderId: event.subscriptionId };
   }
   const cfSubscriptionId = event.cfSubscriptionId || row.cfSubscriptionId || '';
-  const isAuthPayment = event.paymentType === 'AUTH' || event.amount <= MAX_AUTH_AMOUNT_INR;
+  // A missing/zero amount is NOT an auth debit: a real charge whose amount we failed to parse must
+  // fail loudly (500 → Cashfree retries + alert) instead of being silently acknowledged as "mandate_synced".
+  const isAuthPayment = event.paymentType === 'AUTH'
+    || (event.paymentType !== 'CHARGE' && event.amount > 0 && event.amount <= MAX_AUTH_AMOUNT_INR);
+  if (type === 'SUBSCRIPTION_PAYMENT_SUCCESS' && !isAuthPayment && !(event.amount > 0)) {
+    throw new Error(`SUBSCRIPTION_PAYMENT_SUCCESS ${event.cfPaymentId || '?'} for ${event.subscriptionId} without a positive payment_amount`);
+  }
 
   switch (type) {
     case 'SUBSCRIPTION_AUTH_STATUS':

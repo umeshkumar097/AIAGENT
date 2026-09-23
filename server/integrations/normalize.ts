@@ -45,6 +45,7 @@ function tzOffsetMs(date: Date, timeZone: string): number {
 
 /** Wall-clock `YYYY-MM-DD` + `HH:mm[:ss]` in an IANA zone → UTC instant */
 export function zonedDateTimeToUtc(date: string, time: string, timeZone: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date || "") || !/^\d{1,2}(:\d{2}(:\d{2})?)?$/.test(time || "")) return null;
   const [y, m, d] = date.split("-").map(Number);
   const [hh, mm = 0, ss = 0] = time.split(":").map(Number);
   if ([y, m, d, hh, mm, ss].some((n) => !Number.isFinite(n))) return null;

@@ -38,15 +38,32 @@ function getValidatedFrontendUrl(): string {
 
 export const FRONTEND_URL = getValidatedFrontendUrl();
 
-function registrableDomain(hostname: string): string {
-  return hostname.toLowerCase().split('.').slice(-2).join('.');
+/**
+ * Hosts a browser may be on for this deployment: the configured host plus its `app.` / `www.`
+ * siblings (app.zonvo.tech ↔ zonvo.tech ↔ www.zonvo.tech) and anything in APP_TRUSTED_HOSTS.
+ * An exact allow-list, not a "same registrable domain" guess (which breaks on .co.in etc.).
+ */
+export function trustedAppHosts(): Set<string> {
+  const hosts = new Set<string>();
+  try {
+    const base = new URL(FRONTEND_URL).hostname.toLowerCase();
+    const bare = base.replace(/^(app|www)\./, '');
+    for (const h of [base, bare, `app.${bare}`, `www.${bare}`]) hosts.add(h);
+  } catch {
+    // FRONTEND_URL malformed → nothing trusted beyond the extra list
+  }
+  for (const h of (process.env.APP_TRUSTED_HOSTS || '').split(',')) {
+    const t = h.trim().toLowerCase();
+    if (t) hosts.add(t);
+  }
+  return hosts;
 }
 
 /**
  * Origin the user is browsing from (Origin, else Referer), used for post-payment return URLs
  * so the browser comes back to the host that holds the login cookie (app.zonvo.tech rather
- * than the marketing site). Only https origins on the same registrable domain as
- * FRONTEND_URL are trusted; anything else falls back to FRONTEND_URL.
+ * than the marketing site). Only https origins on a trusted host are accepted; anything else
+ * falls back to FRONTEND_URL.
  */
 export function resolveAppOrigin(req: { headers: Record<string, string | string[] | undefined> }): string {
   const raw = req.headers.origin ?? req.headers.referer;
@@ -54,10 +71,9 @@ export function resolveAppOrigin(req: { headers: Record<string, string | string[
   if (!candidate) return FRONTEND_URL;
   try {
     const url = new URL(candidate);
-    const base = new URL(FRONTEND_URL);
-    const sameDomain = registrableDomain(url.hostname) === registrableDomain(base.hostname);
+    const trusted = trustedAppHosts().has(url.hostname.toLowerCase());
     const secure = url.protocol === 'https:' || url.hostname === 'localhost';
-    if (sameDomain && secure) return url.origin;
+    if (trusted && secure) return url.origin;
   } catch {
     // malformed header → fall through
   }

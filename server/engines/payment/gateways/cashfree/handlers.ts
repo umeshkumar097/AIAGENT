@@ -195,6 +195,12 @@ export async function handleCashfreeWebhook(payload: CashfreeWebhookPayload): Pr
         return { action: 'refund_ignored', orderId };
       }
       const cfRefundId = String(refund.cf_refund_id ?? refund.refund_id ?? '');
+      if (!cfRefundId) {
+        // Without a gateway refund id there is nothing to dedupe on: a replayed webhook would record
+        // (and reverse credits for) the same refund again. Log and let an admin reconcile.
+        logger.warn(`Refund webhook for ${orderId} carries no cf_refund_id/refund_id; not recorded`, undefined, 'Cashfree');
+        return { action: 'refund_ignored', orderId, transactionId: transaction.id };
+      }
       const existing = await storage.getTransactionRefunds(transaction.id);
       const known = existing.find(
         (r) => r.gatewayRefundId && (r.gatewayRefundId === cfRefundId || r.gatewayRefundId === refund.refund_id),

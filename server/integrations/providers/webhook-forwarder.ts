@@ -78,9 +78,12 @@ async function post(url: string, body: string, headers: Record<string, string>):
   let outcome: PostOutcome = { ok: false, attempts: 0 };
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
-      const resp = await fetchWithTimeout(url, { method: "POST", headers, body }, TIMEOUT_MS);
-      outcome = { ok: resp.ok, httpStatus: resp.status, attempts: attempt, error: resp.ok ? undefined : `HTTP ${resp.status}` };
-      if (resp.ok || resp.status < 500) return outcome;
+      // Never follow redirects: the target was SSRF-checked, a 3xx could point anywhere (internal hosts included)
+      const resp = await fetchWithTimeout(url, { method: "POST", headers, body, redirect: "manual" }, TIMEOUT_MS);
+      const redirected = resp.status >= 300 && resp.status < 400;
+      const ok = resp.ok && !redirected;
+      outcome = { ok, httpStatus: resp.status, attempts: attempt, error: ok ? undefined : redirected ? `HTTP ${resp.status} redirect not followed` : `HTTP ${resp.status}` };
+      if (ok || resp.status < 500) return outcome;
     } catch (err) {
       outcome = { ok: false, attempts: attempt, error: errorMessage(err) };
     }

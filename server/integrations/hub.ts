@@ -111,7 +111,7 @@ class IntegrationHub {
     const ctx: HandleContext = {
       userId: row.userId,
       sourceId,
-      findExternalId: (action, id) => findExternalId(row.provider, id, action),
+      findExternalId: (action, id) => findExternalId(row.provider, id, action, row.userId),
     };
     try {
       const results = await provider.handle(row, event, data, ctx);

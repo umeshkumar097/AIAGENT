@@ -166,11 +166,12 @@ export async function recentSyncLogs(userId: string, provider: ProviderKey, limi
 }
 
 /** Newest provider-side id logged for (provider, action, sourceId), e.g. the Cal.com booking uid of an appointment */
-export async function findExternalId(provider: ProviderKey | string, sourceId: string, action: string): Promise<string | null> {
+export async function findExternalId(provider: ProviderKey | string, sourceId: string, action: string, userId?: string): Promise<string | null> {
   const [row] = await db
     .select({ externalId: integrationSyncLogs.externalId })
     .from(integrationSyncLogs)
     .where(and(
+      ...(userId ? [eq(integrationSyncLogs.userId, userId)] : []),
       eq(integrationSyncLogs.provider, provider),
       eq(integrationSyncLogs.sourceId, sourceId),
       eq(integrationSyncLogs.action, action),

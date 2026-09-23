@@ -13,7 +13,7 @@
 import crypto from 'crypto';
 import express, { type Request, type Response, type Router } from 'express';
 import { authenticateToken, type AuthRequest } from '../../../../middleware/auth';
-import { paymentRateLimiter } from '../../../../middleware/rateLimiter';
+import { apiRateLimiter, paymentRateLimiter } from '../../../../middleware/rateLimiter';
 import { allowUnverifiedWebhooks, type RawBodyRequest } from '../../../../middleware/webhookValidation';
 import { storage } from '../../../../storage';
 import { billingService, type PurchaseType } from '../../../../services/billing-service';
@@ -294,7 +294,7 @@ router.post('/orders', paymentRateLimiter, authenticateToken, async (req: AuthRe
   }
 });
 
-router.get('/orders/:orderId/status', authenticateToken, async (req: AuthRequest, res: Response) => {
+router.get('/orders/:orderId/status', apiRateLimiter, authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const { orderId } = req.params;
     if (!/^[A-Za-z0-9_-]{3,45}$/.test(orderId)) {

@@ -10,9 +10,15 @@ interface StatePayload {
   exp: number;
 }
 
-// Same fallback as server/middleware/auth.ts so dev setups without JWT_SECRET still work
+// Same fallback as server/middleware/auth.ts so dev setups without JWT_SECRET still work;
+// production must never sign OAuth state with a public default.
 function stateSecret(): string {
-  return `${process.env.JWT_SECRET || "insecure-dev-secret-CHANGE-ME"}:integrations-oauth-state`;
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") throw new Error("JWT_SECRET is required to sign OAuth state in production");
+    return "insecure-dev-secret-CHANGE-ME:integrations-oauth-state";
+  }
+  return `${secret}:integrations-oauth-state`;
 }
 
 function sign(encoded: string): string {

@@ -14,7 +14,20 @@ const BLOCKED_HOSTNAMES = [
   'metadata.google.internal',
 ];
 
-function isPrivateIP(ip: string): boolean {
+/** `::ffff:a.b.c.d` or `::ffff:xxxx:yyyy` → dotted IPv4, else null */
+function mappedIPv4(ip: string): string | null {
+  const dotted = ip.match(/^(?:0*:)*ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i);
+  if (dotted) return dotted[1];
+  const hex = ip.match(/^(?:0*:)*ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i);
+  if (hex) {
+    const hi = parseInt(hex[1], 16);
+    const lo = parseInt(hex[2], 16);
+    return `${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`;
+  }
+  return null;
+}
+
+export function isPrivateIP(ip: string): boolean {
   if (net.isIPv4(ip)) {
     const parts = ip.split('.').map(Number);
     if (parts[0] === 10) return true;
@@ -22,12 +35,15 @@ function isPrivateIP(ip: string): boolean {
     if (parts[0] === 192 && parts[1] === 168) return true;
     if (parts[0] === 127) return true;
     if (parts[0] === 169 && parts[1] === 254) return true;
+    if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) return true; // CGNAT / cloud metadata ranges
     if (parts[0] === 0) return true;
+    if (parts[0] >= 224) return true; // multicast + reserved
   }
   if (net.isIPv6(ip)) {
-    if (ip === '::1' || ip === '::' || ip.startsWith('fc') || ip.startsWith('fd') || ip.startsWith('fe80')) {
-      return true;
-    }
+    const mapped = mappedIPv4(ip);
+    if (mapped) return isPrivateIP(mapped);
+    const lower = ip.toLowerCase();
+    if (lower === '::1' || lower === '::' || /^f[cd]/.test(lower) || /^fe[89ab]/.test(lower)) return true;
   }
   return false;
 }
@@ -52,8 +68,9 @@ export async function validateWebhookUrl(url: string): Promise<{ valid: boolean;
       }
     } else {
       try {
-        const { address } = await dnsLookup(hostname);
-        if (isPrivateIP(address)) {
+        // Check every answer (A + AAAA): a host with one public and one private record must not pass
+        const answers = await dnsLookup(hostname, { all: true });
+        if (!answers.length || answers.some((a) => isPrivateIP(a.address))) {
           return { valid: false, error: 'Webhook URL resolves to a private IP address' };
         }
       } catch {
