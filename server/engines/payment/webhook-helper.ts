@@ -38,6 +38,32 @@ function getValidatedFrontendUrl(): string {
 
 export const FRONTEND_URL = getValidatedFrontendUrl();
 
+function registrableDomain(hostname: string): string {
+  return hostname.toLowerCase().split('.').slice(-2).join('.');
+}
+
+/**
+ * Origin the user is browsing from (Origin, else Referer), used for post-payment return URLs
+ * so the browser comes back to the host that holds the login cookie (app.zonvo.tech rather
+ * than the marketing site). Only https origins on the same registrable domain as
+ * FRONTEND_URL are trusted; anything else falls back to FRONTEND_URL.
+ */
+export function resolveAppOrigin(req: { headers: Record<string, string | string[] | undefined> }): string {
+  const raw = req.headers.origin ?? req.headers.referer;
+  const candidate = Array.isArray(raw) ? raw[0] : raw;
+  if (!candidate) return FRONTEND_URL;
+  try {
+    const url = new URL(candidate);
+    const base = new URL(FRONTEND_URL);
+    const sameDomain = registrableDomain(url.hostname) === registrableDomain(base.hostname);
+    const secure = url.protocol === 'https:' || url.hostname === 'localhost';
+    if (sameDomain && secure) return url.origin;
+  } catch {
+    // malformed header → fall through
+  }
+  return FRONTEND_URL;
+}
+
 export function getWebhookUrl(gateway: PaymentGateway): string {
   return `${FRONTEND_URL}/api/${gateway}/webhook`;
 }

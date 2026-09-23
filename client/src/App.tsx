@@ -93,6 +93,7 @@ import { AnalyticsScripts } from "@/components/AnalyticsScripts";
 import { SessionTimeoutDialog } from "@/components/SessionTimeoutDialog";
 import { useActivityTimeout } from "@/hooks/useActivityTimeout";
 import { apiRequest } from "@/lib/queryClient";
+import { crossDomainRedirect, isAppHost } from "@/lib/domains";
 import { PluginRegistryProvider, usePluginRegistry } from "@/contexts/plugin-registry";
 import { PluginBootstrapper } from "@/components/plugin-bootstrapper";
 import { DynamicLanguagesProvider } from "@/contexts/dynamic-languages";
@@ -192,8 +193,8 @@ import { PublicVoiceWidget } from "@/components/landing/PublicVoiceWidget";
 import { HelpChatWidget } from "@/components/dashboard/HelpChatWidget";
 
 function PublicRouter() {
-  // Direct app.zonvo.tech users to the login page instead of the landing page
-  const isAppDomain = window.location.hostname === 'app.zonvo.tech';
+  // Direct app-host users to the login page instead of the landing page
+  const isAppDomain = isAppHost();
 
   return (
     <>
@@ -668,11 +669,11 @@ function UserGuard({ children }: { children: React.ReactNode }) {
     }
   }, [isTeamMember]);
 
-  // Handle auth errors for regular users
+  // Handle auth errors for regular users — remember where they were (payment result, invoice…)
   useEffect(() => {
     if (!isTeamMember && isError) {
       AuthStorage.clearAuth();
-      window.location.href = "/login";
+      window.location.href = loginUrlWithNext();
     }
   }, [isError, isTeamMember]);
 
@@ -696,14 +697,28 @@ function UserGuard({ children }: { children: React.ReactNode }) {
 
   // Regular user authentication check
   if (!user) {
-    return <Redirect to="/login" />;
+    return <Redirect to={loginUrlWithNext()} />;
   }
 
   return <>{children}</>;
 }
 
+/** `/login?next=<current product path>` so sign-in returns the user to where they were. */
+function loginUrlWithNext(): string {
+  const { pathname, search } = window.location;
+  if (!pathname.startsWith("/app")) return "/login";
+  return `/login?next=${encodeURIComponent(pathname + search)}`;
+}
+
 function Router() {
   const [location] = useLocation();
+  // Product paths on the marketing host (or marketing paths on the app host) hop domains first,
+  // otherwise a Cashfree return or emailed link lands where the login cookie does not exist.
+  const hop = crossDomainRedirect(window.location.hostname, location, window.location.search, window.location.hash);
+  if (hop) {
+    window.location.replace(hop);
+    return null;
+  }
   // Initialize auth state synchronously from localStorage to prevent flash
   // Check both regular user auth AND team member auth
   const [isAuthenticated, setIsAuthenticated] = useState(() => 

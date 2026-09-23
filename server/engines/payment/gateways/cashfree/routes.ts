@@ -19,7 +19,7 @@ import { storage } from '../../../../storage';
 import { billingService, type PurchaseType } from '../../../../services/billing-service';
 import { PlivoPhoneService } from '../../../plivo/services/plivo-phone.service';
 import { logger } from '../../../../utils/logger';
-import { FRONTEND_URL, getWebhookUrl, recordWebhookReceived } from '../../webhook-helper';
+import { getWebhookUrl, recordWebhookReceived, resolveAppOrigin } from '../../webhook-helper';
 import { resolveBuyerStateCode } from '../../invoice-service';
 import { quotePrice } from '../../invoice-gst';
 import {
@@ -248,7 +248,7 @@ router.post('/orders', paymentRateLimiter, authenticateToken, async (req: AuthRe
           customer_name: (user.billingName || user.name || '').slice(0, 100) || undefined,
         },
         order_meta: {
-          return_url: `${FRONTEND_URL}/app/payment-result?gateway=cashfree&order_id={order_id}`,
+          return_url: `${resolveAppOrigin(req)}/app/payment-result?gateway=cashfree&order_id={order_id}`,
           notify_url: getWebhookUrl('cashfree'),
         },
         order_note: purchase.description.slice(0, 200),

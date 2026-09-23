@@ -138,7 +138,7 @@ export interface CreateMandateResult {
  * Creates the Cashfree subscription for the caller's current plan and stores it on the row (status INITIALIZED).
  * The browser then opens `subscriptionsCheckout({ subsSessionId })` to authorise the mandate.
  */
-export async function createMandate(userId: string): Promise<CreateMandateResult> {
+export async function createMandate(userId: string, returnOrigin: string = FRONTEND_URL): Promise<CreateMandateResult> {
   const { row, plan, user, billingPeriod, listPrice } = await getActivePaidSubscription(userId);
   if (row.cashfreeSubscriptionId && MANDATE_LIVE_STATUSES.has(row.mandateStatus || '')) {
     throw new MandateRequestError('Auto-renew is already set up for this plan', 409, { mandateStatus: row.mandateStatus });
@@ -186,7 +186,7 @@ export async function createMandate(userId: string): Promise<CreateMandateResult
         payment_methods: MANDATE_PAYMENT_METHODS,
       },
       subscription_meta: {
-        return_url: `${FRONTEND_URL}/app/payment-result?gateway=cashfree&subscription_id=${subscriptionId}`,
+        return_url: `${returnOrigin}/app/payment-result?gateway=cashfree&subscription_id=${subscriptionId}`,
         notification_channel: ['EMAIL'],
       },
       subscription_first_charge_time: firstCharge.toISOString(),

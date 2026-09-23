@@ -10,6 +10,7 @@ import express, { type Response, type Router } from 'express';
 import { authenticateToken, type AuthRequest } from '../../../../middleware/auth';
 import { paymentRateLimiter } from '../../../../middleware/rateLimiter';
 import { logger } from '../../../../utils/logger';
+import { resolveAppOrigin } from '../../webhook-helper';
 import { CashfreeApiError, getCashfreeSettings, isCashfreeEnabled } from './service';
 import {
   MandateRequestError,
@@ -40,7 +41,7 @@ router.post('/subscriptions', paymentRateLimiter, authenticateToken, async (req:
     if (!(await isCashfreeEnabled())) {
       return res.status(400).json({ error: 'Cashfree payments are not enabled' });
     }
-    const mandate = await createMandate(req.userId!);
+    const mandate = await createMandate(req.userId!, resolveAppOrigin(req));
     const { environment } = await getCashfreeSettings();
     res.json({
       subscriptionId: mandate.subscriptionId,

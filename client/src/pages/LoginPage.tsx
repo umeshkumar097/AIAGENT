@@ -6,6 +6,7 @@
  */
 import { useState, useEffect } from "react";
 import { useLocation, Link } from "wouter";
+import { safeNextPath } from "@/lib/domains";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -164,9 +165,10 @@ export default function LoginPage() {
       
       toast({ title: "Welcome back!", description: "Login successful" });
 
-      // Show loading animation then redirect based on user role
-      const redirectPath = (result.user.role === 'admin' || result.user.role === 'super_admin') ? "/admin" : "/app";
-      setPendingRedirect(redirectPath);
+      // Show loading animation then redirect: back to where they were (?next=), else by role
+      const rolePath = (result.user.role === 'admin' || result.user.role === 'super_admin') ? "/admin" : "/app";
+      const nextPath = safeNextPath(new URLSearchParams(window.location.search).get("next"));
+      setPendingRedirect(nextPath && nextPath.startsWith(rolePath === "/admin" ? "/" : "/app") ? nextPath : rolePath);
       setShowLoadingAnimation(true);
     } catch (error: any) {
       toast({ title: "Login failed", description: error.message || "Invalid credentials", variant: "destructive" });

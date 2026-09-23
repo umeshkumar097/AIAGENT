@@ -344,10 +344,13 @@ export function setRefreshTokenCookie(res: Response, token: string): void {
   const isProduction = process.env.NODE_ENV === 'production';
   const maxAge = REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000; // Convert days to milliseconds
   
+  // 'lax' (not 'strict'): the browser must still carry the cookie after a top-level redirect
+  // back from Cashfree, otherwise the first token refresh fails and the user appears logged out.
+  // Lax cookies are never sent on cross-site POSTs, so /api/auth/refresh stays CSRF-safe.
   res.cookie(REFRESH_TOKEN_COOKIE, token, {
     httpOnly: true,
     secure: isProduction,
-    sameSite: 'strict' as const,
+    sameSite: 'lax' as const,
     maxAge: maxAge,
     path: '/api/auth',
   });
@@ -362,7 +365,7 @@ export function clearRefreshTokenCookie(res: Response): void {
   res.cookie(REFRESH_TOKEN_COOKIE, '', {
     httpOnly: true,
     secure: isProduction,
-    sameSite: 'strict' as const,
+    sameSite: 'lax' as const,
     maxAge: 0,
     path: '/api/auth',
   });
