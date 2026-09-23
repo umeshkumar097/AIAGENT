@@ -11,10 +11,11 @@ import { SarvamTtsStream } from './sarvam-tts-stream';
 import { SarvamKnowledge } from './sarvam-knowledge';
 import type { CallTool } from '../../../services/call-messaging-tools';
 import {
-  accumulateToolCallDeltas, buildToolRoundMessages, executeStreamedToolCalls, pendingTransferTarget, toolFillerText,
+  accumulateToolCallDeltas, buildToolRoundMessages, callerWantsToEnd, executeStreamedToolCalls, goodbyeText,
+  pendingTransferTarget, toolFillerText,
   type ChatMessage, type StreamedToolCall,
 } from './sarvam-tools';
-import { executePlivoTransfer, markCallTransferred } from './plivo-transfer';
+import { executePlivoHangup, executePlivoTransfer, markCallTransferred } from './plivo-transfer';
 import { actionPromptRules } from '../../../services/call-actions';
 
 // Persistent HTTPS agent for reusing connection keep-alive (reduces 120ms handshake overhead per TTS request)
@@ -412,14 +413,38 @@ export class SarvamBridgeService {
       return;
     }
     if ((plivoWs as any).sarvamTriggeredEndCall) {
-      logger.info(`[SarvamBridge][${callUuid}] End call triggered by agent - hanging up...`);
-      const callId = (plivoWs as any).sarvamCallId;
-      if (callId) {
-        PlivoCallService.endCall(callId).catch((err: any) => {
-          logger.error(`[SarvamBridge][${callUuid}] Failed to execute endCall: ${err.message}`);
-        });
-      }
+      SarvamBridgeService.hangUp(callUuid, plivoWs, 'end_call');
     }
+  }
+
+  /**
+   * Hang up once: Plivo Delete Call by UUID (independent of the plivo_calls row), then the DB-backed
+   * endCall as a fallback. keepCallAlive="true" in the Stream XML means closing the socket alone
+   * would leave the caller in silence, so the REST hangup is the only reliable exit.
+   */
+  private static hangUp(callUuid: string, plivoWs: WebSocket, reason: string): void {
+    if ((plivoWs as any).sarvamHangupStarted) return;
+    (plivoWs as any).sarvamHangupStarted = true;
+    (plivoWs as any).sarvamTriggeredEndCall = false;
+    logger.info(`[SarvamBridge][${callUuid}] Hanging up (${reason})`);
+    SarvamBridgeService.setState(callUuid, plivoWs, 'TERMINATED');
+    const cfg = ((plivoWs as any).sarvamAgentConfig || {}) as SarvamAgentConfig;
+    const callId = (plivoWs as any).sarvamCallId as string | undefined;
+    void (async () => {
+      const first = await executePlivoHangup({ callUuid, plivoCredentialId: cfg.plivoCredentialId });
+      if (first.success) return;
+      if (callId) {
+        try {
+          await PlivoCallService.endCall(callId);
+          return;
+        } catch (err: any) {
+          logger.error(`[SarvamBridge][${callUuid}] endCall fallback failed: ${err.message}`);
+        }
+      }
+      // Last resort: keep listening so the caller can retry, rather than sitting in silence until max duration
+      (plivoWs as any).sarvamHangupStarted = false;
+      (plivoWs as any).sarvamState = 'LISTENING';
+    })();
   }
 
   /** Plivo Update Call → Dial XML + Stop Stream. On success the stream closes and the session ends; on failure the caller is told and the call continues. */
@@ -597,7 +622,7 @@ ${languageRule}${genderRule}
 - ONLY talk about the job described below. If the caller asks about anything else — general knowledge, news, jokes, maths, coding, other companies or products, personal opinions — do NOT answer it. Say in one short sentence that you can only help with this, then bring the conversation back to the job. Never invent policies, prices or details that are not written below.
 - Confirm important details (names, dates, numbers) briefly before moving on.
 - Never read out template text or variable names.
-- When the conversation is complete or the caller says goodbye, say a short goodbye and call end_call.${hasTools ? `
+- When the conversation is complete, or the caller says goodbye, says they do not want to talk, or asks you to end the call: reply with ONE short polite goodbye sentence AND call end_call in the same reply. Never argue or ask another question at that point.${hasTools ? `
 - Tools: confirm the details with the caller in one sentence before sending, booking or saving; call each tool at most once per request; after the result, tell the caller the outcome briefly.` : ''}${actionRules ? `
 ${actionRules}` : ''}
 
@@ -1243,6 +1268,8 @@ ${knowledge}` : ''}`;
           transcriptLines.push(`User: ${transcript}`);
           chatHistory.push({ role: 'user', content: transcript });
           const historyCopy = [...chatHistory];
+          const callerWantsEnd = callerWantsToEnd(transcript);
+          if (callerWantsEnd) logger.info(`[SarvamBridge][${callUuid}] Caller asked to end the call`);
 
           SarvamBridgeService.setState(callUuid, plivoWs, 'THINKING');
           if ((plivoWs as any).sarvamCompletedAudio) (plivoWs as any).sarvamCompletedAudio.clear();
@@ -1287,13 +1314,26 @@ ${knowledge}` : ''}`;
             !!agentConfig.detectLanguage,
             kbContext,
             agentConfig.tools || []
-          )).then(reply => {
+          )).then(async reply => {
             if ((plivoWs as any).sarvamTurnId !== turnId) { recordInterrupted(); return; }
             spokenByTurn.delete(turnId);
             if (reply) {
               logger.info(`[SarvamBridge][${callUuid}] Agent (t${turnId}): "${reply.substring(0, 80)}"`);
               transcriptLines.push(`Agent: ${reply}`);
               chatHistory.push({ role: 'assistant', content: reply });
+            }
+            // Ending the call: the model may call end_call without saying anything, or say goodbye
+            // without calling end_call. Either way the caller must hear a goodbye and the call must end.
+            if (callerWantsEnd && !(plivoWs as any).sarvamPendingTransfer) (plivoWs as any).sarvamTriggeredEndCall = true;
+            if ((plivoWs as any).sarvamTriggeredEndCall && !(plivoWs as any).sarvamReplyAudioQueued && !ctrl.signal.aborted) {
+              const bye = goodbyeText(activeLang);
+              logger.info(`[SarvamBridge][${callUuid}] end_call with no spoken reply → saying goodbye first`);
+              transcriptLines.push(`Agent: ${bye}`);
+              chatHistory.push({ role: 'assistant', content: bye });
+              await SarvamBridgeService.speakViaTTS(
+                callUuid, plivoWs, bye, sarvamApiKey, activeLang, voice, ctrl.signal, perf, (plivoWs as any).sarvamNextPlayIdx ?? 0
+              ).catch((e: any) => logger.warn(`[SarvamBridge][${callUuid}] goodbye TTS failed: ${e.message}`));
+              if ((plivoWs as any).sarvamTurnId !== turnId) return;
             }
             // Only reply audio keeps us in SPEAKING (paceNext hands back to LISTENING when it drains);
             // a filler that is still playing must not swallow the LISTENING transition or end_call.

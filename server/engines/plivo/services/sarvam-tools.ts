@@ -123,3 +123,43 @@ export function toolFillerText(language: string, gender: 'female' | 'male'): str
   if (prefix === 'hi') return gender === 'male' ? 'एक सेकंड, भेज रहा हूँ।' : 'एक सेकंड, भेज रही हूँ।';
   return 'One moment, sending that now.';
 }
+
+/** Goodbye spoken when the call is ending but the model produced no text (tool-call-only reply). */
+export function goodbyeText(language: string): string {
+  const prefix = (language || '').split('-')[0].toLowerCase();
+  const lines: Record<string, string> = {
+    hi: 'ठीक है, धन्यवाद। आपका दिन शुभ हो।',
+    bn: 'ঠিক আছে, ধন্যবাদ। আপনার দিন শুভ হোক।',
+    ta: 'சரி, நன்றி. உங்கள் நாள் இனிதாக அமையட்டும்.',
+    te: 'సరే, ధన్యవాదాలు. మీ రోజు శుభంగా ఉండాలి.',
+    kn: 'ಸರಿ, ಧನ್ಯವಾದಗಳು. ನಿಮ್ಮ ದಿನ ಶುಭವಾಗಿರಲಿ.',
+    ml: 'ശരി, നന്ദി. നല്ലൊരു ദിവസം ആശംസിക്കുന്നു.',
+    mr: 'ठीक आहे, धन्यवाद. तुमचा दिवस शुभ जावो.',
+    pa: 'ਠੀਕ ਹੈ, ਧੰਨਵਾਦ। ਤੁਹਾਡਾ ਦਿਨ ਸ਼ੁਭ ਹੋਵੇ।',
+    gu: 'ઠીક છે, આભાર. તમારો દિવસ શુભ રહે.',
+    od: 'ଠିକ ଅଛି, ଧନ୍ୟବାଦ। ଆପଣଙ୍କ ଦିନ ଶୁଭ ହେଉ।',
+  };
+  return lines[prefix] || 'Alright, thank you. Have a good day.';
+}
+
+/**
+ * Caller clearly wants the call to end ("call cut kar do", "baat nahi karni", "bye", "hang up" …).
+ * Used as a safety net when the model says goodbye without calling end_call — otherwise the agent
+ * would just wait in silence. Kept conservative: "not interested" alone does not end the call.
+ */
+const END_CALL_INTENT = new RegExp([
+  // Hinglish / Hindi (romanised and Devanagari)
+  'call\\s*(cut|kat|band|rakh)', 'cut\\s*kar', 'kaat\\s*d', 'phone\\s*(rakh|band|kat)', 'rakh\\s*(do|dijiye|deta|deti|raha|rahi)', 'rakht[aei]\\s*h', 'रखत[ाी]\\s*ह',
+  'baat\\s*nahi+\\s*karn', 'baat\\s*nhi+\\s*karn', 'band\\s*kar(o|iye|\\s*do)', 'disconnect', 'hang\\s*up',
+  "don'?t\\s+want\\s+to\\s+talk", 'not\\s+(want|interested).{0,20}\\b(bye|call)', 'end\\s+(the\\s+)?call', 'stop\\s+calling',
+  '\\b(bye|goodbye|alvida|good\\s*bye)\\b', 'कॉल\\s*(काट|कट|बंद|रख)', 'फ़?ोन\\s*(रख|काट|बंद)', 'बात\\s*नहीं\\s*करन', 'रख\\s*(दो|दीजिए|देता|देती)',
+  'अलविदा', 'बाय',
+].join('|'), 'i');
+
+export function callerWantsToEnd(transcript: string): boolean {
+  const t = (transcript || '').trim();
+  if (!t) return false;
+  // "bye" as a one-word reply counts; "bye" buried in a long sentence about something else does not
+  if (/^\s*(bye|goodbye|alvida|बाय|अलविदा)[\s.!।]*$/i.test(t)) return true;
+  return END_CALL_INTENT.test(t) && t.split(/\s+/).length <= 25;
+}
