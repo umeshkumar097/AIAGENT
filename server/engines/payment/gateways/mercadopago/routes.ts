@@ -10,7 +10,7 @@ import { authenticateToken, AuthRequest } from '../../../../middleware/auth';
 import { hasActiveMembership, syncUserWithSubscription } from '../../../../services/membership-service';
 import { queueFailedWebhook } from '../../../../services/webhook-retry-service';
 import { NotificationService } from '../../../../services/notification-service';
-import { recordWebhookReceived } from '../../webhook-helper';
+import { recordWebhookReceived, FRONTEND_URL } from '../../webhook-helper';
 import { generateInvoiceForTransaction } from '../../invoice-service';
 import { PaymentAuditService } from '../../audit';
 import { emailService } from '../../../../services/email-service';
@@ -36,7 +36,6 @@ import {
   handleDisputeCreated,
   handleCreditsPayment,
 } from './handlers';
-import { FRONTEND_URL } from '../../webhook-helper';
 import { logger } from '../../../../utils/logger';
 
 const router: Router = express.Router();
@@ -147,7 +146,7 @@ router.post('/verify-payment', authenticateToken, async (req: AuthRequest, res: 
       return res.status(400).json({ error: 'MercadoPago is not configured' });
     }
 
-    const { paymentId, externalReference } = req.body;
+    const { paymentId } = req.body;
     const userId = req.userId!;
 
     if (!paymentId) {
@@ -160,9 +159,10 @@ router.post('/verify-payment', authenticateToken, async (req: AuthRequest, res: 
       return res.status(400).json({ error: 'Payment not approved', status: payment.status });
     }
 
+    // Only trust what MercadoPago stored on the payment — never a client-supplied reference
     let metadata;
     try {
-      metadata = JSON.parse(externalReference || payment.external_reference);
+      metadata = JSON.parse(payment.external_reference || '');
     } catch {
       return res.status(400).json({ error: 'Invalid payment metadata' });
     }
@@ -178,7 +178,7 @@ router.post('/verify-payment', authenticateToken, async (req: AuthRequest, res: 
       }
 
       try {
-        await storage.addCreditsAtomic(userId, metadata.credits, `Purchased ${pkg.name} via MercadoPago`, `mercadopago_${paymentId}`);
+        await storage.addCreditsAtomic(userId, pkg.credits, `Purchased ${pkg.name} via MercadoPago`, `mercadopago_${paymentId}`);
         
         const currencyConfig = await getMercadoPagoCurrency();
         const amount = payment.transaction_amount ? payment.transaction_amount.toString() : '0';
@@ -191,8 +191,8 @@ router.post('/verify-payment', authenticateToken, async (req: AuthRequest, res: 
           amount,
           currency: (payment.currency_id || currencyConfig.currency).toUpperCase(),
           creditPackageId: metadata.packageId,
-          description: `${pkg.name} - ${metadata.credits} Credits`,
-          creditsAwarded: metadata.credits,
+          description: `${pkg.name} - ${pkg.credits} Credits`,
+          creditsAwarded: pkg.credits,
           status: 'completed',
           completedAt: new Date(),
         });
@@ -201,7 +201,7 @@ router.post('/verify-payment', authenticateToken, async (req: AuthRequest, res: 
           'mercadopago',
           userId,
           creditTransaction.id,
-          metadata.credits,
+          pkg.credits,
           { packageName: pkg.name, verifiedViaEndpoint: true }
         );
 
@@ -212,7 +212,7 @@ router.post('/verify-payment', authenticateToken, async (req: AuthRequest, res: 
           logger.error('Failed to send purchase confirmation', emailError, 'MercadoPago');
         }
 
-        res.json({ success: true, credits: metadata.credits });
+        res.json({ success: true, credits: pkg.credits });
       } catch (error: any) {
         if (error.message?.includes('unique') || error.message?.includes('duplicate')) {
           res.json({ success: true, alreadyProcessed: true });
@@ -298,8 +298,15 @@ router.post('/confirm-subscription', authenticateToken, async (req: AuthRequest,
     }
 
     const subscription = await fetchMercadoPagoSubscription(subscriptionId);
-    if (subscription.status !== 'authorized' && subscription.status !== 'pending') {
-      return res.status(400).json({ error: 'Subscription not active' });
+    if (subscription.status !== 'authorized') {
+      return res.status(400).json({ error: 'Subscription not active', status: subscription.status });
+    }
+
+    // The preapproval carries the reference we set at creation — the caller cannot pick another plan
+    let subMeta: { userId?: string; planId?: string } = {};
+    try { subMeta = JSON.parse(subscription.external_reference || '{}'); } catch { subMeta = {}; }
+    if (subMeta.userId !== userId || (subMeta.planId && subMeta.planId !== planId)) {
+      return res.status(403).json({ error: 'Subscription does not belong to this user/plan' });
     }
 
     const plan = await storage.getPlan(planId);
@@ -465,7 +472,9 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req: R
     const xRequestId = req.headers['x-request-id'] as string;
     const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
 
-    const isValid = await verifyMercadoPagoWebhookSignature(rawBody, xSignature, xRequestId);
+    const rawDataId = (req.query as Record<string, unknown>)['data.id'];
+    const dataId = typeof rawDataId === 'string' ? (/^\d+$/.test(rawDataId) ? rawDataId : rawDataId.toLowerCase()) : '';
+    const isValid = await verifyMercadoPagoWebhookSignature(rawBody, xSignature, xRequestId, dataId);
     if (!isValid) {
       logger.warn('Invalid webhook signature - rejecting', undefined, 'MercadoPago');
       return res.status(401).json({ error: 'Invalid webhook signature' });

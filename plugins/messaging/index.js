@@ -399,6 +399,10 @@ var init_schema = __esm({
       // Max conversation duration in seconds (default 10 min, range 60-1800)
       // Legacy/Common Fields
       agentLink: text("agent_link"),
+      engine: text("engine"),
+      openaiModel: text("openai_model"),
+      sarvamVoice: text("sarvam_voice"),
+      voice: text("voice"),
       config: jsonb("config"),
       isActive: boolean("is_active").notNull().default(true),
       createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -4674,7 +4678,7 @@ var post_call_messaging_exports = {};
 __export(post_call_messaging_exports, {
   triggerPostCallMessaging: () => triggerPostCallMessaging
 });
-import { sql as sql9, eq as eq2, and, desc } from "drizzle-orm";
+import { sql as sql10, eq as eq3, and, desc } from "drizzle-orm";
 function extractRows(result) {
   if (Array.isArray(result)) return result;
   if (Array.isArray(result.rows)) return result.rows;
@@ -4692,7 +4696,7 @@ async function readCallerEmailFromMetadata(callId) {
     for (const table of CALL_TABLES) {
       try {
         const result = await db.execute(
-          sql9`SELECT metadata->>'callerEmail' as caller_email FROM ${sql9.identifier(table)} WHERE id = ${callId} LIMIT 1`
+          sql10`SELECT metadata->>'callerEmail' as caller_email FROM ${sql10.identifier(table)} WHERE id = ${callId} LIMIT 1`
         );
         const rows = extractRows(result);
         if (rows.length > 0 && rows[0].caller_email) {
@@ -4716,9 +4720,9 @@ async function lookupContactByPhone(phone, userId) {
       lastName: contacts.lastName,
       email: contacts.email,
       phone: contacts.phone
-    }).from(contacts).innerJoin(campaigns, eq2(contacts.campaignId, campaigns.id)).where(and(
-      eq2(campaigns.userId, userId),
-      sql9`${contacts.phone} LIKE ${"%" + digits.slice(-10)}`
+    }).from(contacts).innerJoin(campaigns, eq3(contacts.campaignId, campaigns.id)).where(and(
+      eq3(campaigns.userId, userId),
+      sql10`${contacts.phone} LIKE ${"%" + digits.slice(-10)}`
     )).orderBy(desc(contacts.createdAt)).limit(1);
     if (results.length > 0) {
       const c = results[0];
@@ -4737,7 +4741,7 @@ async function lookupContactByPhone(phone, userId) {
 async function lookupSipCallData(callId, userId) {
   if (!callId || !userId) return { conversationId: "", contactData: {} };
   try {
-    const result = await db.execute(sql9`
+    const result = await db.execute(sql10`
       SELECT sc.elevenlabs_conversation_id, sc.from_number, sc.to_number, sc.direction,
              a.name as agent_name,
              COALESCE(ct.first_name || ' ' || ct.last_name, ct.first_name, '') as contact_name,
@@ -4770,7 +4774,7 @@ async function lookupSipCallData(callId, userId) {
 async function lookupRegularCallData(callId, userId) {
   if (!callId || !userId) return {};
   try {
-    const result = await db.execute(sql9`
+    const result = await db.execute(sql10`
       SELECT c.phone_number, c.from_number, c.to_number, c.call_direction,
              a.name as agent_name,
              COALESCE(ct.first_name || ' ' || ct.last_name, ct.first_name, '') as contact_name,
@@ -4802,9 +4806,9 @@ async function lookupAppointmentData(callId, conversationId, userId) {
   try {
     const ids = [callId, conversationId].filter(Boolean);
     if (ids.length === 0 || !userId) return {};
-    const conditions = ids.map((id) => sql9`call_id = ${id}`);
-    const orClause = conditions.length === 1 ? conditions[0] : sql9`(${sql9.join(conditions, sql9` OR `)})`;
-    const result = await db.execute(sql9`
+    const conditions = ids.map((id) => sql10`call_id = ${id}`);
+    const orClause = conditions.length === 1 ? conditions[0] : sql10`(${sql10.join(conditions, sql10` OR `)})`;
+    const result = await db.execute(sql10`
       SELECT contact_name, contact_phone, contact_email, appointment_date, appointment_time,
              duration, service_name, notes, status
       FROM appointments
@@ -4863,7 +4867,7 @@ async function triggerPostCallMessaging(params) {
   _triggeredCallIds.add(dedupeKey);
   setTimeout(() => _triggeredCallIds.delete(dedupeKey), 10 * 60 * 1e3);
   try {
-    const agentRows = await db.select().from(agents).where(sql9`eleven_labs_agent_id = ${elevenLabsAgentId} OR id = ${elevenLabsAgentId}`).limit(1);
+    const agentRows = await db.select().from(agents).where(sql10`eleven_labs_agent_id = ${elevenLabsAgentId} OR id = ${elevenLabsAgentId}`).limit(1);
     if (agentRows.length === 0) {
       console.log(`[Post-Call Messaging] Agent not found: ${elevenLabsAgentId}`);
       return;
@@ -4948,14 +4952,14 @@ async function triggerPostCallMessaging(params) {
                 if (!val || typeof val !== "object") continue;
                 const entry = val;
                 if (entry.componentType === "button") {
-                  const btnIdx = key.startsWith("btn_") ? parseInt(key.replace("btn_", "")) : parseInt(key);
+                  const btnIdx = key.startsWith("btn_") ? parseInt(key.replace("btn_", ""), 10) : parseInt(key, 10);
                   if (!isNaN(btnIdx) && entry.value) {
                     const resolved = stripUnresolvedVar(resolveVarValue(entry.value, contactData));
                     if (resolved) buttonOverrides[btnIdx] = resolved;
                   }
                 } else if (entry.componentType === "header") {
                 } else if (!entry.componentType && (entry.mode === "fixed" || entry.mode === "collect") && entry.value) {
-                  const idx = parseInt(key);
+                  const idx = parseInt(key, 10);
                   if (!isNaN(idx)) {
                     bodyVarEntries.push([idx, stripUnresolvedVar(resolveVarValue(entry.value, contactData))]);
                   }
@@ -6388,8 +6392,53 @@ var user_messaging_routes_default = router;
 // plugins/messaging/routes/admin-messaging.routes.ts
 init_messaging_log_service();
 import { Router as Router2 } from "express";
+
+// server/middleware/admin-auth.ts
+init_db();
+init_schema();
+import jwt from "jsonwebtoken";
+import { sql as sql9, eq as eq2 } from "drizzle-orm";
+var JWT_SECRET = process.env.JWT_SECRET || (() => {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("JWT_SECRET environment variable must be set in production");
+  }
+  return "insecure-dev-secret-CHANGE-ME";
+})();
+function requireAdminPermission(section, subsection, action) {
+  return async (req, res, next) => {
+    try {
+      if (req.isAdmin) {
+        return next();
+      }
+      if (req.adminTeamMember) {
+        const { roleId } = req.adminTeamMember;
+        const actionColumn = action === "create" ? "can_create" : action === "read" ? "can_read" : action === "update" ? "can_update" : "can_delete";
+        const permResult = await db.execute(sql9`
+          SELECT ${sql9.raw(actionColumn)} as has_permission
+          FROM admin_team_permissions
+          WHERE role_id = ${roleId}
+            AND section = ${section}
+            AND subsection = ${subsection}
+        `);
+        if (permResult.rows.length > 0 && permResult.rows[0].has_permission === true) {
+          return next();
+        }
+        return res.status(403).json({
+          error: "Permission denied",
+          details: `Required permission: ${section}.${subsection}.${action}`
+        });
+      }
+      return res.status(401).json({ error: "Authentication required" });
+    } catch (error) {
+      console.error("[Permission Check] Error:", error);
+      return res.status(500).json({ error: "Permission check failed" });
+    }
+  };
+}
+
+// plugins/messaging/routes/admin-messaging.routes.ts
 var router2 = Router2();
-router2.get("/logs", async (req, res) => {
+router2.get("/logs", requireAdminPermission("communications", "email_settings", "read"), async (req, res) => {
   try {
     const { channel, status, limit, offset } = req.query;
     const result = await messagingLogService.getAdminLogs({
@@ -6404,7 +6453,7 @@ router2.get("/logs", async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to fetch messaging logs" });
   }
 });
-router2.get("/stats", async (req, res) => {
+router2.get("/stats", requireAdminPermission("communications", "email_settings", "read"), async (req, res) => {
   try {
     const stats = await messagingLogService.getStats();
     res.json({ success: true, data: stats });
@@ -6413,7 +6462,7 @@ router2.get("/stats", async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to fetch messaging stats" });
   }
 });
-router2.get("/whatsapp-config", async (req, res) => {
+router2.get("/whatsapp-config", requireAdminPermission("communications", "email_settings", "read"), async (req, res) => {
   try {
     const config = await metaWhatsAppAdminService.getConfig();
     if (!config) {
@@ -6429,7 +6478,7 @@ router2.get("/whatsapp-config", async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to fetch WhatsApp config" });
   }
 });
-router2.patch("/whatsapp-config", async (req, res) => {
+router2.patch("/whatsapp-config", requireAdminPermission("communications", "email_settings", "update"), async (req, res) => {
   try {
     const { provider_mode, meta_app_id, meta_app_secret, meta_config_id, embedded_signup_enabled, coexistence_enabled } = req.body;
     const updateData = {};
@@ -6452,7 +6501,7 @@ router2.patch("/whatsapp-config", async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to update WhatsApp config" });
   }
 });
-router2.post("/whatsapp-config/generate-verify-token", async (req, res) => {
+router2.post("/whatsapp-config/generate-verify-token", requireAdminPermission("communications", "email_settings", "update"), async (req, res) => {
   try {
     const token = await metaWhatsAppAdminService.generateWebhookVerifyToken();
     res.json({ success: true, data: { verifyToken: token } });
@@ -6461,7 +6510,7 @@ router2.post("/whatsapp-config/generate-verify-token", async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to generate verify token" });
   }
 });
-router2.post("/whatsapp-config/test-connection", async (req, res) => {
+router2.post("/whatsapp-config/test-connection", requireAdminPermission("communications", "email_settings", "read"), async (req, res) => {
   try {
     const config = await metaWhatsAppAdminService.getConfig();
     if (!config || !config.metaAppId || !config.metaAppSecret) {
@@ -6512,7 +6561,7 @@ router2.post("/whatsapp-config/test-connection", async (req, res) => {
     });
   }
 });
-router2.get("/whatsapp-config/webhook-url", async (req, res) => {
+router2.get("/whatsapp-config/webhook-url", requireAdminPermission("communications", "email_settings", "read"), async (req, res) => {
   try {
     const host = req.get("host") || "localhost";
     const isLocalhost = host.startsWith("localhost") || host.startsWith("127.0.0.1");
@@ -6529,7 +6578,7 @@ var admin_messaging_routes_default = router2;
 // plugins/messaging/routes/webhook-messaging.routes.ts
 init_db();
 import { Router as Router3 } from "express";
-import { sql as sql10 } from "drizzle-orm";
+import { sql as sql11 } from "drizzle-orm";
 
 // plugins/messaging/services/webhook-auth.service.ts
 import crypto2 from "crypto";
@@ -6605,8 +6654,8 @@ function buildSipLookupResult(row) {
 async function lookupSipCallByConversationId(conversationId, userId) {
   if (!conversationId) return null;
   try {
-    const conditions = userId ? sql10`sc.elevenlabs_conversation_id = ${conversationId} AND sc.user_id = ${userId}` : sql10`sc.elevenlabs_conversation_id = ${conversationId}`;
-    const sipResult = await db.execute(sql10`
+    const conditions = userId ? sql11`sc.elevenlabs_conversation_id = ${conversationId} AND sc.user_id = ${userId}` : sql11`sc.elevenlabs_conversation_id = ${conversationId}`;
+    const sipResult = await db.execute(sql11`
       SELECT sc.id, sc.from_number, sc.to_number, sc.direction, sc.elevenlabs_conversation_id,
              a.name as agent_name, COALESCE(ct.first_name || ' ' || ct.last_name, ct.first_name, '') as contact_name, ct.email as contact_email
       FROM sip_calls sc
@@ -6624,7 +6673,7 @@ async function lookupSipCallByConversationId(conversationId, userId) {
 }
 async function lookupAnyCallByAgentId(elevenLabsAgentId, userId) {
   try {
-    const callResult = await db.execute(sql10`
+    const callResult = await db.execute(sql11`
       SELECT c.id, c.phone_number, COALESCE(ct.first_name || ' ' || ct.last_name, ct.first_name, '') as contact_name, ct.email as contact_email, a.name as agent_name
       FROM calls c
       JOIN agents a ON c.agent_id = a.id
@@ -6650,7 +6699,7 @@ async function lookupAnyCallByAgentId(elevenLabsAgentId, userId) {
         }
       };
     }
-    const sipResult = await db.execute(sql10`
+    const sipResult = await db.execute(sql11`
       SELECT sc.id, sc.from_number, sc.to_number, sc.direction, sc.elevenlabs_conversation_id,
              a.name as agent_name, COALESCE(ct.first_name || ' ' || ct.last_name, ct.first_name, '') as contact_name, ct.email as contact_email
       FROM sip_calls sc
@@ -6675,9 +6724,9 @@ async function lookupAppointmentData2(sipCallId, conversationId, userId) {
   try {
     const ids = [sipCallId, conversationId].filter(Boolean);
     if (ids.length === 0 || !userId) return {};
-    const conditions = ids.map((id) => sql10`call_id = ${id}`);
-    const orClause = conditions.length === 1 ? conditions[0] : sql10`(${sql10.join(conditions, sql10` OR `)})`;
-    const apptResult = await db.execute(sql10`
+    const conditions = ids.map((id) => sql11`call_id = ${id}`);
+    const orClause = conditions.length === 1 ? conditions[0] : sql11`(${sql11.join(conditions, sql11` OR `)})`;
+    const apptResult = await db.execute(sql11`
       SELECT contact_name, contact_phone, contact_email, appointment_date, appointment_time,
              duration, service_name, notes, status
       FROM appointments
@@ -6729,7 +6778,7 @@ router3.post("/collect-email/:token/:agentId", async (req, res) => {
       for (const tbl of ALLOWED_CONV_TABLES) {
         try {
           const r = await db.execute(
-            sql10`UPDATE ${sql10.identifier(tbl)} SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('callerEmail', ${callerEmail}::text) WHERE elevenlabs_conversation_id = ${conversationId} RETURNING id`
+            sql11`UPDATE ${sql11.identifier(tbl)} SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('callerEmail', ${callerEmail}::text) WHERE elevenlabs_conversation_id = ${conversationId} RETURNING id`
           );
           const rows = Array.isArray(r) ? r : r.rows || [];
           if (rows.length > 0) {
@@ -6743,7 +6792,7 @@ router3.post("/collect-email/:token/:agentId", async (req, res) => {
       for (const tbl of ALLOWED_ID_TABLES) {
         try {
           const r = await db.execute(
-            sql10`UPDATE ${sql10.identifier(tbl)} SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('callerEmail', ${callerEmail}::text) WHERE id = ${callId} RETURNING id`
+            sql11`UPDATE ${sql11.identifier(tbl)} SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('callerEmail', ${callerEmail}::text) WHERE id = ${callId} RETURNING id`
           );
           const rows = Array.isArray(r) ? r : r.rows || [];
           if (rows.length > 0) {
@@ -6773,7 +6822,7 @@ router3.post("/send-email/:token/:agentId", async (req, res) => {
       console.warn(`\u{1F4E7} [Messaging Webhook] Invalid authentication token`);
       return res.status(401).json({ success: false, error: "Unauthorized" });
     }
-    const agentResult = await db.execute(sql10`
+    const agentResult = await db.execute(sql11`
       SELECT id, user_id, messaging_email_template FROM agents 
       WHERE eleven_labs_agent_id = ${elevenLabsAgentId} OR id = ${elevenLabsAgentId} LIMIT 1
     `);
@@ -6831,7 +6880,7 @@ router3.post("/send-email/:token/:agentId", async (req, res) => {
         for (const tbl of CONV_TABLES) {
           try {
             await db.execute(
-              sql10`UPDATE ${sql10.identifier(tbl)} SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('callerEmail', ${recipient_email}::text) WHERE elevenlabs_conversation_id = ${conversationId}`
+              sql11`UPDATE ${sql11.identifier(tbl)} SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('callerEmail', ${recipient_email}::text) WHERE elevenlabs_conversation_id = ${conversationId}`
             );
           } catch (_) {
           }
@@ -6841,7 +6890,7 @@ router3.post("/send-email/:token/:agentId", async (req, res) => {
         for (const tbl of ID_TABLES) {
           try {
             await db.execute(
-              sql10`UPDATE ${sql10.identifier(tbl)} SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('callerEmail', ${recipient_email}::text) WHERE id = ${callId}`
+              sql11`UPDATE ${sql11.identifier(tbl)} SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('callerEmail', ${recipient_email}::text) WHERE id = ${callId}`
             );
           } catch (_) {
           }
@@ -6873,7 +6922,7 @@ router3.post("/send-whatsapp/:token/:agentId", async (req, res) => {
       console.warn(`\u{1F4AC} [Messaging Webhook] Invalid authentication token`);
       return res.status(401).json({ success: false, error: "Unauthorized" });
     }
-    const agentResult = await db.execute(sql10`
+    const agentResult = await db.execute(sql11`
       SELECT id, user_id, messaging_whatsapp_template, messaging_whatsapp_variables FROM agents 
       WHERE eleven_labs_agent_id = ${elevenLabsAgentId} OR id = ${elevenLabsAgentId} LIMIT 1
     `);
@@ -6900,7 +6949,7 @@ router3.post("/send-whatsapp/:token/:agentId", async (req, res) => {
     const resolvedConversationId = stripUnresolvedElevenLabsVar(rawConversationId);
     if (digits.length < 6 || Array.isArray(template_variables) && template_variables.length > 0 || savedWhatsappVariables) {
       if (req.query.callId) {
-        const callResult = await db.execute(sql10`
+        const callResult = await db.execute(sql11`
           SELECT c.phone_number, COALESCE(ct.first_name || ' ' || ct.last_name, ct.first_name, '') as contact_name, ct.email as contact_email, a.name as agent_name
           FROM calls c
           LEFT JOIN contacts ct ON c.contact_id = ct.id
@@ -6927,7 +6976,7 @@ router3.post("/send-whatsapp/:token/:agentId", async (req, res) => {
     }
     if ((!recipientPhone || recipientPhone.replace(/[^0-9]/g, "").length < 6) && resolvedConversationId) {
       console.log(`\u{1F4AC} [Messaging Webhook] Attempting conversationId fallback for: ${resolvedConversationId}`);
-      const convResult = await db.execute(sql10`
+      const convResult = await db.execute(sql11`
           SELECT c.phone_number, c.from_number, COALESCE(ct.first_name || ' ' || ct.last_name, ct.first_name, '') as contact_name, ct.email as contact_email, a.name as agent_name
           FROM calls c
           LEFT JOIN contacts ct ON c.contact_id = ct.id

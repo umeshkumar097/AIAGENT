@@ -78,7 +78,6 @@ async function initiateCall(data: CampaignCallJob): Promise<CallResult> {
     };
   }
   
-  try {
     let success = false;
     let errorMessage: string | undefined;
     
@@ -374,9 +373,6 @@ async function initiateCall(data: CampaignCallJob): Promise<CallResult> {
       error: errorMessage,
     };
     
-  } catch (error: any) {
-    throw error;
-  }
 }
 
 export function startCallWorker(): Worker<CampaignCallJob> {

@@ -91,8 +91,8 @@ export class WidgetService {
         hour12: false,
       });
       const parts = formatter.formatToParts(now);
-      const hour = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
-      const minute = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
+      const hour = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10);
+      const minute = parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10);
       const dayName = parts.find(p => p.type === 'weekday')?.value?.toLowerCase() || '';
       
       const currentMinutes = hour * 60 + minute;

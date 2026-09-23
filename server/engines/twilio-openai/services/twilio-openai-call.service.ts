@@ -15,7 +15,9 @@ import {
   agents, 
   phoneNumbers,
   flows,
-  users 
+  users,
+  type CompiledFunctionTool,
+  type CompiledConversationState
 } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
@@ -36,7 +38,6 @@ import {
 } from '../../../services/openai-voice-agent';
 import { webhookDeliveryService } from '../../../services/webhook-delivery';
 import type { AgentConfig, OpenAIVoice, OpenAIRealtimeModel, CompiledFlowConfig } from '../types';
-import type { CompiledFunctionTool, CompiledConversationState } from '@shared/schema';
 
 export interface InitiateCallParams {
   userId: string;
@@ -287,8 +288,8 @@ export class TwilioOpenAICallService {
       }
 
       // Normalize phone numbers early - preserve + prefix for proper E.164 format display
-      const normalizedFromNumber = phoneNumber.phoneNumber.replace(/[\s\-\(\)]/g, '').replace(/^\+?/, '+');
-      const normalizedToNumber = toNumber.replace(/[\s\-\(\)]/g, '').replace(/^\+?/, '+');
+      const normalizedFromNumber = phoneNumber.phoneNumber.replace(/[\s\-()]/g, '').replace(/^\+?/, '+');
+      const normalizedToNumber = toNumber.replace(/[\s\-()]/g, '').replace(/^\+?/, '+');
 
       await TwilioOpenAIAudioBridge.createSession({
         callSid: callId,

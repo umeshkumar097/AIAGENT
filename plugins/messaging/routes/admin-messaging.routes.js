@@ -1,8 +1,9 @@
 import { Router } from "express";
-import { messagingLogService } from "../services/messaging-log.service.js";
-import { metaWhatsAppAdminService } from "../services/meta-whatsapp-admin.service.js";
+import { messagingLogService } from "../services/messaging-log.service";
+import { metaWhatsAppAdminService } from "../services/meta-whatsapp-admin.service";
+import { requireAdminPermission } from "../../../server/middleware/admin-auth";
 const router = Router();
-router.get("/logs", async (req, res) => {
+router.get("/logs", requireAdminPermission("communications", "email_settings", "read"), async (req, res) => {
   try {
     const { channel, status, limit, offset } = req.query;
     const result = await messagingLogService.getAdminLogs({
@@ -17,7 +18,7 @@ router.get("/logs", async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to fetch messaging logs" });
   }
 });
-router.get("/stats", async (req, res) => {
+router.get("/stats", requireAdminPermission("communications", "email_settings", "read"), async (req, res) => {
   try {
     const stats = await messagingLogService.getStats();
     res.json({ success: true, data: stats });
@@ -26,7 +27,7 @@ router.get("/stats", async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to fetch messaging stats" });
   }
 });
-router.get("/whatsapp-config", async (req, res) => {
+router.get("/whatsapp-config", requireAdminPermission("communications", "email_settings", "read"), async (req, res) => {
   try {
     const config = await metaWhatsAppAdminService.getConfig();
     if (!config) {
@@ -42,7 +43,7 @@ router.get("/whatsapp-config", async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to fetch WhatsApp config" });
   }
 });
-router.patch("/whatsapp-config", async (req, res) => {
+router.patch("/whatsapp-config", requireAdminPermission("communications", "email_settings", "update"), async (req, res) => {
   try {
     const { provider_mode, meta_app_id, meta_app_secret, meta_config_id, embedded_signup_enabled, coexistence_enabled } = req.body;
     const updateData = {};
@@ -65,7 +66,7 @@ router.patch("/whatsapp-config", async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to update WhatsApp config" });
   }
 });
-router.post("/whatsapp-config/generate-verify-token", async (req, res) => {
+router.post("/whatsapp-config/generate-verify-token", requireAdminPermission("communications", "email_settings", "update"), async (req, res) => {
   try {
     const token = await metaWhatsAppAdminService.generateWebhookVerifyToken();
     res.json({ success: true, data: { verifyToken: token } });
@@ -74,7 +75,7 @@ router.post("/whatsapp-config/generate-verify-token", async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to generate verify token" });
   }
 });
-router.post("/whatsapp-config/test-connection", async (req, res) => {
+router.post("/whatsapp-config/test-connection", requireAdminPermission("communications", "email_settings", "read"), async (req, res) => {
   try {
     const config = await metaWhatsAppAdminService.getConfig();
     if (!config || !config.metaAppId || !config.metaAppSecret) {
@@ -125,7 +126,7 @@ router.post("/whatsapp-config/test-connection", async (req, res) => {
     });
   }
 });
-router.get("/whatsapp-config/webhook-url", async (req, res) => {
+router.get("/whatsapp-config/webhook-url", requireAdminPermission("communications", "email_settings", "read"), async (req, res) => {
   try {
     const host = req.get("host") || "localhost";
     const isLocalhost = host.startsWith("localhost") || host.startsWith("127.0.0.1");

@@ -57,7 +57,7 @@ async function verifyState(stateParam: string): Promise<{ userId: string; type: 
     const userId = parts[0];
     const ts = parts[1];
     const type = parts[2] || "sheets";
-    if (!userId || Date.now() - parseInt(ts) > STATE_TTL_MS) return null;
+    if (!userId || Date.now() - parseInt(ts, 10) > STATE_TTL_MS) return null;
     return { userId, type };
   } catch {
     return null;

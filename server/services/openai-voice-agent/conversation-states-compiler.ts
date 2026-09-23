@@ -244,7 +244,7 @@ Remember: Saying you will do something is NOT the same as actually calling the t
           transitions,
         };
 
-      case 'question':
+      case 'question': {
         const questionText = question || message;
         return {
           id: node.id,
@@ -263,8 +263,9 @@ Remember: Saying you will do something is NOT the same as actually calling the t
           ].filter(Boolean) as string[],
           transitions,
         };
+      }
 
-      case 'condition':
+      case 'condition': {
         const conditions = (config.conditions as Array<{ field: string; operator: string; value: string }>) || [];
         return {
           id: node.id,
@@ -277,8 +278,9 @@ Remember: Saying you will do something is NOT the same as actually calling the t
           ],
           transitions,
         };
+      }
 
-      case 'transfer':
+      case 'transfer': {
         const transferNumber = config.phoneNumber || config.transferNumber || '';
         const transferMessage = message || config.transferMessage || '';
         return {
@@ -295,9 +297,10 @@ Remember: Saying you will do something is NOT the same as actually calling the t
           ],
           transitions,
         };
+      }
 
       case 'webhook':
-      case 'api_call':
+      case 'api_call': {
         const toolName = `webhook_${node.id.replace(/-/g, '_')}`;
         const webhookUrl = config.url || config.webhookUrl || '';
         const webhookDescription = config.description || label || 'execute the webhook';
@@ -316,6 +319,7 @@ Remember: Saying you will do something is NOT the same as actually calling the t
           ],
           transitions,
         };
+      }
 
       case 'end_call':
       case 'end':
@@ -334,7 +338,7 @@ Remember: Saying you will do something is NOT the same as actually calling the t
           transitions: [],
         };
 
-      case 'delay':
+      case 'delay': {
         const duration = config.duration || node.data?.duration || 1;
         return {
           id: node.id,
@@ -345,8 +349,9 @@ Remember: Saying you will do something is NOT the same as actually calling the t
           ].filter(Boolean) as string[],
           transitions,
         };
+      }
 
-      case 'tool':
+      case 'tool': {
         const toolCallName = config.toolName || node.data?.toolName || 'tool';
         return {
           id: node.id,
@@ -357,8 +362,9 @@ Remember: Saying you will do something is NOT the same as actually calling the t
           ],
           transitions,
         };
+      }
 
-      case 'play_audio':
+      case 'play_audio': {
         const audioFileName = config.audioFileName || 'audio file';
         const playAudioToolName = `play_audio_${node.id.replace(/-/g, '_').slice(-8)}`;
         return {
@@ -377,6 +383,7 @@ Remember: Saying you will do something is NOT the same as actually calling the t
           ],
           transitions,
         };
+      }
 
       case 'send_email': {
         const emailTemplateName = config.templateName || config.template_name || 'default';

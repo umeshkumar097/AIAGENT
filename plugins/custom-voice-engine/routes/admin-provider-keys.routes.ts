@@ -14,6 +14,7 @@ import { Router, Request, Response } from 'express';
 import { db } from '../../../server/db';
 import { sql, eq, inArray } from 'drizzle-orm';
 import { globalSettings } from '../../../shared/schema';
+import { requireAdminPermission } from '../../../server/middleware/admin-auth';
 
 // const SETTINGS_KEYS = {
 //   // Active provider selections
@@ -177,7 +178,7 @@ export function createAdminProviderKeysRouter(): Router {
 
   
   
-  router.get('/', async (_req: Request, res: Response) => {
+  router.get('/', requireAdminPermission('settings', 'system_settings', 'read'), async (_req: Request, res: Response) => {
     try {
       const allKeys = Object.values(SETTINGS_KEYS);
       const results = await db
@@ -288,7 +289,7 @@ export function createAdminProviderKeysRouter(): Router {
    * Only updates fields that are provided in the request body.
    * Empty string values for keys will clear them.
    */
-  router.put('/', async (req: Request, res: Response) => {
+  router.put('/', requireAdminPermission('settings', 'system_settings', 'update'), async (req: Request, res: Response) => {
     try {
       const {
         sttActiveProvider,
@@ -518,7 +519,7 @@ export function createAdminProviderKeysRouter(): Router {
  * GET /api/voice-engine/admin/provider-keys/openrouter-models
  * Fetch available models from OpenRouter using saved API key
  */
-router.get('/openrouter-models', async (_req: Request, res: Response) => {
+router.get('/openrouter-models', requireAdminPermission('settings', 'system_settings', 'read'), async (_req: Request, res: Response) => {
   try {
     const [setting] = await db
       .select()
@@ -560,7 +561,7 @@ router.get('/openrouter-models', async (_req: Request, res: Response) => {
    * POST /api/voice-engine/admin/provider-keys/test/:provider
    * Test a specific provider API key connectivity
    */
-  router.post('/test/:provider', async (req: Request, res: Response) => {
+  router.post('/test/:provider', requireAdminPermission('settings', 'system_settings', 'read'), async (req: Request, res: Response) => {
     try {
       const { provider } = req.params;
 

@@ -59,7 +59,7 @@ async function verifyState(stateParam: string): Promise<string | null> {
     const expectedBuf = Buffer.from(expectedSig, "hex");
     if (sigBuf.length !== expectedBuf.length || !timingSafeEqual(sigBuf, expectedBuf)) return null;
     const [userId, ts] = payload.split(":");
-    if (!userId || Date.now() - parseInt(ts) > STATE_TTL_MS) return null;
+    if (!userId || Date.now() - parseInt(ts, 10) > STATE_TTL_MS) return null;
     return userId;
   } catch {
     return null;

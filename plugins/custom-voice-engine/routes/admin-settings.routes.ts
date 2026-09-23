@@ -10,6 +10,7 @@
 import { Router, Request, Response } from 'express';
 import { db } from '../../../server/db';
 import { sql, eq } from 'drizzle-orm';
+import { requireAdminPermission } from '../../../server/middleware/admin-auth';
 
 export function createAdminSettingsRouter(): Router {
   const router = Router();
@@ -27,7 +28,7 @@ export function createAdminSettingsRouter(): Router {
   // ── Global Settings ──────────────────────────────────
 
   /** GET /api/voice-engine/admin/settings */
-  router.get('/', async (_req: Request, res: Response) => {
+  router.get('/', requireAdminPermission('settings', 'system_settings', 'read'), async (_req: Request, res: Response) => {
     try {
       const result = await db.execute(
         sql`SELECT * FROM ve_freeswitch_nodes ORDER BY created_at ASC`
@@ -50,7 +51,7 @@ export function createAdminSettingsRouter(): Router {
   // ── FreeSWITCH Node Management ───────────────────────
 
   /** GET /api/voice-engine/admin/settings/nodes */
-  router.get('/nodes', async (_req: Request, res: Response) => {
+  router.get('/nodes', requireAdminPermission('settings', 'system_settings', 'read'), async (_req: Request, res: Response) => {
     try {
       const result = await db.execute(
         sql`SELECT * FROM ve_freeswitch_nodes ORDER BY created_at ASC`
@@ -62,7 +63,7 @@ export function createAdminSettingsRouter(): Router {
   });
 
   /** POST /api/voice-engine/admin/settings/nodes */
-  router.post('/nodes', async (req: Request, res: Response) => {
+  router.post('/nodes', requireAdminPermission('settings', 'system_settings', 'create'), async (req: Request, res: Response) => {
     try {
       const { name, eslHost, eslPort, eslPassword, sipHost, sipPort, wsPort, maxCalls, status } = req.body;
 
@@ -83,7 +84,7 @@ export function createAdminSettingsRouter(): Router {
   });
 
   /** PUT /api/voice-engine/admin/settings/nodes/:id */
-  router.put('/nodes/:id', async (req: Request, res: Response) => {
+  router.put('/nodes/:id', requireAdminPermission('settings', 'system_settings', 'update'), async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { name, eslHost, eslPort, eslPassword, sipHost, sipPort, wsPort, maxCalls, status } = req.body;
@@ -115,7 +116,7 @@ export function createAdminSettingsRouter(): Router {
   });
 
   /** DELETE /api/voice-engine/admin/settings/nodes/:id */
-  router.delete('/nodes/:id', async (req: Request, res: Response) => {
+  router.delete('/nodes/:id', requireAdminPermission('settings', 'system_settings', 'delete'), async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       await db.execute(sql`DELETE FROM ve_freeswitch_nodes WHERE id = ${id}`);

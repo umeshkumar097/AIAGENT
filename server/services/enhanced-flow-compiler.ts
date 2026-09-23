@@ -134,7 +134,7 @@ interface ElevenLabsOverrideAgentNode extends ElevenLabsBaseNode {
   additional_prompt: string;  // Contains "Say exactly: '[message]'" + behavior instructions
   additional_tool_ids: string[];
   additional_knowledge_base: any[];
-  conversation_config: {};  // Must be empty {} per ElevenLabs API
+  conversation_config: object;  // Must be empty {} per ElevenLabs API
 }
 
 interface ElevenLabsPhoneNumberNode extends ElevenLabsBaseNode {
@@ -1229,7 +1229,7 @@ Do not transition until you have confirmed it is sent.`;
    */
   private buildWaitConditionForNodeType(sourceType: string, config: Record<string, any>): ForwardCondition {
     switch (sourceType) {
-      case 'question':
+      case 'question': {
         // Question nodes: LLM must wait for user to answer THIS SPECIFIC question
         const questionText = config.message || config.question || config.text || '';
         if (questionText) {
@@ -1243,6 +1243,7 @@ Do not transition until you have confirmed it is sent.`;
           type: 'llm',
           condition: LLM_CONDITIONS.QUESTION_ANSWERED
         };
+      }
 
       case 'form':
       case 'form_submission':
@@ -1271,7 +1272,7 @@ Do not transition until you have confirmed it is sent.`;
         };
 
       case 'message':
-      case 'greeting':
+      case 'greeting': {
         // When message node has waitForResponse=true, wait for any response
         const messageText = config.message || config.text || '';
         if (messageText) {
@@ -1293,6 +1294,7 @@ Do not transition until you have confirmed it is sent.`;
           type: 'llm',
           condition: LLM_CONDITIONS.GENERIC_RESPONSE
         };
+      }
 
       default:
         // For any other type with waitForResponse=true, wait for generic response

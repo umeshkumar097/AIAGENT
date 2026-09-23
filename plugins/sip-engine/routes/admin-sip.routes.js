@@ -1,9 +1,10 @@
 import { Router } from "express";
-import { SipTrunkService } from "../services/sip-trunk.service.js";
-import { OpenAISipService } from "../services/openai-sip.service.js";
+import { SipTrunkService } from "../services/sip-trunk.service";
+import { OpenAISipService } from "../services/openai-sip.service";
 import { z } from "zod";
+import { requireAdminPermission } from "../../../server/middleware/admin-auth";
 const router = Router();
-router.get("/settings", async (req, res) => {
+router.get("/settings", requireAdminPermission("phones", "phone_numbers", "read"), async (req, res) => {
   try {
     const settings = await SipTrunkService.getAdminSettings();
     res.json({ success: true, data: settings });
@@ -12,7 +13,7 @@ router.get("/settings", async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to fetch SIP settings" });
   }
 });
-router.put("/settings", async (req, res) => {
+router.put("/settings", requireAdminPermission("phones", "phone_numbers", "update"), async (req, res) => {
   try {
     const updates = req.body;
     const settings = await SipTrunkService.updateAdminSettings(updates);
@@ -22,9 +23,9 @@ router.put("/settings", async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to update SIP settings" });
   }
 });
-router.get("/openai-sip/config", async (req, res) => {
+router.get("/openai-sip/config", requireAdminPermission("phones", "phone_numbers", "read"), async (req, res) => {
   try {
-    const { db } = await import("../../../server/db.js");
+    const { db } = await import("../../../server/db");
     const { sql } = await import("drizzle-orm");
     let projectId = "";
     let webhookSecret = "";
@@ -68,7 +69,7 @@ router.get("/openai-sip/config", async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to fetch OpenAI SIP configuration" });
   }
 });
-router.post("/openai-sip/project-id", async (req, res) => {
+router.post("/openai-sip/project-id", requireAdminPermission("phones", "phone_numbers", "update"), async (req, res) => {
   try {
     const { projectId } = req.body;
     if (!projectId) {
@@ -77,7 +78,7 @@ router.post("/openai-sip/project-id", async (req, res) => {
         message: "Project ID is required"
       });
     }
-    const { db } = await import("../../../server/db.js");
+    const { db } = await import("../../../server/db");
     const { sql } = await import("drizzle-orm");
     await db.execute(sql`
       INSERT INTO global_settings (id, key, value, description)
@@ -96,7 +97,7 @@ router.post("/openai-sip/project-id", async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to set OpenAI project ID" });
   }
 });
-router.post("/openai-sip/webhook-secret", async (req, res) => {
+router.post("/openai-sip/webhook-secret", requireAdminPermission("phones", "phone_numbers", "update"), async (req, res) => {
   try {
     const { webhookSecret } = req.body;
     if (!webhookSecret) {
@@ -105,7 +106,7 @@ router.post("/openai-sip/webhook-secret", async (req, res) => {
         message: "Webhook secret is required"
       });
     }
-    const { db } = await import("../../../server/db.js");
+    const { db } = await import("../../../server/db");
     const { sql } = await import("drizzle-orm");
     await db.execute(sql`
       INSERT INTO global_settings (id, key, value, description)
@@ -122,7 +123,7 @@ router.post("/openai-sip/webhook-secret", async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to set webhook secret" });
   }
 });
-router.get("/trunks", async (req, res) => {
+router.get("/trunks", requireAdminPermission("phones", "phone_numbers", "read"), async (req, res) => {
   try {
     const { userId, engine, status } = req.query;
     const filters = {
@@ -137,7 +138,7 @@ router.get("/trunks", async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to fetch SIP trunks" });
   }
 });
-router.get("/phone-numbers", async (req, res) => {
+router.get("/phone-numbers", requireAdminPermission("phones", "phone_numbers", "read"), async (req, res) => {
   try {
     const { userId, engine } = req.query;
     const filters = {
@@ -151,7 +152,7 @@ router.get("/phone-numbers", async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to fetch SIP phone numbers" });
   }
 });
-router.get("/calls", async (req, res) => {
+router.get("/calls", requireAdminPermission("phones", "phone_numbers", "read"), async (req, res) => {
   try {
     const { userId, engine, status, startDate, endDate, limit, offset } = req.query;
     const filters = {
@@ -170,7 +171,7 @@ router.get("/calls", async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to fetch SIP calls" });
   }
 });
-router.get("/plans/:planId/sip-settings", async (req, res) => {
+router.get("/plans/:planId/sip-settings", requireAdminPermission("phones", "phone_numbers", "read"), async (req, res) => {
   try {
     const { planId } = req.params;
     const settings = await SipTrunkService.getPlanSipSettings(planId);
@@ -180,7 +181,7 @@ router.get("/plans/:planId/sip-settings", async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to fetch plan SIP settings" });
   }
 });
-router.put("/plans/:planId/sip-settings", async (req, res) => {
+router.put("/plans/:planId/sip-settings", requireAdminPermission("phones", "phone_numbers", "update"), async (req, res) => {
   try {
     const { planId } = req.params;
     const planSipSettingsSchema = z.object({
@@ -207,7 +208,7 @@ router.put("/plans/:planId/sip-settings", async (req, res) => {
     res.status(500).json({ success: false, error: { code: "INTERNAL_ERROR", message: "Failed to update plan SIP settings" } });
   }
 });
-router.get("/stats", async (req, res) => {
+router.get("/stats", requireAdminPermission("phones", "phone_numbers", "read"), async (req, res) => {
   try {
     const stats = await SipTrunkService.getAdminStats();
     res.json({ success: true, data: stats });
@@ -216,8 +217,8 @@ router.get("/stats", async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to fetch SIP stats" });
   }
 });
-router.get("/providers", async (req, res) => {
-  const { SIP_PROVIDER_INFO } = await import("../types.js");
+router.get("/providers", requireAdminPermission("phones", "phone_numbers", "read"), async (req, res) => {
+  const { SIP_PROVIDER_INFO } = await import("../types");
   res.json({
     success: true,
     data: SIP_PROVIDER_INFO

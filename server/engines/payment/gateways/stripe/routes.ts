@@ -10,7 +10,7 @@ import { authenticateToken, AuthRequest } from '../../../../middleware/auth';
 import { hasActiveMembership } from '../../../../services/membership-service';
 import { queueFailedWebhook } from '../../../../services/webhook-retry-service';
 import { storage } from '../../../../storage';
-import { recordWebhookReceived } from '../../webhook-helper';
+import { recordWebhookReceived, FRONTEND_URL } from '../../webhook-helper';
 import { PaymentAuditService } from '../../audit';
 import { generateInvoiceForTransaction } from '../../invoice-service';
 import { emailService } from '../../../../services/email-service';
@@ -35,8 +35,8 @@ import {
   handleChargeDispute,
   handleChargeRefunded,
 } from './handlers';
-import { FRONTEND_URL } from '../../webhook-helper';
 import { logger } from '../../../../utils/logger';
+import { allowUnverifiedWebhooks } from '../../../../middleware/webhookValidation';
 
 const router: Router = express.Router();
 
@@ -627,6 +627,11 @@ router.post('/webhook', async (req, res) => {
     const rawBody = rawReq.rawBody || Buffer.from(JSON.stringify(req.body));
     
     if (!webhookSecret) {
+      if (!allowUnverifiedWebhooks()) {
+        logger.error('Stripe webhook secret not configured — rejecting unsigned webhook (set STRIPE_WEBHOOK_SECRET, or ALLOW_UNVERIFIED_WEBHOOKS=true to bypass)', undefined, 'Stripe');
+        return res.status(400).send('Stripe webhook secret not configured');
+      }
+      logger.warn('ALLOW_UNVERIFIED_WEBHOOKS is set — accepting unsigned Stripe webhook', undefined, 'Stripe');
       event = req.body as Stripe.Event;
     } else {
       event = stripe.webhooks.constructEvent(rawBody, sig as string, webhookSecret);

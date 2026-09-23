@@ -1206,7 +1206,7 @@ export class PlivoCallService {
       const plivoStatus = (plivoCallDetails.callState || plivoCallDetails.call_state || '').toLowerCase();
       const hangupCause = plivoCallDetails.hangupCauseName || plivoCallDetails.hangupCause || plivoCallDetails.hangup_cause || null;
       const hangupCode = plivoCallDetails.hangupCauseCode || plivoCallDetails.hangup_cause_code || null;
-      const billDurationRaw = parseInt(plivoCallDetails.billDuration || plivoCallDetails.bill_duration || '0');
+      const billDurationRaw = parseInt(plivoCallDetails.billDuration || plivoCallDetails.bill_duration || '0', 10);
       const billDuration = isNaN(billDurationRaw) ? 0 : billDurationRaw;
       const endTimeStr = plivoCallDetails.endTime || plivoCallDetails.end_time;
       

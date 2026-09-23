@@ -6,7 +6,7 @@
  * ============================================================
  */
 
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { CRMStorage, DEFAULT_STAGES } from '../storage/crm-storage';
 import { insertLeadSchema, insertLeadStageSchema, insertLeadNoteSchema, AI_LEAD_CATEGORIES, AI_CATEGORY_LABELS, AI_CATEGORY_COLORS, AI_CATEGORY_PRIORITY, determineAICategory, type AILeadCategory } from '@shared/schema';
 import { z } from 'zod';
@@ -56,7 +56,7 @@ async function logTeamActivity(
 const router = Router();
 
 // Middleware to ensure user is authenticated
-const requireAuth = (req: AuthRequest, res: Response, next: Function) => {
+const requireAuth = (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!req.userId) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
@@ -178,8 +178,8 @@ router.get('/leads', requireAuth, async (req: AuthRequest, res: Response) => {
 
     const filters = {
       stage: stage as string | undefined,
-      minScore: minScore ? parseInt(minScore as string) : undefined,
-      maxScore: maxScore ? parseInt(maxScore as string) : undefined,
+      minScore: minScore ? parseInt(minScore as string, 10) : undefined,
+      maxScore: maxScore ? parseInt(maxScore as string, 10) : undefined,
       startDate: startDate ? new Date(startDate as string) : undefined,
       endDate: endDate ? new Date(endDate as string) : undefined,
       search: search as string | undefined,
@@ -305,8 +305,8 @@ router.get('/leads/categorized', requireAuth, async (req: AuthRequest, res: Resp
       sourceId: sourceId === 'all' ? undefined : sourceId as string | undefined,
       search: search as string | undefined,
       sortBy: sortBy as 'newest' | 'oldest' | 'score-high' | 'score-low' | undefined,
-      limit: limit ? parseInt(limit as string) : 50,
-      offset: offset ? parseInt(offset as string) : 0,
+      limit: limit ? parseInt(limit as string, 10) : 50,
+      offset: offset ? parseInt(offset as string, 10) : 0,
       hideLeadsWithoutPhone: prefs?.hideLeadsWithoutPhone ?? false,
       hiddenCategories: prefs?.hiddenCategories ?? [],
     });
@@ -363,7 +363,7 @@ router.get('/leads/ai-kanban', requireAuth, async (req: AuthRequest, res: Respon
   try {
     const { sourceType, sourceId, limit } = req.query;
 
-    const leadsPerColumn = limit ? parseInt(limit as string) : 20;
+    const leadsPerColumn = limit ? parseInt(limit as string, 10) : 20;
 
     // Get user's filter preferences
     const prefs = await CRMStorage.getCategoryPreferences(req.userId!);
@@ -439,8 +439,8 @@ router.get('/leads/ai-kanban/:category', requireAuth, async (req: AuthRequest, r
       {
         sourceType: sourceType === 'all' ? undefined : sourceType as 'campaign' | 'incoming' | undefined,
         sourceId: sourceId === 'all' ? undefined : sourceId as string | undefined,
-        limit: limit ? parseInt(limit as string) : 20,
-        offset: offset ? parseInt(offset as string) : 0,
+        limit: limit ? parseInt(limit as string, 10) : 20,
+        offset: offset ? parseInt(offset as string, 10) : 0,
       }
     );
 

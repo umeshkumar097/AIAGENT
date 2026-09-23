@@ -9,7 +9,7 @@ import { authenticateToken, AuthRequest } from '../../../../middleware/auth';
 import { hasActiveMembership } from '../../../../services/membership-service';
 import { queueFailedWebhook } from '../../../../services/webhook-retry-service';
 import { storage } from '../../../../storage';
-import { recordWebhookReceived } from '../../webhook-helper';
+import { recordWebhookReceived, FRONTEND_URL } from '../../webhook-helper';
 import { PaymentAuditService } from '../../audit';
 import { generateInvoiceForTransaction } from '../../invoice-service';
 import { emailService } from '../../../../services/email-service';
@@ -27,6 +27,7 @@ import {
   fetchRazorpaySubscription,
   cancelRazorpaySubscription,
   fetchRazorpayPayment,
+  fetchRazorpayOrder,
   verifyPaymentSignature,
   verifyWebhookSignature,
   initiateRefund,
@@ -44,7 +45,6 @@ import {
   handleRefundCreated,
   handleDispute,
 } from './handlers';
-import { FRONTEND_URL } from '../../webhook-helper';
 import { logger } from '../../../../utils/logger';
 
 const router: Router = express.Router();
@@ -369,9 +369,22 @@ router.post('/verify-order', authenticateToken, async (req: AuthRequest, res: Re
       return res.status(400).json({ error: 'Payment signature verification failed' });
     }
 
+    // The signature only binds order_id|payment_id. The package (and who paid) must come from
+    // the order we created, otherwise a cheap order can be redeemed for the biggest package.
+    const order = await fetchRazorpayOrder(razorpay_order_id);
+    const notes = (order?.notes || {}) as Record<string, string>;
+    if (notes.packageId !== packageId || notes.userId !== userId || notes.type !== 'credits') {
+      logger.warn(`Razorpay verify-order mismatch: order ${razorpay_order_id} notes=${JSON.stringify(notes)} body packageId=${packageId} user=${userId}`, undefined, 'Razorpay');
+      return res.status(400).json({ error: 'Package does not match the paid order' });
+    }
+
     const pkg = await storage.getCreditPackage(packageId);
     if (!pkg) {
       return res.status(404).json({ error: 'Package not found' });
+    }
+    const expectedPaise = Math.round((pkg.razorpayPrice ? parseFloat(pkg.razorpayPrice.toString()) : 0) * 100);
+    if (expectedPaise > 0 && Number(order?.amount) !== expectedPaise) {
+      return res.status(400).json({ error: 'Paid amount does not match the package price' });
     }
 
     try {

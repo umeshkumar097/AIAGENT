@@ -313,7 +313,7 @@ function calculateGrowthData(
   const formatDateLabel = (isoDate: string, isMonthly: boolean = false): string => {
     if (isMonthly) {
       const [year, month] = isoDate.split('-');
-      const d = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const d = new Date(parseInt(year, 10), parseInt(month, 10) - 1, 1);
       return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
     }
     const d = new Date(isoDate + 'T00:00:00');

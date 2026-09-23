@@ -16,8 +16,7 @@
  * ============================================================
  */
 import { db } from "../db";
-import { phoneNumbers, creditTransactions, phoneNumberRentals, campaigns, phoneReleaseRetryQueue } from "@shared/schema";
-import type { PhoneNumber } from "@shared/schema";
+import { phoneNumbers, creditTransactions, phoneNumberRentals, campaigns, phoneReleaseRetryQueue, type PhoneNumber } from "@shared/schema";
 import { storage } from "../storage";
 import { twilioService } from "./twilio";
 import { lte, eq, sql, and } from "drizzle-orm";

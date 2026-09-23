@@ -10,16 +10,17 @@
  * ============================================================
  */
 
-import type { 
-  OpenAIVoice, 
-  OpenAIRealtimeModel, 
-  AgentTool, 
-  AgentConfig, 
-  CompiledFlowConfig,
-  FlowNode,
-  FlowEdge
+import { 
+  type OpenAIVoice, 
+  type OpenAIRealtimeModel, 
+  type AgentTool, 
+  type AgentConfig, 
+  type CompiledFlowConfig,
+  type FlowNode,
+  type FlowEdge,
+  OPENAI_VOICES,
+  MODEL_TIER_CONFIG
 } from '../types';
-import { OPENAI_VOICES, MODEL_TIER_CONFIG } from '../types';
 import { RAGKnowledgeService } from '../../../services/rag-knowledge';
 import { db } from '../../../db';
 import { appointments, appointmentSettings, formSubmissions, agents, forms, formFields } from '@shared/schema';
@@ -838,7 +839,7 @@ export class OpenAIAgentFactory {
       if (typeof val === 'string') {
         collectVars[idx] = val;
       } else if (val && typeof val === 'object' && (val as any).componentType === 'button') {
-        const btnIdx = idx.startsWith('btn_') ? parseInt(idx.replace('btn_', '')) : parseInt(idx);
+        const btnIdx = idx.startsWith('btn_') ? parseInt(idx.replace('btn_', ''), 10) : parseInt(idx, 10);
         if (!isNaN(btnIdx)) {
           fixedButtonVars[btnIdx] = (val as any).value || '';
         }

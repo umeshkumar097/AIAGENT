@@ -24,6 +24,7 @@ import type { PlivoCallStatus } from '../types';
 import { logger } from '../../../utils/logger';
 import { webhookDeliveryService } from '../../../services/webhook-delivery';
 import { scheduleContactRetry } from '../../../routes/webhooks/helpers';
+import { validatePlivoWebhook } from '../services/plivo-signature.service';
 
 export function setupPlivoWebhooks(app: Express, baseUrl: string): void {
   /**
@@ -33,7 +34,7 @@ export function setupPlivoWebhooks(app: Express, baseUrl: string): void {
    * For outbound calls: callId is in the URL path
    * For inbound calls: lookup by phone number
    */
-  app.post('/api/plivo/voice/answer', async (req: Request, res: Response) => {
+  app.post('/api/plivo/voice/answer', validatePlivoWebhook, async (req: Request, res: Response) => {
     try {
       const { CallUUID, From, To, Direction } = req.body;
       
@@ -60,7 +61,9 @@ export function setupPlivoWebhooks(app: Express, baseUrl: string): void {
   /**
    * Answer URL with call ID path - for outbound calls
    */
-  app.post('/api/plivo/voice/:callId', async (req: Request, res: Response) => {
+  // callId is a UUID — constrain it so /voice/status, /voice/hangup, /voice/transfer, /voice/post-stream
+  // are not swallowed by this route (they are registered later in this file)
+  app.post('/api/plivo/voice/:callId([0-9a-fA-F-]{36})', validatePlivoWebhook, async (req: Request, res: Response) => {
     try {
       const { callId } = req.params;
       const { CallUUID, From, To, Direction } = req.body;
@@ -96,7 +99,7 @@ export function setupPlivoWebhooks(app: Express, baseUrl: string): void {
   /**
    * Status callback - Called when call status changes
    */
-  app.post('/api/plivo/voice/status', async (req: Request, res: Response) => {
+  app.post('/api/plivo/voice/status', validatePlivoWebhook, async (req: Request, res: Response) => {
     try {
       const { CallUUID, CallStatus, Duration, HangupCause, From, To } = req.body;
       
@@ -180,7 +183,7 @@ export function setupPlivoWebhooks(app: Express, baseUrl: string): void {
   /**
    * Status callback with call ID path
    */
-  app.post('/api/plivo/status/:callId', async (req: Request, res: Response) => {
+  app.post('/api/plivo/status/:callId', validatePlivoWebhook, async (req: Request, res: Response) => {
     try {
       const { callId } = req.params;
       const { CallUUID, CallStatus, Duration, HangupCause, From, To } = req.body;
@@ -267,7 +270,7 @@ export function setupPlivoWebhooks(app: Express, baseUrl: string): void {
   /**
    * Recording callback - Called when recording is ready
    */
-  app.post('/api/plivo/voice/recording', async (req: Request, res: Response) => {
+  app.post('/api/plivo/voice/recording', validatePlivoWebhook, async (req: Request, res: Response) => {
     try {
       const { CallUUID, RecordUrl, RecordingDuration } = req.body;
       
@@ -280,7 +283,7 @@ export function setupPlivoWebhooks(app: Express, baseUrl: string): void {
         await PlivoCallService.handleRecordingReady(
           call.id,
           RecordUrl,
-          parseInt(RecordingDuration) || 0
+          parseInt(RecordingDuration, 10) || 0
         );
       } else {
         logger.warn(`Call not found for recording UUID: ${CallUUID}`, undefined, 'PlivoWebhook');
@@ -296,7 +299,7 @@ export function setupPlivoWebhooks(app: Express, baseUrl: string): void {
   /**
    * Recording callback with call ID path
    */
-  app.post('/api/plivo/recording/:callId', async (req: Request, res: Response) => {
+  app.post('/api/plivo/recording/:callId', validatePlivoWebhook, async (req: Request, res: Response) => {
     try {
       const { callId } = req.params;
       const { CallUUID, RecordUrl, RecordingDuration } = req.body;
@@ -306,7 +309,7 @@ export function setupPlivoWebhooks(app: Express, baseUrl: string): void {
       await PlivoCallService.handleRecordingReady(
         callId,
         RecordUrl,
-        parseInt(RecordingDuration) || 0
+        parseInt(RecordingDuration, 10) || 0
       );
 
       res.sendStatus(200);
@@ -321,7 +324,7 @@ export function setupPlivoWebhooks(app: Express, baseUrl: string): void {
    * Called by PlivoRecordingService when recording is ready
    * Plivo sends application/x-www-form-urlencoded with a 'response' field containing JSON string
    */
-  app.post('/api/plivo/recording/callback/:callRecordId', async (req: Request, res: Response) => {
+  app.post('/api/plivo/recording/callback/:callRecordId', validatePlivoWebhook, async (req: Request, res: Response) => {
     try {
       const { callRecordId } = req.params;
       
@@ -365,8 +368,8 @@ export function setupPlivoWebhooks(app: Express, baseUrl: string): void {
       const callUuid = call_uuid || CallUUID;
       const recordingUrl = record_url || recording_url || RecordUrl;
       const recordingIdValue = recording_id || RecordingID;
-      const durationSec = parseInt(recording_duration) || parseInt(RecordingDuration) || 
-                          Math.round((parseInt(recording_duration_ms) || parseInt(RecordingDurationMs) || 0) / 1000);
+      const durationSec = parseInt(recording_duration, 10) || parseInt(RecordingDuration, 10) || 
+                          Math.round((parseInt(recording_duration_ms, 10) || parseInt(RecordingDurationMs, 10) || 0) / 1000);
       
       logger.info(`[Recording] Plivo Call UUID: ${callUuid}`, undefined, 'PlivoWebhook');
       logger.info(`[Recording] Recording URL: ${recordingUrl}`, undefined, 'PlivoWebhook');
@@ -434,13 +437,13 @@ export function setupPlivoWebhooks(app: Express, baseUrl: string): void {
   };
   
   // Support both GET and POST for transfer webhook
-  app.get('/api/plivo/voice/transfer', handleTransferWebhook);
-  app.post('/api/plivo/voice/transfer', handleTransferWebhook);
+  app.get('/api/plivo/voice/transfer', validatePlivoWebhook, handleTransferWebhook);
+  app.post('/api/plivo/voice/transfer', validatePlivoWebhook, handleTransferWebhook);
 
   /**
    * Hangup webhook - Returns XML to end the call gracefully
    */
-  app.post('/api/plivo/voice/hangup', async (req: Request, res: Response) => {
+  app.post('/api/plivo/voice/hangup', validatePlivoWebhook, async (req: Request, res: Response) => {
     try {
       const { message } = req.query;
       const { CallUUID } = req.body;
@@ -470,7 +473,7 @@ export function setupPlivoWebhooks(app: Express, baseUrl: string): void {
   /**
    * Incoming call handler - Routes inbound calls to appropriate agents
    */
-  app.post('/api/plivo/incoming', async (req: Request, res: Response) => {
+  app.post('/api/plivo/incoming', validatePlivoWebhook, async (req: Request, res: Response) => {
     try {
       // Log raw request for debugging
       console.log('📞 [Plivo Incoming] Raw request received:', {
@@ -661,7 +664,7 @@ export function setupPlivoWebhooks(app: Express, baseUrl: string): void {
    * Transfer XML endpoint - Called by Plivo Transfer API
    * Returns Dial XML to connect the call to the transfer target
    */
-  app.get('/api/plivo/voice/transfer', (req: Request, res: Response) => {
+  app.get('/api/plivo/voice/transfer', validatePlivoWebhook, (req: Request, res: Response) => {
     const { target, callerId } = req.query;
     
     logger.info(`[TransferXML] ===== TRANSFER XML ENDPOINT CALLED =====`, undefined, 'PlivoWebhook');
@@ -693,7 +696,7 @@ export function setupPlivoWebhooks(app: Express, baseUrl: string): void {
    * Post-stream webhook - Fallback handler (kept for compatibility)
    * With the new Transfer API + Stop Stream approach, this is rarely needed
    */
-  app.post('/api/plivo/voice/post-stream', (req: Request, res: Response) => {
+  app.post('/api/plivo/voice/post-stream', validatePlivoWebhook, (req: Request, res: Response) => {
     const callUuid = req.query.callUuid as string;
     const { CallUUID, StreamAction } = req.body;
     
@@ -753,7 +756,7 @@ export function setupPlivoWebhooks(app: Express, baseUrl: string): void {
 
   // ── WhatsApp Message Webhook (required by Plivo Configure Number form) ──────
   // Webhook URL: https://zonvo.in/api/plivo/whatsapp/message
-  app.post('/api/plivo/whatsapp/message', async (req: Request, res: Response) => {
+  app.post('/api/plivo/whatsapp/message', validatePlivoWebhook, async (req: Request, res: Response) => {
     logger.info(`[WhatsApp] Incoming message: ${JSON.stringify(req.body)}`, undefined, 'PlivoWebhook');
     res.status(200).send('OK');
   });
@@ -762,7 +765,7 @@ export function setupPlivoWebhooks(app: Express, baseUrl: string): void {
   // Answer URL: https://zonvo.in/api/plivo/whatsapp/answer
   // When someone calls on WhatsApp, Plivo hits this endpoint.
   // Routes to the same SarvamBridge audio pipeline as regular voice calls.
-  app.post('/api/plivo/whatsapp/answer', async (req: Request, res: Response) => {
+  app.post('/api/plivo/whatsapp/answer', validatePlivoWebhook, async (req: Request, res: Response) => {
     try {
       const { CallUUID, From, To, Direction } = req.body;
       const normalizedTo   = (To   || '').toString().trim().replace(/^\+/, '');

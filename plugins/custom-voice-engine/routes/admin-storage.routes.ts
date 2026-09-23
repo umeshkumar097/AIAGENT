@@ -11,6 +11,7 @@ import { Router, Request, Response } from 'express';
 import { db } from '../../../server/db';
 import { sql, eq, inArray } from 'drizzle-orm';
 import { globalSettings } from '../../../shared/schema';
+import { requireAdminPermission } from '../../../server/middleware/admin-auth';
 
 const STORAGE_KEYS = {
   provider: 've_recording_storage',
@@ -44,7 +45,7 @@ export function createAdminStorageRouter(): Router {
    * GET /api/voice-engine/admin/storage
    * Returns current recording storage settings
    */
-  router.get('/', async (_req: Request, res: Response) => {
+  router.get('/', requireAdminPermission('settings', 'system_settings', 'read'), async (_req: Request, res: Response) => {
     try {
       const keys = Object.values(STORAGE_KEYS);
       const results = await db
@@ -81,7 +82,7 @@ export function createAdminStorageRouter(): Router {
    * POST /api/voice-engine/admin/storage
    * Save storage settings
    */
-  router.post('/', async (req: Request, res: Response) => {
+  router.post('/', requireAdminPermission('settings', 'system_settings', 'update'), async (req: Request, res: Response) => {
     try {
       const {
         provider,
@@ -202,7 +203,7 @@ export function createAdminStorageRouter(): Router {
 
 
    // POST /api/voice-engine/admin/storage/activate
-  router.post('/activate', async (req, res) => {
+  router.post('/activate', requireAdminPermission('settings', 'system_settings', 'update'), async (req, res) => {
     const { provider } = req.body;
     if (!['local', 's3', 'gcs', 'do_spaces', 'wasabi'].includes(provider)) {
       return res.status(400).json({ success: false, error: 'Invalid provider' });
@@ -217,7 +218,7 @@ export function createAdminStorageRouter(): Router {
    * POST /api/voice-engine/admin/storage/test
    * Test connection to S3/GCS
    */
-  router.post('/test', async (req: Request, res: Response) => {
+  router.post('/test', requireAdminPermission('settings', 'system_settings', 'read'), async (req: Request, res: Response) => {
     try {
       const {
         provider,

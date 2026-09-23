@@ -16,9 +16,8 @@
  * ============================================================
  */
 import { db } from "../db";
-import { elevenLabsCredentials, agents, incomingAgents, phoneNumbers, users } from "@shared/schema";
+import { elevenLabsCredentials, agents, incomingAgents, phoneNumbers, users, type InsertElevenLabsCredential, type ElevenLabsCredential } from "@shared/schema";
 import { eq, and, desc, asc, sql, isNull, notInArray, or } from "drizzle-orm";
-import type { InsertElevenLabsCredential, ElevenLabsCredential } from "@shared/schema";
 import { ElevenLabsService } from "./elevenlabs";
 import { NotificationService } from "./notification-service";
 import { getCorrelationHeaders } from "../middleware/correlation-id";

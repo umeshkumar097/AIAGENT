@@ -16,8 +16,7 @@
  * ============================================================
  */
 
-import nodemailer from 'nodemailer';
-import type { Transporter } from 'nodemailer';
+import nodemailer, { type Transporter, type SendMailOptions } from 'nodemailer';
 import { storage } from '../storage';
 import { logger } from '../utils/logger';
 import type { EmailTemplate } from '@shared/schema';
@@ -1207,7 +1206,7 @@ export class EmailService {
     const textBody = options?.text || htmlToText(html);
 
     try {
-      const mailOptions: nodemailer.SendMailOptions = {
+      const mailOptions: SendMailOptions = {
         from: `"${displayName}" <${fromAddress}>`,
         to,
         subject,

@@ -19,11 +19,9 @@ export const CORRELATION_ID_HEADER = 'X-Correlation-ID';
 /**
  * Extended Request interface with correlation ID
  */
-declare global {
-  namespace Express {
-    interface Request {
-      correlationId: string;
-    }
+declare module 'express-serve-static-core' {
+  interface Request {
+    correlationId: string;
   }
 }
 

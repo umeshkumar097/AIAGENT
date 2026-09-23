@@ -81,6 +81,8 @@ export interface PluginLoaderOptions {
   sessionAuthMiddleware: RequestHandler;
   adminAuthMiddleware: RequestHandler;
   callServices?: any;
+  /** Core HTTP server, so plugins (e.g. custom-voice-engine) can attach WebSocket servers */
+  httpServer?: import('http').Server;
 }
 
 const loadedPlugins: Map<string, LoadedPlugin> = new Map();

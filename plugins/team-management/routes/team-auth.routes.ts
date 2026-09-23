@@ -5,13 +5,15 @@
 import { Router, Request, Response } from 'express';
 import { TeamAuthService } from '../services/team-auth.service.js';
 import { TeamService } from '../services/team.service.js';
+import { createLoginRateLimiter } from '../middleware/team-auth.middleware.js';
 import { db } from '../../../server/db.js';
 import { users } from '../../../shared/schema.js';
 import { eq } from 'drizzle-orm';
 
 const router = Router();
+const loginRateLimiter = createLoginRateLimiter();
 
-router.post('/login', async (req: Request, res: Response) => {
+router.post('/login', loginRateLimiter, async (req: Request, res: Response) => {
   try {
     const { email, password, teamId } = req.body;
 

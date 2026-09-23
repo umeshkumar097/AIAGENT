@@ -3,10 +3,11 @@ import { messagingLogService } from '../services/messaging-log.service';
 import { metaWhatsAppAdminService } from '../services/meta-whatsapp-admin.service';
 import { db } from '../../../server/db';
 import { sql } from 'drizzle-orm';
+import { requireAdminPermission } from '../../../server/middleware/admin-auth';
 
 const router = Router();
 
-router.get('/logs', async (req: Request, res: Response) => {
+router.get('/logs', requireAdminPermission('communications', 'email_settings', 'read'), async (req: Request, res: Response) => {
   try {
     const { channel, status, limit, offset } = req.query;
     const result = await messagingLogService.getAdminLogs({
@@ -22,7 +23,7 @@ router.get('/logs', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/stats', async (req: Request, res: Response) => {
+router.get('/stats', requireAdminPermission('communications', 'email_settings', 'read'), async (req: Request, res: Response) => {
   try {
     const stats = await messagingLogService.getStats();
     res.json({ success: true, data: stats });
@@ -32,7 +33,7 @@ router.get('/stats', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/whatsapp-config', async (req: Request, res: Response) => {
+router.get('/whatsapp-config', requireAdminPermission('communications', 'email_settings', 'read'), async (req: Request, res: Response) => {
   try {
     const config = await metaWhatsAppAdminService.getConfig();
     if (!config) {
@@ -51,7 +52,7 @@ router.get('/whatsapp-config', async (req: Request, res: Response) => {
   }
 });
 
-router.patch('/whatsapp-config', async (req: Request, res: Response) => {
+router.patch('/whatsapp-config', requireAdminPermission('communications', 'email_settings', 'update'), async (req: Request, res: Response) => {
   try {
     const { provider_mode, meta_app_id, meta_app_secret, meta_config_id, embedded_signup_enabled, coexistence_enabled } = req.body;
     const updateData: Record<string, any> = {};
@@ -80,7 +81,7 @@ router.patch('/whatsapp-config', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/whatsapp-config/generate-verify-token', async (req: Request, res: Response) => {
+router.post('/whatsapp-config/generate-verify-token', requireAdminPermission('communications', 'email_settings', 'update'), async (req: Request, res: Response) => {
   try {
     const token = await metaWhatsAppAdminService.generateWebhookVerifyToken();
     res.json({ success: true, data: { verifyToken: token } });
@@ -90,7 +91,7 @@ router.post('/whatsapp-config/generate-verify-token', async (req: Request, res: 
   }
 });
 
-router.post('/whatsapp-config/test-connection', async (req: Request, res: Response) => {
+router.post('/whatsapp-config/test-connection', requireAdminPermission('communications', 'email_settings', 'read'), async (req: Request, res: Response) => {
   try {
     const config = await metaWhatsAppAdminService.getConfig();
 
@@ -146,7 +147,7 @@ router.post('/whatsapp-config/test-connection', async (req: Request, res: Respon
   }
 });
 
-router.get('/whatsapp-config/webhook-url', async (req: Request, res: Response) => {
+router.get('/whatsapp-config/webhook-url', requireAdminPermission('communications', 'email_settings', 'read'), async (req: Request, res: Response) => {
   try {
     const host = req.get('host') || 'localhost';
     const isLocalhost = host.startsWith('localhost') || host.startsWith('127.0.0.1');

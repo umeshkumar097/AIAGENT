@@ -5,16 +5,18 @@
 
 import { Router, Request, Response } from 'express';
 import { AdminTeamService } from '../services/admin-team.service.js';
+import { createLoginRateLimiter } from '../middleware/team-auth.middleware.js';
 import { db } from '../../../server/db.js';
 import { sql } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 
 const router = Router();
+const loginRateLimiter = createLoginRateLimiter();
 
 const SESSION_EXPIRY_HOURS = parseInt(process.env.ADMIN_TEAM_SESSION_EXPIRY || '24');
 
-router.post('/login', async (req: Request, res: Response) => {
+router.post('/login', loginRateLimiter, async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 

@@ -40,7 +40,7 @@ router.use('/voice/*', validateTwilioWebhook);
  */
 function normalizePhoneForLookup(phone: string): string {
   // Remove spaces, dashes, parentheses but KEEP the + if present
-  let cleaned = phone.replace(/[\s\-\(\)]/g, '');
+  let cleaned = phone.replace(/[\s\-()]/g, '');
   // Ensure + prefix for E.164 format matching
   if (!cleaned.startsWith('+')) {
     cleaned = '+' + cleaned;
@@ -52,7 +52,7 @@ function normalizePhoneForLookup(phone: string): string {
  * Normalize phone number for storage (preserves + prefix).
  */
 function normalizePhoneForStorage(phone: string): string {
-  let cleaned = phone.replace(/[\s\-\(\)]/g, '');
+  let cleaned = phone.replace(/[\s\-()]/g, '');
   if (!cleaned.startsWith('+')) {
     cleaned = '+' + cleaned;
   }

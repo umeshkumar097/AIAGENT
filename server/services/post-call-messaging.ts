@@ -328,7 +328,7 @@ export async function triggerPostCallMessaging(params: {
                 const entry = val as any;
 
                 if (entry.componentType === 'button') {
-                  const btnIdx = key.startsWith('btn_') ? parseInt(key.replace('btn_', '')) : parseInt(key);
+                  const btnIdx = key.startsWith('btn_') ? parseInt(key.replace('btn_', ''), 10) : parseInt(key, 10);
                   if (!isNaN(btnIdx) && entry.value) {
                     const resolved = stripUnresolvedVar(resolveVarValue(entry.value, contactData));
                     if (resolved) buttonOverrides[btnIdx] = resolved;
@@ -336,7 +336,7 @@ export async function triggerPostCallMessaging(params: {
                 } else if (entry.componentType === 'header') {
                   // header variables handled later via template definition
                 } else if (!entry.componentType && (entry.mode === 'fixed' || entry.mode === 'collect') && entry.value) {
-                  const idx = parseInt(key);
+                  const idx = parseInt(key, 10);
                   if (!isNaN(idx)) {
                     bodyVarEntries.push([idx, stripUnresolvedVar(resolveVarValue(entry.value, contactData))]);
                   }

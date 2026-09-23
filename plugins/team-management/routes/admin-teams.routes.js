@@ -3,6 +3,9 @@ import { db } from "../../../server/db.js";
 import { sql } from "drizzle-orm";
 import { TeamService } from "../services/team.service.js";
 const router = Router();
+function escapeLike(value) {
+  return value.replace(/[\\%_]/g, (m) => "\\" + m);
+}
 function requireAdminOrTeamMember(req, res, next) {
   if (!req.isAdmin && !req.adminTeamMember) {
     return res.status(403).json({ error: "Admin access required" });
@@ -16,7 +19,8 @@ router.get("/", async (req, res) => {
     const offset = (parseInt(page) - 1) * parseInt(limit);
     let whereClause = sql`1=1`;
     if (search) {
-      whereClause = sql`(t.name ILIKE ${`%${search}%`} OR u.email ILIKE ${`%${search}%`})`;
+      const pattern = `%${escapeLike(String(search))}%`;
+      whereClause = sql`(t.name ILIKE ${pattern} ESCAPE '\\' OR u.email ILIKE ${pattern} ESCAPE '\\')`;
     }
     const result = await db.execute(sql`
       SELECT t.*, u.email as owner_email, u.id as owner_user_id,

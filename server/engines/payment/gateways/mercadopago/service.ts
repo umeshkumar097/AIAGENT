@@ -343,7 +343,8 @@ export async function fetchMercadoPagoPayment(paymentId: string | number): Promi
 export async function verifyMercadoPagoWebhookSignature(
   body: string,
   xSignature: string,
-  xRequestId: string
+  xRequestId: string,
+  dataId: string = ''
 ): Promise<boolean> {
   const webhookSecret = await getSetting(GLOBAL_SETTINGS_KEYS.MERCADOPAGO_WEBHOOK_SECRET);
   if (!webhookSecret) {
@@ -367,7 +368,9 @@ export async function verifyMercadoPagoWebhookSignature(
       if (key.trim() === 'v1') hash = value.trim();
     }
     
-    const manifest = `id:;request-id:${xRequestId};ts:${ts};`;
+    // Per MercadoPago docs the manifest is id:[data.id];request-id:[x-request-id];ts:[ts];
+    // (alphanumeric data.id must be lower-cased). Without the id the signature binds nothing.
+    const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
     const calculatedHash = crypto
       .createHmac('sha256', webhookSecret)
       .update(manifest)

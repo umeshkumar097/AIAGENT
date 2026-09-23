@@ -136,8 +136,8 @@ router.get("/analytics", authenticateToken, requireRole("admin"), async (req: Au
 router.get("/history", authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
-    const offset = parseInt(req.query.offset as string) || 0;
+    const limit = Math.min(parseInt(req.query.limit as string, 10) || 20, 100);
+    const offset = parseInt(req.query.offset as string, 10) || 0;
     
     const transactions = await storage.getUserPaymentTransactions(userId);
     

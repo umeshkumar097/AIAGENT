@@ -399,6 +399,10 @@ var init_schema = __esm({
       // Max conversation duration in seconds (default 10 min, range 60-1800)
       // Legacy/Common Fields
       agentLink: text("agent_link"),
+      engine: text("engine"),
+      openaiModel: text("openai_model"),
+      sarvamVoice: text("sarvam_voice"),
+      voice: text("voice"),
       config: jsonb("config"),
       isActive: boolean("is_active").notNull().default(true),
       createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -5606,8 +5610,53 @@ var user_phone_numbers_routes_default = router2;
 // plugins/sip-engine/routes/admin-sip.routes.ts
 import { Router as Router3 } from "express";
 import { z as z2 } from "zod";
+
+// server/middleware/admin-auth.ts
+init_db();
+init_schema();
+import jwt from "jsonwebtoken";
+import { sql as sql7, eq as eq3 } from "drizzle-orm";
+var JWT_SECRET = process.env.JWT_SECRET || (() => {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("JWT_SECRET environment variable must be set in production");
+  }
+  return "insecure-dev-secret-CHANGE-ME";
+})();
+function requireAdminPermission(section, subsection, action) {
+  return async (req, res, next) => {
+    try {
+      if (req.isAdmin) {
+        return next();
+      }
+      if (req.adminTeamMember) {
+        const { roleId } = req.adminTeamMember;
+        const actionColumn = action === "create" ? "can_create" : action === "read" ? "can_read" : action === "update" ? "can_update" : "can_delete";
+        const permResult = await db.execute(sql7`
+          SELECT ${sql7.raw(actionColumn)} as has_permission
+          FROM admin_team_permissions
+          WHERE role_id = ${roleId}
+            AND section = ${section}
+            AND subsection = ${subsection}
+        `);
+        if (permResult.rows.length > 0 && permResult.rows[0].has_permission === true) {
+          return next();
+        }
+        return res.status(403).json({
+          error: "Permission denied",
+          details: `Required permission: ${section}.${subsection}.${action}`
+        });
+      }
+      return res.status(401).json({ error: "Authentication required" });
+    } catch (error) {
+      console.error("[Permission Check] Error:", error);
+      return res.status(500).json({ error: "Permission check failed" });
+    }
+  };
+}
+
+// plugins/sip-engine/routes/admin-sip.routes.ts
 var router3 = Router3();
-router3.get("/settings", async (req, res) => {
+router3.get("/settings", requireAdminPermission("phones", "phone_numbers", "read"), async (req, res) => {
   try {
     const settings = await SipTrunkService.getAdminSettings();
     res.json({ success: true, data: settings });
@@ -5616,7 +5665,7 @@ router3.get("/settings", async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to fetch SIP settings" });
   }
 });
-router3.put("/settings", async (req, res) => {
+router3.put("/settings", requireAdminPermission("phones", "phone_numbers", "update"), async (req, res) => {
   try {
     const updates = req.body;
     const settings = await SipTrunkService.updateAdminSettings(updates);
@@ -5626,10 +5675,10 @@ router3.put("/settings", async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to update SIP settings" });
   }
 });
-router3.get("/openai-sip/config", async (req, res) => {
+router3.get("/openai-sip/config", requireAdminPermission("phones", "phone_numbers", "read"), async (req, res) => {
   try {
     const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
-    const { sql: sql8 } = await import("drizzle-orm");
+    const { sql: sql9 } = await import("drizzle-orm");
     let projectId = "";
     let webhookSecret = "";
     try {
@@ -5637,7 +5686,7 @@ router3.get("/openai-sip/config", async (req, res) => {
     } catch (e) {
     }
     try {
-      const secretResult = await db2.execute(sql8`
+      const secretResult = await db2.execute(sql9`
         SELECT value FROM global_settings 
         WHERE key = 'openai_sip_webhook_secret' 
         LIMIT 1
@@ -5672,7 +5721,7 @@ router3.get("/openai-sip/config", async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to fetch OpenAI SIP configuration" });
   }
 });
-router3.post("/openai-sip/project-id", async (req, res) => {
+router3.post("/openai-sip/project-id", requireAdminPermission("phones", "phone_numbers", "update"), async (req, res) => {
   try {
     const { projectId } = req.body;
     if (!projectId) {
@@ -5682,8 +5731,8 @@ router3.post("/openai-sip/project-id", async (req, res) => {
       });
     }
     const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
-    const { sql: sql8 } = await import("drizzle-orm");
-    await db2.execute(sql8`
+    const { sql: sql9 } = await import("drizzle-orm");
+    await db2.execute(sql9`
       INSERT INTO global_settings (id, key, value, description)
       VALUES (gen_random_uuid(), 'openai_sip_project_id', to_jsonb(${projectId}::text), 'OpenAI Project ID for SIP integration')
       ON CONFLICT (key) DO UPDATE SET value = to_jsonb(${projectId}::text), updated_at = NOW()
@@ -5700,7 +5749,7 @@ router3.post("/openai-sip/project-id", async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to set OpenAI project ID" });
   }
 });
-router3.post("/openai-sip/webhook-secret", async (req, res) => {
+router3.post("/openai-sip/webhook-secret", requireAdminPermission("phones", "phone_numbers", "update"), async (req, res) => {
   try {
     const { webhookSecret } = req.body;
     if (!webhookSecret) {
@@ -5710,8 +5759,8 @@ router3.post("/openai-sip/webhook-secret", async (req, res) => {
       });
     }
     const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
-    const { sql: sql8 } = await import("drizzle-orm");
-    await db2.execute(sql8`
+    const { sql: sql9 } = await import("drizzle-orm");
+    await db2.execute(sql9`
       INSERT INTO global_settings (id, key, value, description)
       VALUES (gen_random_uuid(), 'openai_sip_webhook_secret', to_jsonb(${webhookSecret}::text), 'OpenAI webhook secret for signature verification')
       ON CONFLICT (key) DO UPDATE SET value = to_jsonb(${webhookSecret}::text), updated_at = NOW()
@@ -5726,7 +5775,7 @@ router3.post("/openai-sip/webhook-secret", async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to set webhook secret" });
   }
 });
-router3.get("/trunks", async (req, res) => {
+router3.get("/trunks", requireAdminPermission("phones", "phone_numbers", "read"), async (req, res) => {
   try {
     const { userId, engine, status } = req.query;
     const filters = {
@@ -5741,7 +5790,7 @@ router3.get("/trunks", async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to fetch SIP trunks" });
   }
 });
-router3.get("/phone-numbers", async (req, res) => {
+router3.get("/phone-numbers", requireAdminPermission("phones", "phone_numbers", "read"), async (req, res) => {
   try {
     const { userId, engine } = req.query;
     const filters = {
@@ -5755,7 +5804,7 @@ router3.get("/phone-numbers", async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to fetch SIP phone numbers" });
   }
 });
-router3.get("/calls", async (req, res) => {
+router3.get("/calls", requireAdminPermission("phones", "phone_numbers", "read"), async (req, res) => {
   try {
     const { userId, engine, status, startDate, endDate, limit, offset } = req.query;
     const filters = {
@@ -5774,7 +5823,7 @@ router3.get("/calls", async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to fetch SIP calls" });
   }
 });
-router3.get("/plans/:planId/sip-settings", async (req, res) => {
+router3.get("/plans/:planId/sip-settings", requireAdminPermission("phones", "phone_numbers", "read"), async (req, res) => {
   try {
     const { planId } = req.params;
     const settings = await SipTrunkService.getPlanSipSettings(planId);
@@ -5784,7 +5833,7 @@ router3.get("/plans/:planId/sip-settings", async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to fetch plan SIP settings" });
   }
 });
-router3.put("/plans/:planId/sip-settings", async (req, res) => {
+router3.put("/plans/:planId/sip-settings", requireAdminPermission("phones", "phone_numbers", "update"), async (req, res) => {
   try {
     const { planId } = req.params;
     const planSipSettingsSchema = z2.object({
@@ -5811,7 +5860,7 @@ router3.put("/plans/:planId/sip-settings", async (req, res) => {
     res.status(500).json({ success: false, error: { code: "INTERNAL_ERROR", message: "Failed to update plan SIP settings" } });
   }
 });
-router3.get("/stats", async (req, res) => {
+router3.get("/stats", requireAdminPermission("phones", "phone_numbers", "read"), async (req, res) => {
   try {
     const stats = await SipTrunkService.getAdminStats();
     res.json({ success: true, data: stats });
@@ -5820,7 +5869,7 @@ router3.get("/stats", async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to fetch SIP stats" });
   }
 });
-router3.get("/providers", async (req, res) => {
+router3.get("/providers", requireAdminPermission("phones", "phone_numbers", "read"), async (req, res) => {
   const { SIP_PROVIDER_INFO: SIP_PROVIDER_INFO2 } = await Promise.resolve().then(() => (init_types(), types_exports));
   res.json({
     success: true,
@@ -5994,7 +6043,7 @@ var openai_sip_webhooks_routes_default = router4;
 // plugins/sip-engine/routes/openai-sip-stream.ts
 init_db();
 import { WebSocketServer, WebSocket } from "ws";
-import { sql as sql7 } from "drizzle-orm";
+import { sql as sql8 } from "drizzle-orm";
 var sharedWss = null;
 var isSetupComplete = false;
 var activeStreams = /* @__PURE__ */ new Map();
@@ -6062,7 +6111,7 @@ function handleOpenAISipStreamConnection(ws, callId) {
     }
     const stream = activeStreams.get(callId);
     if (stream && stream.transcript.length > 0) {
-      db.execute(sql7`
+      db.execute(sql8`
         UPDATE sip_calls SET 
           transcript = ${JSON.stringify(stream.transcript)},
           updated_at = NOW()

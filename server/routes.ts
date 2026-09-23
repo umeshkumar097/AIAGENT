@@ -20,7 +20,7 @@ import { createServer, type Server } from "http";
 import { WebSocketServer } from 'ws';
 import { storage } from "./storage";
 import { db } from "./db";
-import { phoneNumbers, agents, calls, creditTransactions, paymentTransactions, phoneNumberRentals, campaigns, contacts, incomingConnections, llmModels, twilioCountries, users, knowledgeBase, userSubscriptions } from "@shared/schema";
+import { phoneNumbers, agents, calls, creditTransactions, paymentTransactions, phoneNumberRentals, campaigns, contacts, incomingConnections, llmModels, twilioCountries, users, knowledgeBase, userSubscriptions, flows, FlowNode, FlowEdge, insertPromptTemplateSchema } from "@shared/schema";
 import { eq, desc, and, isNull, sql } from "drizzle-orm";
 import { authenticateToken, authenticateAnyToken, requireRole, generateTokenAsync, checkActiveMembership, checkUserActive, type AuthRequest } from "./middleware/auth";
 import { authRateLimiter, strictRateLimiter, paymentRateLimiter } from "./middleware/rateLimiter";
@@ -84,7 +84,6 @@ import { twilioOpenaiWebhookRoutes, setupTwilioOpenAIStreamHandler, twilioOpenai
 import { registerKycRoutes } from "./engines/kyc";
 import { checkAdmin, checkAdminOrTeamMember, requireAdminPermission, AdminRequest } from "./middleware/admin-auth";
 import flowAutomationRouter from "./routes/flow-automation-routes";
-import { flows, FlowNode, FlowEdge, insertPromptTemplateSchema } from "@shared/schema";
 import { ElevenLabsFlowCompiler } from "./services/elevenlabs-flow-compiler";
 import incomingConnectionsRouter from "./routes/incoming-connections-routes";
 import llmModelsRouter from "./routes/llm-models-routes";
@@ -366,6 +365,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const loadedPlugins = await loadPlugins(app, {
       sessionAuthMiddleware: authenticateToken as unknown as import('express').RequestHandler,
       adminAuthMiddleware: checkAdminOrTeamMember as unknown as import('express').RequestHandler,
+      httpServer,
     });
     if (loadedPlugins.filter(p => p.registered).length > 0) {
       console.log(`✅ Auto-loaded ${loadedPlugins.filter(p => p.registered).length} plugin(s) from /plugins directory`);
@@ -1419,8 +1419,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } = req.query;
 
       const result = await elevenLabsService.listSharedVoices({
-        page: page ? parseInt(page as string) : undefined,
-        pageSize: pageSize ? parseInt(pageSize as string) : 100,
+        page: page ? parseInt(page as string, 10) : undefined,
+        pageSize: pageSize ? parseInt(pageSize as string, 10) : 100,
         search: search as string | undefined,
         language: language as string | undefined,
         gender: gender as string | undefined,
@@ -1512,10 +1512,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const token = authHeader.replace("Bearer ", "").trim();
       
-      // Accept any valid looking agent token for now to prevent webhook failures
-      if (!token.startsWith("agl_sk_") && !token.startsWith("agt_sk_")) {
-        console.error("Token mismatch. Received:", token);
+      // Validate the API key against the api_keys store (same scheme as the rest-api plugin:
+      // key = agl_sk_<secret>, key_prefix = first 16 chars, hashed_secret = bcrypt(secret))
+      const API_KEY_PREFIX = "agl_sk_";
+      if (!token.startsWith(API_KEY_PREFIX)) {
         return res.status(401).json({ error: "Invalid or expired token format" });
+      }
+
+      const { agents, phoneNumbers, plivoPhoneNumbers, incomingConnections, apiKeys } = await import("@shared/schema");
+      const { eq, and } = await import("drizzle-orm");
+
+      const [apiKeyRecord] = await db
+        .select()
+        .from(apiKeys)
+        .where(eq(apiKeys.keyPrefix, token.substring(0, 16)))
+        .limit(1);
+
+      const keySecret = token.substring(API_KEY_PREFIX.length);
+      const apiKeyValid = !!apiKeyRecord
+        && apiKeyRecord.isActive
+        && !(apiKeyRecord.expiresAt && new Date(apiKeyRecord.expiresAt) < new Date())
+        && await bcrypt.compare(keySecret, apiKeyRecord.hashedSecret);
+
+      if (!apiKeyValid) {
+        return res.status(401).json({ error: "Invalid or expired token" });
+      }
+      const tokenUserId = apiKeyRecord.userId;
+      const allowedIps = apiKeyRecord.ipWhitelist || [];
+      if (allowedIps.length > 0 && !allowedIps.includes(req.ip || '')) {
+        return res.status(403).json({ error: "API key not allowed from this IP" });
+      }
+      if (!(apiKeyRecord.scopes || []).includes('calls:write')) {
+        return res.status(403).json({ error: "API key lacks the calls:write scope" });
       }
 
       const { agent_id, phone, name } = req.body;
@@ -1526,15 +1554,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Format the phone number (add + if missing)
       const formattedPhone = phone.startsWith('+') ? phone : `+${phone}`;
-
-      const { agents, phoneNumbers, plivoPhoneNumbers, incomingConnections } = await import("@shared/schema");
-      const { eq, and } = await import("drizzle-orm");
       
       const agent = await db.query.agents.findFirst({
         where: eq(agents.id, agent_id)
       });
 
-      if (!agent) {
+      // Scope to the key owner's agents only
+      if (!agent || agent.userId !== tokenUserId) {
         return res.status(404).json({ error: "Agent not found" });
       }
 
@@ -1751,22 +1777,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin Email Settings routes
   app.use("/api/admin/email-settings", emailSettingsRouter);
 
-  // Audio upload routes
-  app.use("/api/audio", audioRoutes);
+  // Team-member section guards for hybrid-auth mounts (owners pass through).
+  // Imported here (not at file top) to keep this change inside the mount block.
+  const { enforceTeamSectionPermission, authenticateHybridWithTeamSection } = await import("./middleware/hybrid-auth");
+  const hybridAuth = routeContext.authenticateHybrid as unknown as import('express').RequestHandler;
+
+  // Audio upload routes (router also runs authenticateHybrid internally; the guard needs auth context first)
+  app.use("/api/audio", hybridAuth, enforceTeamSectionPermission("agents"), audioRoutes);
 
   // Invoice routes (download, generate)
-  app.use("/api/invoices", invoiceRouter);
+  app.use("/api/invoices", hybridAuth, enforceTeamSectionPermission("billing"), invoiceRouter);
 
   // Flow Automation routes
   // Use hybrid auth to allow both users and team members
-  app.use("/api/flow-automation", routeContext.authenticateHybrid as unknown as import('express').RequestHandler, flowAutomationRouter);
+  app.use("/api/flow-automation", hybridAuth, enforceTeamSectionPermission("agents"), flowAutomationRouter);
 
   // Incoming Connections routes (links agents to phone numbers)
   app.use("/api/incoming-connections", incomingConnectionsRouter);
 
   // CRM routes - Lead Management (isolated module)
   // Use hybrid auth to allow both users and team members
-  app.use("/api/crm", routeContext.authenticateHybrid as unknown as import('express').RequestHandler, crmRoutes);
+  app.use("/api/crm", hybridAuth, enforceTeamSectionPermission("crm"), crmRoutes);
 
   // Public Platform Languages route - for i18n dynamic loading (no auth required)
   // Must be registered BEFORE publicWidgetRoutes to ensure specific path matches first
@@ -1811,11 +1842,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   }
 
-  app.use("/api", routeContext.authenticateHybrid as unknown as import('express').RequestHandler, widgetRoutes);
+  // Section guard is path-scoped to /widgets* because this mount is a broad "/api" catch-all
+  app.use("/api", hybridAuth, enforceTeamSectionPermission("website_widget", "/widgets"), widgetRoutes);
 
   // RAG Knowledge Base routes (scalable alternative to ElevenLabs 20MB KB)
   // Set USE_RAG_KNOWLEDGE=true to enable this system
-  const ragKnowledgeRoutes = createRAGKnowledgeRoutes(routeContext.authenticateHybrid);
+  const ragKnowledgeRoutes = createRAGKnowledgeRoutes(authenticateHybridWithTeamSection("knowledge_base"));
   app.use("/api/rag-knowledge", ragKnowledgeRoutes);
 
   // Google Sheets authenticated endpoints (auth, status, disconnect, sheets list)

@@ -26,8 +26,7 @@ import { logger } from '../../../utils/logger';
 import { TWILIO_OPENAI_CONFIG, getRecordingWebhookUrl } from '../config/twilio-openai-config';
 import { getTwilioClient } from '../../../services/twilio-connector';
 import { CallInsightsService } from '../../../services/call-insights.service';
-import type { TwilioMediaStreamEvent } from '../types';
-import type { OpenAIVoice, OpenAIRealtimeModel, AgentTool } from '../types';
+import type { TwilioMediaStreamEvent, OpenAIVoice, OpenAIRealtimeModel, AgentTool } from '../types';
 
 let sharedWss: WebSocketServer | null = null;
 

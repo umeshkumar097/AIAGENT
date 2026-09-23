@@ -12,8 +12,7 @@
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
-import { OPENAI_VOICES, MODEL_TIER_CONFIG } from '../types';
-import type { ModelTier } from '../types';
+import { OPENAI_VOICES, MODEL_TIER_CONFIG, type ModelTier } from '../types';
 import { OpenAIPoolService } from '../services/openai-pool.service';
 import { PlivoPhoneService } from '../services/plivo-phone.service';
 import { db } from '../../../db';
@@ -36,7 +35,7 @@ interface AuthRequest extends Request {
 }
 
 // Middleware to check if user is authenticated
-const requireAuth = (req: AuthRequest, res: Response, next: Function) => {
+const requireAuth = (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!req.userId) {
     return res.status(401).json({ error: 'Authentication required' });
   }

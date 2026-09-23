@@ -18,6 +18,7 @@ import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import { storage } from '../storage';
 import { PaymentError } from '../utils/errors';
+import { allowUnverifiedWebhooks } from '../middleware/webhookValidation';
 
 let razorpayInstance: Razorpay | null = null;
 
@@ -270,7 +271,11 @@ export async function verifyWebhookSignature(
 ): Promise<boolean> {
   const webhookSecret = await getSetting('razorpay_webhook_secret');
   if (!webhookSecret) {
-    console.warn('⚠️ [Razorpay] Webhook secret not configured, skipping signature verification');
+    if (!allowUnverifiedWebhooks()) {
+      console.error('❌ [Razorpay] Webhook secret not configured; rejecting unverified webhook (set ALLOW_UNVERIFIED_WEBHOOKS=true to override)');
+      return false;
+    }
+    console.warn('⚠️ [Razorpay] Webhook secret not configured, skipping signature verification (ALLOW_UNVERIFIED_WEBHOOKS=true)');
     return true;
   }
   

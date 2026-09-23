@@ -2,6 +2,12 @@ import { Router } from "express";
 import { AdminTeamService } from "../services/admin-team.service.js";
 import { ADMIN_PERMISSION_SECTIONS } from "../types.js";
 const router = Router();
+function requirePlatformAdmin(req, res, next) {
+  if (!req.isAdmin) {
+    return res.status(403).json({ error: "Only the platform admin can modify the admin team" });
+  }
+  next();
+}
 router.get("/", async (req, res) => {
   try {
     const team = await AdminTeamService.getOrCreateAdminTeam();
@@ -42,7 +48,7 @@ router.get("/members", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch admin team members" });
   }
 });
-router.post("/members", async (req, res) => {
+router.post("/members", requirePlatformAdmin, async (req, res) => {
   try {
     const { email, password, firstName, lastName, roleId } = req.body;
     if (!email || !password || !roleId) {
@@ -84,7 +90,7 @@ router.post("/members", async (req, res) => {
     res.status(500).json({ error: "Failed to create admin team member" });
   }
 });
-router.patch("/members/:id", async (req, res) => {
+router.patch("/members/:id", requirePlatformAdmin, async (req, res) => {
   try {
     const { firstName, lastName, roleId, status } = req.body;
     const member = await AdminTeamService.updateMember(req.params.id, {
@@ -115,7 +121,7 @@ router.patch("/members/:id", async (req, res) => {
     res.status(500).json({ error: "Failed to update admin team member" });
   }
 });
-router.post("/members/:id/reset-password", async (req, res) => {
+router.post("/members/:id/reset-password", requirePlatformAdmin, async (req, res) => {
   try {
     const { newPassword } = req.body;
     if (!newPassword || newPassword.length < 8) {
@@ -138,7 +144,7 @@ router.post("/members/:id/reset-password", async (req, res) => {
     res.status(500).json({ error: "Failed to reset password" });
   }
 });
-router.delete("/members/:id", async (req, res) => {
+router.delete("/members/:id", requirePlatformAdmin, async (req, res) => {
   try {
     const memberToDelete = await AdminTeamService.getMemberById(req.params.id);
     const team = await AdminTeamService.getOrCreateAdminTeam();
@@ -177,7 +183,7 @@ router.get("/roles", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch admin team roles" });
   }
 });
-router.post("/roles", async (req, res) => {
+router.post("/roles", requirePlatformAdmin, async (req, res) => {
   try {
     const { name, displayName, description, copyFromRoleId } = req.body;
     if (!name || !displayName) {
@@ -221,7 +227,7 @@ router.get("/roles/:id", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch role" });
   }
 });
-router.patch("/roles/:id", async (req, res) => {
+router.patch("/roles/:id", requirePlatformAdmin, async (req, res) => {
   try {
     const { displayName, description } = req.body;
     const role = await AdminTeamService.updateRole(req.params.id, {
@@ -239,7 +245,7 @@ router.patch("/roles/:id", async (req, res) => {
     res.status(500).json({ error: "Failed to update role" });
   }
 });
-router.delete("/roles/:id", async (req, res) => {
+router.delete("/roles/:id", requirePlatformAdmin, async (req, res) => {
   try {
     await AdminTeamService.deleteRole(req.params.id);
     res.json({ success: true });
@@ -322,7 +328,7 @@ router.get("/permissions/:roleId", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch permissions" });
   }
 });
-router.patch("/permissions/:roleId", async (req, res) => {
+router.patch("/permissions/:roleId", requirePlatformAdmin, async (req, res) => {
   try {
     const { permissions } = req.body;
     if (!Array.isArray(permissions)) {

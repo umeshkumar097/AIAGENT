@@ -5,7 +5,7 @@
  * ============================================================
  */
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,7 +24,6 @@ import {
   ArrowLeft, Eye, EyeOff, Check, 
   Bot, Layers, Brain, Zap, Mail, KeyRound
 } from "lucide-react";
-import { Link } from "wouter";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email"),
@@ -402,6 +401,7 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           email: forgotPasswordEmail, 
+          otp: data.otp,
           newPassword: data.newPassword 
         }),
       });

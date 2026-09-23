@@ -5,7 +5,6 @@ import { authenticateToken } from "../middleware/auth";
 
 const router = Router();
 
-// @ts-ignore
 router.post("/chat", authenticateToken, async (req: Request, res: Response) => {
 
   const { messages } = req.body;

@@ -10,7 +10,7 @@ import { authenticateToken, AuthRequest } from '../../../../middleware/auth';
 import { hasActiveMembership, syncUserWithSubscription } from '../../../../services/membership-service';
 import { queueFailedWebhook } from '../../../../services/webhook-retry-service';
 import { NotificationService } from '../../../../services/notification-service';
-import { recordWebhookReceived } from '../../webhook-helper';
+import { recordWebhookReceived, FRONTEND_URL } from '../../webhook-helper';
 import { generateInvoiceForTransaction } from '../../invoice-service';
 import { PaymentAuditService } from '../../audit';
 import { emailService } from '../../../../services/email-service';
@@ -38,7 +38,6 @@ import {
   handleDisputeCreated,
   handleCreditsPayment,
 } from './handlers';
-import { FRONTEND_URL } from '../../webhook-helper';
 import { logger } from '../../../../utils/logger';
 
 const router: Router = express.Router();

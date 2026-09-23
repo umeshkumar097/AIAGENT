@@ -29,13 +29,14 @@ import { ElevenLabsPoolService } from '../services/elevenlabs-pool';
 import twilio from 'twilio';
 import crypto from 'crypto';
 import { storage } from '../storage';
+import { allowUnverifiedWebhooks } from '../middleware/webhookValidation';
 import { webhookDeliveryService } from '../services/webhook-delivery';
 import {
   createCalendarEvent,
   isCalendarSyncEnabled,
 } from '../services/google-calendar/google-calendar.service';
 import { recordWebhookReceived } from '../engines/payment/webhook-helper';
-import { CreditDeductionResult } from '../services/credit-service';
+import { CreditDeductionResult, deductSipCallCredits } from '../services/credit-service';
 import { 
   sendWebSocketWithRetry,
   classifyLeadFromTranscript,
@@ -44,7 +45,6 @@ import {
   fireWebhook,
   deductCallCreditsForElevenLabs
 } from './webhooks/helpers';
-import { deductSipCallCredits } from '../services/credit-service';
 import { checkAndDisconnectIfLowCredits } from '../services/sip-credit-guard';
 // Static imports for appointment webhook - moved from dynamic imports to reduce latency
 import * as chrono from 'chrono-node';
@@ -144,7 +144,7 @@ function setupElevenLabsMessageHandlers(
           console.log(`✅ [ElevenLabs] Conversation initiated for call ${callId}`);
           break;
           
-        case 'audio':
+        case 'audio': {
           let audioPayload: string | null = null;
           
           if (message.audio?.chunk) {
@@ -166,6 +166,7 @@ function setupElevenLabsMessageHandlers(
             }
           }
           break;
+        }
           
         case 'interruption':
           console.log(`🛑 [ElevenLabs] User interruption detected`);
@@ -174,7 +175,7 @@ function setupElevenLabsMessageHandlers(
           }
           break;
           
-        case 'user_transcript':
+        case 'user_transcript': {
           const userText = message.user_transcription_event?.user_transcript || 'N/A';
           const userTranscriptLength = userText.length;
           const transcriptTime = new Date().toISOString();
@@ -376,8 +377,9 @@ function setupElevenLabsMessageHandlers(
             await endCall('30 seconds of user silence detected');
           }, 30000);
           break;
+        }
           
-        case 'agent_response':
+        case 'agent_response': {
           const agentText = message.agent_response_event?.agent_response || 'N/A';
           console.log(`🤖 [AI Responded]: "${agentText}"`);
           
@@ -414,6 +416,7 @@ function setupElevenLabsMessageHandlers(
             // The 30-second silence timeout will handle call termination naturally
           }
           break;
+        }
         
         case 'ping':
           if (message.ping_event?.event_id && elevenLabsWs) {
@@ -425,7 +428,7 @@ function setupElevenLabsMessageHandlers(
           }
           break;
         
-        case 'client_tool_call':
+        case 'client_tool_call': {
           console.log(`🔧 [Client Tool] Tool call received:`, message.client_tool_call);
           const toolCall = message.client_tool_call;
           
@@ -546,6 +549,7 @@ function setupElevenLabsMessageHandlers(
             console.log(`❓ [Client Tool] Unknown tool: ${toolCall?.tool_name}`);
           }
           break;
+        }
           
         default:
           console.log(`❓ [ElevenLabs] Unhandled message type: ${message.type}`);
@@ -1361,7 +1365,7 @@ export async function handleTwilioStreamWebSocket(ws: WebSocket, req: Request) {
       const data = JSON.parse(message.toString());
       
       switch (data.event) {
-        case 'start':
+        case 'start': {
           streamSid = data.start.streamSid;
           twilioCallSid = data.start.callSid;
           const customParams = data.start.customParameters || {};
@@ -1470,6 +1474,7 @@ export async function handleTwilioStreamWebSocket(ws: WebSocket, req: Request) {
             ws.close();
           }
           break;
+        }
           
         case 'media':
           mediaPacketCount++;
@@ -1766,8 +1771,10 @@ async function verifyWithAllSecrets(
   // This is the "signing not set up on either side" scenario — nothing to verify against.
   // Allow through with a warning so calls, credits, and analytics are not silently blocked.
   if (allSecrets.length === 0 && !signatureHeader) {
-    console.warn(`⚠️ [ElevenLabs Webhook] No webhook secrets configured and no signature header — allowing unsigned webhook. Configure a webhook secret in Admin > ElevenLabs to enable signature verification.`);
-    return { verified: true, unverified: true };
+    if (allowUnverifiedWebhooks()) {
+      console.warn(`⚠️ [ElevenLabs Webhook] No webhook secrets configured and no signature header — allowing unsigned webhook (ALLOW_UNVERIFIED_WEBHOOKS=true). Configure a webhook secret in Admin > ElevenLabs to enable signature verification.`);
+    }
+    return { verified: allowUnverifiedWebhooks(), unverified: true, error: 'No webhook secrets configured and no signature header (set ALLOW_UNVERIFIED_WEBHOOKS=true to allow)' };
   }
 
   // Case 2: Secrets ARE configured on the platform but the header is absent.
@@ -1780,8 +1787,10 @@ async function verifyWithAllSecrets(
   // Case 3: Header is present but no secrets configured to verify against.
   // Can't verify but also can't block — allow through with a warning.
   if (allSecrets.length === 0) {
-    console.warn(`⚠️ [ElevenLabs Webhook] Signature header present but no secrets configured for verification — allowing through. Configure a webhook secret in Admin > ElevenLabs to enable full security.`);
-    return { verified: true, unverified: true };
+    if (allowUnverifiedWebhooks()) {
+      console.warn(`⚠️ [ElevenLabs Webhook] Signature header present but no secrets configured for verification — allowing through (ALLOW_UNVERIFIED_WEBHOOKS=true). Configure a webhook secret in Admin > ElevenLabs to enable full security.`);
+    }
+    return { verified: allowUnverifiedWebhooks(), unverified: true, error: 'No webhook secrets configured to verify signature (set ALLOW_UNVERIFIED_WEBHOOKS=true to allow)' };
   }
 
   console.log(`   🔐 Trying ${allSecrets.length} webhook secret(s) for verification...`);
@@ -1836,17 +1845,17 @@ export async function handleElevenLabsWebhook(req: Request, res: Response) {
       // Detect SIP webhooks by checking for SIP-specific metadata in the payload
       const bodyData = req.body?.data || req.body;
       const webhookMetadata = bodyData?.metadata || bodyData?.call?.metadata || {};
-      const isSipWebhook = !signatureHeader && (
+      // Payload-derived SIP detection is attacker-controllable, so only honour it behind the explicit escape hatch
+      const isSipWebhook = allowUnverifiedWebhooks() && !signatureHeader && (
         webhookMetadata?.sip_trunk_id ||
         webhookMetadata?.phone_call?.sip_trunk_id ||
         webhookMetadata?.phone_call?.sip_phone_number_id
       );
       
       if (isSipWebhook) {
-        console.warn(`⚠️ [ElevenLabs Webhook] Missing signature header (likely SIP-originated webhook) - allowing as sip-unverified`);
-      } else if (process.env.NODE_ENV === 'development') {
-        console.warn(`⚠️ [ElevenLabs Webhook] Signature verification failed: ${verification.error}`);
-        console.log(`   ⚠️ Continuing without signature verification (development mode)`);
+        console.warn(`⚠️ [ElevenLabs Webhook] Missing signature header (likely SIP-originated webhook) - allowing as sip-unverified (ALLOW_UNVERIFIED_WEBHOOKS=true)`);
+      } else if (allowUnverifiedWebhooks()) {
+        console.warn(`⚠️ [ElevenLabs Webhook] Signature verification failed: ${verification.error} — continuing because ALLOW_UNVERIFIED_WEBHOOKS=true`);
       } else {
         console.warn(`⚠️ [ElevenLabs Webhook] Signature verification failed: ${verification.error}`);
         return res.status(401).json({ error: 'Invalid webhook signature' });
@@ -5462,7 +5471,6 @@ export async function handleRAGToolWebhook(req: Request, res: Response) {
   console.log(`📚 [RAG Webhook] Received tool call for ElevenLabs agent: ${elevenLabsAgentId}`);
   
   // Debug: Log all headers to see what ElevenLabs sends
-  console.log(`📚 [RAG Webhook] Request headers:`, JSON.stringify(req.headers, null, 2));
   
   try {
     // Validate authentication token - try URL token first, then header

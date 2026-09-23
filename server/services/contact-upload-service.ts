@@ -136,7 +136,7 @@ export class ContactUploadService {
     // ElevenLabs format uses "name" as full name and "phone_number" for phone
     const rawPhone = String(row.phone || row.Phone || row.phone_number || "");
     // Expand scientific notation phone numbers from Excel numeric columns (e.g. "9.20E+11" → "920000000000")
-    const sciNotationPattern = /^[+-]?\d+\.?\d*[eE][+\-]?\d+$/;
+    const sciNotationPattern = /^[+-]?\d+\.?\d*[eE][+-]?\d+$/;
     const phone = sciNotationPattern.test(rawPhone.trim())
       ? Math.round(parseFloat(rawPhone)).toString()
       : rawPhone;

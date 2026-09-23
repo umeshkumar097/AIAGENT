@@ -487,7 +487,7 @@ export class BatchCallingService {
     // Handle scientific notation from Excel exports (e.g. "9.20E+11" → "920000000000")
     // Excel stores large numbers like phone numbers in scientific notation when
     // the column is numeric instead of text.
-    const sciNotationPattern = /^[+-]?\d+\.?\d*[eE][+\-]?\d+$/;
+    const sciNotationPattern = /^[+-]?\d+\.?\d*[eE][+-]?\d+$/;
     if (sciNotationPattern.test(phone.trim())) {
       const expanded = Math.round(parseFloat(phone)).toString();
       console.log(`[BatchCalling] Scientific notation phone expanded: ${phone} → ${expanded}`);

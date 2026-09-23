@@ -16,8 +16,7 @@
  * ============================================================
  */
 import { db } from "../db";
-import { agents, campaigns, incomingConnections, plivoCredentials } from "@shared/schema";
-import type { Call, ElevenLabsCredential } from "@shared/schema";
+import { agents, campaigns, incomingConnections, plivoCredentials, type Call, type ElevenLabsCredential } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { widgetStorage } from "../modules/widget/widget-storage";
 import { ElevenLabsService, elevenLabsService } from "./elevenlabs";

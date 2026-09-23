@@ -297,7 +297,8 @@ export class InvoiceService {
   async generatePDF(invoice: Invoice): Promise<Buffer> {
     const companyInfo = await this.getCompanyInfo();
     
-    const rawPdfBuffer = await new Promise<Buffer>(async (resolve, reject) => {
+    const rawPdfBuffer = await new Promise<Buffer>((resolve, reject) => {
+      (async () => {
       try {
         const chunks: Buffer[] = [];
         const doc = new PDFDocument({ 
@@ -324,6 +325,7 @@ export class InvoiceService {
       } catch (error) {
         reject(error);
       }
+      })().catch(reject);
     });
 
     const pdfDoc = await PDFLib.load(rawPdfBuffer);

@@ -236,6 +236,9 @@ export function createSubscriptionRoutes(ctx: RouteContext): Router {
     try {
       const userId = req.userId!;
       const { country = "IN", phoneNumber } = req.body;
+      if (!phoneNumber || typeof phoneNumber !== "string") {
+        return res.status(400).json({ error: "phoneNumber is required" });
+      }
 
       // 1. Get Stripe secret key
       const stripeKeySetting = await storage.getGlobalSetting("stripe_secret_key");
@@ -382,7 +385,40 @@ export function createSubscriptionRoutes(ctx: RouteContext): Router {
         return res.status(400).json({ error: "phoneNumber required" });
       }
 
+      // Verify the subscription at Stripe: it must exist, be active/trialing, and belong to this user
+      const stripeKeySetting = await storage.getGlobalSetting("stripe_secret_key");
+      const stripeSecretKey = (stripeKeySetting?.value as string) || process.env.STRIPE_SECRET_KEY;
+      if (!stripeSecretKey) return res.status(500).json({ error: "Stripe not configured" });
+
+      const { default: Stripe } = await import("stripe");
+      const stripe = new Stripe(stripeSecretKey, { apiVersion: "2025-10-29.clover" as any });
+
+      let subscription: any;
+      try {
+        subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+      } catch (retrieveError: any) {
+        console.warn(`[Phone Number Confirm] Could not retrieve Stripe subscription ${stripeSubscriptionId}: ${retrieveError?.message}`);
+        return res.status(403).json({ error: "Subscription not found" });
+      }
+      if (!subscription || !["active", "trialing"].includes(subscription.status)) {
+        return res.status(403).json({ error: "Subscription is not active" });
+      }
+      const subMeta = subscription.metadata || {};
+      if (subMeta.userId !== userId) {
+        return res.status(403).json({ error: "Subscription does not belong to this user" });
+      }
+      if (subMeta.phoneNumber && subMeta.phoneNumber !== phoneNumber) {
+        return res.status(403).json({ error: "Subscription was created for a different phone number" });
+      }
+
       const { PlivoPhoneService } = await import("../engines/plivo/services/plivo-phone.service.js");
+
+      // One Stripe subscription buys exactly one number — never buy again for a replayed confirm
+      const owned = await PlivoPhoneService.getUserPhoneNumbers(userId);
+      const alreadyBought = owned.find((n: any) => n.stripeSubscriptionId === stripeSubscriptionId);
+      if (alreadyBought) {
+        return res.json({ success: true, phoneNumber: alreadyBought.phoneNumber, alreadyProcessed: true });
+      }
 
       // Purchase the specific number user selected — Stripe handles billing
       await PlivoPhoneService.purchaseNumberViaStripe({

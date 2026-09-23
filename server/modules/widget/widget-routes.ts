@@ -106,7 +106,7 @@ function parseFormData(body: Record<string, any>): Record<string, any> {
       parsed[key] = value === 'true' || value === true;
     } else if (key === 'maxConcurrentCalls' || key === 'maxCallDuration' || key === 'cooldownMinutes') {
       const defaults: Record<string, number> = { maxConcurrentCalls: 5, maxCallDuration: 300, cooldownMinutes: 0 };
-      parsed[key] = parseInt(value) || defaults[key];
+      parsed[key] = parseInt(value, 10) || defaults[key];
     } else if (key === 'agentId') {
       parsed[key] = value && value !== '' && value !== 'none' ? value : null;
     } else {
@@ -288,7 +288,7 @@ router.get('/widgets/:id/sessions', requireAuth, async (req: Request, res: Respo
       return res.status(404).json({ error: 'Widget not found' });
     }
     
-    const limit = parseInt(req.query.limit as string) || 50;
+    const limit = parseInt(req.query.limit as string, 10) || 50;
     const sessions = await widgetStorage.getSessionsByWidgetId(req.params.id, limit);
     res.json(sessions);
   } catch (error) {

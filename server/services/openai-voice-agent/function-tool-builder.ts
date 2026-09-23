@@ -223,7 +223,7 @@ export class FunctionToolBuilder {
       case 'tool':
         return this.buildCustomTool(node, config);
       
-      case 'transfer':
+      case 'transfer': {
         // Transfer nodes create their own transfer tool
         const transferNumber = config.phoneNumber || config.transferNumber;
         if (transferNumber) {
@@ -249,8 +249,9 @@ export class FunctionToolBuilder {
           };
         }
         return null;
+      }
       
-      case 'play_audio':
+      case 'play_audio': {
         // Play Audio nodes create a tool to trigger audio playback
         const audioUrl = config.audioUrl || '';
         const audioFileName = config.audioFileName || 'audio file';
@@ -280,6 +281,7 @@ export class FunctionToolBuilder {
           };
         }
         return null;
+      }
       
       case 'send_email':
         return this.buildSendEmailTool(node, config);

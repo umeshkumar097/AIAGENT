@@ -7,8 +7,7 @@
  */
 
 import { db } from '../db';
-import { calls, flowExecutions, contacts } from '@shared/schema';
-import type { InsertCall, InsertContact } from '@shared/schema';
+import { calls, flowExecutions, contacts, type InsertCall, type InsertContact } from '@shared/schema';
 import { nanoid } from 'nanoid';
 
 const BATCH_SIZE = 500;

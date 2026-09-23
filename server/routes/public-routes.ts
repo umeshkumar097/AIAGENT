@@ -18,8 +18,9 @@
 
 import { Router, Request, Response } from 'express';
 import { RouteContext, AuthRequest } from './common';
-import { sql, eq } from 'drizzle-orm';
+import { sql, eq, count } from 'drizzle-orm';
 import { users, calls, campaigns, twilioCountries, elevenLabsCredentials } from '@shared/schema';
+import { strictRateLimiter } from '../middleware/rateLimiter';
 import bcrypt from 'bcrypt';
 import fs from 'fs';
 import path from 'path';
@@ -205,8 +206,11 @@ export function createPublicRoutes(ctx: RouteContext): Router {
 
   router.post("/api/installer/install", async (req: Request, res: Response) => {
     try {
-      const installed = await isInstalled();
-      if (installed) {
+      const installState = await isInstalled();
+      if (installState.dbError) {
+        return res.status(503).json({ message: "Database connection failed. Please try again later." });
+      }
+      if (installState.installed) {
         return res.status(403).json({ message: "Application is already installed" });
       }
 
@@ -296,7 +300,6 @@ export function createPublicRoutes(ctx: RouteContext): Router {
         message: "Platform installed successfully!",
         admin: {
           email: admin.email,
-          password: adminPassword,
           id: admin.id
         },
         seeds: seedResult.summary
@@ -827,32 +830,52 @@ ${allUrls.map(u => {
   // PUBLIC STATS/DEMO ROUTES
   // ============================================
 
+  // Aggregates only (no full-table scans) and a short in-memory cache: this is an
+  // unauthenticated endpoint hit by the landing page.
+  const PUBLIC_STATS_CACHE_TTL_MS = 60 * 1000;
+  let publicStatsCache: { data: Record<string, number>; expiresAt: number } | null = null;
+
   router.get("/api/public/stats", async (_req: Request, res: Response) => {
     try {
-      const allUsers = await db.select().from(users);
-      const allCalls = await db.select().from(calls);
-      const allCampaigns = await db.select().from(campaigns);
+      const now = Date.now();
+      if (publicStatsCache && publicStatsCache.expiresAt > now) {
+        res.setHeader('Cache-Control', 'public, max-age=300');
+        return res.json(publicStatsCache.data);
+      }
 
-      const totalUsers = allUsers.length;
-      const totalCalls = allCalls.length;
-      const completedCalls = allCalls.filter(c => c.status === 'completed').length;
-      const completedCampaigns = allCampaigns.filter(c => c.status === 'completed').length;
-      const qualifiedLeads = allCalls.filter(c => c.classification === 'hot' || c.classification === 'warm').length;
+      const [[userStats], [callStats], [campaignStats]] = await Promise.all([
+        db.select({ total: count() }).from(users),
+        db.select({
+          total: count(),
+          completed: count(sql`CASE WHEN ${calls.status} = 'completed' THEN 1 END`),
+          qualified: count(sql`CASE WHEN ${calls.classification} IN ('hot', 'warm') THEN 1 END`),
+        }).from(calls),
+        db.select({ completed: count() }).from(campaigns).where(eq(campaigns.status, 'completed')),
+      ]);
+
+      const totalUsers = Number(userStats?.total ?? 0);
+      const totalCalls = Number(callStats?.total ?? 0);
+      const completedCalls = Number(callStats?.completed ?? 0);
+      const completedCampaigns = Number(campaignStats?.completed ?? 0);
+      const qualifiedLeads = Number(callStats?.qualified ?? 0);
 
       const avgCallDuration = 2.5;
       const timeSavedHours = Math.round((completedCalls * avgCallDuration) / 60);
       const profitMultiplier = 45;
       const estimatedProfit = qualifiedLeads * profitMultiplier;
 
-      res.setHeader('Cache-Control', 'public, max-age=300');
-      res.json({
+      const data = {
         totalUsers,
         totalCalls,
         completedCampaigns,
         qualifiedLeads,
         timeSavedHours,
         estimatedProfit
-      });
+      };
+      publicStatsCache = { data, expiresAt: now + PUBLIC_STATS_CACHE_TTL_MS };
+
+      res.setHeader('Cache-Control', 'public, max-age=300');
+      res.json(data);
     } catch (error) {
       console.error('Error fetching public stats:', error);
       res.json({
@@ -990,8 +1013,26 @@ ${allUrls.map(u => {
   // PUBLIC DEMO VOICE
   // ============================================
 
-  router.post("/api/public/demo-voice", async (req: Request, res: Response) => {
+  const DEMO_VOICE_MAX_TEXT_LENGTH = 200;
+  const DEMO_VOICE_DEFAULT_TEXT = "Hello! I am the Zonvo AI assistant. I can handle inbound and outbound calls autonomously.";
+
+  router.post("/api/public/demo-voice", strictRateLimiter, async (req: Request, res: Response) => {
     try {
+      // Unauthenticated endpoint that spends ElevenLabs characters: validate input strictly.
+      const rawText = req.body?.text;
+      if (rawText !== undefined && rawText !== null && typeof rawText !== 'string') {
+        return res.status(400).json({ error: "text must be a string" });
+      }
+      const text = typeof rawText === 'string' && rawText.trim().length > 0 ? rawText.trim() : DEMO_VOICE_DEFAULT_TEXT;
+      if (text.length > DEMO_VOICE_MAX_TEXT_LENGTH) {
+        return res.status(400).json({ error: `text must be at most ${DEMO_VOICE_MAX_TEXT_LENGTH} characters` });
+      }
+
+      const rawVoiceId = req.body?.voiceId;
+      if (rawVoiceId !== undefined && rawVoiceId !== null && (typeof rawVoiceId !== 'string' || !/^[A-Za-z0-9_-]{1,64}$/.test(rawVoiceId))) {
+        return res.status(400).json({ error: "Invalid voiceId" });
+      }
+
       const keys = await db.select().from(elevenLabsCredentials).where(eq(elevenLabsCredentials.isActive, true)).limit(1);
       if (!keys || keys.length === 0) {
         return res.status(500).json({ error: "No active ElevenLabs keys configured" });
@@ -999,8 +1040,8 @@ ${allUrls.map(u => {
 
       const previewService = new ElevenLabsService(keys[0].apiKey);
       const audioBuffer = await previewService.generateVoicePreview({
-        voiceId: req.body.voiceId || "pNInz6obpgDQGcFmaJgB", // Default: Adam
-        text: req.body.text || "Hello! I am the Zonvo AI assistant. I can handle inbound and outbound calls autonomously.",
+        voiceId: (rawVoiceId as string | undefined) || "pNInz6obpgDQGcFmaJgB", // Default: Adam
+        text,
         modelId: "eleven_multilingual_v2"
       });
 

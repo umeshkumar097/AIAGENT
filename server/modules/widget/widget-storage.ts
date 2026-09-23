@@ -1,7 +1,6 @@
 import { db } from "../../db";
-import { websiteWidgets, widgetCallSessions, users, userSubscriptions, plans } from "@shared/schema";
+import { websiteWidgets, widgetCallSessions, users, userSubscriptions, plans, type WebsiteWidget, type InsertWebsiteWidget, type WidgetCallSession, type InsertWidgetCallSession, type Plan, type UserSubscription } from "@shared/schema";
 import { eq, and, desc, sql, isNull } from "drizzle-orm";
-import type { WebsiteWidget, InsertWebsiteWidget, WidgetCallSession, InsertWidgetCallSession, Plan, UserSubscription } from "@shared/schema";
 
 export class WidgetStorage {
   

@@ -3,7 +3,7 @@
  * This is separate from user team oversight
  */
 
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { AdminTeamService } from '../services/admin-team.service.js';
 import { ADMIN_PERMISSION_SECTIONS } from '../types.js';
 
@@ -14,6 +14,17 @@ interface AuthRequest extends Request {
 }
 
 const router = Router();
+
+/**
+ * Only the platform admin (req.isAdmin, set by checkAdminOrTeamMember) may mutate
+ * admin-team members, roles or permissions. Admin team members keep read access.
+ */
+function requirePlatformAdmin(req: AuthRequest, res: Response, next: NextFunction) {
+  if (!req.isAdmin) {
+    return res.status(403).json({ error: 'Only the platform admin can modify the admin team' });
+  }
+  next();
+}
 
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
@@ -59,7 +70,7 @@ router.get('/members', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.post('/members', async (req: AuthRequest, res: Response) => {
+router.post('/members', requirePlatformAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const { email, password, firstName, lastName, roleId } = req.body;
 
@@ -109,7 +120,7 @@ router.post('/members', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.patch('/members/:id', async (req: AuthRequest, res: Response) => {
+router.patch('/members/:id', requirePlatformAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const { firstName, lastName, roleId, status } = req.body;
 
@@ -145,7 +156,7 @@ router.patch('/members/:id', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.post('/members/:id/reset-password', async (req: AuthRequest, res: Response) => {
+router.post('/members/:id/reset-password', requirePlatformAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const { newPassword } = req.body;
 
@@ -174,7 +185,7 @@ router.post('/members/:id/reset-password', async (req: AuthRequest, res: Respons
   }
 });
 
-router.delete('/members/:id', async (req: AuthRequest, res: Response) => {
+router.delete('/members/:id', requirePlatformAdmin, async (req: AuthRequest, res: Response) => {
   try {
     // Get member info before deletion for logging
     const memberToDelete = await AdminTeamService.getMemberById(req.params.id);
@@ -221,7 +232,7 @@ router.get('/roles', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.post('/roles', async (req: AuthRequest, res: Response) => {
+router.post('/roles', requirePlatformAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const { name, displayName, description, copyFromRoleId } = req.body;
 
@@ -273,7 +284,7 @@ router.get('/roles/:id', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.patch('/roles/:id', async (req: AuthRequest, res: Response) => {
+router.patch('/roles/:id', requirePlatformAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const { displayName, description } = req.body;
 
@@ -294,7 +305,7 @@ router.patch('/roles/:id', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.delete('/roles/:id', async (req: AuthRequest, res: Response) => {
+router.delete('/roles/:id', requirePlatformAdmin, async (req: AuthRequest, res: Response) => {
   try {
     await AdminTeamService.deleteRole(req.params.id);
     res.json({ success: true });
@@ -386,7 +397,7 @@ router.get('/permissions/:roleId', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.patch('/permissions/:roleId', async (req: AuthRequest, res: Response) => {
+router.patch('/permissions/:roleId', requirePlatformAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const { permissions } = req.body;
 

@@ -78,7 +78,7 @@ export default function InstallWizard() {
       if (data.admin) {
         setAdminCredentials({
           email: data.admin.email,
-          password: data.admin.password,
+          password: formData.adminPassword  // server no longer echoes the password back,
         });
       }
       setStep("success");

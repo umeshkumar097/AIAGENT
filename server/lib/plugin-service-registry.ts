@@ -9,9 +9,8 @@
  */
 
 // Placeholder for future plugin service registrations if needed
-interface PluginServiceRegistry {
-  // Add new plugin services here as needed
-}
+// Add new plugin services here as needed
+type PluginServiceRegistry = Record<string, never>;
 
 // Global registry instance
 const registry: PluginServiceRegistry = {};

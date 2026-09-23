@@ -2,9 +2,8 @@
 import OpenAI from 'openai';
 import { storage } from '../storage';
 import { db } from '../db';
-import { openaiCredentials } from '@shared/schema';
+import { openaiCredentials, type ContentViolation } from '@shared/schema';
 import { eq } from 'drizzle-orm';
-import type { ContentViolation } from '@shared/schema';
 
 interface AIDetectedViolation {
   category: 'harassment' | 'hate_speech' | 'threats' | 'profanity' | 'scam' | 'inappropriate';

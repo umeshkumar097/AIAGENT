@@ -1,3 +1,4 @@
+import https from 'https';
 import { WebSocket } from 'ws';
 import { logger } from '../../../utils/logger';
 
@@ -167,7 +168,6 @@ export class ElevenLabsBridgeService {
 
         // Start Plivo recording via REST API
         if (plivoAuthId && plivoAuthToken) {
-          const https = require('https');
           const recBody = JSON.stringify({
             time_limit: 3600,
             record_format: 'mp3',

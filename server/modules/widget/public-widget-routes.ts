@@ -15,6 +15,45 @@ import { RAGKnowledgeService } from "../../services/rag-knowledge";
 
 const router = Router();
 
+/**
+ * Domain the browser says the request came from (Origin, then Referer).
+ * These headers are set by the browser and cannot be forged by page script,
+ * unlike the `visitorDomain` field in the request body.
+ */
+function getRequestDomain(req: Request): string {
+  const raw = (req.headers.origin as string | undefined) || (req.headers.referer as string | undefined) || '';
+  if (!raw) return '';
+  try {
+    return new URL(raw).hostname.toLowerCase();
+  } catch {
+    return raw.replace(/^https?:\/\//, '').split('/')[0].split(':')[0].toLowerCase();
+  }
+}
+
+/**
+ * Server-side call duration for billing. Derived from the stored start time
+ * (set when the ephemeral token / signed URL was issued) and capped at the
+ * widget's max call duration plus a small teardown grace. The client-reported
+ * value is never used for credits; it is only logged when it disagrees.
+ */
+function computeSessionDuration(
+  session: { id: string; startedAt: Date | null },
+  widget: { maxCallDuration: number } | null,
+  clientDuration: unknown,
+): number {
+  const startMs = session.startedAt ? new Date(session.startedAt).getTime() : NaN;
+  let seconds = Number.isFinite(startMs) ? Math.max(0, Math.floor((Date.now() - startMs) / 1000)) : 0;
+  const maxDuration = widget?.maxCallDuration ?? 0;
+  if (maxDuration > 0) {
+    seconds = Math.min(seconds, maxDuration + 30);
+  }
+  const clientSeconds = typeof clientDuration === 'number' && Number.isFinite(clientDuration) ? Math.floor(clientDuration) : null;
+  if (clientSeconds !== null && Math.abs(clientSeconds - seconds) > 5) {
+    console.warn(`[Widget] Session ${session.id}: client-reported duration ${clientSeconds}s differs from server-computed ${seconds}s; using server value`);
+  }
+  return seconds;
+}
+
 // CORS middleware for public widget endpoints - allows embedding on external websites
 router.use((req: Request, res: Response, next: NextFunction) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -496,10 +535,19 @@ router.post('/widget/session/start', async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Widget is not active' });
     }
     
-    if (visitorDomain && !widgetService.validateDomain(widget, visitorDomain)) {
-      return res.status(403).json({ error: 'Domain not allowed' });
+    // Enforce the allowed-domain list from browser-controlled Origin/Referer headers.
+    // When the widget restricts domains, a request without either header is rejected.
+    const requestDomain = getRequestDomain(req);
+    const hasDomainRestriction = Array.isArray(widget.allowedDomains) && widget.allowedDomains.length > 0;
+    if (hasDomainRestriction) {
+      if (!requestDomain || !widgetService.validateDomain(widget, requestDomain)) {
+        return res.status(403).json({ error: 'Domain not allowed' });
+      }
+      if (typeof visitorDomain === 'string' && visitorDomain && !widgetService.validateDomain(widget, visitorDomain)) {
+        return res.status(403).json({ error: 'Domain not allowed' });
+      }
     }
-    
+
     const businessHours = widgetService.checkBusinessHours(widget);
     if (!businessHours.isOpen) {
       return res.status(403).json({ error: 'Outside business hours', message: widget.offlineMessage });
@@ -515,9 +563,9 @@ router.post('/widget/session/start', async (req: Request, res: Response) => {
       return res.status(429).json({ error: 'Too many concurrent calls', message: 'Please try again in a moment' });
     }
     
-    // Get visitor IP for cooldown check
-    const visitorIp = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || '';
-    const cleanedIp = typeof visitorIp === 'string' ? visitorIp.split(',')[0].trim() : '';
+    // Get visitor IP for cooldown check. req.ip honours `trust proxy`; the raw
+    // x-forwarded-for header is attacker-controlled and must not be used directly.
+    const cleanedIp = (req.ip || req.socket.remoteAddress || '').trim();
     
     // Check cooldown period for this IP
     const cooldownCheck = await widgetService.checkCooldown(widget.id, cleanedIp);
@@ -540,7 +588,7 @@ router.post('/widget/session/start', async (req: Request, res: Response) => {
       userId: widget.userId,
       sessionToken,
       visitorIp: cleanedIp,
-      visitorDomain: visitorDomain || null,
+      visitorDomain: requestDomain || (typeof visitorDomain === 'string' && visitorDomain ? visitorDomain : null),
       status: 'pending',
     });
     
@@ -610,7 +658,10 @@ router.post('/widget/session/:sessionId/end', async (req: Request, res: Response
       return res.json({ success: true, alreadyEnded: true });
     }
     
-    const durationSeconds = duration || 0;
+    const widget = await widgetStorage.getWidgetById(session.widgetId);
+
+    // Duration (and therefore credits) is computed server-side; req.body.duration is ignored.
+    const durationSeconds = computeSessionDuration(session, widget, duration);
     const durationMinutes = Math.ceil(durationSeconds / 60);
     const creditsUsed = durationMinutes;
     
@@ -634,7 +685,6 @@ router.post('/widget/session/:sessionId/end', async (req: Request, res: Response
       return res.json({ success: true, alreadyEnded: true });
     }
     
-    const widget = await widgetStorage.getWidgetById(session.widgetId);
     if (widget && creditsUsed > 0) {
       // Use INSERT ... ON CONFLICT DO NOTHING for idempotent credit transaction
       // The partial unique index has WHERE (reference IS NOT NULL), so we use column syntax
@@ -1060,7 +1110,6 @@ router.post('/widget/session/:sessionId/ephemeral-token', async (req: Request, r
     }
     
     const tokenData = await ephemeralResponse.json();
-    console.log('[Widget] OpenAI Realtime client_secrets response:', JSON.stringify(tokenData));
     
     await widgetStorage.updateSession(session.id, {
       status: 'active',

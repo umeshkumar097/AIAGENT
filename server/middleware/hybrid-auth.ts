@@ -231,4 +231,67 @@ export async function optionalHybridAuth(req: HybridAuthRequest, res: Response, 
   next();
 }
 
+/**
+ * Team section permission guard for user-team members.
+ *
+ * Must run AFTER authenticateHybrid. Owners (plain JWT users) and admin-team
+ * members pass through untouched; user-team members must hold the HTTP
+ * method's action (GET->read, POST->create, PATCH/PUT->update, DELETE->delete)
+ * on at least one subsection of `section` in their role's team_permissions.
+ *
+ * @param section     Section id from the Team Management plugin's PERMISSION_SECTIONS
+ * @param pathPrefix  Optional: only enforce when req.path starts with this prefix
+ *                    (used on broad mounts such as the "/api" widget router).
+ */
+export function enforceTeamSectionPermission(section: string, pathPrefix?: string) {
+  return (req: HybridAuthRequest, res: Response, next: NextFunction) => {
+    if (!req.isTeamMember || !req.teamMember || req.teamMember.isAdminTeam) {
+      return next();
+    }
+    if (pathPrefix && !req.path.startsWith(pathPrefix)) {
+      return next();
+    }
+
+    const method = req.method.toUpperCase();
+    const flag: 'canCreate' | 'canRead' | 'canUpdate' | 'canDelete' =
+      method === 'POST' ? 'canCreate'
+      : method === 'PATCH' || method === 'PUT' ? 'canUpdate'
+      : method === 'DELETE' ? 'canDelete'
+      : 'canRead';
+    const action = flag.replace('can', '').toLowerCase();
+
+    const perms = req.teamMember.permissions;
+    let allowed = false;
+    if (Array.isArray(perms)) {
+      allowed = perms.some((p: any) => p && p.section === section && p[flag] === true);
+    } else if (perms && typeof perms === 'object' && perms[section] && typeof perms[section] === 'object') {
+      allowed = Object.values(perms[section] as Record<string, any>).some(
+        (sub: any) => sub && typeof sub === 'object' && sub[flag] === true
+      );
+    }
+
+    if (!allowed) {
+      return res.status(403).json({
+        error: 'Permission denied',
+        details: `Required team permission: ${section}.${action}`,
+      });
+    }
+    next();
+  };
+}
+
+/**
+ * authenticateHybrid followed by enforceTeamSectionPermission, as ONE handler.
+ * For route factories that accept a single auth middleware argument.
+ */
+export function authenticateHybridWithTeamSection(section: string, pathPrefix?: string) {
+  const guard = enforceTeamSectionPermission(section, pathPrefix);
+  return (req: HybridAuthRequest, res: Response, next: NextFunction) => {
+    void authenticateHybrid(req, res, (err?: any) => {
+      if (err) return next(err);
+      guard(req, res, next);
+    });
+  };
+}
+
 export default authenticateHybrid;

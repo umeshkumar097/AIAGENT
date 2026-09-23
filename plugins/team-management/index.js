@@ -4204,170 +4204,6 @@ var user_permissions_routes_default = router4;
 
 // plugins/team-management/routes/team-auth.routes.js
 import { Router as Router5 } from "express";
-import { eq } from "drizzle-orm";
-var router5 = Router5();
-router5.post("/login", async (req, res) => {
-  try {
-    const { email, password, teamId } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ error: "Email and password are required" });
-    }
-    const result = await TeamAuthService.login({
-      email,
-      password,
-      teamId
-    });
-    if (!result.success) {
-      return res.status(401).json({ error: result.error });
-    }
-    let teamDisplayName = result.team.name;
-    const [parentUser] = await db.select({ company: users.company }).from(users).where(eq(users.id, String(result.team.userId)));
-    if (parentUser?.company && (teamDisplayName === "My Team" || !teamDisplayName)) {
-      teamDisplayName = parentUser.company;
-    }
-    res.json({
-      token: result.token,
-      expiresAt: result.expiresAt,
-      member: {
-        id: result.member.id,
-        email: result.member.email,
-        firstName: result.member.firstName,
-        lastName: result.member.lastName,
-        role: result.member.role
-      },
-      team: {
-        id: result.team.id,
-        name: teamDisplayName,
-        type: "user",
-        parentUserId: result.team.userId
-      }
-    });
-  } catch (error) {
-    console.error("[Team Auth] Login error:", error);
-    res.status(500).json({ error: "Authentication failed" });
-  }
-});
-router5.post("/logout", async (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith("Bearer ")) {
-      return res.status(401).json({ error: "No token provided" });
-    }
-    const token = authHeader.substring(7);
-    await TeamAuthService.logout(token);
-    res.json({ success: true });
-  } catch (error) {
-    console.error("[Team Auth] Logout error:", error);
-    res.status(500).json({ error: "Logout failed" });
-  }
-});
-router5.get("/me", async (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith("Bearer ")) {
-      return res.status(401).json({ error: "No token provided" });
-    }
-    const token = authHeader.substring(7);
-    const context = await TeamAuthService.validateSession(token);
-    if (!context) {
-      return res.status(401).json({ error: "Invalid or expired session" });
-    }
-    const member = await TeamService.getMemberWithRole(context.memberId);
-    if (!member) {
-      return res.status(404).json({ error: "Member not found" });
-    }
-    const team = await TeamService.getTeamById(context.teamId);
-    const permMap = {};
-    for (const perm of context.permissions) {
-      if (!permMap[perm.section]) {
-        permMap[perm.section] = {};
-      }
-      permMap[perm.section][perm.subsection] = {
-        canCreate: perm.canCreate,
-        canRead: perm.canRead,
-        canUpdate: perm.canUpdate,
-        canDelete: perm.canDelete
-      };
-    }
-    let teamDisplayName = team?.name || "My Team";
-    if (team) {
-      const [parentUser] = await db.select({ company: users.company }).from(users).where(eq(users.id, String(team.userId)));
-      if (parentUser?.company && (teamDisplayName === "My Team" || !teamDisplayName)) {
-        teamDisplayName = parentUser.company;
-      }
-    }
-    res.json({
-      member: {
-        id: member.id,
-        email: member.email,
-        firstName: member.firstName,
-        lastName: member.lastName,
-        role: member.role,
-        status: member.status
-      },
-      team: team ? {
-        id: team.id,
-        name: teamDisplayName,
-        type: "user",
-        parentUserId: team.userId
-      } : null,
-      permissions: permMap,
-      parentUserId: team?.userId
-    });
-  } catch (error) {
-    console.error("[Team Auth] Get me error:", error);
-    res.status(500).json({ error: "Failed to get member info" });
-  }
-});
-router5.post("/refresh", async (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith("Bearer ")) {
-      return res.status(401).json({ error: "No token provided" });
-    }
-    const token = authHeader.substring(7);
-    const newToken = await TeamAuthService.refreshSession(token);
-    if (!newToken) {
-      return res.status(401).json({ error: "Invalid or expired session" });
-    }
-    res.json({
-      token: newToken,
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1e3)
-    });
-  } catch (error) {
-    console.error("[Team Auth] Refresh error:", error);
-    res.status(500).json({ error: "Failed to refresh session" });
-  }
-});
-router5.get("/sessions", async (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith("Bearer ")) {
-      return res.status(401).json({ error: "No token provided" });
-    }
-    const token = authHeader.substring(7);
-    const context = await TeamAuthService.validateSession(token);
-    if (!context) {
-      return res.status(401).json({ error: "Invalid or expired session" });
-    }
-    const sessions = await TeamAuthService.getActiveSessions(context.memberId);
-    res.json(sessions.map((s) => ({
-      id: s.id,
-      createdAt: s.createdAt,
-      lastActivityAt: s.lastActivityAt,
-      expiresAt: s.expiresAt,
-      userAgent: s.userAgent,
-      isCurrent: s.token === token
-    })));
-  } catch (error) {
-    console.error("[Team Auth] Get sessions error:", error);
-    res.status(500).json({ error: "Failed to get sessions" });
-  }
-});
-var team_auth_routes_default = router5;
-
-// plugins/team-management/routes/admin-team-auth.routes.js
-import { Router as Router6 } from "express";
 
 // plugins/team-management/services/admin-team.service.js
 import { sql as sql5 } from "drizzle-orm";
@@ -4848,13 +4684,303 @@ var AdminTeamService = class {
   }
 };
 
+// plugins/team-management/middleware/team-auth.middleware.js
+function requireTeamPermission(section, subsection, action) {
+  return async (req, res, next) => {
+    try {
+      if (!req.isTeamMember || !req.teamMember) {
+        return next();
+      }
+      const hasPermission = await TeamPermissionService.checkPermission(
+        req.teamMember.roleId,
+        { section, subsection, action }
+      );
+      if (!hasPermission) {
+        return res.status(403).json({
+          error: "Permission denied",
+          required: { section, subsection, action }
+        });
+      }
+      next();
+    } catch (error) {
+      console.error("[TeamAuth] Permission check error:", error);
+      res.status(500).json({ error: "Permission check failed" });
+    }
+  };
+}
+function createTeamPermissionGuard(section, subsection) {
+  return {
+    read: requireTeamPermission(section, subsection, "read"),
+    create: requireTeamPermission(section, subsection, "create"),
+    update: requireTeamPermission(section, subsection, "update"),
+    delete: requireTeamPermission(section, subsection, "delete")
+  };
+}
+var TeamPermissionGuards = {
+  campaigns: {
+    view: createTeamPermissionGuard("campaigns", "view"),
+    create: createTeamPermissionGuard("campaigns", "create"),
+    edit: createTeamPermissionGuard("campaigns", "edit"),
+    delete: createTeamPermissionGuard("campaigns", "delete"),
+    contacts: createTeamPermissionGuard("campaigns", "contacts"),
+    execute: createTeamPermissionGuard("campaigns", "execute")
+  },
+  agents: {
+    view: createTeamPermissionGuard("agents", "view"),
+    create: createTeamPermissionGuard("agents", "create"),
+    edit: createTeamPermissionGuard("agents", "edit"),
+    delete: createTeamPermissionGuard("agents", "delete"),
+    flowBuilder: createTeamPermissionGuard("agents", "flow_builder")
+  },
+  crm: {
+    viewLeads: createTeamPermissionGuard("crm", "view_leads"),
+    edit: createTeamPermissionGuard("crm", "edit"),
+    delete: createTeamPermissionGuard("crm", "delete"),
+    pipelines: createTeamPermissionGuard("crm", "pipelines")
+  },
+  calls: {
+    view: createTeamPermissionGuard("calls", "view"),
+    recordings: createTeamPermissionGuard("calls", "recordings"),
+    transcripts: createTeamPermissionGuard("calls", "transcripts")
+  },
+  knowledgeBase: {
+    view: createTeamPermissionGuard("knowledge_base", "view"),
+    add: createTeamPermissionGuard("knowledge_base", "add"),
+    edit: createTeamPermissionGuard("knowledge_base", "edit"),
+    delete: createTeamPermissionGuard("knowledge_base", "delete")
+  },
+  phoneNumbers: {
+    view: createTeamPermissionGuard("phone_numbers", "view"),
+    purchase: createTeamPermissionGuard("phone_numbers", "purchase"),
+    manage: createTeamPermissionGuard("phone_numbers", "manage")
+  },
+  billing: {
+    view: createTeamPermissionGuard("billing", "view"),
+    manage: createTeamPermissionGuard("billing", "manage"),
+    purchaseCredits: createTeamPermissionGuard("billing", "purchase_credits")
+  },
+  analytics: {
+    view: createTeamPermissionGuard("analytics", "view"),
+    export: createTeamPermissionGuard("analytics", "export")
+  },
+  settings: {
+    view: createTeamPermissionGuard("settings", "view"),
+    edit: createTeamPermissionGuard("settings", "edit"),
+    integrations: createTeamPermissionGuard("settings", "integrations"),
+    apiKeys: createTeamPermissionGuard("settings", "api_keys")
+  },
+  team: {
+    view: createTeamPermissionGuard("team", "view"),
+    invite: createTeamPermissionGuard("team", "invite"),
+    manage: createTeamPermissionGuard("team", "manage"),
+    roles: createTeamPermissionGuard("team", "roles")
+  }
+};
+function createLoginRateLimiter(options = {}) {
+  const windowMs = options.windowMs ?? 15 * 60 * 1e3;
+  const maxAttempts = options.maxAttempts ?? 10;
+  const MAX_KEYS = 1e4;
+  const store = /* @__PURE__ */ new Map();
+  return (req, res, next) => {
+    const ip = req.ip || req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() || req.socket?.remoteAddress || "unknown";
+    const now = Date.now();
+    let entry = store.get(ip);
+    if (!entry || now - entry.windowStart > windowMs) {
+      if (store.size >= MAX_KEYS) {
+        for (const [key, value] of store) {
+          if (now - value.windowStart > windowMs) store.delete(key);
+        }
+        if (store.size >= MAX_KEYS) store.clear();
+      }
+      entry = { count: 0, windowStart: now };
+      store.set(ip, entry);
+    }
+    entry.count++;
+    const retryAfter = Math.max(1, Math.ceil((entry.windowStart + windowMs - now) / 1e3));
+    res.setHeader("X-RateLimit-Limit", String(maxAttempts));
+    res.setHeader("X-RateLimit-Remaining", String(Math.max(0, maxAttempts - entry.count)));
+    res.setHeader("X-RateLimit-Reset", String(retryAfter));
+    if (entry.count > maxAttempts) {
+      res.setHeader("Retry-After", String(retryAfter));
+      return res.status(429).json({ error: "Too many login attempts, please try again later" });
+    }
+    next();
+  };
+}
+
+// plugins/team-management/routes/team-auth.routes.js
+import { eq } from "drizzle-orm";
+var router5 = Router5();
+var loginRateLimiter = createLoginRateLimiter();
+router5.post("/login", loginRateLimiter, async (req, res) => {
+  try {
+    const { email, password, teamId } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
+    }
+    const result = await TeamAuthService.login({
+      email,
+      password,
+      teamId
+    });
+    if (!result.success) {
+      return res.status(401).json({ error: result.error });
+    }
+    let teamDisplayName = result.team.name;
+    const [parentUser] = await db.select({ company: users.company }).from(users).where(eq(users.id, String(result.team.userId)));
+    if (parentUser?.company && (teamDisplayName === "My Team" || !teamDisplayName)) {
+      teamDisplayName = parentUser.company;
+    }
+    res.json({
+      token: result.token,
+      expiresAt: result.expiresAt,
+      member: {
+        id: result.member.id,
+        email: result.member.email,
+        firstName: result.member.firstName,
+        lastName: result.member.lastName,
+        role: result.member.role
+      },
+      team: {
+        id: result.team.id,
+        name: teamDisplayName,
+        type: "user",
+        parentUserId: result.team.userId
+      }
+    });
+  } catch (error) {
+    console.error("[Team Auth] Login error:", error);
+    res.status(500).json({ error: "Authentication failed" });
+  }
+});
+router5.post("/logout", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "No token provided" });
+    }
+    const token = authHeader.substring(7);
+    await TeamAuthService.logout(token);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("[Team Auth] Logout error:", error);
+    res.status(500).json({ error: "Logout failed" });
+  }
+});
+router5.get("/me", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "No token provided" });
+    }
+    const token = authHeader.substring(7);
+    const context = await TeamAuthService.validateSession(token);
+    if (!context) {
+      return res.status(401).json({ error: "Invalid or expired session" });
+    }
+    const member = await TeamService.getMemberWithRole(context.memberId);
+    if (!member) {
+      return res.status(404).json({ error: "Member not found" });
+    }
+    const team = await TeamService.getTeamById(context.teamId);
+    const permMap = {};
+    for (const perm of context.permissions) {
+      if (!permMap[perm.section]) {
+        permMap[perm.section] = {};
+      }
+      permMap[perm.section][perm.subsection] = {
+        canCreate: perm.canCreate,
+        canRead: perm.canRead,
+        canUpdate: perm.canUpdate,
+        canDelete: perm.canDelete
+      };
+    }
+    let teamDisplayName = team?.name || "My Team";
+    if (team) {
+      const [parentUser] = await db.select({ company: users.company }).from(users).where(eq(users.id, String(team.userId)));
+      if (parentUser?.company && (teamDisplayName === "My Team" || !teamDisplayName)) {
+        teamDisplayName = parentUser.company;
+      }
+    }
+    res.json({
+      member: {
+        id: member.id,
+        email: member.email,
+        firstName: member.firstName,
+        lastName: member.lastName,
+        role: member.role,
+        status: member.status
+      },
+      team: team ? {
+        id: team.id,
+        name: teamDisplayName,
+        type: "user",
+        parentUserId: team.userId
+      } : null,
+      permissions: permMap,
+      parentUserId: team?.userId
+    });
+  } catch (error) {
+    console.error("[Team Auth] Get me error:", error);
+    res.status(500).json({ error: "Failed to get member info" });
+  }
+});
+router5.post("/refresh", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "No token provided" });
+    }
+    const token = authHeader.substring(7);
+    const newToken = await TeamAuthService.refreshSession(token);
+    if (!newToken) {
+      return res.status(401).json({ error: "Invalid or expired session" });
+    }
+    res.json({
+      token: newToken,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1e3)
+    });
+  } catch (error) {
+    console.error("[Team Auth] Refresh error:", error);
+    res.status(500).json({ error: "Failed to refresh session" });
+  }
+});
+router5.get("/sessions", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "No token provided" });
+    }
+    const token = authHeader.substring(7);
+    const context = await TeamAuthService.validateSession(token);
+    if (!context) {
+      return res.status(401).json({ error: "Invalid or expired session" });
+    }
+    const sessions = await TeamAuthService.getActiveSessions(context.memberId);
+    res.json(sessions.map((s) => ({
+      id: s.id,
+      createdAt: s.createdAt,
+      lastActivityAt: s.lastActivityAt,
+      expiresAt: s.expiresAt,
+      userAgent: s.userAgent,
+      isCurrent: s.token === token
+    })));
+  } catch (error) {
+    console.error("[Team Auth] Get sessions error:", error);
+    res.status(500).json({ error: "Failed to get sessions" });
+  }
+});
+var team_auth_routes_default = router5;
+
 // plugins/team-management/routes/admin-team-auth.routes.js
+import { Router as Router6 } from "express";
 import { sql as sql6 } from "drizzle-orm";
 import bcrypt4 from "bcrypt";
 import crypto2 from "crypto";
 var router6 = Router6();
+var loginRateLimiter2 = createLoginRateLimiter();
 var SESSION_EXPIRY_HOURS2 = parseInt(process.env.ADMIN_TEAM_SESSION_EXPIRY || "24");
-router6.post("/login", async (req, res) => {
+router6.post("/login", loginRateLimiter2, async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -5060,6 +5186,9 @@ var admin_team_auth_routes_default = router6;
 import { Router as Router7 } from "express";
 import { sql as sql7 } from "drizzle-orm";
 var router7 = Router7();
+function escapeLike(value) {
+  return value.replace(/[\\%_]/g, (m) => "\\" + m);
+}
 function requireAdminOrTeamMember(req, res, next) {
   if (!req.isAdmin && !req.adminTeamMember) {
     return res.status(403).json({ error: "Admin access required" });
@@ -5073,7 +5202,8 @@ router7.get("/", async (req, res) => {
     const offset = (parseInt(page) - 1) * parseInt(limit);
     let whereClause = sql7`1=1`;
     if (search) {
-      whereClause = sql7`(t.name ILIKE ${`%${search}%`} OR u.email ILIKE ${`%${search}%`})`;
+      const pattern = `%${escapeLike(String(search))}%`;
+      whereClause = sql7`(t.name ILIKE ${pattern} ESCAPE '\\' OR u.email ILIKE ${pattern} ESCAPE '\\')`;
     }
     const result = await db.execute(sql7`
       SELECT t.*, u.email as owner_email, u.id as owner_user_id,
@@ -5257,6 +5387,12 @@ var admin_teams_routes_default = router7;
 // plugins/team-management/routes/admin-team.routes.js
 import { Router as Router8 } from "express";
 var router8 = Router8();
+function requirePlatformAdmin(req, res, next) {
+  if (!req.isAdmin) {
+    return res.status(403).json({ error: "Only the platform admin can modify the admin team" });
+  }
+  next();
+}
 router8.get("/", async (req, res) => {
   try {
     const team = await AdminTeamService.getOrCreateAdminTeam();
@@ -5297,7 +5433,7 @@ router8.get("/members", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch admin team members" });
   }
 });
-router8.post("/members", async (req, res) => {
+router8.post("/members", requirePlatformAdmin, async (req, res) => {
   try {
     const { email, password, firstName, lastName, roleId } = req.body;
     if (!email || !password || !roleId) {
@@ -5339,7 +5475,7 @@ router8.post("/members", async (req, res) => {
     res.status(500).json({ error: "Failed to create admin team member" });
   }
 });
-router8.patch("/members/:id", async (req, res) => {
+router8.patch("/members/:id", requirePlatformAdmin, async (req, res) => {
   try {
     const { firstName, lastName, roleId, status } = req.body;
     const member = await AdminTeamService.updateMember(req.params.id, {
@@ -5370,7 +5506,7 @@ router8.patch("/members/:id", async (req, res) => {
     res.status(500).json({ error: "Failed to update admin team member" });
   }
 });
-router8.post("/members/:id/reset-password", async (req, res) => {
+router8.post("/members/:id/reset-password", requirePlatformAdmin, async (req, res) => {
   try {
     const { newPassword } = req.body;
     if (!newPassword || newPassword.length < 8) {
@@ -5393,7 +5529,7 @@ router8.post("/members/:id/reset-password", async (req, res) => {
     res.status(500).json({ error: "Failed to reset password" });
   }
 });
-router8.delete("/members/:id", async (req, res) => {
+router8.delete("/members/:id", requirePlatformAdmin, async (req, res) => {
   try {
     const memberToDelete = await AdminTeamService.getMemberById(req.params.id);
     const team = await AdminTeamService.getOrCreateAdminTeam();
@@ -5432,7 +5568,7 @@ router8.get("/roles", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch admin team roles" });
   }
 });
-router8.post("/roles", async (req, res) => {
+router8.post("/roles", requirePlatformAdmin, async (req, res) => {
   try {
     const { name, displayName, description, copyFromRoleId } = req.body;
     if (!name || !displayName) {
@@ -5476,7 +5612,7 @@ router8.get("/roles/:id", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch role" });
   }
 });
-router8.patch("/roles/:id", async (req, res) => {
+router8.patch("/roles/:id", requirePlatformAdmin, async (req, res) => {
   try {
     const { displayName, description } = req.body;
     const role = await AdminTeamService.updateRole(req.params.id, {
@@ -5494,7 +5630,7 @@ router8.patch("/roles/:id", async (req, res) => {
     res.status(500).json({ error: "Failed to update role" });
   }
 });
-router8.delete("/roles/:id", async (req, res) => {
+router8.delete("/roles/:id", requirePlatformAdmin, async (req, res) => {
   try {
     await AdminTeamService.deleteRole(req.params.id);
     res.json({ success: true });
@@ -5577,7 +5713,7 @@ router8.get("/permissions/:roleId", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch permissions" });
   }
 });
-router8.patch("/permissions/:roleId", async (req, res) => {
+router8.patch("/permissions/:roleId", requirePlatformAdmin, async (req, res) => {
   try {
     const { permissions } = req.body;
     if (!Array.isArray(permissions)) {

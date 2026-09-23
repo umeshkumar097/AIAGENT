@@ -7,10 +7,11 @@ import { Router, Request, Response } from 'express';
 import { SipTrunkService } from '../services/sip-trunk.service';
 import { OpenAISipService } from '../services/openai-sip.service';
 import { z } from 'zod';
+import { requireAdminPermission } from '../../../server/middleware/admin-auth';
 
 const router = Router();
 
-router.get('/settings', async (req: Request, res: Response) => {
+router.get('/settings', requireAdminPermission('phones', 'phone_numbers', 'read'), async (req: Request, res: Response) => {
   try {
     const settings = await SipTrunkService.getAdminSettings();
     res.json({ success: true, data: settings });
@@ -20,7 +21,7 @@ router.get('/settings', async (req: Request, res: Response) => {
   }
 });
 
-router.put('/settings', async (req: Request, res: Response) => {
+router.put('/settings', requireAdminPermission('phones', 'phone_numbers', 'update'), async (req: Request, res: Response) => {
   try {
     const updates = req.body;
     const settings = await SipTrunkService.updateAdminSettings(updates);
@@ -31,7 +32,7 @@ router.put('/settings', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/openai-sip/config', async (req: Request, res: Response) => {
+router.get('/openai-sip/config', requireAdminPermission('phones', 'phone_numbers', 'read'), async (req: Request, res: Response) => {
   try {
     const { db } = await import('../../../server/db');
     const { sql } = await import('drizzle-orm');
@@ -85,7 +86,7 @@ router.get('/openai-sip/config', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/openai-sip/project-id', async (req: Request, res: Response) => {
+router.post('/openai-sip/project-id', requireAdminPermission('phones', 'phone_numbers', 'update'), async (req: Request, res: Response) => {
   try {
     const { projectId } = req.body;
     
@@ -118,7 +119,7 @@ router.post('/openai-sip/project-id', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/openai-sip/webhook-secret', async (req: Request, res: Response) => {
+router.post('/openai-sip/webhook-secret', requireAdminPermission('phones', 'phone_numbers', 'update'), async (req: Request, res: Response) => {
   try {
     const { webhookSecret } = req.body;
     
@@ -150,7 +151,7 @@ router.post('/openai-sip/webhook-secret', async (req: Request, res: Response) =>
   }
 });
 
-router.get('/trunks', async (req: Request, res: Response) => {
+router.get('/trunks', requireAdminPermission('phones', 'phone_numbers', 'read'), async (req: Request, res: Response) => {
   try {
     const { userId, engine, status } = req.query;
     
@@ -168,7 +169,7 @@ router.get('/trunks', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/phone-numbers', async (req: Request, res: Response) => {
+router.get('/phone-numbers', requireAdminPermission('phones', 'phone_numbers', 'read'), async (req: Request, res: Response) => {
   try {
     const { userId, engine } = req.query;
     
@@ -185,7 +186,7 @@ router.get('/phone-numbers', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/calls', async (req: Request, res: Response) => {
+router.get('/calls', requireAdminPermission('phones', 'phone_numbers', 'read'), async (req: Request, res: Response) => {
   try {
     const { userId, engine, status, startDate, endDate, limit, offset } = req.query;
     
@@ -207,7 +208,7 @@ router.get('/calls', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/plans/:planId/sip-settings', async (req: Request, res: Response) => {
+router.get('/plans/:planId/sip-settings', requireAdminPermission('phones', 'phone_numbers', 'read'), async (req: Request, res: Response) => {
   try {
     const { planId } = req.params;
     const settings = await SipTrunkService.getPlanSipSettings(planId);
@@ -218,7 +219,7 @@ router.get('/plans/:planId/sip-settings', async (req: Request, res: Response) =>
   }
 });
 
-router.put('/plans/:planId/sip-settings', async (req: Request, res: Response) => {
+router.put('/plans/:planId/sip-settings', requireAdminPermission('phones', 'phone_numbers', 'update'), async (req: Request, res: Response) => {
   try {
     const { planId } = req.params;
 
@@ -251,7 +252,7 @@ router.put('/plans/:planId/sip-settings', async (req: Request, res: Response) =>
   }
 });
 
-router.get('/stats', async (req: Request, res: Response) => {
+router.get('/stats', requireAdminPermission('phones', 'phone_numbers', 'read'), async (req: Request, res: Response) => {
   try {
     const stats = await SipTrunkService.getAdminStats();
     res.json({ success: true, data: stats });
@@ -261,7 +262,7 @@ router.get('/stats', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/providers', async (req: Request, res: Response) => {
+router.get('/providers', requireAdminPermission('phones', 'phone_numbers', 'read'), async (req: Request, res: Response) => {
   const { SIP_PROVIDER_INFO } = await import('../types');
   res.json({
     success: true,

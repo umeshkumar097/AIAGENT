@@ -23,6 +23,12 @@ import { getStripeClient } from "../services/stripe-service";
 import { storage } from "../storage";
 
 /**
+ * Explicit operator escape hatch: webhooks fail closed unless
+ * ALLOW_UNVERIFIED_WEBHOOKS=true is set in the environment.
+ */
+export const allowUnverifiedWebhooks = () => process.env.ALLOW_UNVERIFIED_WEBHOOKS === 'true';
+
+/**
  * Type for raw body request with buffer.
  */
 export type RawBodyRequest = Request & {
@@ -137,7 +143,10 @@ export async function validateRazorpayWebhook(
     const webhookSecret = webhookSecretSetting?.value;
 
     if (!webhookSecret || typeof webhookSecret !== "string") {
-      console.warn("[Razorpay Webhook] No webhook secret configured, skipping signature verification");
+      if (!allowUnverifiedWebhooks()) {
+        throw new WebhookValidationError("razorpay", "Webhook secret not configured");
+      }
+      console.warn("[Razorpay Webhook] No webhook secret configured, skipping signature verification (ALLOW_UNVERIFIED_WEBHOOKS=true)");
       return next();
     }
 
@@ -185,7 +194,11 @@ export async function validateTwilioWebhook(
     const twilioSignature = req.headers["x-twilio-signature"] as string;
     
     if (!twilioSignature) {
-      console.warn("[Twilio Webhook] No signature header found, skipping validation");
+      if (!allowUnverifiedWebhooks()) {
+        res.status(403).json({ error: 'Missing webhook signature' });
+        return;
+      }
+      console.warn("[Twilio Webhook] No signature header found, skipping validation (ALLOW_UNVERIFIED_WEBHOOKS=true)");
       return next();
     }
 
@@ -193,7 +206,12 @@ export async function validateTwilioWebhook(
     const authTokenValue = authTokenSetting?.value || process.env.TWILIO_AUTH_TOKEN;
 
     if (!authTokenValue || typeof authTokenValue !== "string") {
-      console.warn("[Twilio Webhook] No auth token configured, skipping signature verification");
+      if (!allowUnverifiedWebhooks()) {
+        console.error("[Twilio Webhook] No auth token configured — rejecting webhook (configure twilio_auth_token, or set ALLOW_UNVERIFIED_WEBHOOKS=true to bypass)");
+        res.status(403).json({ error: "Webhook verification not configured" });
+        return;
+      }
+      console.warn("[Twilio Webhook] No auth token configured, skipping signature verification (ALLOW_UNVERIFIED_WEBHOOKS=true)");
       return next();
     }
 
@@ -286,7 +304,11 @@ export async function validateElevenLabsWebhook(
     const signature = req.headers["x-elevenlabs-signature"] as string;
     
     if (!signature) {
-      console.warn("[ElevenLabs Webhook] No signature header found, skipping validation");
+      if (!allowUnverifiedWebhooks()) {
+        res.status(403).json({ error: 'Missing webhook signature' });
+        return;
+      }
+      console.warn("[ElevenLabs Webhook] No signature header found, skipping validation (ALLOW_UNVERIFIED_WEBHOOKS=true)");
       return next();
     }
 
@@ -343,7 +365,11 @@ export function createHmacWebhookValidator(config: {
       const signature = req.headers[config.signatureHeader.toLowerCase()] as string;
       
       if (!signature) {
-        console.warn(`[${config.provider} Webhook] No signature header found, skipping validation`);
+        if (!allowUnverifiedWebhooks()) {
+          res.status(403).json({ error: 'Missing webhook signature' });
+          return;
+        }
+        console.warn(`[${config.provider} Webhook] No signature header found, skipping validation (ALLOW_UNVERIFIED_WEBHOOKS=true)`);
         return next();
       }
 

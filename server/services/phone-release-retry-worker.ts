@@ -6,8 +6,7 @@
  * ============================================================
  */
 import { db } from "../db";
-import { phoneReleaseRetryQueue } from "@shared/schema";
-import type { PhoneReleaseRetryQueueEntry } from "@shared/schema";
+import { phoneReleaseRetryQueue, type PhoneReleaseRetryQueueEntry } from "@shared/schema";
 import { and, eq, lte, sql, inArray } from "drizzle-orm";
 import { twilioService } from "./twilio";
 import { PlivoPhoneService } from "../engines/plivo/services/plivo-phone.service";

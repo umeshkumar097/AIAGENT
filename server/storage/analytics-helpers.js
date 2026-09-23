@@ -151,7 +151,7 @@ function calculateGrowthData(filteredUsers, filteredCalls, filteredCampaigns, st
   const formatDateLabel = (isoDate, isMonthly = false) => {
     if (isMonthly) {
       const [year, month] = isoDate.split("-");
-      const d2 = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const d2 = new Date(parseInt(year, 10), parseInt(month, 10) - 1, 1);
       return d2.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
     }
     const d = /* @__PURE__ */ new Date(isoDate + "T00:00:00");

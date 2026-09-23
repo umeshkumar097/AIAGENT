@@ -210,7 +210,7 @@ export class ElevenLabsFlowCompiler {
       case 'trigger':
         return null;
 
-      case 'message':
+      case 'message': {
         const isEntryNode = node.id === this.entryNodeId;
         const messageText = config.message || 'Hello';
         return {
@@ -229,8 +229,9 @@ Do NOT paraphrase, summarize, add to, or modify this message in ANY way. Say it 
           additional_knowledge_base: [],
           conversation_config: {}
         };
+      }
 
-      case 'question':
+      case 'question': {
         const questionText = config.question || 'How can I help you?';
         return {
           type: 'override_agent',
@@ -247,6 +248,7 @@ After asking, listen carefully to their response and remember it for variable: $
           additional_knowledge_base: [],
           conversation_config: {}
         };
+      }
 
       case 'transfer':
         return {
@@ -279,7 +281,7 @@ After asking, listen carefully to their response and remember it for variable: $
           conversation_config: {}
         };
 
-      case 'appointment':
+      case 'appointment': {
         const apptServiceName = config.serviceName || config.service || 'appointment';
         const apptDuration = config.duration || 30;
         const apptIntroMessage = config.message || config.confirmMessage || 'I can help you schedule an appointment. What date and time works best for you?';
@@ -316,6 +318,7 @@ Then stop speaking and wait for response.`,
           additional_knowledge_base: [],
           conversation_config: {}
         };
+      }
 
       case 'form':
         return {
@@ -330,7 +333,7 @@ Say: "${config.message || 'I need to collect some information from you.'}"`,
           conversation_config: {}
         };
 
-      case 'webhook':
+      case 'webhook': {
         const toolId = config.name || `webhook_${node.id}`;
         return {
           type: 'tool',
@@ -338,6 +341,7 @@ Say: "${config.message || 'I need to collect some information from you.'}"`,
           edge_order: [],
           tools: [{ tool_id: toolId }]
         };
+      }
 
       case 'condition':
         return null;

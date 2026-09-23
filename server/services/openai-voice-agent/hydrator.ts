@@ -11,10 +11,9 @@
  * ============================================================
  */
 
-import type { CompiledFunctionTool, CompiledConversationState } from '@shared/schema';
+import { type CompiledFunctionTool, type CompiledConversationState, appointments, appointmentSettings, agents, formSubmissions, forms, formFields as formFieldsTable } from '@shared/schema';
 import { RAGKnowledgeService } from '../rag-knowledge';
 import { db } from '../../db';
-import { appointments, appointmentSettings, agents, formSubmissions, forms, formFields as formFieldsTable } from '@shared/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { appendRowToSheet, listSheetTabs } from '../google-sheets/google-sheets.service';

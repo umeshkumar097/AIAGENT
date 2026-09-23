@@ -129,6 +129,37 @@ const TeamPermissionGuards = {
     roles: createTeamPermissionGuard("team", "roles")
   }
 };
+function createLoginRateLimiter(options = {}) {
+  const windowMs = options.windowMs ?? 15 * 60 * 1e3;
+  const maxAttempts = options.maxAttempts ?? 10;
+  const MAX_KEYS = 1e4;
+  const store = /* @__PURE__ */ new Map();
+  return (req, res, next) => {
+    const ip = req.ip || req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() || req.socket?.remoteAddress || "unknown";
+    const now = Date.now();
+    let entry = store.get(ip);
+    if (!entry || now - entry.windowStart > windowMs) {
+      if (store.size >= MAX_KEYS) {
+        for (const [key, value] of store) {
+          if (now - value.windowStart > windowMs) store.delete(key);
+        }
+        if (store.size >= MAX_KEYS) store.clear();
+      }
+      entry = { count: 0, windowStart: now };
+      store.set(ip, entry);
+    }
+    entry.count++;
+    const retryAfter = Math.max(1, Math.ceil((entry.windowStart + windowMs - now) / 1e3));
+    res.setHeader("X-RateLimit-Limit", String(maxAttempts));
+    res.setHeader("X-RateLimit-Remaining", String(Math.max(0, maxAttempts - entry.count)));
+    res.setHeader("X-RateLimit-Reset", String(retryAfter));
+    if (entry.count > maxAttempts) {
+      res.setHeader("Retry-After", String(retryAfter));
+      return res.status(429).json({ error: "Too many login attempts, please try again later" });
+    }
+    next();
+  };
+}
 function optionalTeamAuth() {
   return async (req, res, next) => {
     try {
@@ -261,6 +292,7 @@ export {
   TeamPermissionGuards,
   applyTeamContext,
   authenticateTeamMember,
+  createLoginRateLimiter,
   createTeamPermissionGuard,
   getEffectiveUserId,
   getTeamContext,

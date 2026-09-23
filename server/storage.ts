@@ -514,7 +514,7 @@ export class DbStorage implements IStorage {
 
   async getUserContactsDeduplicated(userId: string): Promise<any[]> {
     const normalizePhone = (phone: string): string => {
-      let cleaned = phone.replace(/[\s\-\(\)\.]/g, '');
+      let cleaned = phone.replace(/[\s\-().]/g, '');
       if (cleaned.startsWith('00')) cleaned = '+' + cleaned.slice(2);
       if (!cleaned.startsWith('+') && cleaned.length >= 10) cleaned = '+' + cleaned;
       return cleaned;
@@ -2535,10 +2535,13 @@ export class DbStorage implements IStorage {
       conditions.push(lte(calls.createdAt, options.endDate));
     }
     if (options.search) {
+      // Escape LIKE metacharacters so user input matches literally; ESCAPE is explicit.
+      const escapeLike = (term: string) => term.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+      const searchPattern = `%${escapeLike(options.search)}%`;
       conditions.push(
         or(
-          sql`${calls.phoneNumber} ILIKE ${`%${options.search}%`}`,
-          sql`${calls.transcript} ILIKE ${`%${options.search}%`}`
+          sql`${calls.phoneNumber} ILIKE ${searchPattern} ESCAPE '\\'`,
+          sql`${calls.transcript} ILIKE ${searchPattern} ESCAPE '\\'`
         )
       );
     }

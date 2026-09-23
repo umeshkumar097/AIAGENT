@@ -9,9 +9,8 @@
  */
 
 import { db } from "../../../db";
-import { openaiCredentials, agents, users } from "@shared/schema";
+import { openaiCredentials, agents, users, type InsertOpenaiCredential, type OpenaiCredential } from "@shared/schema";
 import { eq, and, desc, asc, sql } from "drizzle-orm";
-import type { InsertOpenaiCredential, OpenaiCredential } from "@shared/schema";
 import type { ModelTier } from '../types';
 import { NotificationService } from "../../../services/notification-service";
 

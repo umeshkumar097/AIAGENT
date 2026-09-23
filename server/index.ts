@@ -71,6 +71,8 @@ Unauthorized distribution prohibited
 `);
 
 const app = express();
+// Behind nginx: trust the first proxy hop so req.ip / rate limiting use the real client IP (X-Forwarded-For)
+app.set('trust proxy', 1);
 
 // Enable gzip compression for all responses (improves load times by 60-80%)
 app.use(compression({
@@ -116,7 +118,21 @@ app.use('/uploads', (_req, res, next) => {
 app.use('/images', express.static(path.join(process.cwd(), 'client', 'public', 'images'), staticCacheOptions));
 
 // Serve audio files from public/audio folder (for flow automation play_audio nodes)
-app.use('/audio', express.static(path.join(process.cwd(), 'public', 'audio'), staticCacheOptions));
+// Uploads are stored as <uuid>.<ext> where ext is derived from magic-byte sniffing
+// (see server/routes/audio-routes.ts). Only that shape is served. `inline` (not
+// `attachment`) is required because the flow builder plays these via <audio src>;
+// nosniff + the whitelisted audio extension (=> audio/* Content-Type) + a sandboxed
+// CSP prevents the response from ever being interpreted as HTML/script.
+const AUDIO_PUBLIC_FILE_RE = /^\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(mp3|wav|m4a|ogg)$/;
+app.use('/audio', (req, res, next) => {
+  if (!AUDIO_PUBLIC_FILE_RE.test(req.path)) {
+    return res.status(404).end();
+  }
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Content-Disposition', `inline; filename="${path.basename(req.path)}"`);
+  res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
+  next();
+}, express.static(path.join(process.cwd(), 'public', 'audio'), { ...staticCacheOptions, index: false, dotfiles: 'deny' }));
 
 // Serve widget files from public/widget folder (for embeddable voice widgets)
 // CORS enabled for cross-origin embedding on external websites
@@ -192,7 +208,8 @@ app.use((req, res, next) => {
       // Include correlation ID (first 8 chars) in logs for request tracing
       const correlationPrefix = req.correlationId ? `[${req.correlationId.slice(0, 8)}] ` : '';
       let logLine = `${correlationPrefix}${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
+      // Never log auth response bodies (tokens, user records)
+      if (capturedJsonResponse && !path.startsWith('/api/auth')) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
 

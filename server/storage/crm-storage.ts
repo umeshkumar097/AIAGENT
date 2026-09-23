@@ -7,9 +7,18 @@
  */
 
 import { db } from '../db';
-import { leads, leadStages, leadNotes, leadActivities, campaigns, incomingConnections, calls, plivoCalls, twilioOpenaiCalls, users, AI_LEAD_CATEGORIES, type AILeadCategory, crmCategoryPreferences } from '@shared/schema';
-import type { Lead, InsertLead, LeadStage, InsertLeadStage, LeadNote, InsertLeadNote, LeadActivity, InsertLeadActivity, CrmCategoryPreferences } from '@shared/schema';
+import { leads, leadStages, leadNotes, leadActivities, campaigns, incomingConnections, calls, plivoCalls, twilioOpenaiCalls, users, AI_LEAD_CATEGORIES, type AILeadCategory, crmCategoryPreferences, type Lead, type InsertLead, type LeadStage, type InsertLeadStage, type LeadNote, type InsertLeadNote, type LeadActivity, type InsertLeadActivity, type CrmCategoryPreferences } from '@shared/schema';
 import { eq, and, desc, asc, sql, ilike, or, inArray, notInArray, gte, lte, count, isNotNull } from 'drizzle-orm';
+
+/**
+ * Escape LIKE/ILIKE metacharacters in a user-supplied search term so `%`, `_`
+ * and `\` are matched literally. PostgreSQL's default LIKE escape character is
+ * backslash, so no explicit ESCAPE clause is required (drizzle's `ilike` helper
+ * does not accept one).
+ */
+function escapeLike(term: string): string {
+  return term.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+}
 
 // Default stages with colors (created per user on first access)
 export const DEFAULT_STAGES = [
@@ -163,12 +172,13 @@ export class CRMStorage {
       conditions.push(lte(leads.createdAt, filters.endDate));
     }
     if (filters?.search) {
+      const searchPattern = `%${escapeLike(filters.search)}%`;
       conditions.push(or(
-        ilike(leads.firstName, `%${filters.search}%`),
-        ilike(leads.lastName, `%${filters.search}%`),
-        ilike(leads.phone, `%${filters.search}%`),
-        ilike(leads.email, `%${filters.search}%`),
-        ilike(leads.company, `%${filters.search}%`)
+        ilike(leads.firstName, searchPattern),
+        ilike(leads.lastName, searchPattern),
+        ilike(leads.phone, searchPattern),
+        ilike(leads.email, searchPattern),
+        ilike(leads.company, searchPattern)
       )!);
     }
     // Apply hideLeadsWithoutPhone filter
@@ -215,12 +225,13 @@ export class CRMStorage {
       conditions.push(lte(leads.createdAt, filters.endDate));
     }
     if (filters?.search) {
+      const searchPattern = `%${escapeLike(filters.search)}%`;
       conditions.push(or(
-        ilike(leads.firstName, `%${filters.search}%`),
-        ilike(leads.lastName, `%${filters.search}%`),
-        ilike(leads.phone, `%${filters.search}%`),
-        ilike(leads.email, `%${filters.search}%`),
-        ilike(leads.company, `%${filters.search}%`)
+        ilike(leads.firstName, searchPattern),
+        ilike(leads.lastName, searchPattern),
+        ilike(leads.phone, searchPattern),
+        ilike(leads.email, searchPattern),
+        ilike(leads.company, searchPattern)
       )!);
     }
     // Apply hideLeadsWithoutPhone filter
@@ -271,12 +282,13 @@ export class CRMStorage {
       conditions.push(lte(leads.createdAt, filters.endDate));
     }
     if (filters?.search) {
+      const searchPattern = `%${escapeLike(filters.search)}%`;
       conditions.push(or(
-        ilike(leads.firstName, `%${filters.search}%`),
-        ilike(leads.lastName, `%${filters.search}%`),
-        ilike(leads.phone, `%${filters.search}%`),
-        ilike(leads.email, `%${filters.search}%`),
-        ilike(leads.company, `%${filters.search}%`)
+        ilike(leads.firstName, searchPattern),
+        ilike(leads.lastName, searchPattern),
+        ilike(leads.phone, searchPattern),
+        ilike(leads.email, searchPattern),
+        ilike(leads.company, searchPattern)
       )!);
     }
     // Apply hideLeadsWithoutPhone filter
@@ -382,12 +394,13 @@ export class CRMStorage {
     }
 
     if (options.search) {
+      const searchPattern = `%${escapeLike(options.search)}%`;
       conditions.push(or(
-        ilike(leads.firstName, `%${options.search}%`),
-        ilike(leads.lastName, `%${options.search}%`),
-        ilike(leads.phone, `%${options.search}%`),
-        ilike(leads.email, `%${options.search}%`),
-        ilike(leads.company, `%${options.search}%`)
+        ilike(leads.firstName, searchPattern),
+        ilike(leads.lastName, searchPattern),
+        ilike(leads.phone, searchPattern),
+        ilike(leads.email, searchPattern),
+        ilike(leads.company, searchPattern)
       )!);
     }
 

@@ -52,8 +52,7 @@ import { TwilioOpenAICallService } from "../engines/twilio-openai/services/twili
 import { PlivoCallService } from "../engines/plivo/services/plivo-call.service";
 import { OpenAIAgentFactory } from "../engines/plivo/services/openai-agent-factory";
 import type { CompiledFlowConfig } from "../engines/plivo/types";
-import { OpenAIVoiceAgentCompiler } from "../services/openai-voice-agent";
-import type { FlowNode, FlowEdge } from "../services/openai-voice-agent";
+import { OpenAIVoiceAgentCompiler, type FlowNode, type FlowEdge } from "../services/openai-voice-agent";
 import { getPluginStatus } from "../plugins/loader";
 
 const router = Router();

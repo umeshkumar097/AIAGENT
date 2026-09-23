@@ -320,7 +320,7 @@ export async function resyncSipPhoneCredentials(
       return { success: false, error: `SIP host not configured for trunk ${trunk.name}` };
     }
 
-    const normalizedNumber = sipPhone.phoneNumber.replace(/[\s\-\(\)]/g, '');
+    const normalizedNumber = sipPhone.phoneNumber.replace(/[\s\-()]/g, '');
     const phoneWithPlus = normalizedNumber.startsWith('+')
       ? normalizedNumber
       : `+${normalizedNumber}`;

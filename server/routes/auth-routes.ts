@@ -19,6 +19,7 @@
 import { Router, Request, Response } from "express";
 import { RouteContext, AuthRequest } from "./common";
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 import { eq, desc, and, sql, inArray, gte, lt } from "drizzle-orm";
 import { 
   users, plans, userSubscriptions, otpVerifications, refreshTokens,
@@ -75,7 +76,7 @@ export function createAuthRoutes(ctx: RouteContext): Router {
       const otpExpirySetting = await storage.getGlobalSetting('otp_expiry_minutes');
       const otpExpiryMinutes = typeof otpExpirySetting?.value === 'number' ? otpExpirySetting.value : 5;
       
-      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const otpCode = crypto.randomInt(100000, 1000000).toString();
       const expiresAt = new Date(Date.now() + otpExpiryMinutes * 60 * 1000);
 
       await db.insert(otpVerifications).values({
@@ -184,7 +185,7 @@ export function createAuthRoutes(ctx: RouteContext): Router {
         return res.status(429).json({ error: `Too many OTP requests. Please try again in ${expiryMinutes} minutes.` });
       }
 
-      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const otpCode = crypto.randomInt(100000, 1000000).toString();
       const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
 
       await db.insert(otpVerifications).values({
@@ -262,27 +263,32 @@ export function createAuthRoutes(ctx: RouteContext): Router {
   router.post("/api/auth/forgot-password/reset", authRateLimiter, async (req: Request, res: Response) => {
     try {
       const { email, newPassword } = req.body;
+      const otp = req.body.otp ?? req.body.otpCode;
 
-      if (!email || !newPassword) {
-        return res.status(400).json({ error: "Email and new password are required" });
+      if (!email || !newPassword || !otp) {
+        return res.status(400).json({ error: "Email, verification code and new password are required" });
       }
 
       if (newPassword.length < 6) {
         return res.status(400).json({ error: "Password must be at least 6 characters" });
       }
 
+      // The reset must present the same OTP that was verified, within 10 minutes (single use)
+      const resetCutoff = new Date(Date.now() - 10 * 60 * 1000);
       const [verifiedOTP] = await db
         .select()
         .from(otpVerifications)
         .where(and(
           eq(otpVerifications.email, email),
-          eq(otpVerifications.verified, true)
+          eq(otpVerifications.otpCode, String(otp)),
+          eq(otpVerifications.verified, true),
+          gte(otpVerifications.createdAt, resetCutoff)
         ))
         .orderBy(desc(otpVerifications.createdAt))
         .limit(1);
 
-      if (!verifiedOTP || (new Date().getTime() - verifiedOTP.createdAt!.getTime()) > 10 * 60 * 1000) {
-        return res.status(400).json({ error: "Password reset session expired. Please start over." });
+      if (!verifiedOTP) {
+        return res.status(400).json({ error: "Invalid or expired verification" });
       }
 
       const existingUser = await storage.getUserByEmail(email);
@@ -297,6 +303,10 @@ export function createAuthRoutes(ctx: RouteContext): Router {
         .set({ password: hashedPassword })
         .where(eq(users.email, email));
 
+      // Consume the verified OTP row (single use), plus any other rows for this email
+      await db
+        .delete(otpVerifications)
+        .where(eq(otpVerifications.id, verifiedOTP.id));
       await db
         .delete(otpVerifications)
         .where(eq(otpVerifications.email, email));
@@ -340,6 +350,11 @@ export function createAuthRoutes(ctx: RouteContext): Router {
       if (!verifiedOTP) {
         return res.status(400).json({ error: "Email not verified. Please complete OTP verification first." });
       }
+
+      // Consume the verified OTP row so it cannot be reused for another registration
+      await db
+        .delete(otpVerifications)
+        .where(eq(otpVerifications.id, verifiedOTP.id));
 
       const hashedPassword = await bcrypt.hash(password, 10);
       const user = await storage.createUser({

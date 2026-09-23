@@ -16,6 +16,11 @@ interface AuthRequest extends Request {
 
 const router = Router();
 
+/** Escape LIKE/ILIKE wildcards so user-supplied search is matched literally (used with ESCAPE '\\'). */
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, (m) => '\\' + m);
+}
+
 function requireAdminOrTeamMember(req: AuthRequest, res: Response, next: Function) {
   // Allow platform admins or admin team members
   if (!req.isAdmin && !req.adminTeamMember) {
@@ -33,7 +38,8 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
     let whereClause = sql`1=1`;
     if (search) {
-      whereClause = sql`(t.name ILIKE ${`%${search}%`} OR u.email ILIKE ${`%${search}%`})`;
+      const pattern = `%${escapeLike(String(search))}%`;
+      whereClause = sql`(t.name ILIKE ${pattern} ESCAPE '\\' OR u.email ILIKE ${pattern} ESCAPE '\\')`;
     }
 
     const result = await db.execute(sql`

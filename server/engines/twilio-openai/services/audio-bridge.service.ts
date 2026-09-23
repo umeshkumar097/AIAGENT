@@ -1409,13 +1409,13 @@ BACKGROUND NOISE HANDLING:
     const mergedVars: Record<number, string> = {};
     if (fixedVars) {
       for (const [idx, val] of Object.entries(fixedVars)) {
-        mergedVars[parseInt(idx)] = val;
+        mergedVars[parseInt(idx, 10)] = val;
       }
     }
     if (collectedVars && typeof collectedVars === 'object') {
       for (const [key, val] of Object.entries(collectedVars)) {
         if (key.startsWith('var_')) {
-          const idx = parseInt(key.replace('var_', ''));
+          const idx = parseInt(key.replace('var_', ''), 10);
           mergedVars[idx] = String(val || ' ');
         }
       }
