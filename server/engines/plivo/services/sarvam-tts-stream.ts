@@ -165,6 +165,7 @@ export class SarvamTtsStream {
         speech_sample_rate: '8000',
         output_audio_codec: 'mulaw',
         enable_preprocessing: true,
+        temperature: 0.7,
         min_buffer_size: 30,
         max_chunk_length: 150,
       },

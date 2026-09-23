@@ -91,7 +91,7 @@ export class SarvamBridgeService {
   private static readonly fillerCache = new Map<string, Buffer>();
 
   private static readonly FILLERS_BY_LANG: Record<string, string[]> = {
-    'hi-IN': ['ji', 'achha', 'hmm', 'theek hai'],
+    'hi-IN': ['जी', 'अच्छा', 'हम्म', 'ठीक है'],
     'en-IN': ['ok', 'got it', 'hmm', 'sure'],
     'en-US': ['ok', 'got it', 'hmm', 'sure'],
   };
@@ -498,11 +498,13 @@ export class SarvamBridgeService {
     const isEnglish = prefix === 'en';
     const gender = SarvamBridgeService.getGenderFromVoice(voice);
 
+    // The voice engine reads native script naturally and mispronounces romanised text ("Namaste, main aapki…")
+    const scriptRule = '- Write every non-English word in its native script (Devanagari for Hindi, Tamil script for Tamil, and so on). Never romanise. English words, names and brands may stay in English letters.';
     const languageRule = detectLanguage
-      ? `- Reply in the language the caller used in their last message (${langName} by default). If they switch language, switch with them.`
+      ? `- Reply in the language the caller used in their last message (${langName} by default). If they switch language, switch with them.\n${scriptRule}`
       : isEnglish
         ? '- Speak only in natural spoken English. Do not mix in Hindi words.'
-        : `- Speak only in everyday spoken ${langName}, the way people actually talk on the phone. No formal or textbook words.`;
+        : `- Speak only in everyday spoken ${langName}, the way people actually talk on the phone. No formal or textbook words.\n${scriptRule}`;
     const genderRule = isEnglish ? '' : (gender === 'female'
       ? '\n- You are a female assistant: use feminine forms ("main karti hoon").'
       : '\n- You are a male assistant: use masculine forms ("main karta hoon").');
@@ -511,7 +513,7 @@ export class SarvamBridgeService {
 ${languageRule}${genderRule}
 - Keep every reply to one or two short sentences (under 25 words). Ask at most one question per turn.
 - Do not start replies with the same word each time, and never repeat what you just said unless asked.
-- Stay strictly within the role and facts below. Do not invent policies, prices or details.
+- ONLY talk about the job described below. If the caller asks about anything else — general knowledge, news, jokes, maths, coding, other companies or products, personal opinions — do NOT answer it. Say in one short sentence that you can only help with this, then bring the conversation back to the job. Never invent policies, prices or details that are not written below.
 - Confirm important details (names, dates, numbers) briefly before moving on.
 - Never read out template text or variable names.
 - When the conversation is complete or the caller says goodbye, say a short goodbye and call end_call.
@@ -880,7 +882,7 @@ ${systemPrompt}`;
         if (e.name !== 'AbortError') {
           const fallback = language.startsWith('en')
             ? 'Hello! How can I help you today?'
-            : 'Namaste! Main aapki kaise madad kar sakti hoon?';
+            : 'नमस्ते! मैं आपकी कैसे मदद कर सकती हूँ?';
           logger.warn(`[SarvamBridge][${callUuid}] GPT greeting failed: ${e.message}`);
           chatHistory.push({ role: 'assistant', content: fallback });
           transcriptLines.push(`Agent: ${fallback}`);

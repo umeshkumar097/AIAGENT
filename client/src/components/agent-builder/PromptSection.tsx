@@ -93,7 +93,7 @@ export default function PromptSection({ form, onChange }: Props) {
             value={form.firstMessage}
             onChange={(e) => onChange({ firstMessage: e.target.value })}
             placeholder={form.language === 'hi'
-              ? 'Namaste! Main aapki kaise madad kar sakti hoon?'
+              ? 'नमस्ते! मैं आपकी कैसे मदद कर सकती हूँ?'
               : 'Hello! How can I help you today?'}
             data-testid="input-first-message"
           />

@@ -103,7 +103,7 @@ export const PURPOSES: PurposePreset[] = [
       'Be patient, calm and helpful. Keep answers short — this is a phone call.',
     firstMessage: {
       en: 'Hi, thanks for calling {{company_name}}. How can I help you today?',
-      hi: 'Namaste, {{company_name}} me call karne ke liye dhanyavaad. Main aapki kaise madad kar sakti hoon?',
+      hi: 'नमस्ते, {{company_name}} में कॉल करने के लिए धन्यवाद। मैं आपकी कैसे मदद कर सकती हूँ?',
     },
   },
   {
@@ -116,7 +116,7 @@ export const PURPOSES: PurposePreset[] = [
       'Be friendly and confident, never pushy. One question at a time.',
     firstMessage: {
       en: 'Hello, this is {{agent_name}} from {{company_name}}. Do you have a minute to talk?',
-      hi: 'Namaste, main {{company_name}} se {{agent_name}} bol rahi hoon. Kya aapke paas ek minute hai?',
+      hi: 'नमस्ते, मैं {{company_name}} से {{agent_name}} बोल रही हूँ। क्या आपके पास एक मिनट है?',
     },
   },
   {
@@ -129,7 +129,7 @@ export const PURPOSES: PurposePreset[] = [
       'Be efficient and clear. Confirm every detail before ending.',
     firstMessage: {
       en: 'Hi, this is {{company_name}}. I can help you book an appointment. May I have your name?',
-      hi: 'Namaste, {{company_name}} se bol rahi hoon. Main aapka appointment book kar sakti hoon. Aapka naam kya hai?',
+      hi: 'नमस्ते, {{company_name}} से बोल रही हूँ। मैं आपका appointment book कर सकती हूँ। आपका नाम क्या है?',
     },
   },
   {
@@ -142,7 +142,7 @@ export const PURPOSES: PurposePreset[] = [
       'Keep it under one minute.',
     firstMessage: {
       en: 'Hello, this is a reminder call from {{company_name}}. Is this a good time?',
-      hi: 'Namaste, ye {{company_name}} ki taraf se ek reminder call hai. Kya abhi baat karna theek rahega?',
+      hi: 'नमस्ते, ये {{company_name}} की तरफ़ से एक reminder call है। क्या अभी बात करना ठीक रहेगा?',
     },
   },
   { id: 'custom', systemPrompt: '', firstMessage: { en: '', hi: '' } },
