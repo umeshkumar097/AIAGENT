@@ -1,5 +1,0 @@
-class BaseTtsProvider {
-}
-export {
-  BaseTtsProvider
-};

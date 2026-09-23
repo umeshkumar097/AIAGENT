@@ -84,3 +84,5 @@ bcconfig.json
 
 # docs 
 docs/
+# Runtime HMAC secret (generated on first start) — never commit
+.appointment-webhook-secret
