@@ -20,8 +20,12 @@ const MIN_SCORE = 0.25;
 const MAX_PASSAGES = 4;
 /** Keep the injected context short — it is read on every turn of a phone call */
 const MAX_CONTEXT_CHARS = 1400;
-/** Never hold the reply hostage to a slow embedding call */
+/** Never hold the reply hostage to a slow chunk preload */
 const RETRIEVE_TIMEOUT_MS = 900;
+/** The query embedding sits on the serial path before GPT — give up fast and reuse the last context */
+const EMBED_TIMEOUT_MS = 450;
+/** Repeated questions on a call reuse their embedding */
+const EMBED_CACHE_MAX = 64;
 /** "haan", "ok", "theek hai" carry no retrieval signal — reuse the previous context */
 const MIN_QUERY_WORDS = 3;
 
@@ -34,6 +38,7 @@ export class SarvamKnowledge {
   private chunks: LoadedChunk[] = [];
   private loading: Promise<void> | null = null;
   private lastContext: string | null = null;
+  private readonly embedCache = new Map<string, number[]>();
 
   private constructor(
     private readonly callUuid: string,
@@ -76,10 +81,7 @@ export class SarvamKnowledge {
       await Promise.race([this.preload(), delay(RETRIEVE_TIMEOUT_MS)]);
       if (signal?.aborted || this.chunks.length === 0) return this.lastContext;
 
-      const embedding = await Promise.race([
-        generateEmbedding(trimmed),
-        delay(RETRIEVE_TIMEOUT_MS).then(() => null),
-      ]);
+      const embedding = await this.embed(trimmed);
       if (!embedding || signal?.aborted) {
         if (!embedding) logger.warn(`[SarvamKnowledge][${this.callUuid}] Query embedding timed out; reusing previous context`);
         return this.lastContext;
@@ -112,6 +114,25 @@ export class SarvamKnowledge {
       if (err?.name !== 'AbortError') logger.error(`[SarvamKnowledge][${this.callUuid}] Retrieval failed: ${err?.message}`);
       return this.lastContext;
     }
+  }
+
+  /** Query embedding with a short timeout and a small per-call memo (repeat questions are common). */
+  private async embed(text: string): Promise<number[] | null> {
+    const key = text.toLowerCase().replace(/\s+/g, ' ');
+    const cached = this.embedCache.get(key);
+    if (cached) return cached;
+    const embedding = await Promise.race([
+      generateEmbedding(text),
+      delay(EMBED_TIMEOUT_MS).then(() => null),
+    ]);
+    if (embedding) {
+      if (this.embedCache.size >= EMBED_CACHE_MAX) {
+        const oldest = this.embedCache.keys().next().value;
+        if (oldest !== undefined) this.embedCache.delete(oldest);
+      }
+      this.embedCache.set(key, embedding);
+    }
+    return embedding;
   }
 }
 

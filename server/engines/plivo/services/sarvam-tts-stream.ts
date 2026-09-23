@@ -15,6 +15,16 @@ import { logger } from '../../../utils/logger';
 
 const SARVAM_TTS_WS_URL = 'wss://api.sarvam.ai/text-to-speech/ws?model=bulbul:v3&send_completion_event=true';
 const PING_MS = 20_000;
+/** A sentence whose `final` never arrives must not hang the turn (audio would also be mis-attributed) */
+const SENTENCE_TIMEOUT_MS = 8_000;
+
+/** Thrown for a sentence the stream gave up on; `started` = some audio already reached the caller */
+export class TtsStreamError extends Error {
+  constructor(message: string, public readonly started: boolean) {
+    super(message);
+    this.name = 'TtsStreamError';
+  }
+}
 const OPEN_TIMEOUT_MS = 4_000;
 
 export interface TtsStreamCallbacks {
@@ -33,6 +43,7 @@ interface Pending {
   chunks: Buffer[];
   resolve: () => void;
   reject: (e: Error) => void;
+  timer?: NodeJS.Timeout;
 }
 
 function abortError(msg: string): Error {
@@ -129,7 +140,9 @@ export class SarvamTtsStream {
     const ws = await this.open();
     if (signal?.aborted) throw abortError('aborted during open');
     return new Promise<void>((resolve, reject) => {
-      this.queue.push({ text, sentAt: Date.now(), started: false, chunks: [], resolve, reject });
+      const pending: Pending = { text, sentAt: Date.now(), started: false, chunks: [], resolve, reject };
+      pending.timer = setTimeout(() => this.expire(pending), SENTENCE_TIMEOUT_MS);
+      this.queue.push(pending);
       ws.send(JSON.stringify({ type: 'text', data: { text } }));
       ws.send(JSON.stringify({ type: 'flush' }));
     });
@@ -188,7 +201,17 @@ export class SarvamTtsStream {
   private failAll(err: Error): void {
     const q = this.queue;
     this.queue = [];
-    for (const p of q) p.reject(err);
+    for (const p of q) { if (p.timer) clearTimeout(p.timer); p.reject(err); }
+  }
+
+  /** Drop a sentence the service never finalised so later sentences are not credited to it. */
+  private expire(pending: Pending): void {
+    const idx = this.queue.indexOf(pending);
+    if (idx === -1) return;
+    this.queue.splice(idx, 1);
+    logger.warn(`[SarvamTTS][${this.callUuid}] No 'final' for a sentence after ${SENTENCE_TIMEOUT_MS}ms (started=${pending.started}); dropping it`);
+    if (pending.started) this.cb.onSentenceDone(pending.text, Buffer.concat(pending.chunks));
+    pending.reject(new TtsStreamError('TTS sentence timed out', pending.started));
   }
 
   private onMessage(raw: Buffer | string): void {
@@ -218,6 +241,7 @@ export class SarvamTtsStream {
     if (msg.type === 'event' && msg.data?.event_type === 'final') {
       if (!head) return;
       this.queue.shift();
+      if (head.timer) clearTimeout(head.timer);
       this.cb.onSentenceDone(head.text, Buffer.concat(head.chunks));
       head.resolve();
       return;
@@ -228,7 +252,8 @@ export class SarvamTtsStream {
       logger.error(`[SarvamTTS][${this.callUuid}] ${message}`);
       if (head) {
         this.queue.shift();
-        head.reject(new Error(message));
+        if (head.timer) clearTimeout(head.timer);
+        head.reject(new TtsStreamError(message, head.started));
       }
     }
   }

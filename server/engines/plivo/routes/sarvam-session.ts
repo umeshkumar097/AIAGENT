@@ -84,24 +84,33 @@ export async function startSarvamSession(opts: {
   const agentId = call.agentId!;
   logger.info(`[${SOURCE}] Starting Sarvam session for ${callUuid}${isTestCall ? ' (browser test)' : ''}`, undefined, SOURCE);
 
-  // Messaging tools (send_whatsapp / send_email) — templates resolved once per call
-  let callTools: CallTool[] = [];
-  if (agent.messagingEmailEnabled || agent.messagingWhatsappEnabled) {
-    callTools = await buildCallMessagingTools({
-      userId: agent.userId, agentId, callId: call.id, callUuid,
-      fromNumber: call.fromNumber, toNumber: call.toNumber, callDirection: call.callDirection, agent,
-    });
-  }
-
-  // Action tools (transfer / appointments / save_lead / callbacks / api_* / dnd / outcome) from the agent row
+  // Everything below the greeting can start needs at most one DB round trip: messaging templates,
+  // the Plivo credential and the OpenAI key are independent, so they are fetched together.
   const callMeta = call.metadata as Record<string, unknown> | null;
   const callDirection: 'inbound' | 'outbound' = call.callDirection === 'inbound' ? 'inbound' : 'outbound';
-  let plivoCredentialId = (callMeta?.plivoCredentialId as string | undefined) || null;
-  if (!plivoCredentialId && call.plivoPhoneNumberId) {
-    const [num] = await db.select({ plivoCredentialId: plivoPhoneNumbers.plivoCredentialId })
-      .from(plivoPhoneNumbers).where(eq(plivoPhoneNumbers.id, call.plivoPhoneNumberId)).limit(1);
-    plivoCredentialId = num?.plivoCredentialId || null;
-  }
+  const knownCredentialId = (callMeta?.plivoCredentialId as string | undefined) || null;
+
+  const [messagingTools, lookedUpCredentialId, openaiKeyFromCall] = await Promise.all([
+    // Messaging tools (send_whatsapp / send_email) — templates resolved once per call
+    (agent.messagingEmailEnabled || agent.messagingWhatsappEnabled)
+      ? buildCallMessagingTools({
+          userId: agent.userId, agentId, callId: call.id, callUuid,
+          fromNumber: call.fromNumber, toNumber: call.toNumber, callDirection: call.callDirection, agent,
+        }).catch((e: any) => { logger.warn(`[${SOURCE}] Messaging tools unavailable for ${callUuid}: ${e?.message}`, undefined, SOURCE); return [] as CallTool[]; })
+      : Promise.resolve([] as CallTool[]),
+    (!knownCredentialId && call.plivoPhoneNumberId)
+      ? db.select({ plivoCredentialId: plivoPhoneNumbers.plivoCredentialId })
+          .from(plivoPhoneNumbers).where(eq(plivoPhoneNumbers.id, call.plivoPhoneNumberId)).limit(1)
+          .then(rows => rows[0]?.plivoCredentialId || null)
+      : Promise.resolve<string | null>(null),
+    call.openaiCredentialId
+      ? OpenAIPoolService.getCredentialById(call.openaiCredentialId).then(c => c?.apiKey || null)
+      : Promise.resolve<string | null>(null),
+  ]);
+  let callTools: CallTool[] = messagingTools;
+  const plivoCredentialId = knownCredentialId || lookedUpCredentialId;
+
+  // Action tools (transfer / appointments / save_lead / callbacks / api_* / dnd / outcome) from the agent row
   const actions = readActionsConfig(agent.config);
   const callerPhone = isTestCall ? '' : normalizePhone(callDirection === 'inbound' ? call.fromNumber : call.toNumber);
   callTools.push(...await buildCallActionTools({
@@ -117,11 +126,7 @@ export async function startSarvamSession(opts: {
   if (isTestCall) callTools = disableTransferForTest(callTools);
 
   // OpenAI key for the chat model: the call's credential, else the least-loaded pool key, else env
-  let openaiKey: string | null = null;
-  if (call.openaiCredentialId) {
-    const cred = await OpenAIPoolService.getCredentialById(call.openaiCredentialId);
-    openaiKey = cred?.apiKey || null;
-  }
+  let openaiKey: string | null = openaiKeyFromCall;
   if (!openaiKey) {
     const anyCred = await OpenAIPoolService.getLeastLoadedCredential();
     openaiKey = anyCred?.apiKey || null;

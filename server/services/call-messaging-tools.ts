@@ -44,6 +44,7 @@ export type WhatsappTemplateVariables = Record<string, WhatsappVarMap>;
 
 /** The messaging columns of an `agents` row (legacy single columns + the new allowed lists). */
 export interface CallMessagingAgent {
+  name?: string | null;
   messagingEmailEnabled?: boolean | null; messagingWhatsappEnabled?: boolean | null;
   messagingEmailTemplate?: string | null; messagingWhatsappTemplate?: string | null;
   messagingWhatsappVariables?: string | null;
@@ -225,8 +226,11 @@ async function buildEmailTool(opts: BuildCallMessagingToolsOptions): Promise<Cal
     return null;
   }
   const names = templates.map(t => t.name);
-  const knownEmail = await lookupCallerEmail(opts.callUuid);
-  const agentName = await lookupAgentName(opts.agentId);
+  // Both reads run together; the agent row usually already carries the name
+  const [knownEmail, agentName] = await Promise.all([
+    lookupCallerEmail(opts.callUuid),
+    opts.agent.name ? Promise.resolve(opts.agent.name) : lookupAgentName(opts.agentId),
+  ]);
   const list = templates.map(t => `"${t.name}" (variables: ${(t.variables || []).join(', ') || 'none'})`).join('; ');
   const addressRule = knownEmail
     ? `The caller's email address is already known (${knownEmail}); recipient_email may be omitted.`

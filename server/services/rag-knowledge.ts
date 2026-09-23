@@ -61,7 +61,17 @@ const DEFAULT_STORAGE_LIMIT_BYTES = 20 * 1024 * 1024;
 let openaiClient: OpenAI | null = null;
 let lastApiKey: string | null = null;
 
+const API_KEY_CACHE_MS = 60_000;
+let cachedApiKey: { key: string; at: number } | null = null;
+
 async function getOpenAIApiKey(): Promise<string> {
+  if (cachedApiKey && Date.now() - cachedApiKey.at < API_KEY_CACHE_MS) return cachedApiKey.key;
+  const key = await resolveOpenAIApiKey();
+  cachedApiKey = { key, at: Date.now() };
+  return key;
+}
+
+async function resolveOpenAIApiKey(): Promise<string> {
   // First check database for configured key
   try {
     const [dbSetting] = await db

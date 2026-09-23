@@ -56,6 +56,19 @@ export async function buildCallActionTools(ctx: CallActionContext): Promise<Call
   return tools;
 }
 
+/** True when any enabled action needs the wall clock (bookings / callbacks). */
+export function needsClock(tools: CallTool[]): boolean {
+  const names = new Set(tools.map(t => t.definition.function.name));
+  return names.has('book_appointment') || names.has('check_availability') || names.has('schedule_callback');
+}
+
+/** Clock line appended to the latest user message (keeps the system prompt cache-stable). */
+export function nowLine(timeZone: string = DEFAULT_TIME_ZONE): string {
+  const tz = isValidTimeZone(timeZone) ? timeZone : DEFAULT_TIME_ZONE;
+  const now = nowInZone(tz);
+  return `(Now: ${DAY_NAMES[now.weekday]} ${now.date}, ${now.time} ${tz})`;
+}
+
 /** 1–2 short lines per enabled action, for the Sarvam prompt wrapper. '' when none apply. */
 export function actionPromptRules(tools: CallTool[], timeZone: string = DEFAULT_TIME_ZONE): string {
   const names = new Set(tools.map(t => t.definition.function.name));
@@ -64,9 +77,9 @@ export function actionPromptRules(tools: CallTool[], timeZone: string = DEFAULT_
   const hasCallback = names.has('schedule_callback');
 
   if (hasBooking || hasCallback) {
-    const tz = isValidTimeZone(timeZone) ? timeZone : DEFAULT_TIME_ZONE;
-    const now = nowInZone(tz);
-    lines.push(`- Today is ${DAY_NAMES[now.weekday]} ${now.date}, ${now.time} (${tz}). Work out "tomorrow" or "next Monday" as a YYYY-MM-DD date yourself.`);
+    // The actual clock is appended to the latest user message (see `nowLine`) so the system
+    // prompt stays byte-identical across turns and OpenAI prompt caching keeps working.
+    lines.push(`- The current date and time (${isValidTimeZone(timeZone) ? timeZone : DEFAULT_TIME_ZONE}) is given at the end of the caller's latest message. Work out "tomorrow" or "next Monday" as a YYYY-MM-DD date yourself.`);
   }
   if (hasBooking) lines.push('- Before booking, call check_availability and offer 2–3 slots. Confirm name, date and time in one sentence, then call book_appointment.');
   if (names.has('transfer_call')) lines.push('- When the caller asks for a person or the issue is beyond you, say you are connecting them and call transfer_call.');

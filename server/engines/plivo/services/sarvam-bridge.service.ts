@@ -7,7 +7,7 @@ import https from 'https';
 import axios from 'axios';
 import { PlivoCallService } from './plivo-call.service';
 import { SARVAM_VOICES } from '../../../routes/sarvam-routes';
-import { SarvamTtsStream } from './sarvam-tts-stream';
+import { SarvamTtsStream, TtsStreamError } from './sarvam-tts-stream';
 import { SarvamKnowledge } from './sarvam-knowledge';
 import type { CallTool } from '../../../services/call-messaging-tools';
 import {
@@ -17,7 +17,7 @@ import {
 } from './sarvam-tools';
 import { TEST_CALL_MAX_MS, autoDoNotCall, testTranscriptLines } from './sarvam-call-extras';
 import { executePlivoHangup, executePlivoTransfer, markCallTransferred } from './plivo-transfer';
-import { actionPromptRules } from '../../../services/call-actions';
+import { actionPromptRules, needsClock, nowLine } from '../../../services/call-actions';
 
 // Persistent HTTPS agent for reusing connection keep-alive (reduces 120ms handshake overhead per TTS request)
 const keepAliveAgent = new https.Agent({
@@ -42,6 +42,8 @@ const SARVAM_TTS_REST_URL = 'https://api.sarvam.ai/text-to-speech';
 const TTS_CACHE_MAX = 300;
 // Play a short filler only if the first sentence audio is not ready by then
 const FILLER_DELAY_MS = 700;
+/** Frames (20 ms each) of a playing filler kept when reply audio arrives */
+const FILLER_KEEP_FRAMES = 5;
 // Keep the last N chat messages in the LLM context
 const HISTORY_MAX_MESSAGES = 20;
 
@@ -245,8 +247,21 @@ export class SarvamBridgeService {
     const fillerBuf = SarvamBridgeService.fillerCache.get(cacheKey)!;
 
     logger.info(`[SarvamBridge][${callUuid}] Playing filler: "${randomText}" (${fillerBuf.length} mulaw bytes)`);
-    
+
+    (plivoWs as any).sarvamFillerPlayed = true;   // one filler per turn (the tool loop checks this too)
+    (plivoWs as any).sarvamFillerActive = true;   // its frames are the only thing in the queue right now
     SarvamBridgeService.sendMulawPaced(callUuid, plivoWs, fillerBuf);
+  }
+
+  /**
+   * Reply audio arrived while a filler is still playing: keep ~100 ms so it does not click off,
+   * drop the rest. Otherwise a 700 ms "ठीक है" would delay every fast reply by its full length.
+   */
+  private static trimFillerTail(plivoWs: WebSocket): void {
+    if (!(plivoWs as any).sarvamFillerActive) return;
+    (plivoWs as any).sarvamFillerActive = false;
+    const queue = (plivoWs as any).sarvamAudioQueue as Buffer[] | undefined;
+    if (queue && queue.length > FILLER_KEEP_FRAMES) queue.length = FILLER_KEEP_FRAMES;
   }
 
   /** Play a filler only if the reply's first audio is still not ready after FILLER_DELAY_MS. */
@@ -255,7 +270,7 @@ export class SarvamBridgeService {
     (plivoWs as any).sarvamFillerTimer = setTimeout(() => {
       (plivoWs as any).sarvamFillerTimer = null;
       const st: ConvState = (plivoWs as any).sarvamState;
-      if (st === 'THINKING' && !(plivoWs as any).sarvamIsPacing) {
+      if (st === 'THINKING' && !(plivoWs as any).sarvamIsPacing && !(plivoWs as any).sarvamFirstTokenSeen) {
         SarvamBridgeService.playFillerIfAvailable(callUuid, plivoWs, language, voice);
       }
     }, FILLER_DELAY_MS);
@@ -343,7 +358,7 @@ export class SarvamBridgeService {
     (plivoWs as any).sarvamStreamRemainder = Buffer.from(rest);
     if (!out.length) return;
 
-    (plivoWs as any).sarvamReplyAudioQueued = true;
+    SarvamBridgeService.noteFirstReplyAudio(plivoWs);
     SarvamBridgeService.cancelFiller(plivoWs);
     const st: ConvState = (plivoWs as any).sarvamState;
     if (st === 'THINKING') {
@@ -351,6 +366,16 @@ export class SarvamBridgeService {
       (plivoWs as any).sarvamIsSpeaking = true;
     }
     SarvamBridgeService.sendMulawPaced(callUuid, plivoWs, out);
+  }
+
+  /** First reply audio of the turn: mark the latency that matters and cut a playing filler short. */
+  private static noteFirstReplyAudio(plivoWs: WebSocket): void {
+    if (!(plivoWs as any).sarvamReplyAudioQueued) {
+      (plivoWs as any).sarvamReplyAudioQueued = true;
+      const perf = (plivoWs as any).sarvamTurnPerf as PerfTimer | undefined;
+      if (perf) { perf.mark('FIRST_AUDIO'); perf.log('STT_FINAL', 'FIRST_AUDIO'); }
+    }
+    SarvamBridgeService.trimFillerTail(plivoWs);
   }
 
   /** Queue every completed sentence whose turn has come (REST/cached path keeps strict order). */
@@ -363,7 +388,7 @@ export class SarvamBridgeService {
       completedAudio.delete(nextIdx);
       SarvamBridgeService.cancelFiller(plivoWs);
       SarvamBridgeService.noteSpoken(plivoWs, nextIdx);
-      (plivoWs as any).sarvamReplyAudioQueued = true;
+      SarvamBridgeService.noteFirstReplyAudio(plivoWs);
 
       logger.info(`[SarvamBridge][${callUuid}] Queueing s${nextIdx} for paced playback`);
       const st: ConvState = (plivoWs as any).sarvamState;
@@ -411,6 +436,7 @@ export class SarvamBridgeService {
     }
     if (!(plivoWs as any).sarvamIsPacing) {
       (plivoWs as any).sarvamIsPacing = true;
+      (plivoWs as any).sarvamPaceDeadline = Date.now();
       SarvamBridgeService.paceNext(callUuid, plivoWs);
     }
   }
@@ -435,7 +461,11 @@ export class SarvamBridgeService {
         media: { contentType: 'audio/x-mulaw', sampleRate: 8000, payload: chunk.toString('base64') }
       }));
     }
-    const timer = setTimeout(() => SarvamBridgeService.paceNext(callUuid, plivoWs), MULAW_CHUNK_MS);
+    // Schedule against a running deadline: setTimeout(20) fires late under load and the drift
+    // (a few % over a sentence) shows up as underruns at Plivo and a late end-of-turn.
+    const deadline = ((plivoWs as any).sarvamPaceDeadline ?? Date.now()) + MULAW_CHUNK_MS;
+    (plivoWs as any).sarvamPaceDeadline = deadline;
+    const timer = setTimeout(() => SarvamBridgeService.paceNext(callUuid, plivoWs), Math.max(0, deadline - Date.now()));
     (plivoWs as any).sarvamPacingTimer = timer;
   }
 
@@ -446,6 +476,7 @@ export class SarvamBridgeService {
     }
     (plivoWs as any).sarvamAudioQueue = [];
     (plivoWs as any).sarvamIsPacing   = false;
+    (plivoWs as any).sarvamFillerActive = false;
   }
 
   // ── End-of-turn side effects (after the reply audio drained) ─────────────
@@ -596,7 +627,18 @@ export class SarvamBridgeService {
   }
 
   // ── Get Sarvam API key ────────────────────────────────────────────────────
+  private static sarvamKeyCache: { key: string; at: number } | null = null;
+  private static readonly SARVAM_KEY_CACHE_MS = 60_000;
+
   private static async getSarvamApiKey(): Promise<string | null> {
+    const cached = SarvamBridgeService.sarvamKeyCache;
+    if (cached && Date.now() - cached.at < SarvamBridgeService.SARVAM_KEY_CACHE_MS) return cached.key;
+    const key = await SarvamBridgeService.readSarvamApiKey();
+    if (key) SarvamBridgeService.sarvamKeyCache = { key, at: Date.now() };
+    return key;
+  }
+
+  private static async readSarvamApiKey(): Promise<string | null> {
     try {
       const [row] = await db
         .select({ value: globalSettings.value })
@@ -729,6 +771,15 @@ ${knowledge}` : ''}`;
           return;
         } catch (e: any) {
           if (e.name === 'AbortError' || signal?.aborted) return;
+          if (e instanceof TtsStreamError && e.started) {
+            // Part of the sentence already played — re-synthesising it would make the caller hear it twice
+            logger.warn(`[SarvamBridge][${callUuid}] TTS stream cut s${sentenceIdx} after audio started; not replaying`);
+            if (sentenceIdx !== undefined) {
+              (plivoWs as any).sarvamNextPlayIdx = Math.max((plivoWs as any).sarvamNextPlayIdx ?? 0, sentenceIdx + 1);
+              SarvamBridgeService.drainCompletedAudio(callUuid, plivoWs);
+            }
+            return;
+          }
           logger.warn(`[SarvamBridge][${callUuid}] TTS stream failed (s${sentenceIdx}), REST fallback: ${e.message}`);
         }
       }
@@ -815,9 +866,15 @@ ${knowledge}` : ''}`;
     // depth 0: fresh turn (system + trimmed chat history). depth > 0: the tool follow-up pass,
     // where `history` already carries the system prompt, the assistant tool_calls and tool results.
     const actionRules = depth === 0 && tools.length > 0 ? actionPromptRules(tools, (plivoWs as any).sarvamActionsTimeZone) : '';
+    const turnHistory = depth === 0 ? history.slice(-HISTORY_MAX_MESSAGES) : history;
+    if (depth === 0 && needsClock(tools) && turnHistory.length > 0) {
+      // Clock goes on the newest user line, not the system prompt, so the cached prefix is byte-stable
+      const last = turnHistory[turnHistory.length - 1];
+      if (last.role === 'user') turnHistory[turnHistory.length - 1] = { role: 'user', content: `${last.content}\n${nowLine((plivoWs as any).sarvamActionsTimeZone)}` };
+    }
     const messages: ChatMessage[] = depth === 0
       ? [{ role: 'system', content: SarvamBridgeService.buildWrapper(systemPrompt, voice, language, detectLanguage, knowledge, tools.length > 0, actionRules) },
-         ...history.slice(-HISTORY_MAX_MESSAGES)]
+         ...turnHistory]
       : history;
 
     perf.mark('GPT_START');
@@ -924,6 +981,7 @@ ${knowledge}` : ''}`;
 
             if (!firstToken) {
               firstToken = true;
+              (plivoWs as any).sarvamFirstTokenSeen = true;
               perf.mark('GPT_FIRST_TOKEN');
               perf.log('GPT_START', 'GPT_FIRST_TOKEN');
             }
@@ -935,11 +993,18 @@ ${knowledge}` : ''}`;
             let splitText = '';
             let remainingText = '';
             
+            // The first fragment of a turn is what the caller waits for: cut it early (≥3 words at a
+            // comma, ≤10 words without punctuation) so TTS starts sooner; later sentences keep the
+            // longer, more natural breaths.
+            const firstFragment = sentenceIdx === sentenceIdxStart && !(plivoWs as any).sarvamReplyAudioQueued;
+            const minCommaWords = firstFragment ? 3 : 5;
+            const maxRunWords   = firstFragment ? 10 : 22;
+            const cutAtWords    = firstFragment ? 8 : 18;
             const match = sentenceBuf.match(/^([\s\S]*[।.!?,\n])([\s\S]*)$/);
             if (match) {
               const sentence = match[1];
               // Avoid sending tiny fragments (like 1-2 words) on comma breaks to prevent weird speech pacing
-              if (sentence.endsWith(',') && sentence.split(/\s+/).length < 5) {
+              if (sentence.endsWith(',') && sentence.split(/\s+/).length < minCommaWords) {
                 // Do not split on comma yet, wait for next token
               } else {
                 splitText = sentence;
@@ -949,9 +1014,9 @@ ${knowledge}` : ''}`;
               // No punctuation yet: don't let one breath run too long before TTS starts.
               // (Never split right after a conjunction — TTS pronounces "...aur" as a dangling fragment.)
               const words = sentenceBuf.split(/\s+/);
-              if (words.length > 22) {
-                splitText = words.slice(0, 18).join(' ');
-                remainingText = words.slice(18).join(' ');
+              if (words.length > maxRunWords) {
+                splitText = words.slice(0, cutAtWords).join(' ');
+                remainingText = words.slice(cutAtWords).join(' ');
               }
             }
 
@@ -1008,10 +1073,13 @@ ${knowledge}` : ''}`;
 
     logger.info(`[SarvamBridge][${callUuid}] Running ${pending.length} tool call(s) at depth ${depth}: ${pending.map(t => t.name).join(', ')}`);
     const execution = executeStreamedToolCalls(callUuid, pending, tools);
-    // Nothing spoken yet this turn → a short filler covers the round trip
-    if (!(plivoWs as any).sarvamReplyAudioQueued) {
+    // Nothing spoken yet this turn → a short filler covers the round trip. It is fired, not awaited:
+    // the follow-up GPT pass must start the moment the tool handlers return, and the index-ordered
+    // audio queue keeps the filler ahead of the follow-up sentences anyway.
+    if (!(plivoWs as any).sarvamReplyAudioQueued && !(plivoWs as any).sarvamFillerPlayed) {
+      (plivoWs as any).sarvamFillerPlayed = true;
       const filler = toolFillerText(language, SarvamBridgeService.getGenderFromVoice(voice));
-      await SarvamBridgeService.speakViaTTS(callUuid, plivoWs, filler, sarvamApiKey, language, voice, signal, perf, sentenceIdx++)
+      void SarvamBridgeService.speakViaTTS(callUuid, plivoWs, filler, sarvamApiKey, language, voice, signal, perf, sentenceIdx++)
         .catch(() => {});
     }
     const executed = await execution;
@@ -1181,6 +1249,29 @@ ${knowledge}` : ''}`;
     (plivoWs as any).sarvamMasterAbortController = masterCtrl;
 
     try {
+      // ── STT WebSocket (realtime) ──────────────────────────────────────────
+      // encoding=mulaw → Plivo frames pass through untouched (no PCM decode per 20 ms)
+      // language_code=auto → every final carries the detected language
+      // endpointing=vad + silence_duration_ms → end of turn ~450 ms after the caller stops
+      const sttUrl = [
+        SARVAM_STT_URL,
+        `?language_code=${agentConfig.detectLanguage ? 'auto' : language}`,
+        `&model=saaras:v3-realtime`,
+        `&mode=transcribe`,
+        `&encoding=mulaw`,
+        `&sample_rate=8000`,
+        `&endpointing=vad`,
+        `&silence_duration_ms=450`,
+        `&threshold=0.3`,
+        `&min_speech_duration_ms=250`,
+        `&stream_type=fast`,
+      ].join('');
+
+      const sttWs = new WebSocket(sttUrl, {
+        headers: { 'api-subscription-key': sarvamApiKey }
+      });
+      (plivoWs as any).sarvamSttWs = sttWs;
+
       // ── TTS stream (opens in parallel with STT; REST is the fallback) ─────
       const tts = new SarvamTtsStream(callUuid, sarvamApiKey, language, voice, {
         onAudio: (buf) => SarvamBridgeService.pushStreamAudio(callUuid, plivoWs, buf, false),
@@ -1214,28 +1305,6 @@ ${knowledge}` : ''}`;
         logger.error(`[SarvamBridge][${callUuid}] Filler prefetch error: ${e.message}`);
       });
 
-      // ── STT WebSocket (realtime) ──────────────────────────────────────────
-      // encoding=mulaw → Plivo frames pass through untouched (no PCM decode per 20 ms)
-      // language_code=auto → every final carries the detected language
-      // endpointing=vad + silence_duration_ms → end of turn ~450 ms after the caller stops
-      const sttUrl = [
-        SARVAM_STT_URL,
-        `?language_code=${agentConfig.detectLanguage ? 'auto' : language}`,
-        `&model=saaras:v3-realtime`,
-        `&mode=transcribe`,
-        `&encoding=mulaw`,
-        `&sample_rate=8000`,
-        `&endpointing=vad`,
-        `&silence_duration_ms=450`,
-        `&threshold=0.3`,
-        `&min_speech_duration_ms=250`,
-        `&stream_type=fast`,
-      ].join('');
-
-      const sttWs = new WebSocket(sttUrl, {
-        headers: { 'api-subscription-key': sarvamApiKey }
-      });
-      (plivoWs as any).sarvamSttWs = sttWs;
 
       sttWs.on('open', () => {
         logger.info(`[SarvamBridge][${callUuid}] STT WebSocket opened`);
@@ -1349,6 +1418,9 @@ ${knowledge}` : ''}`;
           (plivoWs as any).sarvamSentenceText = new Map<number, string>();
           (plivoWs as any).sarvamToolNameBuf  = '';
           (plivoWs as any).sarvamReplyAudioQueued = false;
+          (plivoWs as any).sarvamFirstTokenSeen   = false;
+          (plivoWs as any).sarvamFillerPlayed     = false;
+          (plivoWs as any).sarvamTurnPerf         = perf;
           (plivoWs as any).sarvamLastAgentText    = '';
 
           const turnId = ++(plivoWs as any).sarvamTurnId;
