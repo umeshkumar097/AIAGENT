@@ -20,7 +20,7 @@ import {
   TrendingUp, TrendingDown, Minus, Clock, Flame, UserX, PhoneMissed,
   ClipboardCheck, UserCheck, ArrowDownUp, PhoneCall, Zap, Palette, Check,
   History, Tag, Trash2, BarChart3, Square, CheckSquare, X, Megaphone, PhoneIncoming,
-  GripVertical, Settings, EyeOff, Eye
+  GripVertical, Settings, EyeOff, Eye, Inbox
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -28,6 +28,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
+import LeadInboxPage from "@/pages/LeadInboxPage";
 
 interface Lead {
   id: string;
@@ -1321,7 +1322,7 @@ function CRMFilterSettingsDialog({
 export default function CRMPage() {
   const { toast } = useToast();
   const queryClientRef = useQueryClient();
-  const [viewMode, setViewMode] = useState<"kanban" | "list" | "analytics">("kanban");
+  const [viewMode, setViewMode] = useState<"kanban" | "list" | "analytics" | "inbox">("kanban");
   const [searchQuery, setSearchQuery] = useState("");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [selectedSourceId, setSelectedSourceId] = useState<string>("all");
@@ -2202,6 +2203,15 @@ export default function CRMPage() {
             >
               <BarChart3 className="w-4 h-4" />
             </Button>
+            <Button
+              variant={viewMode === "inbox" ? "secondary" : "ghost"}
+              size="icon"
+              onClick={() => setViewMode("inbox")}
+              data-testid="view-inbox"
+              title="Team Inbox"
+            >
+              <Inbox className="w-4 h-4" />
+            </Button>
           </div>
         </div>
       </div>
@@ -2345,6 +2355,8 @@ export default function CRMPage() {
           <div className="flex items-center justify-center h-full">
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           </div>
+        ) : viewMode === "inbox" ? (
+          <LeadInboxPage embedded />
         ) : viewMode === "analytics" ? (
           <ScrollArea className="h-full">
             <div className="p-6 space-y-6" data-testid="analytics-view">
