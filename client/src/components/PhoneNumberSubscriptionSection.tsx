@@ -3,7 +3,7 @@
  * After payment the number is bought from Plivo by the server; monthly renewals are billed in minutes.
  */
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,14 @@ interface AvailableNumber {
   capabilities: { voice: boolean; sms: boolean };
   monthlyRentalRate: number;
 }
+
+interface SearchPage {
+  numbers: AvailableNumber[];
+  meta?: { offset: number; limit: number; totalCount: number | null; hasMore: boolean; nextOffset: number | null };
+}
+
+/** Numbers per page from GET /api/plivo/phone-numbers/search (server max 60; Plivo serves 20 per call) */
+const SEARCH_PAGE_SIZE = 40;
 
 interface MyNumber {
   id: string;
@@ -79,17 +87,23 @@ export function PhoneNumberSubscriptionSection({ hasActiveSubscription }: Props)
     },
   });
 
-  /* --- Available Plivo numbers (search) --- */
-  const { data: searchResult, isLoading: searchLoading, error: searchError } = useQuery({
-    queryKey: ["/api/plivo/phone-numbers/search", activeSearch],
+  /* --- Available Plivo numbers (paged search; "Load more" appends the next offset) --- */
+  const searchQuery = useInfiniteQuery<SearchPage>({
+    queryKey: ["/api/plivo/phone-numbers/search", activeSearch, SEARCH_PAGE_SIZE],
     enabled: !!activeSearch && step === 2,
-    queryFn: async () => {
-      const res = await apiRequest("GET", `/api/plivo/phone-numbers/search?country=${activeSearch}&limit=10`);
+    queryFn: async ({ pageParam }) => {
+      const offset = typeof pageParam === "number" ? pageParam : 0;
+      const res = await apiRequest("GET", `/api/plivo/phone-numbers/search?country=${activeSearch}&limit=${SEARCH_PAGE_SIZE}&offset=${offset}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Search failed");
-      return (data.numbers || []) as AvailableNumber[];
+      return { numbers: (data.numbers || []) as AvailableNumber[], meta: data.meta };
     },
+    initialPageParam: 0,
+    getNextPageParam: (last) => (last.meta?.hasMore && last.meta.nextOffset != null ? last.meta.nextOffset : undefined),
   });
+  const searchResult: AvailableNumber[] = searchQuery.data?.pages.flatMap((p) => p.numbers) ?? [];
+  const searchLoading = searchQuery.isLoading;
+  const searchError = searchQuery.error;
 
   /* --- Release number --- */
   const cancelMut = useMutation({
@@ -251,7 +265,11 @@ export function PhoneNumberSubscriptionSection({ hasActiveSubscription }: Props)
                     </div>
                     <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-indigo-500" />
                   </button>
-                ))
+                )).concat(searchQuery.hasNextPage ? [
+                  <Button key="load-more" variant="outline" className="w-full" onClick={() => searchQuery.fetchNextPage()} disabled={searchQuery.isFetchingNextPage} data-testid="button-load-more-numbers">
+                    {searchQuery.isFetchingNextPage ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{t("billing.cashfree.loadingMore", "Loading more...")}</> : t("billing.cashfree.loadMore", "Load more numbers")}
+                  </Button>,
+                ] : [])
               ) : (
                 <div className="text-center py-8 text-slate-500">
                   <Phone className="h-8 w-8 mx-auto mb-2 text-slate-300" />

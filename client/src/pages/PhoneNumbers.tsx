@@ -15,7 +15,7 @@
  * ============================================================
  */
 import { useState, useEffect, useRef, Suspense } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useInfiniteQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, Search, Phone, ShoppingCart, Check, Trash2, CreditCard, Link as LinkIcon, Smartphone, Globe, MapPin, Upload, FileText, AlertCircle, Shield, Server, Loader2, RefreshCw } from "lucide-react";
 import { usePluginRegistry } from "@/contexts/plugin-registry";
 import { AuthStorage } from "@/lib/auth-storage";
-import { formatInr, PAYMENT_GATEWAY_QUERY_KEY, type CashfreePublicConfig } from "@/lib/cashfree";
+import { formatInr, gstLabel, PAYMENT_GATEWAY_QUERY_KEY, type CashfreePublicConfig } from "@/lib/cashfree";
 import { usePluginStatus } from "@/hooks/use-plugin-status";
 import { DataPagination, usePagination } from "@/components/ui/data-pagination";
 import { useToast } from "@/hooks/use-toast";
@@ -60,6 +60,9 @@ const checkoutPathFor = (phoneNumber: string, country: string, numberType?: stri
 
 // Default monthly credits - will be overridden by API value
 const DEFAULT_MONTHLY_CREDITS = 50;
+
+/** Numbers requested per "page" from GET /api/plivo/phone-numbers/search (server max 60; Plivo serves 20 per call) */
+const PLIVO_SEARCH_PAGE_SIZE = 40;
 
 interface PublicSettings {
   phone_number_monthly_credits: number;
@@ -145,12 +148,20 @@ interface PlivoPricing {
   isActive: boolean;
 }
 
+// Matches PhoneNumberSearchResult in server/engines/plivo/services/plivo-phone.service.ts
 interface PlivoAvailableNumber {
   phoneNumber: string;
   country: string;
-  region?: string;
-  type: string;
-  monthlyRentalRate: string;
+  region?: string | null;
+  city?: string | null;
+  numberType: 'local' | 'toll_free' | 'national' | 'mobile' | 'fixed';
+  capabilities?: { voice: boolean; sms: boolean };
+  monthlyRentalRate: number;
+}
+
+interface PlivoSearchPage {
+  numbers: PlivoAvailableNumber[];
+  meta?: { offset: number; limit: number; totalCount: number | null; hasMore: boolean; nextOffset: number | null };
 }
 
 interface PlivoIncomingConnection {
@@ -182,7 +193,7 @@ export default function PhoneNumbers() {
   const [plivoBuyDialogOpen, setPlivoBuyDialogOpen] = useState(false);
   const [plivoSearchCountry, setPlivoSearchCountry] = useState("");
   const [plivoSearchRegion, setPlivoSearchRegion] = useState("");
-  const [plivoSearchType, setPlivoSearchType] = useState<"local" | "tollfree">("local");
+  const [plivoSearchType, setPlivoSearchType] = useState<"local" | "toll_free">("local");
   const [selectedPlivoNumber, setSelectedPlivoNumber] = useState<PlivoAvailableNumber | null>(null);
   const [plivoReleaseDialogOpen, setPlivoReleaseDialogOpen] = useState(false);
   const [plivoNumberToRelease, setPlivoNumberToRelease] = useState<PlivoPhoneNumber | null>(null);
@@ -282,21 +293,28 @@ export default function PhoneNumbers() {
     return plivoSearchCountry.length === 2;
   };
 
-  const { data: plivoAvailableNumbers = [], isLoading: plivoSearchLoading, refetch: searchPlivoNumbers } = useQuery<PlivoAvailableNumber[]>({
+  // Paged search: the first page loads with the filters; "Load more" appends the next offset
+  const plivoSearchQuery = useInfiniteQuery<PlivoSearchPage>({
     queryKey: ["/api/plivo/phone-numbers/search", plivoSearchCountry, plivoSearchRegion, plivoSearchType],
-    queryFn: async () => {
-      if (!canPlivoSearch()) return [];
+    queryFn: async ({ pageParam }) => {
+      if (!canPlivoSearch()) return { numbers: [] };
       const headers: Record<string, string> = {};
       const authHeader = AuthStorage.getAuthHeader();
       if (authHeader) headers["Authorization"] = authHeader;
-      const res = await fetch(`/api/plivo/phone-numbers/search?${buildPlivoSearchQuery()}`, { headers });
+      const offset = typeof pageParam === "number" ? pageParam : 0;
+      const res = await fetch(`/api/plivo/phone-numbers/search?${buildPlivoSearchQuery()}&limit=${PLIVO_SEARCH_PAGE_SIZE}&offset=${offset}`, { headers });
       if (!res.ok) throw new Error("Failed to search Plivo numbers");
       const data = await res.json();
-      // API returns { numbers: [...], pricing: {...} }, extract numbers array
-      return Array.isArray(data) ? data : (data.numbers || []);
+      // API returns { numbers: [...], pricing: {...}, meta: {...} }
+      return Array.isArray(data) ? { numbers: data } : { numbers: data.numbers || [], meta: data.meta };
     },
+    initialPageParam: 0,
+    getNextPageParam: (last) => (last.meta?.hasMore && last.meta.nextOffset != null ? last.meta.nextOffset : undefined),
     enabled: canPlivoSearch() && plivoEnabled,
   });
+  const plivoAvailableNumbers: PlivoAvailableNumber[] = plivoSearchQuery.data?.pages.flatMap((p) => p.numbers) ?? [];
+  const plivoSearchLoading = plivoSearchQuery.isLoading;
+  const plivoSearchTotal = plivoSearchQuery.data?.pages[0]?.meta?.totalCount ?? null;
 
   useEffect(() => {
     if (countries.length > 0 && !searchCountry) {
@@ -313,6 +331,8 @@ export default function PhoneNumbers() {
 
   const { data: gatewayConfig } = useQuery<CashfreePublicConfig>({ queryKey: [...PAYMENT_GATEWAY_QUERY_KEY] });
   const numberPriceLabel = formatInr(gatewayConfig?.phoneNumberPriceInr ?? 400);
+  // "+ 18% GST" (GST added at checkout) or "incl. GST" — the exact CGST/SGST/IGST split is shown on /app/checkout
+  const numberGstCaption = gstLabel(gatewayConfig?.gstRate ?? 18, gatewayConfig?.pricesIncludeGst ?? false);
 
   const getConnection = (phoneNumberId: string) => {
     return allConnections.find(c => c.phoneNumberId === phoneNumberId);
@@ -446,7 +466,7 @@ export default function PhoneNumbers() {
 
   const handlePlivoBuy = () => {
     if (!selectedPlivoNumber) return;
-    const type = selectedPlivoNumber.type;
+    const type = selectedPlivoNumber.numberType;
     plivoBuyMutation.mutate({
       phoneNumber: selectedPlivoNumber.phoneNumber,
       country: plivoSearchCountry,
@@ -978,7 +998,7 @@ export default function PhoneNumbers() {
             <div>
               <h4 className="font-semibold text-sm mb-1 text-indigo-700 dark:text-indigo-300">Cashfree Billing</h4>
               <p className="text-sm text-muted-foreground">
-                Phone numbers cost <strong>{numberPriceLabel}</strong> one-time via Cashfree (INR, GST invoice), then renew monthly in minutes. Release anytime.
+                Phone numbers cost <strong>{numberPriceLabel} {numberGstCaption}</strong> one-time via Cashfree (GST breakdown shown at checkout, GST invoice emailed), then renew monthly in minutes. Release anytime.
               </p>
             </div>
           </div>
@@ -1156,7 +1176,7 @@ export default function PhoneNumbers() {
               ) : (
                 <>
                   <ShoppingCart className="h-4 w-4 mr-2" />
-                  {selectedNumber ? `Rent for ${numberPriceLabel}` : 'Select a Number'}
+                  {selectedNumber ? `Rent for ${numberPriceLabel} ${numberGstCaption}` : 'Select a Number'}
                 </>
               )}
             </Button>
@@ -1198,7 +1218,7 @@ export default function PhoneNumbers() {
           <DialogHeader>
             <DialogTitle>Rent Phone Number</DialogTitle>
             <DialogDescription>
-              Select a country to see available phone numbers. Numbers are billed monthly.
+              Select a country to see available phone numbers. Activation is a one-time Cashfree payment ({numberPriceLabel} {numberGstCaption}); the GST breakdown is shown at checkout and the number is rented from Plivo only after the payment succeeds.
             </DialogDescription>
           </DialogHeader>
 
@@ -1216,6 +1236,7 @@ export default function PhoneNumbers() {
                     <div>
                       <span className="text-muted-foreground">Activation (one-time):</span>
                       <span className="font-bold ml-2 text-indigo-700 dark:text-indigo-300">{numberPriceLabel}</span>
+                      <span className="ml-1 text-xs text-muted-foreground" data-testid="text-plivo-gst-caption">{numberGstCaption}</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Renewal:</span>
@@ -1265,7 +1286,7 @@ export default function PhoneNumbers() {
 
               <div className="space-y-2">
                 <Label>Number Type</Label>
-                <Select value={plivoSearchType} onValueChange={(value: "local" | "tollfree") => {
+                <Select value={plivoSearchType} onValueChange={(value: "local" | "toll_free") => {
                   setPlivoSearchType(value);
                   setSelectedPlivoNumber(null);
                 }}>
@@ -1275,7 +1296,7 @@ export default function PhoneNumbers() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="local">Local Numbers</SelectItem>
-                    <SelectItem value="tollfree">Toll-Free Numbers</SelectItem>
+                    <SelectItem value="toll_free">Toll-Free Numbers</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1319,7 +1340,9 @@ export default function PhoneNumbers() {
             ) : (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label>Available Numbers ({plivoAvailableNumbers.length})</Label>
+                  <Label data-testid="text-plivo-available-count">
+                    Available Numbers ({plivoAvailableNumbers.length}{plivoSearchTotal != null && plivoSearchTotal > plivoAvailableNumbers.length ? ` of ${plivoSearchTotal}` : ''})
+                  </Label>
                   {selectedPlivoNumber && (
                     <Badge variant="secondary" className="gap-1">
                       <Check className="h-3 w-3" />
@@ -1345,7 +1368,7 @@ export default function PhoneNumbers() {
                             {formatPhoneNumber(number.phoneNumber)}
                           </div>
                           <div className="text-xs text-muted-foreground truncate">
-                            {number.region || number.country} · {number.type}
+                            {number.city || number.region || number.country} · {number.numberType.replace('_', ' ')}
                           </div>
                         </div>
                         {selectedPlivoNumber?.phoneNumber === number.phoneNumber && (
@@ -1355,6 +1378,21 @@ export default function PhoneNumbers() {
                     </div>
                   ))}
                 </div>
+                {plivoSearchQuery.hasNextPage && (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => plivoSearchQuery.fetchNextPage()}
+                    disabled={plivoSearchQuery.isFetchingNextPage}
+                    data-testid="button-plivo-load-more"
+                  >
+                    {plivoSearchQuery.isFetchingNextPage ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Loading more numbers...</>
+                    ) : (
+                      <>Load more numbers</>
+                    )}
+                  </Button>
+                )}
               </div>
             )}
           </div>
@@ -1381,7 +1419,7 @@ export default function PhoneNumbers() {
               ) : (
                 <>
                   <ShoppingCart className="h-4 w-4 mr-2" />
-                  {selectedPlivoNumber ? `Rent for ${numberPriceLabel}` : 'Select a Number'}
+                  {selectedPlivoNumber ? `Rent for ${numberPriceLabel} ${numberGstCaption}` : 'Select a Number'}
                 </>
               )}
             </Button>

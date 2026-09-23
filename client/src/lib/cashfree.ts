@@ -55,6 +55,8 @@ export interface CheckoutQuoteParams {
   billingPeriod?: "monthly" | "yearly";
   packageId?: string;
   country?: string;
+  /** Phone number rental: echoed back on the quote so the order summary can show the picked number */
+  phoneNumber?: string;
   /** Overrides the buyer state saved on the user (re-quote before the billing details are saved) */
   stateCode?: string;
 }
@@ -114,6 +116,8 @@ export interface CashfreeOrderStatusResponse {
   phoneNumber: string | null;
   paymentMethod: string | null;
   completedAt: string | null;
+  /** GST breakdown the order was charged with (stored on the transaction at order creation) */
+  quote?: PriceQuote | null;
   /** Plans: the order was placed with the auto-renew toggle on (Step 2 offered after success) */
   autoRenewRequested?: boolean;
   /** Plans: a mandate is already active for this subscription */
@@ -231,6 +235,7 @@ export async function fetchCheckoutQuote(params: CheckoutQuoteParams): Promise<C
     if (params.packageId) query.set("packageId", params.packageId);
   } else if (params.country) {
     query.set("country", params.country);
+    if (params.phoneNumber) query.set("phoneNumber", params.phoneNumber);
   }
   if (params.stateCode) query.set("stateCode", params.stateCode);
   const response = await apiRequest("GET", `/api/cashfree/quote?${query.toString()}`);

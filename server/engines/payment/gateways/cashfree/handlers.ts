@@ -147,6 +147,12 @@ export async function handleCashfreeWebhook(payload: CashfreeWebhookPayload): Pr
         logger.warn(`PAYMENT_SUCCESS_WEBHOOK for unknown order ${orderId}; ignoring`, undefined, 'Cashfree');
         return { action: 'ignored', orderId };
       }
+      // Fulfilment (credits / plan / Plivo number rental) runs ONLY for a SUCCESS payment — never for a
+      // pending/failed payment that happened to arrive under this event type
+      if (data.payment.payment_status && data.payment.payment_status !== 'SUCCESS') {
+        logger.warn(`PAYMENT_SUCCESS_WEBHOOK for ${orderId} carries payment_status=${data.payment.payment_status}; ignoring`, undefined, 'Cashfree');
+        return { action: 'ignored', orderId };
+      }
       const completion = await billingService.completePurchase({
         gatewayOrderId: orderId,
         gatewayPaymentId: String(data.payment.cf_payment_id),

@@ -251,6 +251,11 @@ export default function PaymentResult() {
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="space-y-3">
               <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100" data-testid="text-payment-result-title">{getTitle()}</h1>
               <p className="text-slate-600 dark:text-slate-400" data-testid="text-payment-result-description">{getDescription()}</p>
+              {isFulfilmentFailed && order?.failureReason && (
+                <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-lg px-3 py-2 text-left break-words" data-testid="text-payment-failure-reason">
+                  {t("billing.cashfree.fulfilmentReason", "Reference for support:")} {order.failureReason}
+                </p>
+              )}
             </motion.div>
 
             {order && status !== "processing" && (
@@ -275,8 +280,43 @@ export default function PaymentResult() {
                 </div>
                 {order.amount != null && (
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-500 dark:text-slate-400">{t("payment.amount", "Amount")}</span>
+                    <span className="text-slate-500 dark:text-slate-400">{order.quote ? t("payment.amountInclGst", "Amount paid (incl. GST)") : t("payment.amount", "Amount")}</span>
                     <span className="font-medium text-slate-700 dark:text-slate-300" data-testid="text-payment-amount">{formatInr(order.amount)}</span>
+                  </div>
+                )}
+                {order.quote && (
+                  <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white/70 dark:bg-slate-800/60 p-3 space-y-1 text-xs" data-testid="box-payment-gst">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500 dark:text-slate-400">{order.quote.pricesIncludeGst ? t("billing.checkout.priceInclGst", "Price (incl. GST)") : t("billing.checkout.priceExclGst", "Price (excl. GST)")}</span>
+                      <span className="tabular-nums" data-testid="text-payment-list-price">{formatInr(order.quote.listPrice)}</span>
+                    </div>
+                    {order.quote.pricesIncludeGst && (
+                      <div className="flex justify-between text-slate-500 dark:text-slate-400">
+                        <span>{t("billing.checkout.taxableValue", "Taxable value")}</span>
+                        <span className="tabular-nums">{formatInr(order.quote.taxableAmount)}</span>
+                      </div>
+                    )}
+                    {order.quote.isInterState ? (
+                      <div className="flex justify-between text-slate-500 dark:text-slate-400">
+                        <span>{t("billing.checkout.igst", "IGST {{rate}}%", { rate: order.quote.taxRate })}</span>
+                        <span className="tabular-nums" data-testid="text-payment-igst">{formatInr(order.quote.igst)}</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex justify-between text-slate-500 dark:text-slate-400">
+                          <span>{t("billing.checkout.cgst", "CGST {{rate}}%", { rate: order.quote.taxRate / 2 })}</span>
+                          <span className="tabular-nums" data-testid="text-payment-cgst">{formatInr(order.quote.cgst)}</span>
+                        </div>
+                        <div className="flex justify-between text-slate-500 dark:text-slate-400">
+                          <span>{t("billing.checkout.sgst", "SGST {{rate}}%", { rate: order.quote.taxRate / 2 })}</span>
+                          <span className="tabular-nums" data-testid="text-payment-sgst">{formatInr(order.quote.sgst)}</span>
+                        </div>
+                      </>
+                    )}
+                    <div className="flex justify-between font-semibold border-t border-slate-200 dark:border-slate-700 pt-1 text-slate-700 dark:text-slate-300">
+                      <span>{t("billing.checkout.totalInclGst", "Total (incl. GST)")}</span>
+                      <span className="tabular-nums" data-testid="text-payment-total">{formatInr(order.quote.total)}</span>
+                    </div>
                   </div>
                 )}
                 {order.credits ? (

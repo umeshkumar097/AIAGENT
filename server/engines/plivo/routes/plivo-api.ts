@@ -596,31 +596,47 @@ export function createPlivoApiRoutes(): Router {
   /**
    * GET /api/plivo/phone-numbers/search
    * Search available phone numbers from Plivo
-   * Query params: country (required), region, type (local/toll_free/national), pattern, limit
+   * Query params: country (required), region, type (local | toll_free | national | mobile | fixed | any;
+   * 'tollfree' / 'toll-free' are accepted aliases), pattern, limit (1-60, default 40), offset (default 0)
+   * Response: { numbers, pricing, meta: { offset, limit, totalCount, hasMore, nextOffset } }
    */
   router.get('/api/plivo/phone-numbers/search', requireAuth, async (req: AuthRequest, res: Response) => {
     try {
-      const { country, region, type, pattern, limit } = req.query;
+      const { country, region, type, pattern, limit, offset } = req.query;
 
-      if (!country || typeof country !== 'string') {
-        return res.status(400).json({ error: 'Country code is required' });
+      if (!country || typeof country !== 'string' || !/^[A-Za-z]{2}$/.test(country)) {
+        return res.status(400).json({ error: 'A valid 2-letter country code is required' });
       }
 
       const { PlivoPhoneService } = await import('../services/plivo-phone.service');
-      const numbers = await PlivoPhoneService.searchAvailableNumbers({
+      const rawType = typeof type === 'string' ? type.toLowerCase().replace('-', '_') : '';
+      const numberType = rawType === 'tollfree' ? 'toll_free'
+        : (['local', 'toll_free', 'national', 'mobile', 'fixed', 'any'].includes(rawType) ? rawType : undefined);
+      const parsedLimit = typeof limit === 'string' ? parseInt(limit, 10) : NaN;
+      const parsedOffset = typeof offset === 'string' ? parseInt(offset, 10) : NaN;
+
+      const page = await PlivoPhoneService.searchAvailableNumbersPage({
         countryCode: country,
-        region: region as string | undefined,
-        type: type as 'local' | 'toll_free' | 'national' | undefined,
-        pattern: pattern as string | undefined,
-        limit: limit ? parseInt(limit as string, 10) : 20,
+        region: typeof region === 'string' && region.trim() ? region.trim().slice(0, 40) : undefined,
+        type: numberType as Parameters<typeof PlivoPhoneService.searchAvailableNumbersPage>[0]['type'],
+        pattern: typeof pattern === 'string' && /^[0-9]{1,15}$/.test(pattern) ? pattern : undefined,
+        limit: Number.isFinite(parsedLimit) ? parsedLimit : undefined,
+        offset: Number.isFinite(parsedOffset) ? parsedOffset : undefined,
       });
 
       // Also get pricing info for this country
       const pricing = await PlivoPhoneService.getAdminPricing(country);
 
       res.json({
-        numbers,
+        numbers: page.numbers,
         pricing: pricing || null,
+        meta: {
+          offset: page.offset,
+          limit: page.limit,
+          totalCount: page.totalCount,
+          hasMore: page.hasMore,
+          nextOffset: page.hasMore ? page.offset + page.numbers.length : null,
+        },
       });
     } catch (error: any) {
       console.error('[Plivo API] Error searching phone numbers:', error);
@@ -669,55 +685,18 @@ export function createPlivoApiRoutes(): Router {
   });
 
   /**
-   * POST /api/plivo/phone-numbers/purchase
-   * Purchase a phone number
+   * POST /api/plivo/phone-numbers/purchase — RETIRED (410)
+   * Numbers are rented at Plivo only after a Cashfree order is PAID (billingService.completePurchase →
+   * PlivoPhoneService.purchaseNumberPaid). The credit-based direct rental is refused so a number can never be
+   * bought without a successful payment. Clients must use /app/checkout?type=phone_number (POST /api/cashfree/orders).
    */
   router.post('/api/plivo/phone-numbers/purchase', requireAuth, async (req: AuthRequest, res: Response) => {
-    try {
-      const { phoneNumber, country, region, numberType } = req.body;
-
-      if (!phoneNumber || !country) {
-        return res.status(400).json({ error: 'Phone number and country are required' });
-      }
-
-      // KYC Verification Check for Plivo
-      const { globalSettings } = await import('@shared/schema');
-      const plivoKycSetting = await db
-        .select()
-        .from(globalSettings)
-        .where(eq(globalSettings.key, 'plivo_kyc_required'))
-        .limit(1);
-      
-      const plivoKycRequired = plivoKycSetting[0]?.value === true || plivoKycSetting[0]?.value === 'true';
-      
-      if (plivoKycRequired) {
-        const { KycService } = await import('../../kyc/services/kyc.service');
-        const kycStatus = await KycService.getUserKycStatus(req.userId!);
-        
-        if (kycStatus.status !== 'approved') {
-          return res.status(403).json({
-            error: "KYC verification required",
-            message: "You must complete KYC verification before purchasing Plivo phone numbers. Please upload your documents in Settings.",
-            kycRequired: true,
-            kycStatus: kycStatus.status
-          });
-        }
-      }
-
-      const { PlivoPhoneService } = await import('../services/plivo-phone.service');
-      const result = await PlivoPhoneService.purchaseNumber({
-        userId: req.userId!,
-        phoneNumber,
-        country,
-        region,
-        numberType,
-      });
-
-      res.status(201).json(result);
-    } catch (error: any) {
-      console.error('[Plivo API] Error purchasing phone number:', error);
-      res.status(400).json({ error: 'Failed to purchase phone number' });
-    }
+    console.warn(`[Plivo API] Refused direct phone number purchase for user ${req.userId} (retired endpoint)`);
+    res.status(410).json({
+      error: 'Direct phone number purchase is no longer available',
+      message: 'Phone numbers are paid for via Cashfree checkout and provisioned only after the payment succeeds. Open Phone Numbers → Rent a number and complete the checkout.',
+      checkoutPath: '/app/checkout?type=phone_number',
+    });
   });
 
   /**

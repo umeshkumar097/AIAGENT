@@ -48,6 +48,29 @@ export interface PhoneNumberSearchResult {
   smsRate: number;
 }
 
+/** Public number types accepted by the search ('any' = no Plivo type filter) */
+export type PhoneNumberSearchType = 'local' | 'toll_free' | 'national' | 'mobile' | 'fixed' | 'any';
+
+export interface PhoneNumberSearchParams {
+  countryCode: string;
+  type?: PhoneNumberSearchType;
+  region?: string;
+  pattern?: string;
+  /** Numbers per page (1..MAX_SEARCH_LIMIT, default DEFAULT_SEARCH_LIMIT) */
+  limit?: number;
+  /** Position of the first number (for "load more") */
+  offset?: number;
+}
+
+export interface PhoneNumberSearchPage {
+  numbers: PhoneNumberSearchResult[];
+  offset: number;
+  limit: number;
+  /** Plivo's total_count for the filter, when it reports one */
+  totalCount: number | null;
+  hasMore: boolean;
+}
+
 export interface PurchaseResult {
   success: boolean;
   phoneNumber: PlivoPhoneNumberRecord;
@@ -57,6 +80,12 @@ export interface PurchaseResult {
 
 export class PlivoPhoneService {
   private static plivoClients: Map<string, plivo.Client> = new Map();
+
+  /** Plivo's PhoneNumber search returns at most 20 numbers per request */
+  static readonly PLIVO_SEARCH_PAGE_SIZE = 20;
+  /** Largest page a caller may ask for in one request (3 Plivo requests) */
+  static readonly MAX_SEARCH_LIMIT = 60;
+  static readonly DEFAULT_SEARCH_LIMIT = 40;
 
   /**
    * Get or create a Plivo client for a given credential
@@ -110,7 +139,11 @@ export class PlivoPhoneService {
    * Search available phone numbers from Plivo
    * API: GET https://api.plivo.com/v1/Account/{auth_id}/PhoneNumber/
    * SDK: client.numbers.search(country_iso, options)
-   * 
+   *
+   * Plivo returns at most 20 numbers per request (`limit` 1-20) and paginates with `offset`
+   * (`meta.limit/offset/total_count/next`). A "page" here is filled from several Plivo requests so
+   * callers can ask for up to MAX_SEARCH_LIMIT numbers at once and load more with `offset`.
+   *
    * Response structure:
    * {
    *   api_id: string,
@@ -118,7 +151,7 @@ export class PlivoPhoneService {
    *   objects: [{
    *     number: string,
    *     type: 'fixed' | 'mobile' | 'tollfree',
-   *     sub_type: 'local' | 'national' | null,
+   *     sub_type: 'local' | 'national' | 'fixed' | 'mobile' | 'tollfree',
    *     city: string,
    *     region: string,
    *     country: string,
@@ -131,130 +164,143 @@ export class PlivoPhoneService {
    *   }]
    * }
    */
-  static async searchAvailableNumbers(params: {
-    countryCode: string;
-    type?: 'local' | 'toll_free' | 'national';
-    region?: string;
-    pattern?: string;
-    limit?: number;
-  }): Promise<PhoneNumberSearchResult[]> {
-    logger.info(`Searching numbers in ${params.countryCode}`, undefined, 'PlivoPhone');
+  static async searchAvailableNumbers(params: PhoneNumberSearchParams): Promise<PhoneNumberSearchResult[]> {
+    const page = await this.searchAvailableNumbersPage(params);
+    return page.numbers;
+  }
+
+  /** Plivo `type` filter for our public number types (undefined = no filter, every type). */
+  private static plivoSearchType(type: PhoneNumberSearchType | undefined): string | undefined {
+    switch (type) {
+      case 'toll_free': return 'tollfree';
+      case 'national': return 'national';
+      case 'mobile': return 'mobile';
+      case 'fixed': return 'fixed';
+      case 'any': return undefined;
+      default: return 'local';
+    }
+  }
+
+  private static async fetchPlivoSearchPage(
+    client: plivo.Client,
+    countryCode: string,
+    searchParams: Record<string, unknown>,
+  ): Promise<{ objects: PlivoNumberSearchResult[]; totalCount: number | null }> {
+    logger.info(`Search params: country=${countryCode}`, searchParams, 'PlivoPhone');
+    // Plivo SDK: client.numbers.search(country_iso, options) — the country code is the FIRST argument
+    const response = await client.numbers.search(countryCode, searchParams) as PlivoNumberSearchResponse | PlivoNumberSearchResult[];
+    // The SDK may return the objects array directly or wrapped
+    if (Array.isArray(response)) return { objects: response, totalCount: null };
+    const total = response?.meta?.total_count;
+    return { objects: response?.objects || [], totalCount: typeof total === 'number' ? total : null };
+  }
+
+  private static mapSearchResult(num: PlivoNumberSearchResult, countryCode: string): PhoneNumberSearchResult {
+    // Determine our numberType from Plivo's type/sub_type
+    let numberType: PhoneNumberSearchResult['numberType'] = 'local';
+    const plivoType = (num.type ?? '').toLowerCase();
+    const plivoSubType = (num.sub_type ?? '').toLowerCase();
+
+    if (plivoType === 'tollfree' || plivoSubType === 'tollfree') {
+      numberType = 'toll_free';
+    } else if (plivoSubType === 'national') {
+      numberType = 'national';
+    } else if (plivoType === 'mobile') {
+      numberType = 'mobile';
+    } else if (plivoSubType === 'local' || plivoType === 'local') {
+      numberType = 'local';
+    } else if (plivoType === 'fixed') {
+      numberType = 'fixed';
+    }
+
+    return {
+      phoneNumber: num.number,
+      country: countryCode,
+      region: num.region || null,
+      city: num.city || null,
+      numberType,
+      subType: num.sub_type ?? null,
+      capabilities: {
+        voice: num.voice_enabled === true,
+        sms: num.sms_enabled === true,
+      },
+      monthlyRentalRate: parseFloat(num.monthly_rental_rate ?? '0'),
+      setupRate: parseFloat(num.setup_rate ?? '0'),
+      voiceRate: parseFloat(num.voice_rate ?? '0'),
+      smsRate: parseFloat(num.sms_rate ?? '0'),
+    };
+  }
+
+  /**
+   * One page of purchasable numbers: `limit` (1..MAX_SEARCH_LIMIT, default DEFAULT_SEARCH_LIMIT) numbers
+   * starting at `offset`, gathered from as many 20-number Plivo requests as needed. `hasMore` tells the
+   * UI whether `offset + numbers.length` is worth requesting.
+   */
+  static async searchAvailableNumbersPage(params: PhoneNumberSearchParams): Promise<PhoneNumberSearchPage> {
+    const countryCode = params.countryCode.toUpperCase();
+    const requested = Number.isFinite(params.limit) ? Math.floor(params.limit as number) : this.DEFAULT_SEARCH_LIMIT;
+    const limit = Math.min(Math.max(requested, 1), this.MAX_SEARCH_LIMIT);
+    const offset = Number.isFinite(params.offset) ? Math.max(0, Math.floor(params.offset as number)) : 0;
+    logger.info(`Searching numbers in ${countryCode} (type=${params.type || 'local'}, limit=${limit}, offset=${offset})`, undefined, 'PlivoPhone');
 
     const { client } = await this.getPlivoClient();
-    const limit = params.limit || 20;
+
+    // Plivo API accepts type: 'tollfree', 'local', 'mobile', 'national', 'fixed'
+    let plivoType = this.plivoSearchType(params.type);
+    const isLocalSearch = plivoType === 'local';
+    const baseParams: Record<string, unknown> = {};
+    if (params.region) baseParams.region = params.region;
+    if (params.pattern) baseParams.pattern = params.pattern;
+
+    const collected: PlivoNumberSearchResult[] = [];
+    const seen = new Set<string>();
+    let totalCount: number | null = null;
 
     try {
-      // Build search parameters
-      // Plivo API accepts: 'tollfree', 'local', 'mobile', 'national', 'fixed'
-      const searchParams: Record<string, unknown> = {
-        limit,
-      };
+      while (collected.length < limit) {
+        const pageLimit = Math.min(this.PLIVO_SEARCH_PAGE_SIZE, limit - collected.length);
+        const pageOffset = offset + collected.length;
+        const searchParams: Record<string, unknown> = { ...baseParams, limit: pageLimit, offset: pageOffset };
+        if (plivoType) searchParams.type = plivoType;
 
-      // Set type filter based on requested type
-      let isLocalSearch = false;
-      if (params.type === 'toll_free') {
-        searchParams.type = 'tollfree';
-      } else if (params.type === 'national') {
-        searchParams.type = 'national';
-      } else if (params.type === 'local' || !params.type) {
-        // For local numbers, try 'local' first, then fall back to 'fixed'
-        searchParams.type = 'local';
-        isLocalSearch = true;
-      }
+        let page = await this.fetchPlivoSearchPage(client, countryCode, searchParams);
 
-      if (params.region) {
-        searchParams.region = params.region;
-      }
-
-      if (params.pattern) {
-        searchParams.pattern = params.pattern;
-      }
-
-      const countryCode = params.countryCode.toUpperCase();
-      logger.info(`Search params: country=${countryCode}`, searchParams, 'PlivoPhone');
-
-      // Plivo SDK: client.numbers.search(country_iso, options)
-      // The country code is the FIRST argument
-      let response;
-      try {
-        response = await client.numbers.search(countryCode, searchParams);
-      } catch (sdkError: any) {
-        logger.error(`SDK search error: ${sdkError?.message || sdkError}`, sdkError, 'PlivoPhone');
-        throw sdkError;
-      }
-
-      logger.info(`Search response received, type: ${typeof response}, ${Array.isArray(response) ? 'isArray' : 'notArray'}`, undefined, 'PlivoPhone');
-
-      // The SDK may return the objects array directly or wrapped
-      const responseAny = response as PlivoNumberSearchResponse;
-      let numbers: PlivoNumberSearchResult[] = Array.isArray(responseAny) ? responseAny as unknown as PlivoNumberSearchResult[] : (responseAny?.objects || []);
-
-      // Fallback: If searching for local numbers returned 0 results, try with type='fixed'
-      // Many countries (especially India) classify local numbers as 'fixed' type with 'local' sub_type
-      if (isLocalSearch && numbers.length === 0) {
-        logger.info(`No results with type='local', retrying with type='fixed'`, undefined, 'PlivoPhone');
-        searchParams.type = 'fixed';
-        try {
-          const retryResponse = await client.numbers.search(countryCode, searchParams) as PlivoNumberSearchResponse;
-          numbers = Array.isArray(retryResponse) ? retryResponse as unknown as PlivoNumberSearchResult[] : (retryResponse?.objects || []);
-          logger.info(`Retry with type='fixed' returned ${numbers.length} numbers`, undefined, 'PlivoPhone');
-        } catch (retryError: any) {
-          logger.error(`Retry search failed: ${retryError?.message}`, retryError, 'PlivoPhone');
-          // Continue with empty results from first search
-        }
-      }
-
-      if (numbers.length === 0) {
-        logger.info(`No numbers found for ${countryCode}`, undefined, 'PlivoPhone');
-      } else {
-        logger.info(`Sample number object`, numbers[0], 'PlivoPhone');
-      }
-
-      // Map Plivo response to our interface
-      return numbers.map((num: PlivoNumberSearchResult) => {
-        // Determine our numberType from Plivo's type/sub_type
-        let numberType: 'local' | 'toll_free' | 'national' | 'mobile' | 'fixed' = 'local';
-        const plivoType = (num.type ?? '').toLowerCase();
-        const plivoSubType = (num.sub_type ?? '').toLowerCase();
-        
-        if (plivoType === 'tollfree') {
-          numberType = 'toll_free';
-        } else if (plivoSubType === 'national') {
-          numberType = 'national';
-        } else if (plivoType === 'mobile') {
-          numberType = 'mobile';
-        } else if (plivoType === 'fixed') {
-          numberType = 'fixed';
-        } else if (plivoSubType === 'local' || plivoType === 'local') {
-          numberType = 'local';
+        // Many countries (India in particular) classify local numbers as type 'fixed' with sub_type 'local',
+        // so a 'local' search comes back empty: retry the same page with type='fixed' and stay on it.
+        if (isLocalSearch && plivoType === 'local' && page.objects.length === 0) {
+          logger.info(`No results with type='local' at offset ${pageOffset}, retrying with type='fixed'`, undefined, 'PlivoPhone');
+          plivoType = 'fixed';
+          page = await this.fetchPlivoSearchPage(client, countryCode, { ...searchParams, type: 'fixed' });
         }
 
-        return {
-          phoneNumber: num.number,
-          country: countryCode,
-          region: num.region || null,
-          city: num.city || null,
-          numberType,
-          subType: num.sub_type ?? null,
-          capabilities: {
-            voice: num.voice_enabled === true,
-            sms: num.sms_enabled === true,
-          },
-          monthlyRentalRate: parseFloat(num.monthly_rental_rate ?? '0'),
-          setupRate: parseFloat(num.setup_rate ?? '0'),
-          voiceRate: parseFloat(num.voice_rate ?? '0'),
-          smsRate: parseFloat(num.sms_rate ?? '0'),
-        };
-      });
+        if (page.totalCount !== null) totalCount = page.totalCount;
+        for (const num of page.objects) {
+          if (!num?.number || seen.has(num.number)) continue;
+          seen.add(num.number);
+          collected.push(num);
+        }
+        if (page.objects.length < pageLimit) break; // Plivo ran out of numbers
+        if (totalCount !== null && pageOffset + page.objects.length >= totalCount) break;
+      }
     } catch (error: any) {
       logger.error(`Search failed: ${error?.message || error}`, error, 'PlivoPhone');
-      // Return empty array instead of throwing - numbers might just not be available
+      // Empty result instead of an error when Plivo simply has nothing for this country/filter
       if (error?.message?.includes('not found') || error?.statusCode === 404) {
-        logger.info(`No numbers available for ${params.countryCode}`, undefined, 'PlivoPhone');
-        return [];
+        logger.info(`No numbers available for ${countryCode}`, undefined, 'PlivoPhone');
+        return { numbers: [], offset, limit, totalCount: 0, hasMore: false };
       }
       throw new Error(`Failed to search phone numbers: ${error.message}`);
     }
+
+    if (collected.length === 0) {
+      logger.info(`No numbers found for ${countryCode}`, undefined, 'PlivoPhone');
+    } else {
+      logger.info(`Found ${collected.length} numbers for ${countryCode} (offset ${offset}, total ${totalCount ?? '?'})`, undefined, 'PlivoPhone');
+    }
+
+    const numbers = collected.slice(0, limit).map((num) => this.mapSearchResult(num, countryCode));
+    const hasMore = collected.length >= limit && (totalCount === null || offset + collected.length < totalCount);
+    return { numbers, offset, limit, totalCount, hasMore };
   }
 
   /**
@@ -388,20 +434,30 @@ export class PlivoPhoneService {
 
   /**
    * True when Plivo lists `phoneNumber` as purchasable in `countryCode` — used to validate paid orders before
-   * checkout so only Plivo-fulfillable numbers are ever charged for. Plivo's `pattern` filter matches the digits
-   * after the country calling code, so the full digit string and the digits after a 1–3 digit code are tried.
+   * checkout so only Plivo-fulfillable numbers are ever charged for. Plivo's `pattern` filter is a prefix on the
+   * digits after the country calling code (pattern 415 → numbers starting with 1415), so the digits after a
+   * 1–3 digit code (and the full string) are tried. The search runs WITHOUT a type filter first so a number
+   * listed as toll-free / national / fixed is never rejected because the caller guessed its type wrong.
    */
   static async isNumberAvailableForPurchase(
     countryCode: string,
     phoneNumber: string,
-    type: 'local' | 'toll_free' | 'national' = 'local',
+    type: PhoneNumberSearchType = 'local',
   ): Promise<boolean> {
     const digits = phoneNumber.replace(/\D/g, '');
     if (digits.length < 6) return false;
+    const matches = (results: PhoneNumberSearchResult[]) => results.some((r) => r.phoneNumber.replace(/\D/g, '') === digits);
     const candidates = Array.from(new Set([digits.slice(1), digits.slice(2), digits.slice(3), digits].filter((p) => p.length >= 4)));
     for (const pattern of candidates) {
-      const results = await this.searchAvailableNumbers({ countryCode, type, pattern, limit: 20 });
-      if (results.some((r) => r.phoneNumber.replace(/\D/g, '') === digits)) return true;
+      const page = await this.searchAvailableNumbersPage({ countryCode, type: 'any', pattern, limit: this.PLIVO_SEARCH_PAGE_SIZE });
+      if (matches(page.numbers)) return true;
+    }
+    // Some inventories only answer type-filtered searches: retry with the type the number was listed under
+    if (type !== 'any') {
+      for (const pattern of candidates) {
+        const page = await this.searchAvailableNumbersPage({ countryCode, type, pattern, limit: this.PLIVO_SEARCH_PAGE_SIZE });
+        if (matches(page.numbers)) return true;
+      }
     }
     return false;
   }
