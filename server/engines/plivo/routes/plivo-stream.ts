@@ -25,13 +25,12 @@ import { ElevenLabsBridgeService } from '../services/elevenlabs-bridge.service';
 import { SarvamBridgeService } from '../services/sarvam-bridge.service';
 import { PlivoRecordingService } from '../services/plivo-recording.service';
 import { db } from '../../../db';
-import { plivoCalls, agents, users, flowExecutions, plivoCredentials, plivoPhoneNumbers } from '@shared/schema';
+import { plivoCalls, agents, users, flowExecutions, plivoCredentials } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { logger } from '../../../utils/logger';
 import type { OpenAIVoice, OpenAIRealtimeModel, AgentTool } from '../types';
-import { buildCallMessagingTools, parseWhatsappVariables, type CallTool } from '../../../services/call-messaging-tools';
-import { buildCallActionTools, readActionsConfig } from '../../../services/call-actions';
-import { normalizePhone } from '../../../services/call-actions/util';
+import { parseWhatsappVariables } from '../../../services/call-messaging-tools';
+import { startSarvamSession, verifyTestCallToken } from './sarvam-session';
 
 /**
  * Which templates the OpenAI-Realtime messaging tools may use: the agent's list
@@ -79,7 +78,8 @@ export function setupPlivoStream(httpServer: HttpServer): void {
     if (pathname.startsWith('/api/plivo/stream/')) {
       const callUuid = pathname.split('/api/plivo/stream/')[1];
       
-      if (!callUuid) {
+      // Browser test sessions only ever come in through the token-checked path below
+      if (!callUuid || callUuid.startsWith('test_')) {
         logger.error(`Invalid stream URL: ${pathname}`, undefined, 'PlivoStream');
         socket.destroy();
         return;
@@ -89,6 +89,22 @@ export function setupPlivoStream(httpServer: HttpServer): void {
       
       sharedWss.handleUpgrade(request, socket, head, async (ws: WebSocket) => {
         logger.info(`WebSocket connected for call: ${callUuid}`, undefined, 'PlivoStream');
+        handlePlivoStreamConnection(ws, callUuid);
+      });
+    } else if (pathname.startsWith('/api/sarvam/test-call/')) {
+      // Browser test call (F4): /api/sarvam/test-call/:callUuid?token=<2-minute JWT from POST /api/agents/:id/test-session>
+      const callUuid = pathname.split('/api/sarvam/test-call/')[1] || '';
+      const token = new URL(request.url || '', 'http://localhost').searchParams.get('token');
+      const payload = callUuid.startsWith('test_') ? verifyTestCallToken(token, callUuid) : null;
+      if (!payload) {
+        logger.warn(`Rejected test-call WebSocket for ${callUuid || '(none)'}: invalid or expired token`, undefined, 'PlivoStream');
+        socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');
+        socket.destroy();
+        return;
+      }
+      sharedWss.handleUpgrade(request, socket, head, (ws: WebSocket) => {
+        logger.info(`Test-call WebSocket connected for ${callUuid} (user ${payload.userId})`, undefined, 'PlivoStream');
+        (ws as any).isTestCall = true;
         handlePlivoStreamConnection(ws, callUuid);
       });
     }
@@ -174,7 +190,7 @@ function handlePlivoStreamConnection(ws: WebSocket, callUuid: string): void {
       const call = await PlivoCallService.getCallByUuid(callUuid);
       if (call) {
         // Stop recording if this was a streaming agent
-        if ((ws as any).isSarvam || (ws as any).isElevenLabs) {
+        if (((ws as any).isSarvam || (ws as any).isElevenLabs) && !(ws as any).isTestCall) {
           try {
             logger.info(`[PlivoStream] Stopping recording for streaming call ${callUuid}`, undefined, 'PlivoStream');
             const { PlivoRecordingService } = await import('../services/plivo-recording.service');
@@ -379,106 +395,15 @@ async function initializeSession(
         .where(eq(agents.id, call.agentId))
         .limit(1);
 
-      // ── Sarvam + Plivo bridge ──────────────────────────────────────────────
+      // ── Sarvam + Plivo bridge (also used by browser test calls) ────────────
       if (agent && agent.telephonyProvider === 'sarvam-plivo') {
         logger.info(`[PlivoStream] Agent ${call.agentId} is Sarvam, routing to SarvamBridge`, undefined, 'PlivoStream');
+        const isTestCall = (call.metadata as Record<string, unknown> | null)?.testCall === true;
+        const ok = await startSarvamSession({ callUuid, ws: plivoWs, streamSid, call, agent, isTestCall });
+        if (!ok) return false;
 
-        // Messaging tools (send_whatsapp / send_email) — templates resolved once per call
-        let callTools: CallTool[] = [];
-        if (agent.messagingEmailEnabled || agent.messagingWhatsappEnabled) {
-          callTools = await buildCallMessagingTools({
-            userId: agent.userId,
-            agentId: call.agentId,
-            callId: call.id,
-            callUuid,
-            fromNumber: call.fromNumber,
-            toNumber: call.toNumber,
-            callDirection: call.callDirection,
-            agent,
-          });
-        }
-
-        // Action tools (transfer / appointments / save_lead / callbacks / api_*) from the agent row
-        const callMeta = call.metadata as Record<string, unknown> | null;
-        const callDirection: 'inbound' | 'outbound' = call.callDirection === 'inbound' ? 'inbound' : 'outbound';
-        let plivoCredentialId = (callMeta?.plivoCredentialId as string | undefined) || null;
-        if (!plivoCredentialId && call.plivoPhoneNumberId) {
-          const [num] = await db.select({ plivoCredentialId: plivoPhoneNumbers.plivoCredentialId })
-            .from(plivoPhoneNumbers).where(eq(plivoPhoneNumbers.id, call.plivoPhoneNumberId)).limit(1);
-          plivoCredentialId = num?.plivoCredentialId || null;
-        }
-        const actions = readActionsConfig(agent.config);
-        callTools.push(...await buildCallActionTools({
-          userId: agent.userId,
-          agentId: call.agentId,
-          callId: call.id,
-          callUuid,
-          fromNumber: call.fromNumber,
-          toNumber: call.toNumber,
-          callDirection,
-          callerPhone: normalizePhone(callDirection === 'inbound' ? call.fromNumber : call.toNumber),
-          plivoPhoneNumberId: call.plivoPhoneNumberId || null,
-          plivoCredentialId,
-          campaignId: call.campaignId || null,
-          agent: { id: call.agentId, ...agent },
-          actions,
-          language: agent.language || 'hi-IN',
-          messagingTools: [...callTools],
-        }));
-
-        // Get OpenAI key for GPT-4o LLM
-        let openaiKey: string | null = null;
-        if (call.openaiCredentialId) {
-          const cred = await OpenAIPoolService.getCredentialById(call.openaiCredentialId);
-          openaiKey = cred?.apiKey || null;
-        }
-        // Fallback: get any available credential from pool
-        if (!openaiKey) {
-          logger.warn(`[PlivoStream] No credential ID for Sarvam call ${callUuid}, trying pool fallback`, undefined, 'PlivoStream');
-          const anyCred = await OpenAIPoolService.getLeastLoadedCredential();
-          openaiKey = anyCred?.apiKey || null;
-        }
-        // Final fallback: env var
-        if (!openaiKey && process.env.OPENAI_API_KEY) {
-          openaiKey = process.env.OPENAI_API_KEY;
-        }
-
-        if (!openaiKey) {
-          logger.error(`[PlivoStream] No OpenAI key available for Sarvam call ${callUuid} — add OpenAI credentials in admin`, undefined, 'PlivoStream');
-          plivoWs.close();
-          return false;
-        }
-
-        await SarvamBridgeService.initializeSession(
-          callUuid,
-          plivoWs,
-          streamSid,
-          call.agentId,
-          {
-            systemPrompt: (callMeta?.systemPrompt as string) || agent.systemPrompt || 'Aap ek helpful Indian voice assistant hain.',
-            firstMessage: (callMeta?.firstMessage as string) || agent.firstMessage || undefined,
-            language:     agent.language || 'hi-IN',
-            voice:        agent.openaiVoice || 'priya',
-            openaiApiKey: openaiKey,
-            // Sarvam uses chat/completions: prefer the agent's chat model (llmModel).
-            // call.openaiModel is a Realtime model id and must not be used here.
-            openaiModel:  agent.llmModel || agent.openaiModel || 'gpt-4o-mini',
-            detectLanguage: !!agent.detectLanguageEnabled,
-            knowledgeBaseIds: agent.knowledgeBaseIds || null,
-            userId: agent.userId,
-            tools: callTools,
-            plivoCredentialId,
-            plivoPhoneNumberId: call.plivoPhoneNumberId || null,
-            callDirection,
-            fromNumber: call.fromNumber,
-            toNumber: call.toNumber,
-            actionsTimeZone: actions.appointments?.timeZone,
-          },
-          call.id
-        );
-
-        // ── Start Plivo recording for Sarvam calls ─────────────────────────
-        if (call.id) {
+        // ── Start Plivo recording for Sarvam calls (never for browser test calls) ──
+        if (call.id && !isTestCall) {
           setTimeout(async () => {
             if (plivoWs.readyState !== WebSocket.OPEN) return;
             logger.info(`[PlivoStream] Starting recording for Sarvam call ${callUuid}`, undefined, 'PlivoStream');

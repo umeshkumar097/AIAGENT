@@ -19,8 +19,11 @@
 import { Router, Request, Response } from "express";
 import { RouteContext, AuthRequest } from "./common";
 import { eq, and } from "drizzle-orm";
-import { llmModels, flows, FlowNode, FlowEdge, knowledgeBase, AgentActionsConfigSchema, AgentApiToolSchema } from "@shared/schema";
+import { llmModels, flows, FlowNode, FlowEdge, knowledgeBase, plivoCalls, AgentActionsConfigSchema, AgentApiToolSchema } from "@shared/schema";
+import { nanoid } from "nanoid";
 import { runApiTool } from "../services/call-actions";
+import { createRateLimiter } from "../middleware/rateLimiter";
+import { signTestCallToken, TEST_CALL_MAX_SECONDS } from "../engines/plivo/routes/sarvam-session";
 import { ElevenLabsService, isAgentOnSipPhoneNumber, getSipTrunkOutboundAddress } from "../services/elevenlabs";
 import { ElevenLabsPoolService } from "../services/elevenlabs-pool";
 import { OpenAIPoolService } from "../engines/plivo/services/openai-pool.service";
@@ -100,7 +103,7 @@ async function fetchWhatsappTemplateNames(userId: string): Promise<string[]> {
 
 export function createAgentRoutes(ctx: RouteContext): Router {
   const router = Router();
-  const { db, storage, authenticateToken, authenticateHybrid, elevenLabsService, upload } = ctx;
+  const { db, storage, authenticateToken, authenticateHybrid, elevenLabsService, upload, strictRateLimiter } = ctx;
 
   // ========================================
   // Agent CRUD Routes
@@ -756,7 +759,7 @@ export function createAgentRoutes(ctx: RouteContext): Router {
    * definition comes from the request, so nothing is stored; the SSRF guard and https-only
    * rules of the call-time tool apply. Returns the model-facing message.
    */
-  router.post("/api/agents/tools/test", authenticateHybrid, async (req: AuthRequest, res: Response) => {
+  router.post("/api/agents/tools/test", authenticateHybrid, strictRateLimiter, async (req: AuthRequest, res: Response) => {
     try {
       const parsed = AgentApiToolSchema.safeParse(req.body?.tool);
       if (!parsed.success) {
@@ -785,6 +788,43 @@ export function createAgentRoutes(ctx: RouteContext): Router {
     } catch (error: any) {
       console.error("Get agent error:", error);
       res.status(500).json({ error: "Failed to get agent" });
+    }
+  });
+
+  /**
+   * Browser test call (F4): creates a plivo_calls row (no Plivo leg, no credits) and returns a
+   * 2-minute token for the /api/sarvam/test-call/:callUuid WebSocket. Sarvam agents only.
+   */
+  const testSessionLimiter = createRateLimiter({ windowMs: 60 * 60 * 1000, maxRequests: 10, message: "Too many test calls — try again in an hour" });
+  router.post("/api/agents/:id/test-session", authenticateToken, testSessionLimiter, async (req: AuthRequest, res: Response) => {
+    try {
+      const agent = await storage.getAgent(req.params.id);
+      if (!agent || agent.userId !== req.userId) {
+        return res.status(404).json({ error: "Agent not found" });
+      }
+      if (agent.telephonyProvider !== "sarvam-plivo") {
+        return res.status(400).json({ error: "Browser test calls are available for Sarvam agents only" });
+      }
+      const callUuid = `test_${nanoid(21)}`;
+      const now = new Date();
+      const [call] = await db.insert(plivoCalls).values({
+        userId: req.userId!,
+        agentId: agent.id,
+        plivoCallUuid: callUuid,
+        fromNumber: "browser",
+        toNumber: "browser",
+        openaiVoice: agent.openaiVoice || null,
+        status: "in-progress",
+        callDirection: "outbound",
+        startedAt: now,
+        answeredAt: now,
+        metadata: { testCall: true, agentName: agent.name },
+      }).returning({ id: plivoCalls.id });
+      const token = signTestCallToken({ callId: call.id, callUuid, userId: req.userId!, agentId: agent.id });
+      res.json({ token, callUuid, callId: call.id, wsPath: `/api/sarvam/test-call/${callUuid}?token=${encodeURIComponent(token)}`, maxSeconds: TEST_CALL_MAX_SECONDS });
+    } catch (error: any) {
+      console.error("Create test session error:", error.message);
+      res.status(500).json({ error: "Failed to start a test session" });
     }
   });
 

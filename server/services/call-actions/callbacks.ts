@@ -79,8 +79,9 @@ export function buildCallbackTool(ctx: CallActionContext): CallTool | null {
       const phone = normalizePhone(str(args.phone)) || ctx.callerPhone;
       if (!phone) return { success: false, message: 'Ask the caller which number to call back.' };
       const scheduledAt = zonedToUtc(date, time, w.timeZone);
-      const reason = str(args.reason) || null;
-      const contactName = str(args.contactName) || null;
+      // Caller speech: capped and single-line (it is later quoted into the callback call's prompt)
+      const reason = str(args.reason).replace(/[\r\n]+/g, ' ').substring(0, 200) || null;
+      const contactName = str(args.contactName).replace(/[\r\n]+/g, ' ').substring(0, 120) || null;
 
       try {
         const [row] = await db.insert(scheduledCallbacks).values({

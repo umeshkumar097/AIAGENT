@@ -352,6 +352,8 @@ export const campaigns = pgTable("campaigns", {
   retryOnNoAnswer: boolean("retry_on_no_answer").default(true), // Retry contacts that didn't answer
   retryOnBusy: boolean("retry_on_busy").default(false), // Retry contacts that were busy
   retryOnFailed: boolean("retry_on_failed").default(false), // Retry contacts that failed (technical error)
+  // Per-outcome smart retry (no_answer / busy / failed / voicemail); null → derived from the legacy columns above
+  retryRules: jsonb("retry_rules").$type<RetryRules>(),
   batchJobHistory: jsonb("batch_job_history").default([]), // Array of {batchJobId, pass, contactCount, createdAt}
   currentRetryPass: integer("current_retry_pass").default(0), // Which pass we're currently on (0 = initial, 1+ = retries)
   
@@ -1153,7 +1155,73 @@ export interface AgentApiTool {
   timeoutMs?: number;             // default 8000, max 12000
 }
 
+// ============================================
+// CALL OUTCOMES — plivo_calls.metadata.outcome (+ classification column)
+// ============================================
+/** Outcomes the agent may set with the set_call_outcome tool. */
+export const AGENT_CALL_OUTCOMES = [
+  "interested", "not_interested", "callback_requested", "wrong_number", "already_customer", "do_not_call", "no_decision",
+] as const;
+/** Outcomes the platform sets from telephony / call events. */
+export const SYSTEM_CALL_OUTCOMES = [
+  "voicemail", "no_answer", "busy", "failed", "transferred", "appointment_booked",
+] as const;
+export type AgentCallOutcome = typeof AGENT_CALL_OUTCOMES[number];
+export type SystemCallOutcome = typeof SYSTEM_CALL_OUTCOMES[number];
+export type CallOutcome = AgentCallOutcome | SystemCallOutcome;
+export type CallOutcomeSource = "agent" | "system" | "ai";
+export const CALL_OUTCOMES: ReadonlyArray<{ id: CallOutcome; label: string; kind: "agent" | "system" }> = [
+  { id: "interested", label: "Interested", kind: "agent" },
+  { id: "not_interested", label: "Not interested", kind: "agent" },
+  { id: "callback_requested", label: "Callback requested", kind: "agent" },
+  { id: "wrong_number", label: "Wrong number", kind: "agent" },
+  { id: "already_customer", label: "Already a customer", kind: "agent" },
+  { id: "do_not_call", label: "Do not call", kind: "agent" },
+  { id: "no_decision", label: "No decision", kind: "agent" },
+  { id: "voicemail", label: "Voicemail", kind: "system" },
+  { id: "no_answer", label: "No answer", kind: "system" },
+  { id: "busy", label: "Busy", kind: "system" },
+  { id: "failed", label: "Failed", kind: "system" },
+  { id: "transferred", label: "Transferred", kind: "system" },
+  { id: "appointment_booked", label: "Appointment booked", kind: "system" },
+];
+/** Outcomes after which a campaign contact is never re-dialled. */
+export const FINAL_CALL_OUTCOMES: ReadonlyArray<CallOutcome> = [
+  "do_not_call", "wrong_number", "not_interested", "interested", "appointment_booked", "already_customer",
+];
+
+// ============================================
+// CAMPAIGN SMART RETRY — campaigns.retry_rules
+// ============================================
+export const RETRY_OUTCOMES = ["no_answer", "busy", "failed", "voicemail"] as const;
+export type RetryOutcome = typeof RETRY_OUTCOMES[number];
+export interface RetryRule { enabled: boolean; delayMinutes: number; maxAttempts: number }
+export type RetryRules = Record<RetryOutcome, RetryRule>;
+export const RetryRuleSchema = z.object({
+  enabled: z.boolean(),
+  delayMinutes: z.number().int().min(5).max(10080),
+  maxAttempts: z.number().int().min(0).max(10),
+});
+export const RetryRulesSchema = z.object({
+  no_answer: RetryRuleSchema,
+  busy: RetryRuleSchema,
+  failed: RetryRuleSchema,
+  voicemail: RetryRuleSchema,
+}).strict();
+
 export interface AgentActionsConfig {
+  /** Outbound answering-machine handling (Plivo AMD → Sarvam bridge) */
+  voicemail?: { action: "hangup" | "leave_message"; message?: string };
+  /** Owner notification after a call (platform email + Waki WhatsApp template) */
+  ownerAlerts?: {
+    enabled: boolean;
+    triggers: Array<"interested" | "appointment_booked" | "callback_requested" | "transferred" | "do_not_call" | "all">;
+    email?: string;
+    whatsappPhone?: string;
+    whatsappTemplate?: string;
+    /** template {{n}} → field key (caller_name, caller_phone, outcome, summary, appointment, callback, agent_name, call_time, duration, call_link) or `text:<fixed>` */
+    whatsappVariables?: Record<string, string>;
+  };
   appointments?: {
     durationMinutes: number;      // default 30
     timeZone: string;             // IANA, default 'Asia/Kolkata'
@@ -1194,7 +1262,23 @@ export const AgentApiToolSchema = z.object({
   timeoutMs: z.number().int().min(1000).max(12000).optional(),
 }).refine((t) => Object.keys(t.headers || {}).length <= 10, { message: "At most 10 headers" });
 
+const OWNER_ALERT_TRIGGERS = ["interested", "appointment_booked", "callback_requested", "transferred", "do_not_call", "all"] as const;
+const OWNER_ALERT_FIELD_RE = /^(caller_name|caller_phone|outcome|summary|appointment|callback|agent_name|call_time|duration|call_link|text:[\s\S]{0,200})$/;
+const EMAIL_LIST_RE = /^[^\s@,]+@[^\s@,]+\.[^\s@,]+(\s*,\s*[^\s@,]+@[^\s@,]+\.[^\s@,]+){0,2}$/;
+
 export const AgentActionsConfigSchema = z.object({
+  voicemail: z.object({
+    action: z.enum(["hangup", "leave_message"]),
+    message: z.string().trim().max(400).optional(),
+  }).refine((v) => v.action !== "leave_message" || !!v.message?.trim(), { message: "A voicemail message is required", path: ["message"] }).optional(),
+  ownerAlerts: z.object({
+    enabled: z.boolean(),
+    triggers: z.array(z.enum(OWNER_ALERT_TRIGGERS)).max(6),
+    email: z.string().trim().max(320).refine((e) => e === "" || EMAIL_LIST_RE.test(e), "Up to 3 comma-separated email addresses").optional(),
+    whatsappPhone: z.string().trim().max(20).refine((p) => p === "" || /^\+?[\d\s-]{8,20}$/.test(p), "Invalid WhatsApp number").optional(),
+    whatsappTemplate: z.string().trim().max(120).optional(),
+    whatsappVariables: z.record(z.string().regex(/^[1-9]\d{0,2}$/), z.string().max(210).regex(OWNER_ALERT_FIELD_RE, "Unknown field")).optional(),
+  }).optional(),
   appointments: z.object({
     durationMinutes: z.number().int().min(5).max(240),
     timeZone: z.string().refine(isValidTimeZone, "Invalid IANA time zone"),
@@ -2343,6 +2427,25 @@ export const insertScheduledCallbackSchema = createInsertSchema(scheduledCallbac
   createdAt: true,
   updatedAt: true,
 });
+
+// Do-not-call list — numbers this user must never dial (caller request, manual entry, upload, API)
+export const doNotCallNumbers = pgTable("do_not_call_numbers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  phone: text("phone").notNull(), // normalised: +<digits>
+  reason: text("reason").notNull().default("manual"), // caller_request | manual | import | complaint
+  source: text("source").notNull().default("manual"), // agent | manual | upload | api
+  callId: varchar("call_id"), // plivo_calls.id when added during a call
+  note: text("note"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  doNotCallUserPhoneUnique: uniqueIndex("do_not_call_numbers_user_phone_unique").on(table.userId, table.phone),
+  doNotCallUserIdx: index("do_not_call_numbers_user_id_idx").on(table.userId),
+}));
+
+export const insertDoNotCallNumberSchema = createInsertSchema(doNotCallNumbers).omit({ id: true, createdAt: true });
+export type InsertDoNotCallNumber = z.infer<typeof insertDoNotCallNumberSchema>;
+export type DoNotCallNumber = typeof doNotCallNumbers.$inferSelect;
 export type InsertScheduledCallback = z.infer<typeof insertScheduledCallbackSchema>;
 export type ScheduledCallback = typeof scheduledCallbacks.$inferSelect;
 
@@ -2591,7 +2694,8 @@ export const leads = pgTable("leads", {
   tags: text("tags").array(),
   
   // Assignment for team accounts
-  assignedUserId: varchar("assigned_user_id").references(() => users.id, { onDelete: "set null" }),
+  // Owner user id OR team_members.id — no FK (migration 0017 dropped it) so team members can be assignees
+  assignedUserId: varchar("assigned_user_id"),
   
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

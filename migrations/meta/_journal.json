@@ -99,6 +99,34 @@
       "when": 1790142001606,
       "tag": "0013_scheduled_callbacks",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1790142002606,
+      "tag": "0014_dnd_and_outcomes",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1790142003606,
+      "tag": "0015_user_billing_preferences",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1790142004606,
+      "tag": "0016_call_qa_scores",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790142005606,
+      "tag": "0017_crm_inbox",
+      "breakpoints": true
     }
   ]
 }

@@ -21,8 +21,10 @@ import { BatchCallingService, BatchJob, BatchJobStatus, BatchJobWithRecipients }
 import { db } from '../db';
 import { campaigns, contacts, calls, agents, phoneNumbers, plivoPhoneNumbers, sipPhoneNumbers, flowExecutions, flows } from '../../shared/schema';
 import { nanoid } from 'nanoid';
-import { eq, inArray, sql, and, isNotNull, lte } from 'drizzle-orm';
+import { eq, inArray, sql, and, or, isNotNull, lte } from 'drizzle-orm';
 import { CampaignScheduler } from './campaign-scheduler';
+import { enabledRetryStatuses, resolveRetryRules } from './retry-rules';
+import { filterDoNotCall, normalizePhone as normalizeDndPhone } from './dnd-service';
 import { webhookDeliveryService } from './webhook-delivery';
 import { emailService } from './email-service';
 import { dispatchEvent } from './event-dispatcher';
@@ -2942,24 +2944,20 @@ export class CampaignExecutor {
       return;
     }
 
-    if (!campaign.retryEnabled) {
+    // Smart retry (F3): one rule per outcome — status → delay/cap — derived from the legacy columns when unset
+    const retryRules = resolveRetryRules(campaign);
+    const enabledRules = enabledRetryStatuses(retryRules);
+    if (enabledRules.length === 0) {
       console.log(`[Retry Pass] Campaign "${campaign.name}" has retry disabled — skipping`);
       return;
     }
 
-    // Build the set of statuses that qualify for retry (based on current campaign config)
-    const retryStatuses: string[] = [];
-    if (campaign.retryOnNoAnswer !== false) retryStatuses.push('no-answer');
-    if (campaign.retryOnBusy === true) retryStatuses.push('busy');
-    if (campaign.retryOnFailed === true) retryStatuses.push('failed');
-
-    const maxAttempts = campaign.retryMaxAttempts ?? 3;
-
     // Find contacts that are due AND still eligible at execution time.
     // Re-validating here prevents stale retries if: campaign flags were edited after
     // scheduling, contact answered on a previous pass (status changed to 'completed'),
-    // or max attempts was already reached.
-    const dueContacts = await db
+    // or max attempts was already reached. Use <= maxAttempts because scheduleContactRetry
+    // already incremented the count before the next call is created.
+    const dueCandidates = await db
       .select()
       .from(contacts)
       .where(
@@ -2967,13 +2965,21 @@ export class CampaignExecutor {
           eq(contacts.campaignId, campaignId),
           isNotNull(contacts.nextRetryAt),
           lte(contacts.nextRetryAt, now),
-          retryStatuses.length > 0 ? inArray(contacts.status, retryStatuses) : sql`FALSE`,
-          // Use <= maxAttempts because scheduleContactRetry already incremented the count
-          // before the next call is created (so at execution time, count == maxAttempts is
-          // still valid — we're about to make the maxAttempts-th call).
-          sql`COALESCE(${contacts.attemptCount}, 1) <= ${maxAttempts}`
+          or(...enabledRules.map(r => and(
+            eq(contacts.status, r.status),
+            sql`COALESCE(${contacts.attemptCount}, 1) <= ${r.rule.maxAttempts}`
+          )))
         )
       );
+
+    // Do-not-call numbers (F2) are dropped from the pass and marked so they are never picked again
+    const blocked = await filterDoNotCall(campaign.userId, dueCandidates.map(c => c.phone));
+    const dndIds = dueCandidates.filter(c => blocked.has(normalizeDndPhone(c.phone))).map(c => c.id);
+    if (dndIds.length > 0) {
+      await db.update(contacts).set({ status: 'dnd', nextRetryAt: null }).where(inArray(contacts.id, dndIds));
+      console.log(`[Retry Pass] Skipped ${dndIds.length} do-not-call contact(s) in campaign "${campaign.name}"`);
+    }
+    const dueContacts = dueCandidates.filter(c => !blocked.has(normalizeDndPhone(c.phone)));
 
     if (dueContacts.length === 0) {
       console.log(`[Retry Pass] No contacts due for retry in campaign "${campaign.name}"`);

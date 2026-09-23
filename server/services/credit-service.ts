@@ -41,6 +41,8 @@ export interface CreditDeductionParams {
   toNumber: string;
   durationSeconds: number;
   engine: CreditEngine;
+  /** Browser test calls (plivo_calls.metadata.testCall) are never billed. */
+  isTestCall?: boolean;
 }
 
 export interface CreditDeductionResult {
@@ -105,7 +107,7 @@ function formatSipEndpoint(endpoint: string | null | undefined): string {
 export async function deductCallCredits(params: CreditDeductionParams): Promise<CreditDeductionResult> {
   const { userId, creditsToDeduct, callId, fromNumber, toNumber, durationSeconds, engine } = params;
 
-  if (creditsToDeduct <= 0) {
+  if (creditsToDeduct <= 0 || params.isTestCall) {
     return { success: true, creditsDeducted: 0, alreadyDeducted: false };
   }
 

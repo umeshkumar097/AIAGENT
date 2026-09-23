@@ -98,6 +98,7 @@ import { createTemplateRoutes } from "./routes/template-routes";
 import helpAgentRouter from "./routes/helpAgent";
 import { createSubscriptionRoutes } from "./routes/subscription-routes";
 import crmRoutes from "./routes/crm-routes";
+import crmInboxRoutes from "./routes/crm-inbox-routes";
 import { widgetRoutes, publicWidgetRoutes } from "./modules/widget";
 // REST API Plugin - loaded dynamically so server starts without it
 import bcrypt from "bcrypt";
@@ -1787,6 +1788,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // CRM routes - Lead Management (isolated module)
   // Use hybrid auth to allow both users and team members
   app.use("/api/crm", hybridAuth, enforceTeamSectionPermission("crm"), crmRoutes);
+  app.use("/api/crm", hybridAuth, enforceTeamSectionPermission("crm"), crmInboxRoutes); // team inbox: assignment + follow-up SLA
 
   // Public Platform Languages route - for i18n dynamic loading (no auth required)
   // Must be registered BEFORE publicWidgetRoutes to ensure specific path matches first
@@ -1807,6 +1809,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     '/api/twilio-openai/stream',
     '/api/webhooks/twilio/stream',
     '/api/plivo/stream',
+    '/api/sarvam/test-call',
   ];
   for (const streamPath of streamPaths) {
     app.get(`${streamPath}*`, (req, res) => {
@@ -1852,6 +1855,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Scheduled callbacks (booked by agents via schedule_callback or manually from the Callbacks page)
   const { callbackRouter } = await import("./routes/callback-routes");
   app.use("/api/callbacks", authenticateToken as unknown as import('express').RequestHandler, callbackRouter);
+
+  // Do-not-call list (caller requests via the agent, manual entries, CSV/API imports)
+  const { dndRouter } = await import("./routes/dnd-routes");
+  app.use("/api/dnd", authenticateToken as unknown as import('express').RequestHandler, dndRouter);
+  app.use("/api", (await import("./routes/call-qa-routes")).callQaRouter); // call QA: /api/calls/:id/qa, /api/qa/summary (routes self-authenticate)
+  app.use("/api/billing/preferences", authenticateToken as unknown as import('express').RequestHandler, (await import("./routes/billing-prefs-routes")).billingPrefsRouter); // usage alerts + low-balance guard
 
   // This must be registered on the httpServer to properly handle Twilio WebSocket streams
   httpServer.on('upgrade', (request, socket, head) => {

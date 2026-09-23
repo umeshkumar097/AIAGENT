@@ -40,6 +40,29 @@ export interface AppointmentsForm {
   serviceName: string;
 }
 
+/** What an outbound call does when an answering machine picks up (Plivo AMD). */
+export type VoicemailAction = 'hangup' | 'leave_message';
+export interface VoicemailForm { action: VoicemailAction; message: string }
+export const VOICEMAIL_MESSAGE_MAX = 400;
+
+/** Owner alert after a call: which outcomes trigger it and where it goes. */
+export const OWNER_ALERT_TRIGGERS = ['interested', 'appointment_booked', 'callback_requested', 'transferred', 'do_not_call', 'all'] as const;
+export type OwnerAlertTrigger = typeof OWNER_ALERT_TRIGGERS[number];
+/** Field keys a WhatsApp template variable can map to; anything else is sent as `text:<fixed>`. */
+export const OWNER_ALERT_FIELDS = [
+  'caller_name', 'caller_phone', 'outcome', 'summary', 'appointment', 'callback', 'agent_name', 'call_time', 'duration', 'call_link',
+] as const;
+export type OwnerAlertField = typeof OWNER_ALERT_FIELDS[number];
+export interface OwnerAlertsForm {
+  enabled: boolean;
+  triggers: OwnerAlertTrigger[];
+  email: string;
+  whatsappPhone: string;
+  whatsappTemplate: string;
+  /** "1".."n" → field key or `text:<fixed>` */
+  whatsappVariables: Record<string, string>;
+}
+
 export interface AgentActionsForm {
   appointments: AppointmentsForm;
   saveLeadEnabled: boolean;
@@ -47,6 +70,8 @@ export interface AgentActionsForm {
   callbackEnabled: boolean;
   callbackMaxDaysAhead: number;
   apiTools: AgentApiTool[];
+  voicemail: VoicemailForm;
+  ownerAlerts: OwnerAlertsForm;
 }
 
 /** Server-side shape stored in agents.config.actions. */
@@ -62,6 +87,15 @@ export interface AgentActionsConfig {
   saveLead?: { fields: LeadField[] };
   callback?: { enabled: boolean; maxDaysAhead: number };
   apiTools?: AgentApiTool[];
+  voicemail?: { action: VoicemailAction; message?: string };
+  ownerAlerts?: {
+    enabled: boolean;
+    triggers: OwnerAlertTrigger[];
+    email?: string;
+    whatsappPhone?: string;
+    whatsappTemplate?: string;
+    whatsappVariables?: Record<string, string>;
+  };
 }
 
 export const MAX_API_TOOLS = 10;
@@ -86,6 +120,13 @@ export function defaultAppointments(): AppointmentsForm {
   };
 }
 
+export function defaultOwnerAlerts(): OwnerAlertsForm {
+  return {
+    enabled: false, triggers: ['interested', 'appointment_booked', 'callback_requested'],
+    email: '', whatsappPhone: '', whatsappTemplate: '', whatsappVariables: {},
+  };
+}
+
 export function defaultActionsForm(): AgentActionsForm {
   return {
     appointments: defaultAppointments(),
@@ -94,7 +135,28 @@ export function defaultActionsForm(): AgentActionsForm {
     callbackEnabled: false,
     callbackMaxDaysAhead: 7,
     apiTools: [],
+    voicemail: { action: 'hangup', message: '' },
+    ownerAlerts: defaultOwnerAlerts(),
   };
+}
+
+function readOwnerAlerts(raw: AgentActionsConfig['ownerAlerts']): OwnerAlertsForm {
+  const out = defaultOwnerAlerts();
+  if (!raw || typeof raw !== 'object') return out;
+  out.enabled = raw.enabled === true;
+  if (Array.isArray(raw.triggers)) {
+    const valid = raw.triggers.filter((x): x is OwnerAlertTrigger => (OWNER_ALERT_TRIGGERS as readonly string[]).includes(x));
+    if (valid.length > 0) out.triggers = valid;
+  }
+  out.email = typeof raw.email === 'string' ? raw.email : '';
+  out.whatsappPhone = typeof raw.whatsappPhone === 'string' ? raw.whatsappPhone : '';
+  out.whatsappTemplate = typeof raw.whatsappTemplate === 'string' ? raw.whatsappTemplate : '';
+  if (raw.whatsappVariables && typeof raw.whatsappVariables === 'object') {
+    for (const [k, v] of Object.entries(raw.whatsappVariables)) {
+      if (/^\d+$/.test(k) && typeof v === 'string') out.whatsappVariables[k] = v;
+    }
+  }
+  return out;
 }
 
 const isHHMM = (v: unknown): v is string => typeof v === 'string' && HHMM_RE.test(v);
@@ -158,6 +220,13 @@ export function actionsFromConfig(raw: unknown): AgentActionsForm {
     out.callbackMaxDaysAhead = typeof d === 'number' && d >= 1 && d <= 60 ? d : 7;
   }
   out.apiTools = readApiTools(cfg.apiTools);
+  if (cfg.voicemail && typeof cfg.voicemail === 'object') {
+    out.voicemail = {
+      action: cfg.voicemail.action === 'leave_message' ? 'leave_message' : 'hangup',
+      message: typeof cfg.voicemail.message === 'string' ? cfg.voicemail.message : '',
+    };
+  }
+  out.ownerAlerts = readOwnerAlerts(cfg.ownerAlerts);
   return out;
 }
 
@@ -178,6 +247,23 @@ export function actionsToConfig(form: AgentActionsForm): AgentActionsConfig {
       : undefined,
     callback: { enabled: form.callbackEnabled, maxDaysAhead: form.callbackMaxDaysAhead },
     apiTools: form.apiTools,
+    voicemail: form.voicemail.action === 'leave_message'
+      ? { action: 'leave_message', message: form.voicemail.message.trim().slice(0, VOICEMAIL_MESSAGE_MAX) }
+      : { action: 'hangup' },
+    ownerAlerts: ownerAlertsToConfig(form.ownerAlerts),
+  };
+}
+
+function ownerAlertsToConfig(a: OwnerAlertsForm): NonNullable<AgentActionsConfig['ownerAlerts']> {
+  const variables: Record<string, string> = {};
+  for (const [k, v] of Object.entries(a.whatsappVariables)) if (v.trim()) variables[k] = v.trim();
+  return {
+    enabled: a.enabled,
+    triggers: a.triggers.length ? a.triggers : ['all'],
+    email: a.email.trim() || undefined,
+    whatsappPhone: a.whatsappPhone.trim() || undefined,
+    whatsappTemplate: a.whatsappPhone.trim() && a.whatsappTemplate ? a.whatsappTemplate : undefined,
+    whatsappVariables: a.whatsappPhone.trim() && a.whatsappTemplate && Object.keys(variables).length ? variables : undefined,
   };
 }
 

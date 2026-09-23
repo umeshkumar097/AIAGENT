@@ -1708,6 +1708,9 @@
       "addedContactsCount": "Added Contacts ({{count}})"
     },
     "toast": {
+      "uploadInserted": "{{count}} contacts added",
+      "uploadSkippedInvalid": "{{count}} invalid skipped",
+      "uploadSkippedDnd": "{{count}} on your do-not-call list skipped",
       "createdSuccess": "Campaign created successfully!",
       "updatedSuccess": "Campaign updated successfully!",
       "createFailed": "Failed to create campaign",
@@ -2077,6 +2080,8 @@
       "totalCalls": "Total Calls"
     },
     "filters": {
+      "outcome": "Outcome",
+      "allOutcomes": "All outcomes",
       "all": "All",
       "incoming": "Incoming",
       "outgoing": "Outgoing",
@@ -2136,6 +2141,10 @@
     "select": "Select"
   },
   "contacts": {
+    "tabs": {
+      "contacts": "Contacts",
+      "dnd": "Do not call"
+    },
     "title": "All Contacts",
     "description": "View all unique contacts across campaigns",
     "addContact": "Add Contact",
@@ -5230,6 +5239,47 @@
   },
   "billing_period": "Billing Period",
   "agentBuilder": {
+    "voicemail": {
+      "title": "When voicemail answers",
+      "hint": "Outbound calls only. Detected automatically when an answering machine picks up.",
+      "hangup": "Hang up (no minutes used)",
+      "leaveMessage": "Leave this message",
+      "placeholder": "Hello, we tried to reach you about your enquiry. Please call us back at your convenience. Thank you.",
+      "spokenAfterBeep": "Spoken in the agent's voice after the beep, then the call ends."
+    },
+    "ownerAlerts": {
+      "toggle": "Notify me after calls",
+      "hint": "Get an email or WhatsApp with the outcome, summary and next step as soon as the call ends.",
+      "when": "Send when the call ends with",
+      "email": "Email (comma-separated, up to 3)",
+      "useAccountEmail": "Use my account email",
+      "whatsappPhone": "WhatsApp number",
+      "wakiNotConnected": "Connect your Waki account in Settings → Messaging to send WhatsApp alerts; email still works.",
+      "template": "WhatsApp template",
+      "pickTemplate": "Pick an approved template",
+      "variablesHint": "What goes into each numbered placeholder of the template.",
+      "pickField": "Pick a field",
+      "trigger": {
+        "interested": "Interested lead",
+        "appointment_booked": "Appointment booked",
+        "callback_requested": "Callback requested",
+        "transferred": "Call transferred",
+        "do_not_call": "Asked not to be called",
+        "all": "Every completed call"
+      },
+      "field": {
+        "caller_name": "Caller name",
+        "caller_phone": "Caller phone",
+        "outcome": "Outcome",
+        "summary": "Call summary",
+        "appointment": "Appointment (date & time)",
+        "callback": "Callback time",
+        "agent_name": "Agent name",
+        "call_time": "Call time",
+        "duration": "Duration",
+        "call_link": "Link to the call"
+      }
+    },
     "title": "New agent",
     "editTitle": "Edit agent",
     "subtitle": "One agent for incoming calls and campaigns, running on Plivo.",
@@ -5463,7 +5513,10 @@
       "transferNumberRequired": "Add the transfer phone number.",
       "appointmentHoursInvalid": "Appointment working hours: the end time must be after the start.",
       "appointmentDaysRequired": "Pick at least one working day for appointments.",
-      "leadFieldKeyRequired": "Every lead field needs a key."
+      "leadFieldKeyRequired": "Every lead field needs a key.",
+      "voicemailMessageRequired": "Write the message to leave on voicemail.",
+      "ownerAlertTargetRequired": "Owner alerts need an email or a WhatsApp number.",
+      "ownerAlertTemplateRequired": "Pick a WhatsApp template for owner alerts."
     },
     "create": "Create agent",
     "save": "Save changes",
@@ -5507,5 +5560,103 @@
       "failed": "Failed",
       "cancelled": "Cancelled"
     }
+  },
+  "dnd": {
+    "searchPlaceholder": "Search numbers…",
+    "import": "Import list",
+    "add": "Add number",
+    "notePlaceholder": "Note (optional)",
+    "added": "Number added to the do-not-call list",
+    "addFailed": "Could not add number",
+    "removed": "Number removed — it can be called again",
+    "removeFailed": "Could not remove number",
+    "remove": "Remove from list",
+    "explainer": "Campaign uploads skip these numbers, and scheduled retries and callbacks never dial them. People who call you are never blocked.",
+    "loadFailed": "Could not load the do-not-call list.",
+    "noMatch": "No numbers match your search",
+    "empty": "No blocked numbers yet",
+    "count": "{{count}} numbers",
+    "importDesc": "Paste numbers (one per line) or pick a CSV whose first column is the phone number. 10-digit numbers are treated as Indian (+91).",
+    "pasteLabel": "Numbers",
+    "pickCsv": "Choose a CSV / text file",
+    "parsed": "{{count}} numbers found",
+    "invalidLines": "{{count}} lines skipped",
+    "tooMany": "At most {{max}} numbers per import — only the first {{max}} will be sent.",
+    "importConfirm": "Add {{count}} numbers",
+    "importDone": "Do-not-call list updated",
+    "importSummary": "{{added}} added, {{skipped}} already listed or invalid",
+    "importFailed": "Import failed",
+    "fileTooLarge": "File is too large (max 5 MB)",
+    "fields": {
+      "reason": "Reason",
+      "source": "Source",
+      "note": "Note",
+      "added": "Added"
+    },
+    "reason": {
+      "caller_request": "Caller asked",
+      "manual": "Added by you",
+      "import": "Imported",
+      "complaint": "Complaint"
+    },
+    "source": {
+      "agent": "On a call",
+      "manual": "Manual",
+      "upload": "Upload",
+      "api": "API"
+    }
+  },
+  "callOutcomes": {
+    "interested": "Interested",
+    "not_interested": "Not interested",
+    "callback_requested": "Callback requested",
+    "wrong_number": "Wrong number",
+    "already_customer": "Already a customer",
+    "do_not_call": "Do not call",
+    "no_decision": "No decision",
+    "voicemail": "Voicemail",
+    "no_answer": "No answer",
+    "busy": "Busy",
+    "failed": "Failed",
+    "transferred": "Transferred",
+    "appointment_booked": "Appointment booked"
+  },
+  "testCall": {
+    "title": "Test in browser",
+    "tooltip": "Talk to the agent through your microphone — no phone, no credits.",
+    "saveFirst": "Save the agent first, then test it here.",
+    "sarvamOnly": "Browser testing works with Sarvam agents.",
+    "desc": "Talk to \"{{name}}\" through your microphone. No phone number or credits are used; appointments, leads and messages the agent creates are real.",
+    "start": "Start call",
+    "again": "Call again",
+    "end": "End call",
+    "you": "You",
+    "agent": "Agent",
+    "system": "System",
+    "hintIdle": "Press \"Start call\". Your browser will ask for the microphone.",
+    "hintLive": "Say hello — the transcript appears here as you talk.",
+    "micDenied": "Microphone access was blocked. Allow the microphone for this site and try again.",
+    "status": {
+      "mic": "Waiting for microphone…",
+      "connecting": "Connecting",
+      "listening": "Listening",
+      "speaking": "Agent speaking",
+      "ended": "Call ended",
+      "error": "Could not start"
+    }
+  },
+  "retryRules": {
+    "title": "Auto-retry missed calls",
+    "tooltip": "Re-call contacts per outcome with its own wait time and attempt cap. Contacts who were interested, booked, wrong-number, not interested or asked not to be called are never retried.",
+    "desc": "Each outcome has its own delay and maximum number of calls (including the first).",
+    "outcome": "Outcome",
+    "delay": "Wait (minutes)",
+    "maxAttempts": "Max calls",
+    "no_answer": "No answer",
+    "busy": "Busy",
+    "failed": "Call failed",
+    "voicemail": "Voicemail",
+    "summaryNone": "No outcome selected — nothing will be retried.",
+    "summaryRow": "up to {{max}} calls, {{delay}} min apart"
   }
 }

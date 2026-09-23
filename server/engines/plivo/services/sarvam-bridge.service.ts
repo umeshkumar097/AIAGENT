@@ -11,10 +11,11 @@ import { SarvamTtsStream } from './sarvam-tts-stream';
 import { SarvamKnowledge } from './sarvam-knowledge';
 import type { CallTool } from '../../../services/call-messaging-tools';
 import {
-  accumulateToolCallDeltas, buildToolRoundMessages, callerWantsToEnd, executeStreamedToolCalls, goodbyeText,
+  accumulateToolCallDeltas, buildToolRoundMessages, callerRequestsDnd, callerWantsToEnd, executeStreamedToolCalls, goodbyeText,
   pendingTransferTarget, toolFillerText,
   type ChatMessage, type StreamedToolCall,
 } from './sarvam-tools';
+import { TEST_CALL_MAX_MS, autoDoNotCall, testTranscriptLines } from './sarvam-call-extras';
 import { executePlivoHangup, executePlivoTransfer, markCallTransferred } from './plivo-transfer';
 import { actionPromptRules } from '../../../services/call-actions';
 
@@ -78,6 +79,10 @@ export interface SarvamAgentConfig {
   toNumber?: string | null;
   /** IANA zone for the "today is …" rule of the appointment/callback tools */
   actionsTimeZone?: string;
+  /** Outbound answering-machine handling (agents.config.actions.voicemail) */
+  voicemail?: { action: 'hangup' | 'leave_message'; message?: string };
+  /** Browser test call: no Plivo, hangUp just closes the socket, transcript events are emitted */
+  isTestCall?: boolean;
 }
 
 // ── Per-call latency profiler ────────────────────────────────────────────────
@@ -104,6 +109,47 @@ class PerfTimer {
 }
 
 export class SarvamBridgeService {
+
+  // ── Live sessions by Plivo call UUID (for the AMD webhook) ────────────────
+  private static readonly sessions = new Map<string, WebSocket>();
+  /** AMD results that arrived before the stream session existed */
+  private static readonly pendingMachine = new Set<string>();
+
+  /**
+   * Plivo AMD said the call was answered by a machine: `hangup` ends it now; `leave_message` waits for
+   * the greeting/beep (~2.5 s), stops listening, speaks the configured message and hangs up when it drains.
+   */
+  static onMachineDetected(callUuid: string): boolean {
+    const plivoWs = SarvamBridgeService.sessions.get(callUuid);
+    if (!plivoWs) {
+      SarvamBridgeService.pendingMachine.add(callUuid);
+      setTimeout(() => SarvamBridgeService.pendingMachine.delete(callUuid), 60_000);
+      return false;
+    }
+    if ((plivoWs as any).sarvamVoicemailMode || (plivoWs as any).sarvamState === 'TERMINATED') return true;
+    const cfg = ((plivoWs as any).sarvamAgentConfig || {}) as SarvamAgentConfig;
+    const action = cfg.voicemail?.action || 'hangup';
+    const message = (cfg.voicemail?.message || '').trim();
+    (plivoWs as any).sarvamVoicemailMode = true;
+    (plivoWs as any).sarvamTranscriptLines?.push('System: voicemail detected');
+    logger.info(`[SarvamBridge][${callUuid}] Answering machine detected → ${action}`);
+    SarvamBridgeService.interruptAI(callUuid, plivoWs);
+    if (action !== 'leave_message' || !message) { SarvamBridgeService.hangUp(callUuid, plivoWs, 'voicemail'); return true; }
+
+    const tts = (plivoWs as any).sarvamTtsParams as { sarvamApiKey: string; voice: string } | undefined;
+    const lang: string = (plivoWs as any).sarvamActiveLang || cfg.language || 'hi-IN';
+    setTimeout(() => {
+      if ((plivoWs as any).sarvamState === 'TERMINATED' || !tts) return;
+      (plivoWs as any).sarvamTranscriptLines?.push(`Agent: ${message}`);
+      (plivoWs as any).sarvamTriggeredEndCall = true; // hang up once the message audio has drained
+      (plivoWs as any).sarvamNextPlayIdx = 0;
+      SarvamBridgeService.setState(callUuid, plivoWs, 'THINKING');
+      SarvamBridgeService.speakViaTTS(callUuid, plivoWs, message, tts.sarvamApiKey, lang, tts.voice, undefined, undefined, 0)
+        .catch(e => logger.warn(`[SarvamBridge][${callUuid}] Voicemail message TTS failed: ${e.message}`))
+        .finally(() => { if (!(plivoWs as any).sarvamIsPacing) SarvamBridgeService.hangUp(callUuid, plivoWs, 'voicemail'); });
+    }, 2500);
+    return true;
+  }
 
   // ── Realtime STT audio frame (Plivo μ-law base64 passes straight through) ──
   private static sttAudioFrame(b64Mulaw: string): string {
@@ -428,6 +474,12 @@ export class SarvamBridgeService {
     (plivoWs as any).sarvamTriggeredEndCall = false;
     logger.info(`[SarvamBridge][${callUuid}] Hanging up (${reason})`);
     SarvamBridgeService.setState(callUuid, plivoWs, 'TERMINATED');
+    if ((plivoWs as any).sarvamIsTestCall) {
+      // Browser test call: there is no Plivo leg — closing the socket ends the session
+      (plivoWs as any).sarvamTranscriptLines?.push(`System: call ended (${reason})`);
+      if (plivoWs.readyState === WebSocket.OPEN) plivoWs.close();
+      return;
+    }
     const cfg = ((plivoWs as any).sarvamAgentConfig || {}) as SarvamAgentConfig;
     const callId = (plivoWs as any).sarvamCallId as string | undefined;
     void (async () => {
@@ -963,6 +1015,9 @@ ${knowledge}` : ''}`;
         .catch(() => {});
     }
     const executed = await execution;
+    if ((plivoWs as any).sarvamIsTestCall) {
+      for (const e of executed) (plivoWs as any).sarvamTranscriptLines?.push(`System: ${e.call.name} → ${e.result.message}`);
+    }
     // A transfer is performed once the follow-up sentence has been spoken; it wins over end_call
     const transferTo = pendingTransferTarget(executed);
     if (transferTo) {
@@ -1104,8 +1159,17 @@ ${knowledge}` : ''}`;
     (plivoWs as any).sarvamAgentConfig          = agentConfig;
     (plivoWs as any).sarvamActionsTimeZone      = agentConfig.actionsTimeZone;
     (plivoWs as any).sarvamTtsParams            = { sarvamApiKey, voice };
+    (plivoWs as any).sarvamIsTestCall           = !!agentConfig.isTestCall;
+    (plivoWs as any).sarvamVoicemailMode        = false;
+    (plivoWs as any).sarvamCallUuid             = callUuid;
+    SarvamBridgeService.sessions.set(callUuid, plivoWs);
+    if (agentConfig.isTestCall) {
+      (plivoWs as any).sarvamMaxTimer = setTimeout(() => SarvamBridgeService.hangUp(callUuid, plivoWs, 'max_duration'), TEST_CALL_MAX_MS);
+    }
+    // AMD may have fired before the stream started (webhook and stream race)
+    if (SarvamBridgeService.pendingMachine.delete(callUuid)) setTimeout(() => SarvamBridgeService.onMachineDetected(callUuid), 500);
 
-    const transcriptLines: string[] = [];
+    const transcriptLines: string[] = agentConfig.isTestCall ? testTranscriptLines(plivoWs) : [];
     const chatHistory: { role: 'user' | 'assistant'; content: string }[] = [];
     // Chunks load in the background while the greeting plays; the first caller turn finds them ready
     const knowledge = SarvamKnowledge.create(callUuid, agentConfig.userId, agentConfig.knowledgeBaseIds);
@@ -1204,7 +1268,7 @@ ${knowledge}` : ''}`;
           const legacySignal = msg.type === 'events' ? String(msg.data?.signal_type || '') : '';
           if (event === 'vad.speech_start' || legacySignal === 'speech_start' || legacySignal === 'START_SPEECH') {
             const st: ConvState = (plivoWs as any).sarvamState;
-            if ((st === 'SPEAKING' || st === 'THINKING') && !(plivoWs as any).sarvamVadTimer) {
+            if ((st === 'SPEAKING' || st === 'THINKING') && !(plivoWs as any).sarvamVadTimer && !(plivoWs as any).sarvamVoicemailMode) {
               (plivoWs as any).sarvamVadTimer = setTimeout(() => {
                 (plivoWs as any).sarvamVadTimer = null;
                 const cur: ConvState = (plivoWs as any).sarvamState;
@@ -1228,6 +1292,7 @@ ${knowledge}` : ''}`;
 
           const st: ConvState = (plivoWs as any).sarvamState;
           if (st === 'TERMINATED') return; // transferred or torn down: no further turns
+          if ((plivoWs as any).sarvamVoicemailMode) return; // leaving a voicemail: the machine's greeting is not a caller turn
           // Our own voice coming back through the handset must not become a "user" turn
           if (st === 'SPEAKING' && SarvamBridgeService.looksLikeEcho(transcript, (plivoWs as any).sarvamLastAgentText || '')) {
             logger.info(`[SarvamBridge][${callUuid}] Ignoring echo of agent speech: "${transcript.substring(0, 60)}"`);
@@ -1268,8 +1333,15 @@ ${knowledge}` : ''}`;
           transcriptLines.push(`User: ${transcript}`);
           chatHistory.push({ role: 'user', content: transcript });
           const historyCopy = [...chatHistory];
-          const callerWantsEnd = callerWantsToEnd(transcript);
+          let callerWantsEnd = callerWantsToEnd(transcript);
           if (callerWantsEnd) logger.info(`[SarvamBridge][${callUuid}] Caller asked to end the call`);
+          // DND safety net: "dobara call mat karna" → list the number and end after the reply, even without the tool
+          if (callerRequestsDnd(transcript) && !(plivoWs as any).sarvamDndMarked) {
+            (plivoWs as any).sarvamDndMarked = true;
+            callerWantsEnd = true;
+            transcriptLines.push('System: caller asked not to be called again — added to do-not-call list');
+            void autoDoNotCall({ callUuid, callId: (plivoWs as any).sarvamCallId, userId: agentConfig.userId, callDirection: agentConfig.callDirection, fromNumber: agentConfig.fromNumber, toNumber: agentConfig.toNumber, transcript });
+          }
 
           SarvamBridgeService.setState(callUuid, plivoWs, 'THINKING');
           if ((plivoWs as any).sarvamCompletedAudio) (plivoWs as any).sarvamCompletedAudio.clear();
@@ -1407,6 +1479,9 @@ ${knowledge}` : ''}`;
     SarvamBridgeService.stopPacing(plivoWs);
     SarvamBridgeService.cancelFiller(plivoWs);
     (plivoWs as any).sarvamTts?.close();
+    if ((plivoWs as any).sarvamMaxTimer) { clearTimeout((plivoWs as any).sarvamMaxTimer); (plivoWs as any).sarvamMaxTimer = null; }
+    const uuid = (plivoWs as any).sarvamCallUuid as string | undefined;
+    if (uuid && SarvamBridgeService.sessions.get(uuid) === plivoWs) SarvamBridgeService.sessions.delete(uuid);
 
     const sttWs = (plivoWs as any).sarvamSttWs as WebSocket | undefined;
     if (sttWs && (sttWs.readyState === WebSocket.OPEN || sttWs.readyState === WebSocket.CONNECTING)) {

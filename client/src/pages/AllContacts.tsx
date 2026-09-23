@@ -21,7 +21,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataPagination, usePagination } from "@/components/ui/data-pagination";
-import { Search, Users, Trash2, Phone, PhoneIncoming, PhoneOutgoing, Upload, Download } from "lucide-react";
+import { Search, Users, Trash2, Phone, PhoneIncoming, PhoneOutgoing, Upload, Download, Ban } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import DoNotCallTab from "@/components/dnd/DoNotCallTab";
 import { useState } from "react";
 import {
   Table,
@@ -204,6 +206,13 @@ export default function AllContacts() {
         </div>
       </div>
 
+      <Tabs defaultValue="contacts" className="space-y-6">
+      <TabsList>
+        <TabsTrigger value="contacts" data-testid="tab-contacts"><Users className="h-4 w-4 mr-1.5" />{t('contacts.tabs.contacts', 'Contacts')}</TabsTrigger>
+        <TabsTrigger value="dnd" data-testid="tab-dnd"><Ban className="h-4 w-4 mr-1.5" />{t('contacts.tabs.dnd', 'Do not call')}</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="contacts" className="space-y-6">
       {/* Search */}
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -342,6 +351,12 @@ export default function AllContacts() {
         onItemsPerPageChange={handleItemsPerPageChange}
         showItemsPerPage={true}
       />
+      </TabsContent>
+
+      <TabsContent value="dnd">
+        <DoNotCallTab />
+      </TabsContent>
+      </Tabs>
 
       <AlertDialog open={!!deletingContact} onOpenChange={() => setDeletingContact(null)}>
         <AlertDialogContent>

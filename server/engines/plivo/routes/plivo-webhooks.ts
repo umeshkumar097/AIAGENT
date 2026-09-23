@@ -204,13 +204,14 @@ export function setupPlivoWebhooks(app: Express, baseUrl: string): void {
 
       const normalizedStatus = statusMap[CallStatus?.toLowerCase()] || CallStatus?.toLowerCase() || 'failed';
       
-      await PlivoCallService.handleCallStatus(callId, normalizedStatus as PlivoCallStatus, {
+      const updatedCall = await PlivoCallService.handleCallStatus(callId, normalizedStatus as PlivoCallStatus, {
         hangupCause: HangupCause,
         rawDuration: Duration,
         from: From,
         to: To,
         plivoCallUuid: CallUUID,
       });
+      const callOutcome = ((updatedCall?.metadata as Record<string, unknown> | null)?.outcome as string | undefined) || undefined;
 
       if (normalizedStatus === 'completed') {
         CallSummarizationService.summarizeCall(callId).catch(err => {
@@ -251,7 +252,7 @@ export function setupPlivoWebhooks(app: Express, baseUrl: string): void {
             .where(eq(plivoCalls.id, callId))
             .limit(1);
           if (plivoCall?.contactId && plivoCall?.campaignId) {
-            scheduleContactRetry(plivoCall.contactId, plivoCall.campaignId, normalizedStatus).catch((err: any) => {
+            scheduleContactRetry(plivoCall.contactId, plivoCall.campaignId, normalizedStatus, callOutcome).catch((err: any) => {
               logger.warn(`Failed to schedule contact retry: ${err.message}`, undefined, 'PlivoWebhook');
             });
           }
@@ -263,6 +264,34 @@ export function setupPlivoWebhooks(app: Express, baseUrl: string): void {
       res.sendStatus(200);
     } catch (error: any) {
       logger.error('Status error', error, 'PlivoWebhook');
+      res.sendStatus(200);
+    }
+  });
+
+  /**
+   * Answering-machine detection (asynchronous AMD) - Plivo POSTs { CallUUID, Machine: 'true'|'false' }
+   * a few seconds after the call is answered. On a machine the call is tagged `voicemail` and the
+   * Sarvam bridge either hangs up or leaves the configured message.
+   */
+  app.post('/api/plivo/voice/amd/:callId([0-9a-fA-F-]{36})', validatePlivoWebhook, async (req: Request, res: Response) => {
+    try {
+      const { callId } = req.params;
+      const { CallUUID, Machine } = req.body;
+      const isMachine = String(Machine ?? '').toLowerCase() === 'true';
+      logger.info(`AMD for ${callId}: ${CallUUID} -> ${isMachine ? 'machine' : 'human'}`, undefined, 'PlivoWebhook');
+
+      if (isMachine) {
+        const { markMachineDetected } = await import('../services/call-outcome');
+        const call = CallUUID ? await markMachineDetected(String(CallUUID)) : null;
+        if (!call) {
+          await db.update(plivoCalls).set({ plivoCallUuid: CallUUID }).where(eq(plivoCalls.id, callId)).catch(() => undefined);
+        }
+        const { SarvamBridgeService } = await import('../services/sarvam-bridge.service');
+        SarvamBridgeService.onMachineDetected(String(CallUUID || ''));
+      }
+      res.sendStatus(200);
+    } catch (error: any) {
+      logger.error('AMD error', error, 'PlivoWebhook');
       res.sendStatus(200);
     }
   });

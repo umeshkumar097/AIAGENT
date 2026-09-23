@@ -27,6 +27,7 @@ import { ElevenLabsService } from "../services/elevenlabs";
 import { ElevenLabsPoolService } from "../services/elevenlabs-pool";
 import { BatchCallingService } from "../services/batch-calling";
 import { PlanLimitExceededError } from "../services/contact-upload-service";
+import { legacyColumnsFrom, parseRetryRulesInput, resolveRetryRules } from "../services/retry-rules";
 import { getPluginStatus } from "../plugins/loader";
 
 /** Large CSV campaigns (100k rows); separate from global 20MB upload limit. */
@@ -138,10 +139,18 @@ export function createCampaignRoutes(ctx: RouteContext): Router {
   router.post("/api/campaigns", authenticateHybrid, async (req: AuthRequest, res: Response) => {
     try {
       const { name, type, goal, script, flowId, agentId, voiceId, phoneNumberId, sipPhoneNumberId, plivoPhoneNumberId, scheduledFor,
-        retryEnabled, retryMaxAttempts, retryIntervalMinutes, retryOnNoAnswer, retryOnBusy, retryOnFailed } = req.body;
+        retryEnabled, retryMaxAttempts, retryIntervalMinutes, retryOnNoAnswer, retryOnBusy, retryOnFailed, retryRules } = req.body;
 
       if (!name || !type) {
         return res.status(400).json({ error: "Name and type are required" });
+      }
+
+      // Smart retry (F3): per-outcome rules; the legacy columns are kept in sync for the other engines
+      let retryRulesColumns: Record<string, unknown> = {};
+      if (retryRules !== undefined && retryRules !== null) {
+        const parsedRules = parseRetryRulesInput(retryRules);
+        if ("error" in parsedRules) return res.status(400).json({ error: parsedRules.error });
+        retryRulesColumns = { retryRules: parsedRules.rules, ...legacyColumnsFrom(parsedRules.rules) };
       }
 
       if (!agentId) {
@@ -299,9 +308,10 @@ export function createCampaignRoutes(ctx: RouteContext): Router {
         retryOnNoAnswer: retryOnNoAnswer ?? true,
         retryOnBusy: retryOnBusy ?? false,
         retryOnFailed: retryOnFailed ?? false,
+        ...retryRulesColumns,
       });
 
-      res.json(campaign);
+      res.json({ ...campaign, retryRules: resolveRetryRules(campaign) });
     } catch (error: any) {
       console.error("Create campaign error:", error);
       res.status(500).json({ error: "Failed to create campaign" });
@@ -316,7 +326,7 @@ export function createCampaignRoutes(ctx: RouteContext): Router {
         return res.status(404).json({ error: "Campaign not found" });
       }
 
-      res.json(campaign);
+      res.json({ ...campaign, retryRules: resolveRetryRules(campaign) });
     } catch (error: any) {
       console.error("Get campaign error:", error);
       res.status(500).json({ error: "Failed to get campaign" });
@@ -452,9 +462,20 @@ export function createCampaignRoutes(ctx: RouteContext): Router {
         }
       }
 
+      // Smart retry (F3): validate the rules and mirror them into the legacy columns
+      if ("retryRules" in req.body) {
+        if (req.body.retryRules === null) {
+          req.body.retryRules = null;
+        } else {
+          const parsedRules = parseRetryRulesInput(req.body.retryRules);
+          if ("error" in parsedRules) return res.status(400).json({ error: parsedRules.error });
+          Object.assign(req.body, { retryRules: parsedRules.rules }, legacyColumnsFrom(parsedRules.rules));
+        }
+      }
+
       await storage.updateCampaign(req.params.id, req.body);
       const updated = await storage.getCampaign(req.params.id);
-      res.json(updated);
+      res.json(updated ? { ...updated, retryRules: resolveRetryRules(updated) } : updated);
     } catch (error: any) {
       console.error("Update campaign error:", error);
       res.status(500).json({ error: "Failed to update campaign" });
@@ -528,7 +549,8 @@ export function createCampaignRoutes(ctx: RouteContext): Router {
       const uploadResult = await contactUploadService.createContactsForCampaign(
         req.params.campaignId,
         parsedContacts,
-        campaign.totalContacts
+        campaign.totalContacts,
+        campaign.userId
       );
 
       const payload: Record<string, unknown> = {
@@ -536,6 +558,7 @@ export function createCampaignRoutes(ctx: RouteContext): Router {
         inserted: uploadResult.inserted,
         failed: uploadResult.failed,
         skippedInvalid: uploadResult.skippedInvalid,
+        skippedDnd: uploadResult.skippedDnd,
         resultsTruncated: uploadResult.resultsTruncated,
       };
       if (!uploadResult.resultsTruncated && uploadResult.contacts.length > 0) {

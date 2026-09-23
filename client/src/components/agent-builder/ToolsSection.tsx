@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import AppointmentSettings from "./AppointmentSettings";
 import LeadFieldsEditor from "./LeadFieldsEditor";
 import ApiToolsEditor from "./ApiToolsEditor";
+import VoicemailSettings from "./VoicemailSettings";
 import KnowledgeBasePicker, { type KnowledgeItem } from "./KnowledgeBasePicker";
 import type { AgentBuilderForm } from "./types";
 import type { AgentActionsForm, AppointmentsForm } from "./actions";
@@ -135,6 +136,11 @@ export default function ToolsSection({ form, onChange, knowledgeBase, messagingA
           </div>
           <ApiToolsEditor tools={actions.apiTools} onChange={(apiTools) => setActions({ apiTools })} />
         </div>
+
+        <VoicemailSettings
+          value={actions.voicemail}
+          onChange={(patch) => setActions({ voicemail: { ...actions.voicemail, ...patch } })}
+        />
 
         <ToggleRow
           id="end-conversation"

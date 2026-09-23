@@ -653,6 +653,8 @@ app.use((req, res, next) => {
 
         // Place scheduled callbacks when due (schedule_callback tool / Callbacks page)
         startCallbackCron();
+        void import("./services/usage-alerts-cron").then((m) => m.startUsageAlertsCron()); // credit usage alerts + low-balance guard (every 10 min, summary 09:00 IST)
+        void import("./services/call-qa/cron").then((m) => m.startCallQaCron()); // LLM QA scoring of completed Sarvam/Plivo calls (every 2 min)
 
         // Start subscription expiry reminders (7/3/1 days) + period-end expiry
         startSubscriptionExpiryCron();

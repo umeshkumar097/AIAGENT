@@ -194,7 +194,16 @@ async function initiateCall(data: CampaignCallJob): Promise<CallResult> {
         if (!plivoPhone) {
           throw new Error('Plivo phone number not found');
         }
-        
+
+        // Do-not-call list (F2): never dial, mark the contact and close the pre-created call row
+        const { isDoNotCall } = await import('../../services/dnd-service');
+        if (await isDoNotCall(userId, phone)) {
+          console.log(`[CallWorker] Contact ${contact.id} is on the do-not-call list — skipping`);
+          await db.update(contacts).set({ status: 'dnd' }).where(eq(contacts.id, contact.id));
+          await db.update(calls).set({ status: 'cancelled', endedAt: new Date(), metadata: { ...((existingCall?.metadata as Record<string, unknown>) || {}), skipped: 'do-not-call' } }).where(eq(calls.id, callId));
+          return { success: true, callId, status: 'initiated' };
+        }
+
         // Mark contact as in_progress
         await db
           .update(contacts)

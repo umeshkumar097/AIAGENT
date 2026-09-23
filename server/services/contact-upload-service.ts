@@ -19,6 +19,7 @@ import Papa from "papaparse";
 import { storage } from "../storage";
 import type { Contact, InsertContact } from "@shared/schema";
 import { batchInsertContacts, CONTACT_INSERT_RETAIN_RESULTS_THRESHOLD } from "../utils/batch-utils";
+import { filterDoNotCall, normalizePhone as normalizeDndPhone } from "./dnd-service";
 
 /**
  * Represents a contact parsed from a CSV file before database insertion.
@@ -43,6 +44,8 @@ export interface CreateContactsForCampaignResult {
   inserted: number;
   failed: number;
   skippedInvalid: number;
+  /** Rows dropped because the number is on the owner's do-not-call list. */
+  skippedDnd: number;
   /** True when `contacts` is empty to save memory (large uploads). */
   resultsTruncated: boolean;
 }
@@ -262,14 +265,25 @@ export class ContactUploadService {
   async createContactsForCampaign(
     campaignId: string,
     contacts: ParsedContact[],
-    currentTotalContacts: number
+    currentTotalContacts: number,
+    /** Campaign owner — when given, numbers on their do-not-call list are skipped. */
+    ownerUserId?: string
   ): Promise<CreateContactsForCampaignResult> {
-    const skippedInvalid = contacts.filter(
-      (c) => !ContactUploadService.isDialablePhone(String(c.phone || ""))
-    ).length;
+    const dialable = contacts.filter((c) => ContactUploadService.isDialablePhone(String(c.phone || "")));
+    const skippedInvalid = contacts.length - dialable.length;
 
-    const insertContacts: InsertContact[] = contacts
-      .filter((c) => ContactUploadService.isDialablePhone(String(c.phone || "")))
+    let allowed = dialable;
+    let skippedDnd = 0;
+    if (ownerUserId) {
+      const blocked = await filterDoNotCall(ownerUserId, dialable.map((c) => String(c.phone || "")));
+      if (blocked.size > 0) {
+        allowed = dialable.filter((c) => !blocked.has(normalizeDndPhone(String(c.phone || ""))));
+        skippedDnd = dialable.length - allowed.length;
+        console.log(`[Contact Upload] Skipped ${skippedDnd} do-not-call number(s) for campaign ${campaignId}`);
+      }
+    }
+
+    const insertContacts: InsertContact[] = allowed
       .map((contact) => ({
         campaignId: contact.campaignId,
         firstName: contact.firstName,
@@ -299,6 +313,7 @@ export class ContactUploadService {
       inserted: batchResult.inserted,
       failed: batchResult.failed,
       skippedInvalid,
+      skippedDnd,
       resultsTruncated: !retainResults,
     };
   }

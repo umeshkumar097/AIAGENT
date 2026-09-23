@@ -21,6 +21,7 @@ import { eq, and, or, isNotNull, isNull, sql, lte, inArray } from 'drizzle-orm';
 import { emailService } from './email-service';
 import { dispatchEvent } from './event-dispatcher';
 import { BatchCallingService } from './batch-calling';
+import { anyRetryEnabled, enabledRetryStatuses, resolveRetryRules } from './retry-rules';
 
 /** Call rows still eligible for ElevenLabs batch recipient sync (final status from poll). */
 const EL_BATCH_SYNCABLE_CALL_STATUSES = [
@@ -684,8 +685,8 @@ export class CampaignScheduler {
     console.log(`✅ [Campaign Scheduler] All ${campaignCalls.length} calls complete for campaign "${campaign.name}"`);
 
     // === RETRY PASS CHECK ===
-    // Before marking completed, check if retryEnabled and contacts qualify for retry
-    if (campaign.retryEnabled) {
+    // Before marking completed, check if any retry rule is on and contacts qualify for retry
+    if (anyRetryEnabled(resolveRetryRules(campaign))) {
       const didScheduleRetry = await this.maybeScheduleRetryPass(campaign, campaignCalls);
       if (didScheduleRetry) {
         return; // Retry pass scheduled — don't mark completed yet
@@ -754,40 +755,41 @@ export class CampaignScheduler {
     //    (contacts.status is authoritative — it's updated by scheduleContactRetry when
     //    each call terminates, so a contact that answered on retry will have status='completed'
     //    and won't appear here, even if an older call record still shows 'no-answer').
-    const retryStatuses: string[] = [];
-    if (campaign.retryOnNoAnswer !== false) retryStatuses.push('no-answer');
-    if (campaign.retryOnBusy === true) retryStatuses.push('busy');
-    if (campaign.retryOnFailed === true) retryStatuses.push('failed');
-
-    if (retryStatuses.length === 0) return false;
-
-    const maxAttempts = campaign.retryMaxAttempts ?? 3;
-    const intervalMinutes = campaign.retryIntervalMinutes ?? 60;
-    const nextRetryAt = new Date(Date.now() + intervalMinutes * 60 * 1000);
+    // Smart retry (F3): each outcome (no-answer / busy / failed / voicemail) has its own delay and cap
+    const enabledRules = enabledRetryStatuses(resolveRetryRules(campaign));
+    if (enabledRules.length === 0) return false;
 
     // Query contacts directly by current status — avoids false positives from stale call history.
     // Pre-increment attemptCount here (matching scheduleContactRetry semantics for Twilio/Plivo)
     // so that at retry-pass execution time, COALESCE(attemptCount,1) <= maxAttempts is the right
     // guard. For ElevenLabs, contacts.status is updated by updateCallRecordFromRecipient when the
-    // poll resolves, making the inArray(status, retryStatuses) condition work correctly (Task #145).
-    const scheduledResult = await db
-      .update(contacts)
-      .set({
-        nextRetryAt,
-        attemptCount: sql`COALESCE(${contacts.attemptCount}, 1) + 1`,
-      })
-      .where(
-        and(
-          eq(contacts.campaignId, campaign.id),
-          inArray(contacts.status, retryStatuses),
-          sql`COALESCE(${contacts.attemptCount}, 1) < ${maxAttempts}`,
-          isNull(contacts.nextRetryAt)
+    // poll resolves, making the status condition work correctly (Task #145).
+    let scheduled = 0;
+    for (const { status, rule } of enabledRules) {
+      const nextRetryAt = new Date(Date.now() + rule.delayMinutes * 60 * 1000);
+      const scheduledResult = await db
+        .update(contacts)
+        .set({
+          nextRetryAt,
+          attemptCount: sql`COALESCE(${contacts.attemptCount}, 1) + 1`,
+        })
+        .where(
+          and(
+            eq(contacts.campaignId, campaign.id),
+            eq(contacts.status, status),
+            sql`COALESCE(${contacts.attemptCount}, 1) < ${rule.maxAttempts}`,
+            isNull(contacts.nextRetryAt)
+          )
         )
-      )
-      .returning({ id: contacts.id });
+        .returning({ id: contacts.id });
+      if (scheduledResult.length > 0) {
+        console.log(`🔄 [Campaign Scheduler] Campaign "${campaign.name}" scheduled ${scheduledResult.length} ${status} contact(s) for retry at ${nextRetryAt.toISOString()}`);
+        scheduled += scheduledResult.length;
+      }
+    }
 
-    if (scheduledResult.length > 0) {
-      console.log(`🔄 [Campaign Scheduler] Campaign "${campaign.name}" scheduled ${scheduledResult.length} contact(s) for retry at ${nextRetryAt.toISOString()} — deferring completion`);
+    if (scheduled > 0) {
+      console.log(`🔄 [Campaign Scheduler] Campaign "${campaign.name}" has ${scheduled} contact(s) queued for retry — deferring completion`);
       return true;
     }
 

@@ -18,13 +18,14 @@
 
 import { Router, Response } from "express";
 import { RouteContext, AuthRequest } from "./common";
-import { calls, agents, incomingConnections, sipCalls } from "@shared/schema";
+import { calls, agents, incomingConnections, sipCalls, CALL_OUTCOMES } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { ElevenLabsService } from "../services/elevenlabs";
 import { ElevenLabsPoolService } from "../services/elevenlabs-pool";
 import { getTwilioClient } from "../services/twilio-connector";
 import { fetchElevenLabsConversation } from "./webhook-routes";
 import PDFDocument from "pdfkit";
+import { getCallInsights, parseInsightsFilters } from "../services/analytics/insights.service";
 
 function formatDurationPDF(seconds: number): string {
   if (!seconds) return "0:00";
@@ -38,9 +39,28 @@ export function createAnalyticsRoutes(ctx: RouteContext): Router {
   const { db, storage, authenticateToken, authenticateHybrid, recordingService, elevenLabsService } = ctx;
 
   // Get all user calls with pagination support
+  // Outcome ids/labels for the Calls page filter (F3)
+  router.get("/api/calls/outcomes", authenticateHybrid, (_req: AuthRequest, res: Response) => {
+    res.json({ outcomes: CALL_OUTCOMES.map(o => ({ id: o.id, label: o.label, kind: o.kind })) });
+  });
+
   router.get("/api/calls", authenticateHybrid, async (req: AuthRequest, res: Response) => {
     try {
-      const enrichedCalls = await storage.getUserCallsWithDetails(req.userId!);
+      const allCalls = await storage.getUserCallsWithDetails(req.userId!);
+
+      // Outcome tagging (F3): plivo_calls.metadata.outcome / outcomeSource, plus an optional ?outcome= filter
+      const outcomeFilter = typeof req.query.outcome === "string" ? req.query.outcome.trim() : "";
+      const withOutcome = allCalls.map((call: Record<string, unknown>) => {
+        const meta = (call.metadata && typeof call.metadata === "object" ? call.metadata : {}) as Record<string, unknown>;
+        return {
+          ...call,
+          outcome: typeof meta.outcome === "string" ? meta.outcome : null,
+          outcomeSource: typeof meta.outcomeSource === "string" ? meta.outcomeSource : null,
+        };
+      });
+      const enrichedCalls = outcomeFilter && outcomeFilter !== "all"
+        ? withOutcome.filter(c => c.outcome === outcomeFilter)
+        : withOutcome;
 
       const requestsPagination = req.query.page !== undefined || req.query.pageSize !== undefined;
       
@@ -568,6 +588,22 @@ export function createAnalyticsRoutes(ctx: RouteContext): Router {
     } catch (error: any) {
       console.error("Get analytics error:", error);
       res.status(500).json({ error: "Failed to get analytics" });
+    }
+  });
+
+  // Call insights (outcomes, best hours in IST, per-agent, languages, minutes/credits, funnel)
+  router.get("/api/analytics/insights", authenticateHybrid, async (req: AuthRequest, res: Response) => {
+    let filters;
+    try {
+      filters = parseInsightsFilters(req.query as Record<string, unknown>);
+    } catch (error: any) {
+      return res.status(400).json({ error: error.message || "Invalid filters" });
+    }
+    try {
+      res.json(await getCallInsights(req.userId!, filters));
+    } catch (error: any) {
+      console.error("Get analytics insights error:", error);
+      res.status(500).json({ error: "Failed to get analytics insights" });
     }
   });
 

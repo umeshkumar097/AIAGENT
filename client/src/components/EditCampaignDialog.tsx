@@ -28,8 +28,9 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { Upload, ChevronDown, ChevronUp, Clock, Calendar, Pencil, RotateCcw } from "lucide-react";
+import { Upload, ChevronDown, ChevronUp, Clock, Calendar, Pencil } from "lucide-react";
 import { AuthStorage } from "@/lib/auth-storage";
+import RetryRulesEditor, { defaultRetryRules, effectiveRetryRules, legacyFromRules, rulesFromCampaign, type RetryRule } from "@/components/campaigns/RetryRulesEditor";
 
 interface Agent {
   id: string;
@@ -96,6 +97,7 @@ interface Campaign {
   retryOnNoAnswer?: boolean;
   retryOnBusy?: boolean;
   retryOnFailed?: boolean;
+  retryRules?: Partial<Record<string, Partial<RetryRule>>> | null;
 }
 
 interface EditCampaignDialogProps {
@@ -128,6 +130,7 @@ export function EditCampaignDialog({ open, onOpenChange, campaign }: EditCampaig
     retryOnNoAnswer: true,
     retryOnBusy: false,
     retryOnFailed: false,
+    retryRules: defaultRetryRules(),
   });
   const [csvFile, setCsvFile] = useState<File | null>(null);
 
@@ -153,6 +156,7 @@ export function EditCampaignDialog({ open, onOpenChange, campaign }: EditCampaig
         retryOnNoAnswer: campaign.retryOnNoAnswer !== false,
         retryOnBusy: campaign.retryOnBusy || false,
         retryOnFailed: campaign.retryOnFailed || false,
+        retryRules: rulesFromCampaign(campaign),
       });
     }
   }, [campaign]);
@@ -188,8 +192,12 @@ export function EditCampaignDialog({ open, onOpenChange, campaign }: EditCampaig
     mutationFn: async () => {
       if (!campaign) return;
       // Send null instead of empty string for phone number fields to avoid FK constraint errors
+      const retryRules = effectiveRetryRules(formData.retryEnabled, formData.retryRules);
       const payload = {
         ...formData,
+        retryRules,
+        ...legacyFromRules(retryRules),
+        retryEnabled: formData.retryEnabled,
         phoneNumberId: formData.phoneNumberId || null,
         plivoPhoneNumberId: formData.plivoPhoneNumberId || null,
         sipPhoneNumberId: formData.sipPhoneNumberId || null,
@@ -218,8 +226,8 @@ export function EditCampaignDialog({ open, onOpenChange, campaign }: EditCampaig
           if (!res.ok) {
             throw new Error("Failed to upload CSV contacts");
           }
-          
-          toast({ title: t("campaigns.toast.csvUploadSuccess") });
+          const uploadResult = await res.json().catch(() => ({}));
+          describeUploadResult(uploadResult);
         } catch (error) {
           toast({
             title: t("campaigns.toast.csvUploadFailed"),
@@ -241,6 +249,15 @@ export function EditCampaignDialog({ open, onOpenChange, campaign }: EditCampaig
       });
     },
   });
+
+  /** Upload response: { inserted, failed, skippedInvalid, skippedDnd? } — surface DND skips so the user knows why rows are missing. */
+  const describeUploadResult = (r: { inserted?: number; skippedInvalid?: number; skippedDnd?: number }) => {
+    const parts: string[] = [];
+    if (typeof r.inserted === 'number') parts.push(t("campaigns.toast.uploadInserted", "{{count}} contacts added", { count: r.inserted }));
+    if (r.skippedInvalid) parts.push(t("campaigns.toast.uploadSkippedInvalid", "{{count}} invalid skipped", { count: r.skippedInvalid }));
+    if (r.skippedDnd) parts.push(t("campaigns.toast.uploadSkippedDnd", "{{count}} on your do-not-call list skipped", { count: r.skippedDnd }));
+    toast({ title: t("campaigns.toast.csvUploadSuccess"), description: parts.join(" · ") || undefined });
+  };
 
   const handleSubmit = () => {
     if (!formData.name) {
@@ -537,122 +554,12 @@ export function EditCampaignDialog({ open, onOpenChange, campaign }: EditCampaig
             )}
           </div>
 
-          {/* Retry Settings */}
-          <div className="space-y-4 border-t pt-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <RotateCcw className="h-5 w-5" />
-                <Label className="text-base">Auto-Retry Missed Calls</Label>
-                <InfoTooltip content="Automatically re-call contacts who didn't answer, were busy, or failed. Each contact is called up to the maximum attempt limit." />
-              </div>
-              <Switch
-                checked={formData.retryEnabled}
-                onCheckedChange={(checked) => setFormData({ ...formData, retryEnabled: checked })}
-                data-testid="switch-edit-retry-enabled"
-              />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Contacts that don't answer will be automatically retried at a set interval.
-            </p>
-
-            {formData.retryEnabled && (
-              <div className="space-y-4 pl-7">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-retry-max-attempts">Max Attempts</Label>
-                    <Select
-                      value={String(formData.retryMaxAttempts)}
-                      onValueChange={(v) => setFormData({ ...formData, retryMaxAttempts: parseInt(v, 10) })}
-                    >
-                      <SelectTrigger id="edit-retry-max-attempts" data-testid="select-edit-retry-max-attempts">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[1, 2, 3, 4, 5].map((n) => (
-                          <SelectItem key={n} value={String(n)}>{n}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">Total calls per contact (including first)</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-retry-interval">Retry Interval</Label>
-                    <Select
-                      value={String(formData.retryIntervalMinutes)}
-                      onValueChange={(v) => setFormData({ ...formData, retryIntervalMinutes: parseInt(v, 10) })}
-                    >
-                      <SelectTrigger id="edit-retry-interval" data-testid="select-edit-retry-interval">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="15">15 minutes</SelectItem>
-                        <SelectItem value="30">30 minutes</SelectItem>
-                        <SelectItem value="60">1 hour</SelectItem>
-                        <SelectItem value="120">2 hours</SelectItem>
-                        <SelectItem value="240">4 hours</SelectItem>
-                        <SelectItem value="480">8 hours</SelectItem>
-                        <SelectItem value="1440">24 hours</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">Wait time between retry attempts</p>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Retry When</Label>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="edit-retry-no-answer"
-                        checked={formData.retryOnNoAnswer}
-                        onCheckedChange={(checked) => setFormData({ ...formData, retryOnNoAnswer: !!checked })}
-                        data-testid="checkbox-edit-retry-no-answer"
-                      />
-                      <Label htmlFor="edit-retry-no-answer" className="text-sm font-normal cursor-pointer">
-                        No Answer
-                      </Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="edit-retry-busy"
-                        checked={formData.retryOnBusy}
-                        onCheckedChange={(checked) => setFormData({ ...formData, retryOnBusy: !!checked })}
-                        data-testid="checkbox-edit-retry-busy"
-                      />
-                      <Label htmlFor="edit-retry-busy" className="text-sm font-normal cursor-pointer">
-                        Busy
-                      </Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="edit-retry-failed"
-                        checked={formData.retryOnFailed}
-                        onCheckedChange={(checked) => setFormData({ ...formData, retryOnFailed: !!checked })}
-                        data-testid="checkbox-edit-retry-failed"
-                      />
-                      <Label htmlFor="edit-retry-failed" className="text-sm font-normal cursor-pointer">
-                        Call Failed
-                      </Label>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Plain-language summary */}
-                {formData.retryMaxAttempts > 1 && (
-                  <div className="rounded-md bg-muted/50 px-3 py-2 text-sm text-muted-foreground" data-testid="text-edit-retry-summary">
-                    {`The system will call each contact up to ${formData.retryMaxAttempts} time${formData.retryMaxAttempts > 1 ? 's' : ''} total, waiting ${
-                      formData.retryIntervalMinutes >= 1440 ? '24 hours' :
-                      formData.retryIntervalMinutes >= 480 ? '8 hours' :
-                      formData.retryIntervalMinutes >= 240 ? '4 hours' :
-                      formData.retryIntervalMinutes >= 120 ? '2 hours' :
-                      formData.retryIntervalMinutes >= 60 ? '1 hour' :
-                      formData.retryIntervalMinutes >= 30 ? '30 minutes' : '15 minutes'
-                    } between attempts.`}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          <RetryRulesEditor
+            idPrefix="edit-"
+            enabled={formData.retryEnabled}
+            rules={formData.retryRules}
+            onChange={({ enabled, rules }) => setFormData({ ...formData, retryEnabled: enabled, retryRules: rules })}
+          />
 
           <div className="border-t pt-4">
             <Button

@@ -24,6 +24,7 @@ import { CallInsightsService } from '../../../services/call-insights.service';
 import { getDomain } from '../../../utils/domain';
 import { webhookDeliveryService } from '../../../services/webhook-delivery';
 import { CRMLeadService } from '../../../services/crm-lead.service';
+import { outcomeFromAnalysis, resolveSystemOutcome, setCallOutcome } from './call-outcome';
 
 type InsertPlivoCall = typeof plivoCalls.$inferInsert;
 type PlivoCallRecord = typeof plivoCalls.$inferSelect;
@@ -99,6 +100,8 @@ export class PlivoCallService {
     agentId?: string;
     plivoPhoneNumberId?: string;
     flowId?: string; // Override flowId for test calls (uses agent.flowId if not provided)
+    /** Plivo answering-machine detection (default on; the AMD webhook tags voicemail and the bridge reacts) */
+    machineDetection?: boolean;
     agentConfig: {
       voice: OpenAIVoice;
       model: OpenAIRealtimeModel;
@@ -206,6 +209,14 @@ export class PlivoCallService {
       const answerUrl = getWebhookUrl(baseUrl, `/voice/${callRecord.id}`);
       const statusCallbackUrl = getWebhookUrl(baseUrl, `/status/${callRecord.id}`);
 
+      // Asynchronous AMD: the call proceeds normally and Plivo POSTs { Machine: 'true'|'false' } to /amd/:callId
+      const amdOptions = params.machineDetection === false ? {} : {
+        machineDetection: 'true',
+        machineDetectionTime: 4000,
+        machineDetectionUrl: getWebhookUrl(baseUrl, `/voice/amd/${callRecord.id}`),
+        machineDetectionMethod: 'POST',
+      };
+
       const response = await client.calls.create(
         params.fromNumber,
         params.toNumber,
@@ -221,6 +232,7 @@ export class PlivoCallService {
           maxDuration: PlivoEngineConfig.defaults.maxCallDuration,
           maxRingingDuration: 45,
           hangupOnRingTimeout: true,
+          ...amdOptions,
         }
       );
 
@@ -386,8 +398,11 @@ export class PlivoCallService {
       return null;
     }
 
+    // Browser test calls (F4): no credits, no CRM lead, no post-call messaging — everything else runs
+    const isTestCall = (call.metadata as Record<string, unknown> | null)?.testCall === true;
+
     // Trigger webhook events for specific call statuses
-    if (call.userId) {
+    if (call.userId && !isTestCall) {
       try {
         const webhookPayload = {
           callId: call.id,
@@ -455,7 +470,7 @@ export class PlivoCallService {
           actualDuration = 0;
         }
         
-        const creditsToDeduct = Math.ceil(actualDuration / 60);
+        const creditsToDeduct = isTestCall ? 0 : Math.ceil(actualDuration / 60);
 
         updateData.duration = actualDuration;
 
@@ -470,6 +485,7 @@ export class PlivoCallService {
             toNumber: call.toNumber,
             durationSeconds: actualDuration,
             engine: 'plivo-openai',
+            isTestCall,
           });
 
           // Handle credit deduction failure with separate update payload
@@ -603,12 +619,17 @@ export class PlivoCallService {
       }
     }
 
-    if (metadata) {
+    // System outcome (F3): agent-set outcome wins; else transfer / booking / voicemail / telephony status
+    const isTerminal = ['completed', 'busy', 'failed', 'no-answer', 'canceled'].includes(status);
+    const resolvedOutcome = isTerminal ? resolveSystemOutcome(call, status) : null;
+    if (metadata || resolvedOutcome) {
       updateData.metadata = {
         ...(call.metadata as Record<string, unknown> || {}),
-        statusUpdate: metadata,
+        ...(metadata ? { statusUpdate: metadata } : {}),
+        ...(resolvedOutcome ? { outcome: resolvedOutcome.outcome, outcomeSource: resolvedOutcome.source } : {}),
       };
     }
+    if (resolvedOutcome) updateData.classification = resolvedOutcome.outcome;
 
     const [updatedCall] = await db
       .update(plivoCalls)
@@ -616,8 +637,10 @@ export class PlivoCallService {
       .where(eq(plivoCalls.id, callId))
       .returning();
 
+    let leadCategory: string | null = null;
+
     // Trigger call.completed or call.failed webhook events
-    if (['completed', 'busy', 'failed', 'no-answer', 'canceled'].includes(status) && call.userId) {
+    if (isTerminal && call.userId && !isTestCall) {
       try {
         // Get contact info if available
         let contactInfo: { id: string; firstName: string | null; lastName: string | null; phone: string; email: string | null; customFields: any } | null = null;
@@ -782,6 +805,7 @@ export class PlivoCallService {
         try {
           const { CRMLeadProcessor } = await import('../../crm/lead-processor.service');
           const result = await CRMLeadProcessor.processPlivoOpenAICall(call.id);
+          leadCategory = result?.qualification?.category || null;
           if (result?.leadId) {
             logger.info(`CRM lead created: ${result.leadId} (${result.qualification.category})`, undefined, 'PlivoCall');
           } else if (result) {
@@ -808,6 +832,19 @@ export class PlivoCallService {
         } catch (msgErr: any) {
           logger.error(`Post-call messaging setup error: ${msgErr.message}`, msgErr, 'PlivoCall');
         }
+      }
+    }
+
+    // Outcome fallback (AI) + owner alerts (F5) — also for browser test calls so the owner can see them work
+    if (status === 'completed' && call.userId) {
+      if (!resolvedOutcome) {
+        await setCallOutcome(call.id, outcomeFromAnalysis(leadCategory, updatedCall.classification), 'ai');
+      }
+      try {
+        const { sendOwnerAlerts } = await import('../../../services/owner-alerts.service');
+        sendOwnerAlerts(call.id).catch(err => logger.error(`Owner alert error for call ${callId}: ${err.message}`, undefined, 'PlivoCall'));
+      } catch (alertErr: any) {
+        logger.error(`Owner alerts unavailable for call ${callId}: ${alertErr.message}`, undefined, 'PlivoCall');
       }
     }
 

@@ -26,7 +26,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DataPagination, usePagination } from "@/components/ui/data-pagination";
-import { Plus, Search, Trash2, Edit, Bot, Upload, Sparkles, GitBranch, CheckCircle2, XCircle, Mic, Brain, Settings2, Wrench, Check, FileText, History, Info, Copy, Wand2 } from "lucide-react";
+import { Plus, Search, Trash2, Edit, Bot, Upload, Sparkles, GitBranch, CheckCircle2, XCircle, Mic, Brain, Settings2, Wrench, Check, FileText, History, Info, Copy, Wand2, Headphones } from "lucide-react";
+import BrowserTestCall from "@/components/agent-builder/BrowserTestCall";
 import { AuthStorage } from "@/lib/auth-storage";
 import PromptTemplatesLibrary from "@/components/PromptTemplatesLibrary";
 import Voices from "@/pages/Voices";
@@ -242,6 +243,7 @@ export default function Agents() {
   const [knowledgeUploadOpen, setKnowledgeUploadOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [deletingAgent, setDeletingAgent] = useState<Agent | null>(null);
+  const [testAgent, setTestAgent] = useState<{ id: string; name: string } | null>(null);
   const [formData, setFormData] = useState({
     type: "incoming" as 'incoming' | 'flow',
     name: "",
@@ -1125,6 +1127,18 @@ export default function Agents() {
                         agentId={agent.id} 
                         agentName={agent.name} 
                       />
+                      {agent.telephonyProvider === 'sarvam-plivo' && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => setTestAgent({ id: agent.id, name: agent.name })}
+                          title={t('testCall.title', 'Test in browser')}
+                          data-testid="button-test-agent"
+                        >
+                          <Headphones className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
@@ -3253,6 +3267,9 @@ export default function Agents() {
         </DialogContent>
       </Dialog>
 
+      {testAgent && (
+        <BrowserTestCall agentId={testAgent.id} agentName={testAgent.name} open onOpenChange={(o) => { if (!o) setTestAgent(null); }} />
+      )}
       <AlertDialog open={!!deletingAgent} onOpenChange={() => setDeletingAgent(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

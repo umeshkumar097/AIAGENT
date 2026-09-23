@@ -351,5 +351,9 @@ export function validateForm(form: AgentBuilderForm): string | null {
     if (workingDays.length === 0) return 'appointmentDaysRequired';
   }
   if (form.actions.saveLeadEnabled && form.actions.saveLeadFields.some(f => !f.key.trim())) return 'leadFieldKeyRequired';
+  if (form.actions.voicemail.action === 'leave_message' && !form.actions.voicemail.message.trim()) return 'voicemailMessageRequired';
+  const oa = form.actions.ownerAlerts;
+  if (oa.enabled && !oa.email.trim() && !oa.whatsappPhone.trim()) return 'ownerAlertTargetRequired';
+  if (oa.enabled && oa.whatsappPhone.trim() && !oa.whatsappTemplate) return 'ownerAlertTemplateRequired';
   return null;
 }

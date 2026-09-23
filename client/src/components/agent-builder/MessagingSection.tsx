@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CheckCircle2, ExternalLink, Mail, MessageSquare, X } from "lucide-react";
 import WhatsappVariablesEditor from "./WhatsappVariablesEditor";
+import OwnerAlertsSection from "./OwnerAlertsSection";
 import type { AgentBuilderForm, WhatsappTemplateVariables } from "./types";
 
 export const MESSAGING_SETTINGS_URL = '/app/settings?tab=messaging';
@@ -242,6 +243,12 @@ export default function MessagingSection({ form, onChange }: Props) {
             </div>
           )}
         </div>
+
+        {/* ── Owner alerts ──────────────────────────────────────────────── */}
+        <OwnerAlertsSection
+          value={form.actions.ownerAlerts}
+          onChange={(patch) => onChange({ actions: { ...form.actions, ownerAlerts: { ...form.actions.ownerAlerts, ...patch } } })}
+        />
       </CardContent>
     </Card>
   );

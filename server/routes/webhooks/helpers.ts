@@ -1,12 +1,13 @@
 'use strict';
 import { db } from '../../db';
-import { calls, campaigns, contacts, incomingConnections, globalSettings, agents, flows, sipCalls, sipPhoneNumbers } from '../../../shared/schema';
+import { calls, campaigns, contacts, incomingConnections, globalSettings, agents, flows, sipCalls, sipPhoneNumbers, FINAL_CALL_OUTCOMES } from '../../../shared/schema';
 import { eq, sql, and, desc } from 'drizzle-orm';
 import { storage } from '../../storage';
 import { webhookDeliveryService } from '../../services/webhook-delivery';
 import crypto from 'crypto';
 import WebSocket from 'ws';
 import { CreditDeductionResult } from '../../services/credit-service';
+import { resolveRetryRules, retryRuleFor } from '../../services/retry-rules';
 
 export const MAX_WEBHOOK_ATTEMPTS = 3;
 
@@ -185,15 +186,19 @@ export async function formatAndSaveTranscript(
 export async function scheduleContactRetry(
   contactId: string,
   campaignId: string,
-  callStatus: string
+  callStatus: string,
+  /** The call's outcome (plivo_calls.metadata.outcome): `voicemail` is retried by its own rule; final outcomes never are. */
+  outcome?: string | null
 ): Promise<void> {
   try {
     // Only act on terminal statuses
     const terminalStatuses = ['completed', 'failed', 'no-answer', 'busy', 'cancelled', 'canceled'];
     if (!terminalStatuses.includes(callStatus)) return;
 
-    // Normalize cancelled → canceled for consistency in contact status
-    const normalizedStatus = callStatus === 'canceled' ? 'cancelled' : callStatus;
+    // Normalize cancelled → canceled for consistency in contact status.
+    // A completed call answered by a machine gets the contact status 'voicemail' (retryable via its own rule).
+    const callsRowStatus = callStatus === 'canceled' ? 'cancelled' : callStatus;
+    const normalizedStatus = outcome === 'voicemail' && callStatus === 'completed' ? 'voicemail' : callsRowStatus;
 
     // Fetch the contact BEFORE any updates to read current attemptCount
     const [contact] = await db
@@ -238,7 +243,7 @@ export async function scheduleContactRetry(
       if (latestCallsRow) {
         await db
           .update(calls)
-          .set({ status: normalizedStatus, endedAt: new Date() })
+          .set({ status: callsRowStatus, endedAt: new Date() })
           .where(eq(calls.id, latestCallsRow.id));
       } else {
         console.warn(`⚠️ [Retry] No calls row found for contact ${contactId} campaign ${campaignId} — calls status not synced`);
@@ -254,26 +259,25 @@ export async function scheduleContactRetry(
       .where(eq(campaigns.id, campaignId))
       .limit(1);
 
-    if (!campaign || !campaign.retryEnabled) return;
+    if (!campaign) return;
 
-    // Check if this status qualifies for a retry
-    const retryStatuses: string[] = [];
-    if (campaign.retryOnNoAnswer !== false) retryStatuses.push('no-answer');
-    if (campaign.retryOnBusy === true) retryStatuses.push('busy');
-    if (campaign.retryOnFailed === true) retryStatuses.push('failed');
+    // Outcomes that settle the contact (do-not-call, wrong number, decided either way) are never retried
+    if (outcome && (FINAL_CALL_OUTCOMES as readonly string[]).includes(outcome)) return;
 
-    if (!retryStatuses.includes(normalizedStatus)) return;
+    // Smart retry (F3): the rule for this status/outcome (legacy columns when retry_rules is null)
+    const matched = retryRuleFor(resolveRetryRules(campaign), normalizedStatus, outcome);
+    if (!matched) return;
 
     // Guard on PRE-increment count: if currentCount >= maxAttempts, this call
     // was already the last allowed attempt — do not schedule another retry.
-    const maxAttempts = campaign.retryMaxAttempts ?? 3;
+    const maxAttempts = matched.rule.maxAttempts;
     if (currentCount >= maxAttempts) {
       console.log(`📊 [Retry] Contact ${contactId} has reached max attempts (${currentCount}/${maxAttempts})`);
       return;
     }
 
     // Schedule the next retry
-    const intervalMinutes = campaign.retryIntervalMinutes ?? 60;
+    const intervalMinutes = matched.rule.delayMinutes;
     const nextRetryAt = new Date(Date.now() + intervalMinutes * 60 * 1000);
 
     await db

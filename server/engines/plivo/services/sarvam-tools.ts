@@ -163,3 +163,29 @@ export function callerWantsToEnd(transcript: string): boolean {
   if (/^\s*(bye|goodbye|alvida|बाय|अलविदा)[\s.!।]*$/i.test(t)) return true;
   return END_CALL_INTENT.test(t) && t.split(/\s+/).length <= 25;
 }
+
+/**
+ * Caller asks not to be called again ("dobara call mat karna", "remove my number", "unsubscribe",
+ * "do not call" …). Safety net for the mark_do_not_call tool: the number is added to the DND list
+ * and the call is ended after the reply, even if the model never calls the tool.
+ */
+const DND_INTENT = new RegExp([
+  // Hinglish (romanised): "dobara/phir se/aage se call mat karna", "mat call karo", "call mat karna/karo/kijiye"
+  '(dobara|dubara|phir\\s*se|aage\\s*se|kabhi|ab)\\s*(mujhe\\s*)?(call|phone|contact)\\s*(mat|na|nahi+|nhi+)\\s*(karna|karo|kijiye|kariye|karein|kare)',
+  '(mat|na)\\s*(call|phone)\\s*(karna|karo|kijiye|kariye|karein|kare)',
+  '(call|phone)\\s*(mat|na|nahi+|nhi+)\\s*(karna|karo|kijiye|kariye|karein|kare)',
+  'number\\s*(hata|nikal|delete|remove)',
+  // English
+  "(don'?t|do\\s+not|never|stop)\\s+(call|calling|contact|contacting)(\\s+me)?",
+  'remove\\s+(my\\s+)?(number|me)', 'unsubscribe', 'take\\s+me\\s+off', 'do\\s*-?\\s*not\\s*-?\\s*call', '\\bdnd\\b', 'block\\s+(this|my)\\s+number',
+  // Devanagari
+  '(दोबारा|दुबारा|फिर\\s*से|आगे\\s*से|कभी)\\s*(मुझे\\s*)?(कॉल|फ़?ोन)\\s*(मत|ना|नहीं)\\s*(करना|करो|कीजिए|करिए|करें)',
+  '(कॉल|फ़?ोन)\\s*(मत|ना|नहीं)\\s*(करना|करो|कीजिए|करिए|करें)', 'मत\\s*(कॉल|फ़?ोन)\\s*(करना|करो|कीजिए)',
+  'नंबर\\s*(हटा|निकाल|डिलीट)',
+].join('|'), 'i');
+
+export function callerRequestsDnd(transcript: string): boolean {
+  const t = (transcript || '').trim();
+  if (!t) return false;
+  return DND_INTENT.test(t) && t.split(/\s+/).length <= 40;
+}

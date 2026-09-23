@@ -12,6 +12,8 @@ import { buildAppointmentTools } from './appointments';
 import { buildSaveLeadTool } from './leads';
 import { buildCallbackTool } from './callbacks';
 import { buildApiTools } from './api-tools';
+import { buildDoNotCallTool } from './dnd';
+import { buildOutcomeTool } from './outcome';
 import { DAY_NAMES, DEFAULT_TIME_ZONE, isValidTimeZone, nowInZone } from './util';
 
 export type { CallActionContext, CallActionAgent } from './types';
@@ -35,6 +37,9 @@ export async function buildCallActionTools(ctx: CallActionContext): Promise<Call
     ['save_lead', () => buildSaveLeadTool(ctx)],
     ['callback', () => buildCallbackTool(ctx)],
     ['api', () => buildApiTools(ctx)],
+    // Always on for Sarvam calls
+    ['do_not_call', () => buildDoNotCallTool(ctx)],
+    ['outcome', () => buildOutcomeTool(ctx)],
   ];
   for (const [name, build] of groups) {
     try {
@@ -68,5 +73,7 @@ export function actionPromptRules(tools: CallTool[], timeZone: string = DEFAULT_
   if (names.has('save_lead')) lines.push("- Capture the caller's name and requirement with save_lead before ending the call.");
   if (hasCallback) lines.push('- Confirm the exact date and time with the caller before schedule_callback.');
   if ([...names].some(n => n.startsWith('api_'))) lines.push("- Use api_* tools only for the caller's own data; never invent values. Relay the result in one short sentence.");
+  if (names.has('mark_do_not_call')) lines.push('- If the caller asks not to be called again or wants their number removed: call mark_do_not_call, apologise in one sentence, then call end_call.');
+  if (names.has('set_call_outcome')) lines.push('- Before ending the call, call set_call_outcome once with the best-fitting outcome (never mention it to the caller).');
   return lines.join('\n');
 }

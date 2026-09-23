@@ -30,6 +30,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { AuthStorage } from "@/lib/auth-storage";
 import { formatSipEndpoint } from "@/lib/formatters";
+import { OutcomeBadge, callOutcome, useOutcomeLabel, useOutcomeOptions } from "@/components/calls/OutcomeBadge";
 
 interface Call {
   id: string;
@@ -58,6 +59,9 @@ interface Call {
   agent?: { id: string; name: string } | null;
   widgetId?: string | null;
   widget?: { id: string; name: string } | null;
+  /** Call outcome (F3): agent-set via set_call_outcome or system-set (voicemail, no_answer, …). */
+  outcome?: string | null;
+  outcomeSource?: 'agent' | 'system' | 'ai' | null;
 }
 
 export default function Calls() {
@@ -67,6 +71,9 @@ export default function Calls() {
   const [sentimentFilter, setSentimentFilter] = useState("all");
   const [directionFilter, setDirectionFilter] = useState("all");
   const [leadFilter, setLeadFilter] = useState("all");
+  const [outcomeFilter, setOutcomeFilter] = useState("all");
+  const outcomeOptions = useOutcomeOptions();
+  const outcomeLabel = useOutcomeLabel();
   const [playingCallId, setPlayingCallId] = useState<string | null>(null);
   const [loadingRecording, setLoadingRecording] = useState<string | null>(null);
   const [, setLocation] = useLocation();
@@ -106,6 +113,7 @@ export default function Calls() {
       'Direction',
       'Duration (seconds)',
       'Classification',
+      'Outcome',
       'Sentiment',
       'Campaign',
       'Agent',
@@ -127,6 +135,7 @@ export default function Calls() {
         call.callDirection || 'outgoing',
         call.duration?.toString() || '0',
         call.classification || '',
+        callOutcome(call) ? outcomeLabel(callOutcome(call) as string) : '',
         call.sentiment || '',
         call.campaign?.name || '',
         call.agent?.name || '',
@@ -384,8 +393,9 @@ export default function Calls() {
     const matchesSentiment = sentimentFilter === "all" || call.sentiment === sentimentFilter;
     const matchesDirection = directionFilter === "all" || call.callDirection === directionFilter;
     const matchesLead = leadFilter === "all" || call.classification === leadFilter;
+    const matchesOutcome = outcomeFilter === "all" || callOutcome(call) === outcomeFilter;
     
-    return matchesSearch && matchesStatus && matchesSentiment && matchesDirection && matchesLead;
+    return matchesSearch && matchesStatus && matchesSentiment && matchesDirection && matchesLead && matchesOutcome;
   });
 
   const callsWithTranscripts = filteredCalls.filter(call => call.transcript);
@@ -451,7 +461,8 @@ export default function Calls() {
                   {getWidgetBadge(call)}
                   {getStatusBadge(call.status)}
                   {getSentimentBadge(call.sentiment)}
-                  {getClassificationBadge(call.classification)}
+                  <OutcomeBadge outcome={callOutcome(call)} />
+                  {call.classification !== callOutcome(call) && getClassificationBadge(call.classification)}
                 </div>
                 
                 <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground flex-wrap">
@@ -699,6 +710,17 @@ export default function Calls() {
             <SelectItem value="warm">{t('calls.classification.warm')}</SelectItem>
             <SelectItem value="cold">{t('calls.classification.cold')}</SelectItem>
             <SelectItem value="lost">{t('calls.classification.lost')}</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={outcomeFilter} onValueChange={setOutcomeFilter}>
+          <SelectTrigger className="w-full sm:w-[160px]" data-testid="select-filter-outcome">
+            <SelectValue placeholder={t('calls.filters.outcome', 'Outcome')} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('calls.filters.allOutcomes', 'All outcomes')}</SelectItem>
+            {outcomeOptions.map(o => (
+              <SelectItem key={o.id} value={o.id} data-testid={`filter-outcome-${o.id}`}>{o.label}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

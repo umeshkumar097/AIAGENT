@@ -22,6 +22,8 @@ import { OpenAIAgentFactory } from "./openai-agent-factory";
 import { PlivoEngineConfig } from "../config/plivo-config";
 import { webhookDeliveryService } from '../../../services/webhook-delivery';
 import { storage } from '../../../storage';
+import { isDoNotCall } from '../../../services/dnd-service';
+import { resolveRetryRules } from '../../../services/retry-rules';
 import type { OpenAIVoice, OpenAIRealtimeModel, CompiledFlowConfig } from "../types";
 
 const MAX_CAPACITY_WAIT_MS = 5 * 60 * 1000; // 5 minutes max wait for OpenAI capacity
@@ -75,6 +77,7 @@ export class PlivoBatchCallingService {
   private isCancelled: boolean = false;
   private isCapacityFailed: boolean = false; // Flag for graceful capacity failure
   private config: BatchCallConfig | null = null;
+  private campaignUserId: string | null = null;
   private agent: Agent | null = null;
   private phoneNumber: PlivoPhoneNumber | null = null;
   private startTime: Date | null = null;
@@ -192,17 +195,22 @@ export class PlivoBatchCallingService {
       const initialFailed = statusCounts.find(s => s.status === 'failed')?.count || 0;
       const pendingCount = totalCount - initialCompleted - initialFailed;
       
-      // Load first batch of pending contacts (pending or in_progress)
+      // Load first batch of pending contacts (pending or in_progress). Do-not-call contacts are never
+      // dialled; voicemail contacts only when the campaign's voicemail retry rule is on (F1/F3).
+      const retryRules = resolveRetryRules(campaign);
       const firstBatch = await db
         .select()
         .from(contacts)
         .where(and(
           eq(contacts.campaignId, campaignId),
           ne(contacts.status, 'completed'),
-          ne(contacts.status, 'failed')
+          ne(contacts.status, 'failed'),
+          ne(contacts.status, 'dnd'),
+          ...(retryRules.voicemail.enabled ? [] : [ne(contacts.status, 'voicemail')])
         ))
         .limit(CONTACT_BATCH_SIZE);
 
+      this.campaignUserId = campaign.userId;
       this.agent = agent;
       this.phoneNumber = phoneNumber;
       this.callQueue = firstBatch;
@@ -441,7 +449,9 @@ export class PlivoBatchCallingService {
           ne(contacts.status, 'busy'),
           ne(contacts.status, 'cancelled'),
           ne(contacts.status, 'canceled'),
-          ne(contacts.status, 'in_progress')
+          ne(contacts.status, 'in_progress'),
+          ne(contacts.status, 'voicemail'),
+          ne(contacts.status, 'dnd')
         ))
         .limit(CONTACT_BATCH_SIZE);
       
@@ -528,6 +538,17 @@ export class PlivoBatchCallingService {
     try {
       if (!this.config || !this.agent || !this.phoneNumber) {
         throw new Error('Batch calling service not properly initialized');
+      }
+
+      // Do-not-call list (F2): never dial; close the pre-created calls row so the campaign can complete
+      if (this.campaignUserId && await isDoNotCall(this.campaignUserId, contact.phone)) {
+        logger.info(`Contact ${contact.id} is on the do-not-call list — skipping`, undefined, 'PlivoBatch');
+        await db.update(contacts).set({ status: 'dnd' }).where(eq(contacts.id, contact.id));
+        const [row] = await db.select({ id: calls.id }).from(calls)
+          .where(and(eq(calls.campaignId, this.config.campaignId), eq(calls.contactId, contact.id)))
+          .orderBy(desc(calls.createdAt)).limit(1);
+        if (row) await db.update(calls).set({ status: 'cancelled', endedAt: new Date() }).where(eq(calls.id, row.id));
+        return;
       }
 
       logger.info(`Initiating call to ${contact.phone}`, undefined, 'PlivoBatch');

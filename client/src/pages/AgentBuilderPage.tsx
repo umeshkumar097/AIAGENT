@@ -14,12 +14,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Bot, Check, Loader2, Mail, Megaphone, MessageSquare, PhoneIncoming } from "lucide-react";
+import { ArrowLeft, Bot, Check, Headphones, Loader2, Mail, Megaphone, MessageSquare, PhoneIncoming } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import EngineVoiceSection, { type ChatModel, type OpenAIVoice, type SarvamVoice } from "@/components/agent-builder/EngineVoiceSection";
 import PromptSection from "@/components/agent-builder/PromptSection";
 import ToolsSection, { type KnowledgeItem } from "@/components/agent-builder/ToolsSection";
 import PhoneSection, { type AvailableNumber, type CurrentConnection } from "@/components/agent-builder/PhoneSection";
 import MessagingSection from "@/components/agent-builder/MessagingSection";
+import BrowserTestCall from "@/components/agent-builder/BrowserTestCall";
 import { usePluginStatus } from "@/hooks/use-plugin-status";
 import { enabledActionLabels } from "@/components/agent-builder/actions";
 import {
@@ -46,6 +48,7 @@ export default function AgentBuilderPage() {
   const [form, setForm] = useState<AgentBuilderForm>(defaultForm);
   const onChange = (patch: Partial<AgentBuilderForm>) => setForm(prev => ({ ...prev, ...patch }));
   const hydrated = useRef(false);
+  const [testOpen, setTestOpen] = useState(false);
 
   // ── Data ────────────────────────────────────────────────────────────────
   const { data: settings } = useQuery<VoiceEngineSettings>({ queryKey: ["/api/settings/voice-engine"], staleTime: 60000 });
@@ -104,6 +107,9 @@ export default function AgentBuilderPage() {
     appointmentHoursInvalid: t('agentBuilder.errors.appointmentHoursInvalid', 'Appointment working hours: the end time must be after the start.'),
     appointmentDaysRequired: t('agentBuilder.errors.appointmentDaysRequired', 'Pick at least one working day for appointments.'),
     leadFieldKeyRequired: t('agentBuilder.errors.leadFieldKeyRequired', 'Every lead field needs a key.'),
+    voicemailMessageRequired: t('agentBuilder.errors.voicemailMessageRequired', 'Write the message to leave on voicemail.'),
+    ownerAlertTargetRequired: t('agentBuilder.errors.ownerAlertTargetRequired', 'Owner alerts need an email or a WhatsApp number.'),
+    ownerAlertTemplateRequired: t('agentBuilder.errors.ownerAlertTemplateRequired', 'Pick a WhatsApp template for owner alerts.'),
   }[validationKey];
 
   // ── Save ────────────────────────────────────────────────────────────────
@@ -203,6 +209,8 @@ export default function AgentBuilderPage() {
     apiTools: (n) => t('agentBuilder.summary.actionApiTools', '{{count}} API lookups', { count: n }),
   });
 
+  const canTestInBrowser = isEdit && form.engine === 'sarvam-plivo' && sarvamEnabled;
+
   const submitButton = (
     <Button
       onClick={() => save.mutate()}
@@ -224,7 +232,7 @@ export default function AgentBuilderPage() {
         <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
           <Bot className="h-6 w-6 text-primary" />
         </div>
-        <div>
+        <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-bold tracking-tight" data-testid="text-page-title">
             {isEdit ? t('agentBuilder.editTitle', 'Edit agent') : t('agentBuilder.title', 'New agent')}
           </h1>
@@ -232,7 +240,34 @@ export default function AgentBuilderPage() {
             {t('agentBuilder.subtitle', 'One agent for incoming calls and campaigns, running on Plivo.')}
           </p>
         </div>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="shrink-0">
+                <Button
+                  variant="outline"
+                  onClick={() => setTestOpen(true)}
+                  disabled={!canTestInBrowser}
+                  data-testid="button-test-in-browser"
+                >
+                  <Headphones className="h-4 w-4 mr-2" />
+                  {t('testCall.title', 'Test in browser')}
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              {!isEdit
+                ? t('testCall.saveFirst', 'Save the agent first, then test it here.')
+                : form.engine !== 'sarvam-plivo'
+                  ? t('testCall.sarvamOnly', 'Browser testing works with Sarvam agents.')
+                  : t('testCall.tooltip', 'Talk to the agent through your microphone — no phone, no credits.')}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
+      {isEdit && id && (
+        <BrowserTestCall agentId={id} agentName={form.name || agent?.name || ''} open={testOpen} onOpenChange={setTestOpen} />
+      )}
 
       {connectionsError && (
         <Alert>
