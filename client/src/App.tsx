@@ -40,6 +40,7 @@ import CallDetail from "@/pages/CallDetail";
 import Analytics from "@/pages/Analytics";
 import Billing from "@/pages/Billing";
 import PaymentResult from "@/pages/PaymentResult";
+import CheckoutPage from "@/pages/CheckoutPage";
 import KnowledgeBase from "@/pages/KnowledgeBase";
 import Agents from "@/pages/Agents";
 import AgentBuilderPage from "@/pages/AgentBuilderPage";
@@ -336,6 +337,7 @@ function UserRouter() {
                 <Route path="/app/crm" component={CRMPage} />
                 <Route path="/app/tools/widgets" component={WidgetsPage} />
                 <Route path="/app/billing" component={Billing} />
+                <Route path="/app/checkout" component={CheckoutPage} />
                 <Route path="/app/payment-result" component={PaymentResult} />
                 <Route path="/app/transaction-history">
                   <Redirect to="/app/billing?tab=history" />
@@ -430,6 +432,7 @@ function TeamMemberRouter() {
                 <Route path="/app/tools/widgets" component={WidgetsPage} />
                 <Route path="/app/tools" component={ToolsPage} />
                 <Route path="/app/billing" component={Billing} />
+                <Route path="/app/checkout" component={CheckoutPage} />
                 <Route path="/app/transaction-history">
                   <Redirect to="/app/billing?tab=history" />
                 </Route>

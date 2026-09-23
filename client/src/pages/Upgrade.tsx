@@ -1,24 +1,20 @@
 /**
  * Plan picker — Cashfree one-time payment per billing period (monthly / yearly), INR only.
- * No mandates: a plan is prepaid for a period and renewed by paying again.
+ * Prices are base prices (GST added at checkout). Picking a plan opens /app/checkout; after the
+ * first payment the user may enable auto-renew (Cashfree Subscriptions mandate).
  */
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { useLocation } from "wouter";
 import { format, formatDistanceToNow, differenceInCalendarDays } from "date-fns";
 import { Check, Zap, Crown, Loader2, Star, CreditCard, Sparkles, ArrowRight, Calendar, RefreshCw, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { formatInr, startCashfreeCheckout } from "@/lib/cashfree";
+import { formatInr, gstLabel, PAYMENT_GATEWAY_QUERY_KEY, type CashfreePublicConfig } from "@/lib/cashfree";
+import { AutoRenewRow } from "@/components/billing/AutoRenewRow";
 
 type BillingPeriod = "monthly" | "yearly";
 
@@ -68,6 +64,12 @@ export interface UserSubscription {
   currentPeriodEnd: string;
   cancelAtPeriodEnd: boolean;
   plan: Plan;
+  /** Cashfree Subscriptions mandate (auto-renew) — absent on legacy rows */
+  autoRenew?: boolean | null;
+  mandateStatus?: string | null;
+  mandatePaymentMethod?: string | null;
+  nextChargeAt?: string | null;
+  cashfreeSubscriptionId?: string | null;
 }
 
 interface User {
@@ -102,17 +104,18 @@ const limitLabel = (value: number | undefined, singular: string, plural: string,
 
 export function UpgradePlansContent() {
   const { t } = useTranslation();
+  const [, navigate] = useLocation();
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>("monthly");
-  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
-  const [isStarting, setIsStarting] = useState(false);
 
   const { data: user, isLoading: userLoading } = useQuery<User>({ queryKey: ["/api/auth/me"] });
+  const { data: gateway } = useQuery<CashfreePublicConfig>({ queryKey: PAYMENT_GATEWAY_QUERY_KEY });
   const { data: plans, isLoading: plansLoading } = useQuery<Plan[]>({ queryKey: ["/api/plans"] });
   const { data: subscription, isLoading: subscriptionLoading } = useQuery<UserSubscription | null>({ queryKey: ["/api/user-subscription"] });
   const { data: pluginCapabilities } = useQuery<PluginCapabilities>({ queryKey: ["/api/plugins/capabilities"] });
 
   const sipPluginEnabled = pluginCapabilities?.data?.capabilities?.["sip-engine"] ?? false;
   const restApiPluginEnabled = pluginCapabilities?.data?.capabilities?.["rest-api"] ?? false;
+  const gstCaption = gstLabel(gateway?.gstRate ?? 18, gateway?.pricesIncludeGst ?? false);
 
   if (userLoading || plansLoading || subscriptionLoading) {
     return (
@@ -138,21 +141,9 @@ export function UpgradePlansContent() {
   });
 
   const openCheckout = (plan: Plan, period?: BillingPeriod) => {
-    setSelectedPlan(plan);
-    if (period) setBillingPeriod(period);
-    else if (!plan.yearlyPrice || priceOf(plan, "yearly") <= 0) setBillingPeriod("monthly");
-  };
-
-  const handleProceed = async () => {
-    if (!selectedPlan) return;
-    setIsStarting(true);
-    try {
-      await startCashfreeCheckout({ type: "plan", planId: selectedPlan.id, billingPeriod });
-    } catch {
-      // toast already shown
-    } finally {
-      setIsStarting(false);
-    }
+    const chosen: BillingPeriod = period ?? billingPeriod;
+    const effective: BillingPeriod = chosen === "yearly" && priceOf(plan, "yearly") > 0 ? "yearly" : "monthly";
+    navigate(`/app/checkout?type=plan&planId=${encodeURIComponent(plan.id)}&period=${effective}`);
   };
 
   const renewPeriod: BillingPeriod = subscription?.billingPeriod === "yearly" ? "yearly" : "monthly";
@@ -180,7 +171,7 @@ export function UpgradePlansContent() {
               </div>
               <p className="text-muted-foreground mt-0.5">
                 {isPremium
-                  ? t("billing.cashfree.prepaidNote", "Plans are prepaid per period — no auto-renewal. Renew any time before expiry.")
+                  ? t("billing.cashfree.prepaidNote", "Plans are paid per period. Renew any time before expiry, or turn on auto-renew.")
                   : t("billing.upgradeSubtitle", "Choose the plan that fits your needs")}
               </p>
             </div>
@@ -228,7 +219,7 @@ export function UpgradePlansContent() {
                     {currentPlan.name === "free" ? t("billing.free", "Free") : formatInr(priceOf(currentPlan, renewPeriod))}
                   </div>
                   {currentPlan.name !== "free" && (
-                    <p className="text-xs text-muted-foreground">{renewPeriod === "yearly" ? t("billing.perYear", "per year") : t("billing.perMonth", "per month")}</p>
+                    <p className="text-xs text-muted-foreground">{renewPeriod === "yearly" ? t("billing.perYear", "per year") : t("billing.perMonth", "per month")} · {gstCaption}</p>
                   )}
                 </div>
                 {isPremium && (
@@ -239,6 +230,7 @@ export function UpgradePlansContent() {
                 )}
               </div>
             </div>
+            {hasActiveSubscription && subscription && <AutoRenewRow subscription={subscription} />}
           </div>
         )}
 
@@ -309,6 +301,7 @@ export function UpgradePlansContent() {
                         <span className="text-3xl font-bold text-foreground">{formatInr(showYearly ? yearly : monthly)}</span>
                         <span className="text-muted-foreground text-sm">/{showYearly ? t("billing.cashfree.year", "year") : t("billing.cashfree.month", "month")}</span>
                       </div>
+                      <p className="text-xs text-muted-foreground" data-testid={`text-gst-caption-${plan.name}`}>{gstCaption}</p>
                       {hasYearly && yearlySavings > 0 && (
                         <p className="text-sm text-emerald-600 dark:text-emerald-400 mt-1">
                           {t("billing.cashfree.saveYearly", "Save {{amount}}/year with yearly billing", { amount: formatInr(yearlySavings) })}
@@ -391,68 +384,6 @@ export function UpgradePlansContent() {
           </div>
         </div>
       </Card>
-
-      <Dialog open={selectedPlan !== null} onOpenChange={(open) => !open && !isStarting && setSelectedPlan(null)}>
-        <DialogContent className="sm:max-w-md">
-          {selectedPlan && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5" />
-                  {t("billing.cashfree.subscribeTo", "Subscribe to {{plan}}", { plan: selectedPlan.displayName })}
-                </DialogTitle>
-                <DialogDescription>
-                  {t("billing.cashfree.chooseBillingPeriod", "Choose a billing period. You will be redirected to Cashfree to pay in INR.")}
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4 py-2">
-                <div className="grid grid-cols-2 gap-2">
-                  {(["monthly", "yearly"] as BillingPeriod[]).map((period) => {
-                    const price = priceOf(selectedPlan, period);
-                    const disabled = period === "yearly" && price <= 0;
-                    return (
-                      <Button
-                        key={period}
-                        type="button"
-                        variant={billingPeriod === period ? "default" : "outline"}
-                        disabled={disabled}
-                        className="h-16 flex flex-col items-center justify-center gap-0.5"
-                        onClick={() => setBillingPeriod(period)}
-                        data-testid={`button-dialog-period-${period}`}
-                      >
-                        <span className="text-xs uppercase tracking-wide">{period === "monthly" ? t("billing.cashfree.monthly", "Monthly") : t("billing.cashfree.yearly", "Yearly")}</span>
-                        <span className="font-semibold">{disabled ? t("billing.cashfree.notAvailable", "N/A") : formatInr(price)}</span>
-                      </Button>
-                    );
-                  })}
-                </div>
-
-                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">{t("billing.cashfree.total", "Total")}</span>
-                    <span className="text-2xl font-bold">
-                      {formatInr(priceOf(selectedPlan, billingPeriod))}
-                      <span className="text-sm font-normal text-muted-foreground">/{billingPeriod === "yearly" ? t("billing.cashfree.year", "year") : t("billing.cashfree.month", "month")}</span>
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    {t("billing.cashfree.prepaidDialogNote", "One-time payment for this period. No auto-renewal — we will remind you before it expires.")}
-                  </p>
-                </div>
-
-                <Button className="w-full" size="lg" disabled={isStarting} onClick={handleProceed} data-testid="button-proceed-payment">
-                  {isStarting ? (
-                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{t("billing.cashfree.redirecting", "Redirecting to Cashfree…")}</>
-                  ) : (
-                    t("billing.cashfree.proceedToPayment", "Proceed to payment")
-                  )}
-                </Button>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

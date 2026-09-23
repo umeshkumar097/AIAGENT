@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -30,11 +31,15 @@ export interface InvoiceSettings {
   invoice_hsn_sac: string;
   invoice_footer_text: string;
   invoice_logo_url: string;
+  /** 'true' = list prices already include GST (legacy); 'false' (default) = GST is added at checkout */
+  invoice_prices_include_gst?: boolean | string;
 }
 
 const QUERY_KEY = ["/api/admin/invoice-settings"];
 
-type TextField = Exclude<keyof InvoiceSettings, "invoice_gst_rate">;
+type TextField = Exclude<keyof InvoiceSettings, "invoice_gst_rate" | "invoice_prices_include_gst">;
+
+const settingBool = (value: boolean | string | undefined) => value === true || value === "true";
 
 const FIELDS: Array<{ key: TextField; label: string; placeholder?: string; wide?: boolean }> = [
   { key: "invoice_seller_name", label: "Legal name", placeholder: "Aiclex Solutions Pvt. Ltd." },
@@ -58,12 +63,12 @@ export function InvoiceSettingsCard() {
   const { data, isLoading } = useQuery<InvoiceSettings>({ queryKey: QUERY_KEY });
 
   useEffect(() => {
-    if (data && !dirty) setForm({ ...data, invoice_gst_rate: data.invoice_gst_rate ?? 18 });
+    if (data && !dirty) setForm({ ...data, invoice_gst_rate: data.invoice_gst_rate ?? 18, invoice_prices_include_gst: settingBool(data.invoice_prices_include_gst) });
   }, [data, dirty]);
 
   const saveMutation = useMutation({
     mutationFn: async (body: InvoiceSettings) => {
-      const res = await apiRequest("PUT", "/api/admin/invoice-settings", { ...body, invoice_gst_rate: Number(body.invoice_gst_rate) });
+      const res = await apiRequest("PUT", "/api/admin/invoice-settings", { ...body, invoice_gst_rate: Number(body.invoice_gst_rate), invoice_prices_include_gst: settingBool(body.invoice_prices_include_gst) });
       return (await res.json()) as InvoiceSettings;
     },
     onSuccess: (saved) => {
@@ -132,6 +137,20 @@ export function InvoiceSettingsCard() {
             <Label htmlFor="invoice_gst_rate">{t("admin.invoiceSettings.invoice_gst_rate", "GST rate (%)")}</Label>
             <Input id="invoice_gst_rate" type="number" min={0} max={100} step="0.01" value={form.invoice_gst_rate} onChange={(e) => update("invoice_gst_rate", e.target.value)} data-testid="input-invoice-gst-rate" />
             {gstRateInvalid && <p className="text-xs text-red-600">{t("admin.invoiceSettings.gstRateInvalid", "Enter a rate between 0 and 100.")}</p>}
+          </div>
+          <div className="md:col-span-2 flex items-start justify-between gap-4 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+            <div className="space-y-1">
+              <Label htmlFor="invoice_prices_include_gst">{t("admin.invoiceSettings.invoice_prices_include_gst", "Prices include GST")}</Label>
+              <p className="text-xs text-muted-foreground">
+                {t("admin.invoiceSettings.pricesIncludeGstHint", "Off (recommended): plan, pack and number prices are base prices and GST is added on top at checkout (invoice shows base + CGST/SGST or IGST). On: prices are treated as GST-inclusive and the tax is backed out of the amount charged.")}
+              </p>
+            </div>
+            <Switch
+              id="invoice_prices_include_gst"
+              checked={settingBool(form.invoice_prices_include_gst)}
+              onCheckedChange={(checked) => update("invoice_prices_include_gst", checked)}
+              data-testid="switch-invoice-prices-include-gst"
+            />
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="invoice_footer_text">{t("admin.invoiceSettings.invoice_footer_text", "Footer text")}</Label>

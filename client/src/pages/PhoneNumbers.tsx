@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, Search, Phone, ShoppingCart, Check, Trash2, CreditCard, Link as LinkIcon, Smartphone, Globe, MapPin, Upload, FileText, AlertCircle, Shield, Server, Loader2, RefreshCw } from "lucide-react";
 import { usePluginRegistry } from "@/contexts/plugin-registry";
 import { AuthStorage } from "@/lib/auth-storage";
-import { formatInr, startCashfreeCheckout, PAYMENT_GATEWAY_QUERY_KEY, type CashfreePublicConfig } from "@/lib/cashfree";
+import { formatInr, PAYMENT_GATEWAY_QUERY_KEY, type CashfreePublicConfig } from "@/lib/cashfree";
 import { usePluginStatus } from "@/hooks/use-plugin-status";
 import { DataPagination, usePagination } from "@/components/ui/data-pagination";
 import { useToast } from "@/hooks/use-toast";
@@ -50,6 +50,13 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+/** /app/checkout link for a phone-number purchase (billing details + GST breakdown + Cashfree) */
+const checkoutPathFor = (phoneNumber: string, country: string, numberType?: string) => {
+  const params = new URLSearchParams({ type: "phone_number", phoneNumber, country });
+  if (numberType) params.set("numberType", numberType);
+  return `/app/checkout?${params.toString()}`;
+};
 
 // Default monthly credits - will be overridden by API value
 const DEFAULT_MONTHLY_CREDITS = 50;
@@ -352,9 +359,9 @@ export default function PhoneNumbers() {
   });
 
   const buyMutation = useMutation({
-    mutationFn: async ({ phoneNumber, country }: { phoneNumber: string; friendlyName?: string; addressSid?: string; country?: string; numberType?: string }) => {
-      // One-time Cashfree payment; the server provisions the number after the payment is confirmed
-      await startCashfreeCheckout({ type: "phone_number", phoneNumber, country: country || searchCountry || "US" });
+    mutationFn: async ({ phoneNumber, country, numberType }: { phoneNumber: string; friendlyName?: string; addressSid?: string; country?: string; numberType?: string }) => {
+      // Checkout page collects billing details + GST; the server provisions the number after payment
+      setLocation(checkoutPathFor(phoneNumber, country || searchCountry || "US", numberType));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/phone-numbers"] });
@@ -400,7 +407,7 @@ export default function PhoneNumbers() {
   // Plivo purchase via Cashfree one-time payment (INR)
   const plivoBuyMutation = useMutation({
     mutationFn: async ({ phoneNumber, country, numberType }: { phoneNumber: string; country: string; numberType?: string }) => {
-      await startCashfreeCheckout({ type: "phone_number", phoneNumber, country, numberType });
+      setLocation(checkoutPathFor(phoneNumber, country, numberType));
     },
     onSuccess: () => {
       // This fires only if no redirect (shouldn't happen normally)

@@ -390,8 +390,8 @@ export default function PlanManagement() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <div className="flex items-center">
-                  <Label>{t("admin.payments.cashfree.monthlyPriceInr", "Monthly Price (INR)")}</Label>
-                  <InfoTooltip content={t("admin.payments.cashfree.planPriceHint", "Charged once per period via Cashfree. Use 0 for a free plan.")} />
+                  <Label>{t("admin.payments.cashfree.monthlyPriceInr", "Monthly price (₹, excl. GST)")}</Label>
+                  <InfoTooltip content={t("admin.payments.cashfree.planPriceHint", "Base price per period, excluding GST — GST is added at checkout (see Invoice & GST settings). Use 0 for a free plan.")} />
                 </div>
                 <Input
                   type="number"
@@ -403,7 +403,7 @@ export default function PlanManagement() {
                 />
               </div>
               <div>
-                <Label>{t("admin.payments.cashfree.yearlyPriceInr", "Yearly Price (INR)")}</Label>
+                <Label>{t("admin.payments.cashfree.yearlyPriceInr", "Yearly price (₹, excl. GST)")}</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -653,7 +653,7 @@ export default function PlanManagement() {
                   <>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label>{t("admin.payments.cashfree.monthlyPriceInr", "Monthly Price (INR)")}</Label>
+                        <Label>{t("admin.payments.cashfree.monthlyPriceInr", "Monthly price (₹, excl. GST)")}</Label>
                         <Input
                           type="number"
                           step="0.01"
@@ -664,7 +664,7 @@ export default function PlanManagement() {
                         />
                       </div>
                       <div>
-                        <Label>{t("admin.payments.cashfree.yearlyPriceInr", "Yearly Price (INR)")}</Label>
+                        <Label>{t("admin.payments.cashfree.yearlyPriceInr", "Yearly price (₹, excl. GST)")}</Label>
                         <Input
                           type="number"
                           step="0.01"

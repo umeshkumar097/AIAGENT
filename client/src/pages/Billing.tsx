@@ -16,7 +16,7 @@ import { InvoicesList } from "@/components/billing/InvoicesList";
 import TransactionHistory from "@/pages/TransactionHistory";
 import { UpgradePlansContent, type UserSubscription } from "@/pages/Upgrade";
 import { PhoneNumberSubscriptionSection } from "@/components/PhoneNumberSubscriptionSection";
-import { formatInr } from "@/lib/cashfree";
+import { formatInr, gstLabel, PAYMENT_GATEWAY_QUERY_KEY, type CashfreePublicConfig } from "@/lib/cashfree";
 
 interface User {
   credits: number;
@@ -57,6 +57,8 @@ export default function Billing() {
   const { data: user, isLoading: userLoading } = useQuery<User>({ queryKey: ["/api/auth/me"] });
   const { data: subscription, isLoading: subscriptionLoading } = useQuery<UserSubscription | null>({ queryKey: ["/api/user-subscription"] });
   const { data: packages, isLoading: packagesLoading } = useQuery<CreditPackageOption[]>({ queryKey: ["/api/credit-packages"] });
+  const { data: gateway } = useQuery<CashfreePublicConfig>({ queryKey: PAYMENT_GATEWAY_QUERY_KEY });
+  const gstCaption = gstLabel(gateway?.gstRate ?? 18, gateway?.pricesIncludeGst ?? false);
 
   if (userLoading || subscriptionLoading || packagesLoading) {
     return (
@@ -238,6 +240,7 @@ export default function Billing() {
                             </div>
                             <div className="mb-4">
                               <div className="text-3xl font-bold text-slate-800 dark:text-slate-100">{formatInr(price)}</div>
+                              <div className="text-xs text-slate-500 dark:text-slate-400">{gstCaption}</div>
                               <div className="flex items-center gap-2 mt-2">
                                 <span className="text-xl font-mono font-semibold text-emerald-600 dark:text-emerald-400">{pkg.credits.toLocaleString()}</span>
                                 <span className="text-sm text-slate-500 dark:text-slate-400">{t("billing.cashfree.minutes", "minutes")}</span>
@@ -250,7 +253,7 @@ export default function Billing() {
                             <Button
                               className={`w-full ${isPopular ? "bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800" : ""}`}
                               variant={isPopular ? "default" : "outline"}
-                              onClick={() => openPurchase(pkg.id)}
+                              onClick={() => setLocation(`/app/checkout?type=credits&packageId=${encodeURIComponent(pkg.id)}`)}
                               disabled={!hasActiveSubscription}
                               data-testid={`button-buy-${pkg.name.toLowerCase().replace(/\s+/g, "-")}`}
                             >

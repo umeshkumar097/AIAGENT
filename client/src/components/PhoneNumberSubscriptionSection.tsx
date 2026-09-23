@@ -5,6 +5,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -13,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatInr, startCashfreeCheckout, PAYMENT_GATEWAY_QUERY_KEY, type CashfreePublicConfig } from "@/lib/cashfree";
+import { formatInr, gstLabel, PAYMENT_GATEWAY_QUERY_KEY, type CashfreePublicConfig } from "@/lib/cashfree";
 
 // Matches the shape returned by searchAvailableNumbers in plivo-phone.service.ts
 interface AvailableNumber {
@@ -55,6 +56,7 @@ export function PhoneNumberSubscriptionSection({ hasActiveSubscription }: Props)
   const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
   const [rentOpen, setRentOpen] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<MyNumber | null>(null);
   const [step, setStep] = useState<Step>(1);
@@ -66,6 +68,7 @@ export function PhoneNumberSubscriptionSection({ hasActiveSubscription }: Props)
   const { data: gatewayConfig } = useQuery<CashfreePublicConfig>({ queryKey: [...PAYMENT_GATEWAY_QUERY_KEY] });
   const price = gatewayConfig?.phoneNumberPriceInr ?? 400;
   const priceLabel = formatInr(price);
+  const gstCaption = gstLabel(gatewayConfig?.gstRate ?? 18, gatewayConfig?.pricesIncludeGst ?? false);
 
   /* --- My rented numbers --- */
   const { data: myNumbers, isLoading: myLoading } = useQuery<MyNumber[]>({
@@ -107,16 +110,12 @@ export function PhoneNumberSubscriptionSection({ hasActiveSubscription }: Props)
   const goSearch = () => { setActiveSearch(selectedCountry); setStep(2); };
   const pickNumber = (n: AvailableNumber) => { setPickedNumber(n); setStep(3); };
 
-  const handlePay = async () => {
+  const handlePay = () => {
     if (!pickedNumber) return;
     setIsPaying(true);
-    try {
-      await startCashfreeCheckout({ type: "phone_number", phoneNumber: pickedNumber.phoneNumber, country: selectedCountry });
-    } catch {
-      // toast shown by helper
-    } finally {
-      setIsPaying(false);
-    }
+    const params = new URLSearchParams({ type: "phone_number", phoneNumber: pickedNumber.phoneNumber, country: selectedCountry });
+    if (pickedNumber.numberType) params.set("numberType", pickedNumber.numberType);
+    navigate(`/app/checkout?${params.toString()}`);
   };
 
   return (
@@ -285,19 +284,19 @@ export function PhoneNumberSubscriptionSection({ hasActiveSubscription }: Props)
               <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
                 <div className="bg-slate-50 dark:bg-slate-800/50 px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">{t("billing.cashfree.billingSummary", "Billing summary")}</div>
                 <div className="px-4 py-3 space-y-2 text-sm">
-                  <div className="flex justify-between"><span className="text-slate-500">{t("billing.cashfree.numberActivation", "Number activation")}</span><span className="font-semibold">{priceLabel}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">{t("billing.cashfree.numberActivation", "Number activation")}</span><span className="font-semibold">{priceLabel} <span className="text-xs font-normal text-slate-500">{gstCaption}</span></span></div>
                   <div className="flex justify-between"><span className="text-slate-500">{t("billing.cashfree.renewalLabel", "Renewal")}</span><span>{t("billing.cashfree.renewalValue", "Monthly in minutes")}</span></div>
-                  <div className="border-t border-slate-200 dark:border-slate-700 pt-2 flex justify-between font-bold">
-                    <span>{t("billing.cashfree.totalToday", "Total today")}</span><span className="text-indigo-600 dark:text-indigo-400">{priceLabel}</span>
+                  <div className="border-t border-slate-200 dark:border-slate-700 pt-2 flex justify-between text-xs text-slate-500">
+                    <span>{t("billing.checkout.gstAtCheckout", "GST is added at checkout")}</span>
                   </div>
                 </div>
               </div>
-              <p className="text-xs text-slate-500 text-center">{t("billing.cashfree.processedByCashfree", "Processed securely by Cashfree. A GST invoice is issued after payment.")}</p>
+              <p className="text-xs text-slate-500 text-center">{t("billing.checkout.nextStepNote", "Next: confirm your billing details, see the GST breakdown and pay via Cashfree.")}</p>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setStep(2)} disabled={isPaying}>{t("common.back", "Back")}</Button>
               <Button onClick={handlePay} disabled={isPaying} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 min-w-[160px]" data-testid="button-confirm-pay">
-                {isPaying ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />{t("billing.cashfree.redirecting", "Redirecting to Cashfree…")}</> : <>{t("billing.cashfree.payAndActivate", "Pay {{amount}} & activate", { amount: priceLabel })}</>}
+                {isPaying ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />{t("billing.checkout.opening", "Opening checkout…")}</> : <>{t("billing.checkout.continue", "Continue to checkout")}</>}
               </Button>
             </DialogFooter>
           </>)}

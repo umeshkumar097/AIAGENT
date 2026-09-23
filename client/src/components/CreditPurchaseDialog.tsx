@@ -1,11 +1,12 @@
 /**
- * CreditPurchaseDialog — pick a credit (minute) package and pay via Cashfree.
- * Single gateway, INR only. The server derives the amount from the package row.
+ * CreditPurchaseDialog — pick a credit (minute) package, then continue to /app/checkout
+ * (billing details + GST breakdown + Cashfree payment). Prices shown are base prices.
  */
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Check, Coins, Loader2, ShieldCheck, Sparkles } from "lucide-react";
+import { useLocation } from "wouter";
+import { ArrowRight, Check, Coins, Loader2, ShieldCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { formatInr, startCashfreeCheckout } from "@/lib/cashfree";
+import { formatInr, gstLabel, PAYMENT_GATEWAY_QUERY_KEY, type CashfreePublicConfig } from "@/lib/cashfree";
 
 export interface CreditPackageOption {
   id: string;
@@ -31,19 +32,21 @@ interface CreditPurchaseDialogProps {
   onOpenChange: (open: boolean) => void;
   /** Package to preselect when the dialog opens */
   packageId?: string | null;
-  /** Called after the checkout redirect has been requested */
+  /** Called right before navigating to the checkout page */
   onCheckoutStarted?: () => void;
 }
 
 export function CreditPurchaseDialog({ open, onOpenChange, packageId, onCheckoutStarted }: CreditPurchaseDialogProps) {
   const { t } = useTranslation();
+  const [, navigate] = useLocation();
   const [selectedId, setSelectedId] = useState<string | null>(packageId ?? null);
-  const [isStarting, setIsStarting] = useState(false);
 
   const { data: packages, isLoading } = useQuery<CreditPackageOption[]>({
     queryKey: ["/api/credit-packages"],
     enabled: open,
   });
+  const { data: gateway } = useQuery<CashfreePublicConfig>({ queryKey: PAYMENT_GATEWAY_QUERY_KEY, enabled: open });
+  const gstCaption = gstLabel(gateway?.gstRate ?? 18, gateway?.pricesIncludeGst ?? false);
 
   useEffect(() => {
     if (open) setSelectedId(packageId ?? null);
@@ -52,21 +55,15 @@ export function CreditPurchaseDialog({ open, onOpenChange, packageId, onCheckout
   const activePackages = (packages || []).filter((p) => p.isActive !== false);
   const selected = activePackages.find((p) => p.id === selectedId) || null;
 
-  const handlePay = async () => {
+  const handlePay = () => {
     if (!selected) return;
-    setIsStarting(true);
-    try {
-      await startCashfreeCheckout({ type: "credits", packageId: selected.id });
-      onCheckoutStarted?.();
-    } catch {
-      // toast already shown by startCashfreeCheckout
-    } finally {
-      setIsStarting(false);
-    }
+    onCheckoutStarted?.();
+    onOpenChange(false);
+    navigate(`/app/checkout?type=credits&packageId=${encodeURIComponent(selected.id)}`);
   };
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !isStarting && onOpenChange(next)}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg" data-testid="dialog-credit-purchase">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -74,7 +71,7 @@ export function CreditPurchaseDialog({ open, onOpenChange, packageId, onCheckout
             {t("billing.cashfree.buyMinutesTitle", "Add minutes")}
           </DialogTitle>
           <DialogDescription>
-            {t("billing.cashfree.buyMinutesDescription", "Choose a package. You will be taken to Cashfree to complete the payment in INR.")}
+            {t("billing.cashfree.buyMinutesDescription", "Choose a package. You will review your billing details and pay via Cashfree in INR.")}
           </DialogDescription>
         </DialogHeader>
 
@@ -120,7 +117,10 @@ export function CreditPurchaseDialog({ open, onOpenChange, packageId, onCheckout
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-lg font-bold text-slate-800 dark:text-slate-100">{formatInr(price)}</span>
+                      <div className="text-right">
+                        <span className="text-lg font-bold text-slate-800 dark:text-slate-100">{formatInr(price)}</span>
+                        <p className="text-[10px] text-muted-foreground leading-tight">{gstCaption}</p>
+                      </div>
                       <span className={`h-6 w-6 rounded-full border flex items-center justify-center ${isSelected ? "bg-indigo-600 border-indigo-600 text-white" : "border-slate-300 dark:border-slate-600"}`}>
                         {isSelected && <Check className="h-4 w-4" />}
                       </span>
@@ -138,20 +138,12 @@ export function CreditPurchaseDialog({ open, onOpenChange, packageId, onCheckout
         </p>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isStarting}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t("common.cancel", "Cancel")}
           </Button>
-          <Button onClick={handlePay} disabled={!selected || isStarting} data-testid="button-pay-cashfree">
-            {isStarting ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                {t("billing.cashfree.redirecting", "Redirecting to Cashfree…")}
-              </>
-            ) : (
-              <>
-                {t("billing.cashfree.payAmount", "Pay {{amount}}", { amount: selected ? formatInr(selected.price) : "" })}
-              </>
-            )}
+          <Button onClick={handlePay} disabled={!selected} data-testid="button-pay-cashfree">
+            {t("billing.checkout.continue", "Continue to checkout")}
+            <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         </DialogFooter>
       </DialogContent>

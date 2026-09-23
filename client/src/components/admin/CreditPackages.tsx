@@ -134,7 +134,7 @@ export default function CreditPackages() {
                   <div className="space-y-2">
                     <div className="text-2xl font-bold">{pkg.credits} {t("admin.creditPackages.credits")}</div>
                     <div className="flex justify-between items-center text-lg">
-                      <span className="text-muted-foreground">{t("admin.payments.cashfree.priceInr", "Price (INR)")}:</span>
+                      <span className="text-muted-foreground">{t("admin.payments.cashfree.priceInr", "Price (₹, excl. GST)")}:</span>
                       <span className="font-semibold">{formatInr(price)}</span>
                     </div>
                     <div className="text-sm text-muted-foreground border-t pt-2 mt-2">
@@ -188,8 +188,8 @@ export default function CreditPackages() {
               </div>
               <div>
                 <div className="flex items-center">
-                  <Label>{t("admin.payments.cashfree.priceInr", "Price (INR)")}</Label>
-                  <InfoTooltip content={t("admin.payments.cashfree.priceInrHint", "Amount charged via Cashfree, inclusive of GST as configured in Invoice & GST settings.")} />
+                  <Label>{t("admin.payments.cashfree.priceInr", "Price (₹, excl. GST)")}</Label>
+                  <InfoTooltip content={t("admin.payments.cashfree.priceInrHint", "Base price excluding GST — GST is added at checkout as configured in Invoice & GST settings.")} />
                 </div>
                 <Input type="number" step="0.01" min={0} value={formData.price} onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })} data-testid="input-package-price-inr" />
               </div>

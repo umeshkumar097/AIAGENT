@@ -8,6 +8,8 @@ import { queryClient } from "@/lib/queryClient";
 import { useTranslation } from "react-i18next";
 import { fetchCashfreeOrderStatus, formatInr, type CashfreeOrderStatusResponse } from "@/lib/cashfree";
 import { downloadInvoicePdf } from "@/lib/invoices";
+import { AutoRenewSetupCard } from "@/components/billing/AutoRenewSetupCard";
+import { AutoRenewResultView } from "@/components/billing/AutoRenewResultView";
 
 type PaymentStatus = "success" | "failure" | "processing" | "cancelled" | "unverified";
 
@@ -81,6 +83,7 @@ export default function PaymentResult() {
   const [status, setStatus] = useState<PaymentStatus>("processing");
   const [order, setOrder] = useState<CashfreeOrderStatusResponse | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [mandateId, setMandateId] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [pollTick, setPollTick] = useState(0);
@@ -95,10 +98,16 @@ export default function PaymentResult() {
     const params = new URLSearchParams(window.location.search);
     const gateway = params.get("gateway");
     const id = params.get("order_id");
+    const subscriptionId = params.get("subscription_id");
     const cancelled = params.get("canceled") === "true" || params.get("cancelled") === "true";
 
     if (cancelled) {
       setStatus("cancelled");
+      return;
+    }
+    if (gateway === "cashfree" && subscriptionId && /^zvsub_[a-f0-9]{12}$/.test(subscriptionId)) {
+      // Mandate (auto-renew) return — handled by AutoRenewResultView, no order to poll
+      setMandateId(subscriptionId);
       return;
     }
     if (gateway !== "cashfree" || !id) {
@@ -155,6 +164,11 @@ export default function PaymentResult() {
   const isPlan = order?.type === "plan";
   const isPhone = order?.type === "phone_number";
   const isFulfilmentFailed = order?.transactionStatus === "fulfilment_failed";
+  const offerAutoRenew = status === "success" && isPlan && !!order?.autoRenewRequested && !order?.autoRenewActive;
+
+  if (mandateId) {
+    return <AutoRenewResultView subscriptionId={mandateId} />;
+  }
 
   const getTitle = () => {
     switch (status) {
@@ -327,6 +341,7 @@ export default function PaymentResult() {
             </motion.div>
           </div>
         </Card>
+        {offerAutoRenew && order && <AutoRenewSetupCard amount={order.amount} billingPeriod={order.billingPeriod} planName={order.planName} />}
       </motion.div>
     </div>
   );
