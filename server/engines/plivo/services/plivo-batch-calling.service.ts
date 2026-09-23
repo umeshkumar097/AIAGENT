@@ -87,6 +87,8 @@ export class PlivoBatchCallingService {
   private lastStuckContactCheck: number = 0;
 
   private static instances: Map<string, PlivoBatchCallingService> = new Map();
+  /** Key this instance was registered under in `instances` (may differ from campaignId, e.g. `${campaignId}-retry${pass}`). */
+  private instanceKey: string | null = null;
 
   private constructor() {}
 
@@ -95,7 +97,9 @@ export class PlivoBatchCallingService {
    */
   static getInstance(campaignId: string): PlivoBatchCallingService {
     if (!this.instances.has(campaignId)) {
-      this.instances.set(campaignId, new PlivoBatchCallingService());
+      const instance = new PlivoBatchCallingService();
+      instance.instanceKey = campaignId;
+      this.instances.set(campaignId, instance);
     }
     return this.instances.get(campaignId)!;
   }
@@ -304,7 +308,8 @@ export class PlivoBatchCallingService {
       logger.info(`Failed: ${result.failedCalls}`, undefined, 'PlivoBatch');
       logger.info(`Duration: ${result.duration}s`, undefined, 'PlivoBatch');
 
-      PlivoBatchCallingService.removeInstance(campaignId);
+      // Remove under the key we were registered with (retry passes use `${campaignId}-retry${pass}`)
+      PlivoBatchCallingService.removeInstance(this.instanceKey ?? campaignId);
       return result;
 
     } catch (error: any) {
@@ -318,7 +323,7 @@ export class PlivoBatchCallingService {
         })
         .where(eq(campaigns.id, campaignId));
 
-      PlivoBatchCallingService.removeInstance(campaignId);
+      PlivoBatchCallingService.removeInstance(this.instanceKey ?? campaignId);
 
       throw error;
     }

@@ -13,6 +13,9 @@
 import type { Express } from 'express';
 import type { Server as HttpServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
+
+// One server for every upgrade — a per-call WebSocketServer is never closed and leaks
+const sharedWss = new WebSocketServer({ noServer: true });
 import { AudioBridgeService } from '../services/audio-bridge.service';
 import { PlivoCallService } from '../services/plivo-call.service';
 import { OpenAIPoolService } from '../services/openai-pool.service';
@@ -67,9 +70,7 @@ export function setupPlivoStream(httpServer: HttpServer): void {
       
       logger.info(`Handling WebSocket upgrade for call: ${callUuid}`, undefined, 'PlivoStream');
       
-      const wss = new WebSocketServer({ noServer: true });
-      
-      wss.handleUpgrade(request, socket, head, async (ws: WebSocket) => {
+      sharedWss.handleUpgrade(request, socket, head, async (ws: WebSocket) => {
         logger.info(`WebSocket connected for call: ${callUuid}`, undefined, 'PlivoStream');
         handlePlivoStreamConnection(ws, callUuid);
       });
@@ -103,7 +104,12 @@ function handlePlivoStreamConnection(ws: WebSocket, callUuid: string): void {
         
         // Initialize audio bridge session when stream starts
         if (!sessionInitialized) {
-          await initializeSession(callUuid, ws, streamSid);
+          const ok = await initializeSession(callUuid, ws, streamSid);
+          if (!ok) {
+            // Never keep forwarding media into a session that does not exist (caller hears silence, still billed)
+            if (ws.readyState === WebSocket.OPEN) ws.close();
+            return;
+          }
           sessionInitialized = true;
           // Mark the Plivo stream as ready AFTER session is initialized
           // This triggers the first message to be sent to OpenAI (only if it's not ElevenLabs)
@@ -313,7 +319,7 @@ async function initializeSession(
   callUuid: string, 
   plivoWs: WebSocket, 
   streamSid: string | null
-): Promise<void> {
+): Promise<boolean> {
   try {
     logger.info(`Initializing session for ${callUuid}`, undefined, 'PlivoStream');
 
@@ -321,7 +327,7 @@ async function initializeSession(
     const call = await PlivoCallService.getCallByUuid(callUuid);
     if (!call) {
       logger.error(`Call not found: ${callUuid}`, undefined, 'PlivoStream');
-      return;
+      return false;
     }
 
     // Check if it's a Sarvam or ElevenLabs agent
@@ -335,6 +341,8 @@ async function initializeSession(
           language:           agents.language,
           openaiVoice:        agents.openaiVoice,
           openaiModel:        agents.openaiModel,
+          llmModel:           agents.llmModel,
+          detectLanguageEnabled: agents.detectLanguageEnabled,
         })
         .from(agents)
         .where(eq(agents.id, call.agentId))
@@ -364,7 +372,7 @@ async function initializeSession(
         if (!openaiKey) {
           logger.error(`[PlivoStream] No OpenAI key available for Sarvam call ${callUuid} — add OpenAI credentials in admin`, undefined, 'PlivoStream');
           plivoWs.close();
-          return;
+          return false;
         }
 
         const callMeta = call.metadata as Record<string, unknown> | null;
@@ -379,7 +387,10 @@ async function initializeSession(
             language:     agent.language || 'hi-IN',
             voice:        agent.openaiVoice || 'priya',
             openaiApiKey: openaiKey,
-            openaiModel:  agent.openaiModel || call.openaiModel || 'gpt-5.5',
+            // Sarvam uses chat/completions: prefer the agent's chat model (llmModel).
+            // call.openaiModel is a Realtime model id and must not be used here.
+            openaiModel:  agent.llmModel || agent.openaiModel || 'gpt-4o-mini',
+            detectLanguage: !!agent.detectLanguageEnabled,
           },
           call.id
         );
@@ -401,7 +412,7 @@ async function initializeSession(
           }, 2000);
         }
 
-        return;
+        return true;
       }
 
       // ── ElevenLabs bridge ─────────────────────────────────────────────────
@@ -418,7 +429,7 @@ async function initializeSession(
           undefined,  // plivoAuthToken
           undefined   // recordingCallbackUrl
         );
-        return;
+        return true;
       }
 
     }
@@ -439,7 +450,7 @@ async function initializeSession(
     if (!openaiApiKey) {
       logger.error(`No OpenAI credential attached to call ${callUuid} - call was not properly set up`, undefined, 'PlivoStream');
       plivoWs.close();
-      return;
+      return false;
     }
 
     // Get user's subscription tier for model validation
@@ -876,7 +887,9 @@ async function initializeSession(
       .set({ openaiSessionId: session.openaiSessionId })
       .where(eq(plivoCalls.id, call.id));
 
+    return true;
   } catch (error: any) {
     logger.error(`Failed to initialize session for ${callUuid}: ${error.message}`, error, 'PlivoStream');
+    return false;
   }
 }

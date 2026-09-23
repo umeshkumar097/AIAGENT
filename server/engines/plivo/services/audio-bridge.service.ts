@@ -94,6 +94,10 @@ export interface AudioBridgeSession {
   recordingStartTime: Date | null;
   recordingActive: boolean;
   callRecordId: string | null;
+  /** Handle of the OpenAI connect timeout — cleared on open/error/close/endSession so it cannot leak. */
+  connectionTimeoutId: NodeJS.Timeout | null;
+  /** Idempotency flag: teardown (stop recording + onEndCallback) runs at most once per session. */
+  tornDown: boolean;
 }
 
 /**
@@ -183,6 +187,8 @@ export class AudioBridgeService {
       recordingStartTime: null,
       recordingActive: false,
       callRecordId: params.callRecordId || null,
+      connectionTimeoutId: null,
+      tornDown: false,
     };
 
     // Register tool handlers from agent config
@@ -237,7 +243,15 @@ export class AudioBridgeService {
 
       session.openaiWs = ws;
 
+      const clearConnectionTimeout = () => {
+        if (session.connectionTimeoutId) {
+          clearTimeout(session.connectionTimeoutId);
+          session.connectionTimeoutId = null;
+        }
+      };
+
       ws.on('open', () => {
+        clearConnectionTimeout();
         logger.info(`OpenAI WebSocket connected for ${callUuid}`, undefined, 'AudioBridge');
         session.status = 'connected';
 
@@ -259,6 +273,7 @@ export class AudioBridgeService {
       });
 
       ws.on('error', (error) => {
+        clearConnectionTimeout();
         logger.error(`OpenAI WebSocket error for ${callUuid}`, error, 'AudioBridge');
         session.status = 'error';
         openaiPoolManager.removeConnection(session.callUuid).catch(err => {
@@ -268,23 +283,35 @@ export class AudioBridgeService {
       });
 
       ws.on('close', async (code, reason) => {
+        clearConnectionTimeout();
         logger.info(`OpenAI WebSocket closed for ${callUuid}: ${code} ${reason}`, undefined, 'AudioBridge');
         session.status = 'disconnected';
         openaiPoolManager.removeConnection(session.callUuid).catch(err => {
           logger.error(`Failed to remove connection on close: ${err.message}`, err, 'AudioBridge');
         });
 
-        // Stop recording on session end
-        await AudioBridgeService.stopSessionRecording(session);
+        // Teardown runs once: endSession() closes this socket after it has already
+        // torn the session down, so skip the duplicate stopRecording/onEnd pass.
+        if (session.tornDown) return;
+        session.tornDown = true;
 
-        if (session.onEndCallback) {
-          session.onEndCallback();
+        try {
+          // Stop recording on session end
+          await AudioBridgeService.stopSessionRecording(session);
+
+          if (session.onEndCallback) {
+            session.onEndCallback();
+          }
+        } catch (err: any) {
+          logger.error(`Session teardown failed on close for ${callUuid}: ${err?.message}`, err, 'AudioBridge');
         }
       });
 
-      // Timeout for connection
-      setTimeout(() => {
+      // Timeout for connection (handle stored on the session; cleared on open/error/close/endSession)
+      session.connectionTimeoutId = setTimeout(() => {
+        session.connectionTimeoutId = null;
         if (session.status === 'connecting') {
+          this.activeSessions.delete(callUuid);
           reject(new Error('OpenAI WebSocket connection timeout'));
         }
       }, 10000);
@@ -1176,6 +1203,23 @@ CONVERSATION PACING (CRITICAL):
     session.status = 'disconnected';
     session.endedAt = new Date();
 
+    if (session.connectionTimeoutId) {
+      clearTimeout(session.connectionTimeoutId);
+      session.connectionTimeoutId = null;
+    }
+
+    // Tear down once. If the OpenAI 'close' handler already ran (remote close),
+    // it stopped the recording and fired onEndCallback; otherwise do it here and
+    // mark the session so the 'close' handler triggered below does not repeat it.
+    if (!session.tornDown) {
+      session.tornDown = true;
+      try {
+        await this.stopSessionRecording(session);
+      } catch (err: any) {
+        logger.error(`Failed to stop recording in endSession for ${callUuid}: ${err?.message}`, err, 'AudioBridge');
+      }
+    }
+
     // Close OpenAI WebSocket
     if (session.openaiWs && session.openaiWs.readyState === WebSocket.OPEN) {
       session.openaiWs.close();
@@ -1343,8 +1387,13 @@ CONVERSATION PACING (CRITICAL):
     logger.info(`[Hangup] ===== INITIATING HANGUP =====`, undefined, 'AudioBridge');
     logger.info(`[Hangup] Call UUID: ${callUuid}`, undefined, 'AudioBridge');
 
-    // Stop recording before hangup
-    await this.stopSessionRecording(session);
+    // Stop recording before hangup. Mark the session torn down so the OpenAI
+    // 'close' handler (triggered by the ws.close() below) and endSession() do not
+    // stop the recording / fire onEndCallback a second time.
+    if (!session.tornDown) {
+      session.tornDown = true;
+      await this.stopSessionRecording(session);
+    }
 
     try {
       const client = await this.getPlivoClient(plivoCredentialId);
@@ -1584,13 +1633,13 @@ CONVERSATION PACING (CRITICAL):
     const mergedVars: Record<number, string> = {};
     if (fixedVars) {
       for (const [idx, val] of Object.entries(fixedVars)) {
-        mergedVars[parseInt(idx)] = val;
+        mergedVars[parseInt(idx, 10)] = val;
       }
     }
     if (collectedVars && typeof collectedVars === 'object') {
       for (const [key, val] of Object.entries(collectedVars)) {
         if (key.startsWith('var_')) {
-          const idx = parseInt(key.replace('var_', ''));
+          const idx = parseInt(key.replace('var_', ''), 10);
           mergedVars[idx] = String(val || ' ');
         }
       }

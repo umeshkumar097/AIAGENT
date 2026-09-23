@@ -6,6 +6,8 @@ import { eq } from 'drizzle-orm';
 import https from 'https';
 import axios from 'axios';
 import { PlivoCallService } from './plivo-call.service';
+import { SARVAM_VOICES } from '../../../routes/sarvam-routes';
+import { SarvamTtsStream } from './sarvam-tts-stream';
 
 // Persistent HTTPS agent for reusing connection keep-alive (reduces 120ms handshake overhead per TTS request)
 const keepAliveAgent = new https.Agent({
@@ -19,11 +21,19 @@ const keepAliveAgent = new https.Agent({
 const MULAW_CHUNK_BYTES = 160;   // 20 ms at 8 kHz
 const MULAW_CHUNK_MS    = 20;
 
-// ── Sarvam STT endpoint ───────────────────────────────────────────────────────
-const SARVAM_STT_URL = 'wss://api.sarvam.ai/speech-to-text/ws';
-// NOTE: TTS uses REST, NOT WebSocket — WS endpoint returns MP3 which requires
-// additional decoding. REST returns base64 WAV/PCM8k directly.
+// ── Sarvam endpoints ─────────────────────────────────────────────────────────
+// Realtime STT: partial/final transcripts, VAD events, native μ-law input and
+// language_code=auto (detected language on every final). The legacy
+// /speech-to-text/ws endpoint supports none of these.
+const SARVAM_STT_URL = 'wss://api.sarvam.ai/speech-to-text-realtime/ws';
+// TTS via REST, requesting μ-law@8k so audio goes to Plivo untouched.
 const SARVAM_TTS_REST_URL = 'https://api.sarvam.ai/text-to-speech';
+// Cached TTS audio (greeting, fillers, repeated lines) — bounded FIFO
+const TTS_CACHE_MAX = 300;
+// Play a short filler only if the first sentence audio is not ready by then
+const FILLER_DELAY_MS = 700;
+// Keep the last N chat messages in the LLM context
+const HISTORY_MAX_MESSAGES = 20;
 
 // ── Conversation state machine ─────────────────────────────────────────────────
 type ConvState = 'LISTENING' | 'THINKING' | 'SPEAKING' | 'INTERRUPTED' | 'TERMINATED';
@@ -32,7 +42,7 @@ const VALID_TRANSITIONS: Record<ConvState, ConvState[]> = {
   LISTENING:   ['THINKING', 'TERMINATED'],
   THINKING:    ['SPEAKING', 'INTERRUPTED', 'LISTENING', 'TERMINATED'],
   SPEAKING:    ['LISTENING', 'INTERRUPTED', 'TERMINATED'],
-  INTERRUPTED: ['LISTENING', 'TERMINATED'],
+  INTERRUPTED: ['LISTENING', 'THINKING', 'TERMINATED'],
   TERMINATED:  [],
 };
 
@@ -43,6 +53,8 @@ export interface SarvamAgentConfig {
   voice?:        string;
   openaiApiKey:  string;
   openaiModel?:  string;
+  /** Follow the caller's language (STT language_code=auto + prompt rule) */
+  detectLanguage?: boolean;
 }
 
 // ── Per-call latency profiler ────────────────────────────────────────────────
@@ -70,9 +82,10 @@ class PerfTimer {
 
 export class SarvamBridgeService {
 
-  // ── Pre-built STT message templates (avoids JSON.stringify per chunk) ────────
-  private static readonly STT_MSG_PREFIX = '{"audio":{"data":"';
-  private static readonly STT_MSG_SUFFIX = '","encoding":"audio/wav","sample_rate":8000}}';
+  // ── Realtime STT audio frame (Plivo μ-law base64 passes straight through) ──
+  private static sttAudioFrame(b64Mulaw: string): string {
+    return '{"event":"audio_input","audio":"' + b64Mulaw + '"}';
+  }
 
   // ── Smart Fillers cache & config ───────────────────────────────────────────
   private static readonly fillerCache = new Map<string, Buffer>();
@@ -118,32 +131,20 @@ export class SarvamBridgeService {
             speaker: voice,
             model: 'bulbul:v3',
             speech_sample_rate: 8000,
+            output_audio_codec: 'mulaw',
             enable_preprocessing: true
           }, {
-            headers: {
-              'Content-Type': 'application/json',
-              'Api-Subscription-Key': sarvamApiKey
-            },
+            headers: { 'Content-Type': 'application/json', 'Api-Subscription-Key': sarvamApiKey },
             httpsAgent: keepAliveAgent,
             timeout: 10000
           });
 
-          const json = res.data;
-          const b64Audio = json.audios?.[0];
+          const b64Audio = res.data?.audios?.[0];
           if (!b64Audio) {
             logger.warn(`[SarvamBridge][${callUuid}] Pre-synthesizing filler "${text}" failed: no audio in response`);
             return;
           }
-
-          const wavBuf  = Buffer.from(b64Audio, 'base64');
-          const pcmBuf  = wavBuf.subarray(44);
-
-          // Convert PCM16 LE 8kHz → μ-law 8kHz
-          const mulawBuf = Buffer.alloc(pcmBuf.length / 2);
-          for (let i = 0; i < mulawBuf.length; i++) {
-            mulawBuf[i] = SarvamBridgeService.lin2ulaw(pcmBuf.readInt16LE(i * 2));
-          }
-
+          const mulawBuf = SarvamBridgeService.toMulaw(Buffer.from(b64Audio, 'base64'));
           SarvamBridgeService.fillerCache.set(cacheKey, mulawBuf);
           logger.info(`[SarvamBridge][${callUuid}] Pre-synthesized and cached filler "${text}" (${mulawBuf.length} mulaw bytes)`);
         } catch (e: any) {
@@ -179,21 +180,146 @@ export class SarvamBridgeService {
     SarvamBridgeService.sendMulawPaced(callUuid, plivoWs, fillerBuf);
   }
 
+  /** Play a filler only if the reply's first audio is still not ready after FILLER_DELAY_MS. */
+  private static scheduleFiller(callUuid: string, plivoWs: WebSocket, language: string, voice: string): void {
+    SarvamBridgeService.cancelFiller(plivoWs);
+    (plivoWs as any).sarvamFillerTimer = setTimeout(() => {
+      (plivoWs as any).sarvamFillerTimer = null;
+      const st: ConvState = (plivoWs as any).sarvamState;
+      if (st === 'THINKING' && !(plivoWs as any).sarvamIsPacing) {
+        SarvamBridgeService.playFillerIfAvailable(callUuid, plivoWs, language, voice);
+      }
+    }, FILLER_DELAY_MS);
+  }
 
-  // ── mulaw decode table (G.711 μ-law) ─────────────────────────────────────
-  private static readonly MULAW_DECODE: Int16Array = (() => {
-    const t = new Int16Array(256);
-    for (let i = 0; i < 256; i++) {
-      let u = ~i & 0xFF;
-      const sign = u & 0x80;
-      const exp  = (u >> 4) & 0x07;
-      const mant = u & 0x0F;
-      let s = ((mant << 3) + 0x84) << exp;
-      s -= 0x84;
-      t[i] = sign ? -s : s;
+  private static cancelFiller(plivoWs: WebSocket): void {
+    const t = (plivoWs as any).sarvamFillerTimer;
+    if (t) { clearTimeout(t); (plivoWs as any).sarvamFillerTimer = null; }
+  }
+
+  // ── Language codes ─────────────────────────────────────────────────────────
+  private static readonly LANG_MAP: Record<string, string> = {
+    'hi': 'hi-IN', 'en': 'en-IN', 'bn': 'bn-IN', 'ta': 'ta-IN',
+    'te': 'te-IN', 'kn': 'kn-IN', 'ml': 'ml-IN', 'mr': 'mr-IN',
+    'pa': 'pa-IN', 'gu': 'gu-IN', 'od': 'od-IN', 'ur': 'ur-IN',
+  };
+
+  /** 'hi' | 'hi-IN' | 'HI-in' → 'hi-IN'; unknown → null */
+  private static normalizeLang(raw: string | undefined | null): string | null {
+    if (!raw) return null;
+    const base = raw.split('-')[0].toLowerCase();
+    if (SarvamBridgeService.LANG_MAP[base]) return SarvamBridgeService.LANG_MAP[base];
+    return raw.includes('-') ? raw : null;
+  }
+
+  // ── TTS cache ──────────────────────────────────────────────────────────────
+  private static readonly ttsCache = new Map<string, Buffer>();
+
+  private static cacheTts(key: string, buf: Buffer): void {
+    const c = SarvamBridgeService.ttsCache;
+    if (c.size >= TTS_CACHE_MAX) {
+      const oldest = c.keys().next().value;
+      if (oldest !== undefined) c.delete(oldest);
     }
-    return t;
-  })();
+    c.set(key, buf);
+  }
+
+  // ── Normalise a Sarvam TTS payload to raw μ-law 8 kHz ─────────────────────
+  // With output_audio_codec=mulaw the API returns raw μ-law or a WAV container
+  // (format 7). If it still returns WAV PCM16 (format 1), convert it here.
+  private static toMulaw(buf: Buffer): Buffer {
+    if (buf.length > 44 && buf.subarray(0, 4).toString('ascii') === 'RIFF') {
+      const fmt = buf.readUInt16LE(20);
+      const body = buf.subarray(44);
+      if (fmt === 7) return body;
+      if (fmt === 1) {
+        const out = Buffer.alloc(body.length >> 1);
+        for (let i = 0; i < out.length; i++) out[i] = SarvamBridgeService.lin2ulaw(body.readInt16LE(i * 2));
+        return out;
+      }
+    }
+    return buf;
+  }
+
+  // ── What the caller actually heard ─────────────────────────────────────────
+  /** Record that sentence `idx` was queued for playback (for barge-in history + echo guard). */
+  private static noteSpoken(plivoWs: WebSocket, idx: number): void {
+    const text: string | undefined = (plivoWs as any).sarvamSentenceText?.get(idx);
+    if (text) SarvamBridgeService.noteSpokenText(plivoWs, text);
+  }
+
+  private static noteSpokenText(plivoWs: WebSocket, text: string): void {
+    const turn: number = (plivoWs as any).sarvamTurnId ?? 0;
+    const byTurn: Map<number, string> | undefined = (plivoWs as any).sarvamSpokenByTurn;
+    if (byTurn) byTurn.set(turn, ((byTurn.get(turn) || '') + ' ' + text).trim());
+    const last = (((plivoWs as any).sarvamLastAgentText || '') + ' ' + text);
+    (plivoWs as any).sarvamLastAgentText = last.length > 600 ? last.slice(-600) : last;
+  }
+
+  /**
+   * Streamed TTS audio → paced Plivo playback. Chunks from the socket are not
+   * 20 ms aligned, so keep a remainder and only emit whole 160-byte frames;
+   * `flush` pads the tail at sentence end.
+   */
+  private static pushStreamAudio(callUuid: string, plivoWs: WebSocket, buf: Buffer, flush: boolean): void {
+    if ((plivoWs as any).sarvamState === 'TERMINATED') return;
+    const pending = Buffer.concat([(plivoWs as any).sarvamStreamRemainder || Buffer.alloc(0), buf]);
+    const whole = pending.length - (pending.length % MULAW_CHUNK_BYTES);
+    let out = pending.subarray(0, whole);
+    let rest = pending.subarray(whole);
+    if (flush && rest.length) {
+      out = Buffer.concat([out, rest, Buffer.alloc(MULAW_CHUNK_BYTES - rest.length, 0xff)]);
+      rest = Buffer.alloc(0);
+    }
+    (plivoWs as any).sarvamStreamRemainder = Buffer.from(rest);
+    if (!out.length) return;
+
+    (plivoWs as any).sarvamReplyAudioQueued = true;
+    SarvamBridgeService.cancelFiller(plivoWs);
+    const st: ConvState = (plivoWs as any).sarvamState;
+    if (st === 'THINKING') {
+      SarvamBridgeService.setState(callUuid, plivoWs, 'SPEAKING');
+      (plivoWs as any).sarvamIsSpeaking = true;
+    }
+    SarvamBridgeService.sendMulawPaced(callUuid, plivoWs, out);
+  }
+
+  /** Queue every completed sentence whose turn has come (REST/cached path keeps strict order). */
+  private static drainCompletedAudio(callUuid: string, plivoWs: WebSocket): void {
+    const completedAudio = (plivoWs as any).sarvamCompletedAudio as Map<number, Buffer> | undefined;
+    if (!completedAudio) return;
+    let nextIdx: number = (plivoWs as any).sarvamNextPlayIdx ?? 0;
+    while (completedAudio.has(nextIdx)) {
+      const nextBuf = completedAudio.get(nextIdx)!;
+      completedAudio.delete(nextIdx);
+      SarvamBridgeService.cancelFiller(plivoWs);
+      SarvamBridgeService.noteSpoken(plivoWs, nextIdx);
+      (plivoWs as any).sarvamReplyAudioQueued = true;
+
+      logger.info(`[SarvamBridge][${callUuid}] Queueing s${nextIdx} for paced playback`);
+      const st: ConvState = (plivoWs as any).sarvamState;
+      if (st === 'THINKING') {
+        SarvamBridgeService.setState(callUuid, plivoWs, 'SPEAKING');
+        (plivoWs as any).sarvamIsSpeaking = true;
+      }
+      SarvamBridgeService.sendMulawPaced(callUuid, plivoWs, nextBuf);
+      nextIdx++;
+    }
+    (plivoWs as any).sarvamNextPlayIdx = nextIdx;
+  }
+
+  /** True when a transcript is mostly the agent's own recent words (handset/PSTN echo). */
+  private static looksLikeEcho(transcript: string, agentText: string): boolean {
+    // Strip punctuation only (no \p{..} classes: tsconfig has no ES6 target for the `u` flag)
+    const norm = (t: string) => t.toLowerCase().replace(/[.,!?;:"'()[\]{}\-–—…।|/]+/g, ' ').split(/\s+/).filter(Boolean);
+    const words = norm(transcript);
+    if (words.length < 5 || !agentText) return false;
+    const recent = new Set(norm(agentText).slice(-60));
+    const hits = words.filter(w => recent.has(w)).length;
+    // Nearly every word must be ours — a caller confirming a number they just heard is not echo
+    return hits / words.length >= 0.9;
+  }
+
 
   // ── G.711 μ-law encoder ───────────────────────────────────────────────────
   private static lin2ulaw(s: number): number {
@@ -206,15 +332,6 @@ export class SarvamBridgeService {
     while (!(s & mask) && exp > 0) { exp--; mask >>= 1; }
     const mant = (s >> (exp + 3)) & 0x0F;
     return (~(sign | (exp << 4) | mant)) & 0xFF;
-  }
-
-  // ── μ-law 8 kHz → PCM16 LE 8 kHz ─────────────────────────────────────────
-  private static mulaw8k_to_pcm16_8k(src: Buffer): Buffer {
-    const out = Buffer.alloc(src.length * 2);
-    for (let i = 0; i < src.length; i++) {
-      out.writeInt16LE(SarvamBridgeService.MULAW_DECODE[src[i]], i * 2);
-    }
-    return out;
   }
 
   // ── Paced audio sender ────────────────────────────────────────────────────
@@ -301,14 +418,18 @@ export class SarvamBridgeService {
       (plivoWs as any).sarvamMasterAbortController = null;
     }
 
+    SarvamBridgeService.cancelFiller(plivoWs);
+
     // Clear any pending VAD timer
     if ((plivoWs as any).sarvamVadTimer) {
       clearTimeout((plivoWs as any).sarvamVadTimer);
       (plivoWs as any).sarvamVadTimer = null;
     }
 
-    // 2. Stop audio pacing and drain queue
+    // 2. Stop audio pacing and drain queue (and anything Sarvam is still synthesising)
     SarvamBridgeService.stopPacing(plivoWs);
+    (plivoWs as any).sarvamTts?.abort();
+    (plivoWs as any).sarvamStreamRemainder = Buffer.alloc(0);
 
     // Clear completed audio buffers
     if ((plivoWs as any).sarvamCompletedAudio) {
@@ -359,81 +480,49 @@ export class SarvamBridgeService {
 
   // ── Gender detection from voice ───────────────────────────────────────────
   private static getGenderFromVoice(voice: string): 'female' | 'male' {
-    const femaleVoices = ['priya', 'meera', 'kavya', 'anushka', 'manisha', 'vidya', 'maya'];
-    return femaleVoices.includes((voice || '').toLowerCase()) ? 'female' : 'male';
+    const v = SARVAM_VOICES.find(x => x.id === (voice || '').toLowerCase());
+    return v?.gender === 'Male' ? 'male' : 'female';
   }
 
   // ── System prompt wrapper ─────────────────────────────────────────────────
-  private static buildWrapper(systemPrompt: string, voice: string, language: string): string {
-    const isEnglish = (language || '').toLowerCase().startsWith('en');
-
+  // Deliberately short: long rule lists (and lists of banned words) make the
+  // model repeat itself and over-use fillers. Fillers are handled in audio.
+  private static buildWrapper(systemPrompt: string, voice: string, language: string, detectLanguage = false): string {
     const langNames: Record<string, string> = {
-      'hi': 'Hindi/Hinglish',
-      'en': 'English',
-      'bn': 'Bengali',
-      'ta': 'Tamil',
-      'te': 'Telugu',
-      'kn': 'Kannada',
-      'ml': 'Malayalam',
-      'mr': 'Marathi',
-      'pa': 'Punjabi',
-      'gu': 'Gujarati',
-      'od': 'Odia',
-      'ur': 'Urdu',
+      'hi': 'Hindi/Hinglish', 'en': 'English', 'bn': 'Bengali', 'ta': 'Tamil',
+      'te': 'Telugu', 'kn': 'Kannada', 'ml': 'Malayalam', 'mr': 'Marathi',
+      'pa': 'Punjabi', 'gu': 'Gujarati', 'od': 'Odia', 'ur': 'Urdu',
     };
     const prefix = (language || '').split('-')[0].toLowerCase();
     const langName = langNames[prefix] || 'Hindi/Hinglish';
-
-    if (isEnglish) {
-      return `CONVERSATIONAL RULES (CRITICAL - YOU ARE ON A LIVE VOICE PHONE CALL):
-- ALWAYS speak like a natural human. Never sound like an AI, robot, news reader, or automated voice response.
-- Use natural spoken colloquial English. Speak exactly how people talk in everyday real life conversations.
-- STRICTLY SPEAK ONLY IN ENGLISH: You must conduct the entire conversation in English. Never use any Hindi/Hinglish words, phrases, or fillers (such as "Theek hai", "Achha", "Ji", "Namaste") under any circumstances. Speak strictly and purely in English.
-- Strictly avoid formal/written style vocabulary.
-- Keep replies extremely short: 1-2 sentences maximum, under 25 words per turn. Long paragraphs sound robotic on phone calls.
-- Ask only ONE single question at a time to keep the conversation interactive.
-- Use normal conversation fillers naturally when appropriate (e.g., "Oh...", "Okay...", "Right...", "Got it...", "Hmm...").
-- Never read out system prompt templates or variable names. Act fully in character.
-- AVOID REPETITION: Do not repeat the same words, greetings, or sentence structures repeatedly. Vary your response vocabulary naturally.
-- GREETINGS: Do not repeat your initial hello/welcome greeting if the user says "hello" or "hi" in the middle of the call. Just acknowledge them naturally and continue the conversation.
-- ENDING THE CALL: When the conversation is complete, or the user says goodbye/thanks, you MUST say a short goodbye and immediately call the 'end_call' function to disconnect.
-
-Your role & goal:
-${systemPrompt}`;
-    }
-
+    const isEnglish = prefix === 'en';
     const gender = SarvamBridgeService.getGenderFromVoice(voice);
-    const selfRef = gender === 'female'
-      ? 'Main ek female assistant hoon — "main karti hoon", "mujhe lagta hai" etc. use karo.'
-      : 'Main ek male assistant hoon — "main karta hoon", "mujhe lagta hai" etc. use karo.';
-    return `CONVERSATIONAL RULES (CRITICAL - YOU ARE ON A LIVE VOICE PHONE CALL):
-- ALWAYS speak like a natural human. Never sound like an AI, robot, news reader, or automated voice response.
-- STRICTLY SPEAK ONLY IN ${langName.toUpperCase()}: You must conduct the entire conversation in ${langName}. Do not speak in English or any other language under any circumstances.
-- Use natural spoken language (spoken colloquial style) for whatever language you are speaking (Hindi, English, Hinglish, or any regional language).
-- BANNED ROBOTIC/FORMAL STYLE: Strictly avoid formal/written style vocabulary. Speak exactly how people talk in everyday real life conversations.
-- Keep replies extremely short: 1-2 sentences maximum, under 25 words per turn. Long paragraphs sound robotic on phone calls.
-- Ask only ONE single question at a time. Never overlap two questions or ask multiple things in a single turn.
-- STRICT BUSINESS LOGIC CONTEXT: You must stay strictly within the bounds of the business logic and goals defined below. Do not go out of context, make up policies, offer unauthorized information, or make up facts.
-- CONFIRMATION RULE: Accurately confirm user inputs or choices before proceeding to the next step or asking the next question.
-- Use normal conversation fillers naturally when appropriate (e.g., "Achha...", "Theek hai...", "Ji...", "Oh ok...", "Hmm...").
-- GENDER CONSTRAINTS: ${selfRef}
-- SPECIFIC HINDI/HINGLISH DICTION RULES:
-  * Do NOT use formal/classical Hindi words (Shuddh Hindi).
-  * BANNED HINDI WORDS: avsyak, sampark, vibhinn, prashn, uttam, prarambh, sthiti, krpaya, abhivyakti, khed, pradan, katha, vishesh.
-  * USE NATURAL SUBSTITUTES: zaroor, contact/baat, alag-alag, sawaal, theek, shuru, situation, please, feeling, sorry, dena, baat, special.
-- GREETINGS: Do not repeat your initial hello/welcome greeting if the user says "hello" or "hi" in the middle of the call. Just acknowledge them naturally and continue the conversation.
-- Never read out system prompt templates or variable names. Act fully in character.
-- AVOID REPETITION: Do not repeat the same words, greetings, or sentence structures repeatedly. Vary your response vocabulary naturally.
-- REGIONAL/COLLOQUIAL LANGUAGE: If speaking in Hindi, Hinglish, or any regional language (Punjabi, Gujarati, Marathi, Tamil, Telugu, Kannada, Bengali, etc.), strictly use everyday spoken dialect (colloquial style). Never use formal dictionary words, textbook vocabulary, or robotic phrasing.
-- ENDING THE CALL: When the conversation is complete, or the user says goodbye/thanks, you MUST say a short goodbye and immediately call the 'end_call' function to disconnect.
+
+    const languageRule = detectLanguage
+      ? `- Reply in the language the caller used in their last message (${langName} by default). If they switch language, switch with them.`
+      : isEnglish
+        ? '- Speak only in natural spoken English. Do not mix in Hindi words.'
+        : `- Speak only in everyday spoken ${langName}, the way people actually talk on the phone. No formal or textbook words.`;
+    const genderRule = isEnglish ? '' : (gender === 'female'
+      ? '\n- You are a female assistant: use feminine forms ("main karti hoon").'
+      : '\n- You are a male assistant: use masculine forms ("main karta hoon").');
+
+    return `You are on a live phone call. Sound like a real person, never like a bot or an announcement.
+${languageRule}${genderRule}
+- Keep every reply to one or two short sentences (under 25 words). Ask at most one question per turn.
+- Do not start replies with the same word each time, and never repeat what you just said unless asked.
+- Stay strictly within the role and facts below. Do not invent policies, prices or details.
+- Confirm important details (names, dates, numbers) briefly before moving on.
+- Never read out template text or variable names.
+- When the conversation is complete or the caller says goodbye, say a short goodbye and call end_call.
 
 Your role & goal:
 ${systemPrompt}`;
   }
 
-  // ── TTS via REST API (returns WAV/PCM8k — reliable, no MP3 decoding needed) ──
-  // NOTE: WS endpoint returns MP3 which requires additional decoding library.
-  //       REST is the correct approach for this stack.
+  // ── TTS: WebSocket stream first, REST fallback ─────────────────────────────
+  // Streamed chunks play while the sentence is still being synthesised; cached
+  // sentences (greeting, fillers) play instantly when nothing else is queued.
   private static async speakViaTTS(
     callUuid: string,
     plivoWs: WebSocket,
@@ -447,48 +536,67 @@ ${systemPrompt}`;
   ): Promise<void> {
     const trimmed = text.trim();
     if (!trimmed) return;
+    if (sentenceIdx !== undefined) (plivoWs as any).sarvamSentenceText?.set(sentenceIdx, trimmed);
 
     if (perf && sentenceIdx !== undefined) perf.mark(`TTS_START_${sentenceIdx}`);
 
     try {
-      const res = await axios.post(SARVAM_TTS_REST_URL, {
-        inputs: [trimmed],
-        target_language_code: language || 'hi-IN',
-        speaker: voice || 'priya',
-        model: 'bulbul:v3',
-        speech_sample_rate: 8000,
-        enable_preprocessing: true
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Api-Subscription-Key': sarvamApiKey
-        },
-        httpsAgent: keepAliveAgent,
-        signal,
-        timeout: 10000
-      });
+      const cacheKey = `${language}:${voice}:${trimmed}`;
+      let mulawBuf = SarvamBridgeService.ttsCache.get(cacheKey);
 
-      // Check abort AFTER request returns
-      if (signal?.aborted) return;
+      // A cached sentence may only play instantly when it is the next one due and nothing is streaming
+      const stream: SarvamTtsStream | undefined = (plivoWs as any).sarvamTts;
+      const nextDue: number = (plivoWs as any).sarvamNextPlayIdx ?? 0;
+      const instantOk = !!mulawBuf && (!stream || stream.pendingCount() === 0) && (sentenceIdx === undefined || sentenceIdx === nextDue);
+      if (stream && stream.isReady() && !instantOk) {
+        stream.configure(language || 'hi-IN', voice || 'priya');
+        try {
+          await stream.speak(trimmed, signal);
+          if (perf && sentenceIdx !== undefined) {
+            perf.mark(`TTS_DONE_${sentenceIdx}`);
+            perf.log(`TTS_START_${sentenceIdx}`, `TTS_DONE_${sentenceIdx}`);
+          }
+          if (sentenceIdx !== undefined) {
+            // Streamed audio is already queued in order; release any later cached/REST sentence
+            (plivoWs as any).sarvamNextPlayIdx = Math.max((plivoWs as any).sarvamNextPlayIdx ?? 0, sentenceIdx + 1);
+            SarvamBridgeService.drainCompletedAudio(callUuid, plivoWs);
+          }
+          return;
+        } catch (e: any) {
+          if (e.name === 'AbortError' || signal?.aborted) return;
+          logger.warn(`[SarvamBridge][${callUuid}] TTS stream failed (s${sentenceIdx}), REST fallback: ${e.message}`);
+        }
+      }
 
-      const json = res.data;
-      const b64Audio = json.audios?.[0];
-      if (!b64Audio) {
-        logger.error(`[SarvamBridge][${callUuid}] TTS REST: no audio in response`);
-        return;
+      if (!mulawBuf) {
+        const res = await axios.post(SARVAM_TTS_REST_URL, {
+          inputs: [trimmed],
+          target_language_code: language || 'hi-IN',
+          speaker: voice || 'priya',
+          model: 'bulbul:v3',
+          speech_sample_rate: 8000,
+          output_audio_codec: 'mulaw',
+          enable_preprocessing: true
+        }, {
+          headers: { 'Content-Type': 'application/json', 'Api-Subscription-Key': sarvamApiKey },
+          httpsAgent: keepAliveAgent,
+          signal,
+          timeout: 10000
+        });
+
+        // Check abort AFTER request returns
+        if (signal?.aborted) return;
+
+        const b64Audio = res.data?.audios?.[0];
+        if (!b64Audio) {
+          logger.error(`[SarvamBridge][${callUuid}] TTS REST: no audio in response`);
+          return;
+        }
+        mulawBuf = SarvamBridgeService.toMulaw(Buffer.from(b64Audio, 'base64'));
+        SarvamBridgeService.cacheTts(cacheKey, mulawBuf);
       }
 
       if (signal?.aborted) return;
-
-      // Response is base64 WAV — strip 44-byte header to get raw PCM16 8kHz
-      const wavBuf  = Buffer.from(b64Audio, 'base64');
-      const pcmBuf  = wavBuf.subarray(44);
-
-      // Convert PCM16 LE 8kHz → μ-law 8kHz
-      const mulawBuf = Buffer.alloc(pcmBuf.length / 2);
-      for (let i = 0; i < mulawBuf.length; i++) {
-        mulawBuf[i] = SarvamBridgeService.lin2ulaw(pcmBuf.readInt16LE(i * 2));
-      }
 
       if (perf && sentenceIdx !== undefined) {
         perf.mark(`TTS_DONE_${sentenceIdx}`);
@@ -503,24 +611,7 @@ ${systemPrompt}`;
           completedAudio.set(sentenceIdx, mulawBuf);
         }
 
-        let nextIdx = (plivoWs as any).sarvamNextPlayIdx ?? 0;
-        while (completedAudio && completedAudio.has(nextIdx)) {
-          const nextBuf = completedAudio.get(nextIdx)!;
-          completedAudio.delete(nextIdx);
-
-          logger.info(`[SarvamBridge][${callUuid}] Queueing s${nextIdx} for paced playback`);
-          
-          // Transition THINKING → SPEAKING on first sentence audio played
-          const st: ConvState = (plivoWs as any).sarvamState;
-          if (st === 'THINKING') {
-            SarvamBridgeService.setState(callUuid, plivoWs, 'SPEAKING');
-            (plivoWs as any).sarvamIsSpeaking = true;
-          }
-
-          SarvamBridgeService.sendMulawPaced(callUuid, plivoWs, nextBuf);
-          nextIdx++;
-        }
-        (plivoWs as any).sarvamNextPlayIdx = nextIdx;
+        SarvamBridgeService.drainCompletedAudio(callUuid, plivoWs);
       } else {
         // Fallback for calls without index (e.g. legacy/fillers)
         const st: ConvState = (plivoWs as any).sarvamState;
@@ -549,20 +640,20 @@ ${systemPrompt}`;
     voice: string,
     signal: AbortSignal,
     perf: PerfTimer,
-    openaiModel?: string
+    openaiModel?: string,
+    detectLanguage = false
   ): Promise<string> {
-    const naturalWrapper = SarvamBridgeService.buildWrapper(systemPrompt, voice, language);
-    const messages = [{ role: 'system' as const, content: naturalWrapper }, ...history];
+    const naturalWrapper = SarvamBridgeService.buildWrapper(systemPrompt, voice, language, detectLanguage);
+    const messages = [{ role: 'system' as const, content: naturalWrapper }, ...history.slice(-HISTORY_MAX_MESSAGES)];
 
     perf.mark('GPT_START');
 
     const url = 'https://api.openai.com/v1/chat/completions';
     const authHeader = `Bearer ${openaiApiKey}`;
-    const model = openaiModel || 'gpt-4o-mini';
+    // Realtime model ids (from legacy call records) are not valid for chat/completions
+    const model = (openaiModel && !openaiModel.includes('realtime')) ? openaiModel : 'gpt-4o-mini';
 
-    logger.info(`[SarvamBridge][${callUuid}] OpenAI Model: ${model || 'default'}, Language: ${language}, Messages count: ${messages.length}`);
-    logger.info(`[SarvamBridge][${callUuid}] Full wrapper sent: ${naturalWrapper}`);
-    logger.info(`[SarvamBridge][${callUuid}] Conversation history: ${JSON.stringify(history)}`);
+    logger.info(`[SarvamBridge][${callUuid}] OpenAI Model: ${model}, Language: ${language}, Messages: ${messages.length}`);
 
     const isReasoningModel = model.includes('gpt-5') || model.startsWith('o1') || model.startsWith('o3');
 
@@ -582,13 +673,22 @@ ${systemPrompt}`;
     };
 
     if (isReasoningModel) {
-      requestBody.max_completion_tokens = 250; // Reasoning models require max_completion_tokens (which covers reasoning + output)
+      // max_completion_tokens covers reasoning + visible output, so keep reasoning minimal
+      // on a live phone call — otherwise the budget is spent thinking and content comes back empty
+      requestBody.max_completion_tokens = 400;
+      if (model.includes('gpt-5')) {
+        requestBody.reasoning_effort = 'minimal';
+        requestBody.verbosity = 'low';
+      } else {
+        requestBody.reasoning_effort = 'low'; // o-series: 'minimal'/'verbosity' are rejected
+      }
       // Reasoning models do not support custom temperature, frequency_penalty or presence_penalty
     } else {
-      requestBody.max_tokens = 250;
-      requestBody.temperature = 0.3;
-      requestBody.frequency_penalty = 0.5;
-      requestBody.presence_penalty = 0.6;
+      // Heavy penalties on Hinglish suppress common necessary words → odd phrasing.
+      requestBody.max_tokens = 200;
+      requestBody.temperature = 0.6;
+      requestBody.frequency_penalty = 0.2;
+      requestBody.presence_penalty = 0.2;
     }
 
     const response = await fetch(url, {
@@ -668,19 +768,12 @@ ${systemPrompt}`;
                 remainingText = match[2] || '';
               }
             } else {
-              // Check if word count exceeds 8 and we have a connecting word/sub-clause boundary (aur, lekin, and, but)
+              // No punctuation yet: don't let one breath run too long before TTS starts.
+              // (Never split right after a conjunction — TTS pronounces "...aur" as a dangling fragment.)
               const words = sentenceBuf.split(/\s+/);
-              if (words.length > 8) {
-                const connectingWords = ['aur', 'lekin', 'and', 'but', 'और', 'लेकिन'];
-                const idx = words.findIndex((w, i) => {
-                  if (i === 0 || i === words.length - 1) return false; // don't split at very beginning or end
-                  const clean = w.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").toLowerCase();
-                  return connectingWords.includes(clean);
-                });
-                if (idx !== -1) {
-                  splitText = words.slice(0, idx + 1).join(' ');
-                  remainingText = words.slice(idx + 1).join(' ');
-                }
+              if (words.length > 22) {
+                splitText = words.slice(0, 18).join(' ');
+                remainingText = words.slice(18).join(' ');
               }
             }
 
@@ -709,11 +802,14 @@ ${systemPrompt}`;
           sarvamApiKey, language, voice,
           signal, perf, sentenceIdx
         );
-        ttsTasks.push(task);
-        await task;
+        ttsTasks.push(task.catch(e => {
+          if (!signal.aborted) logger.error(`[SarvamBridge][${callUuid}] TTS s${sentenceIdx}: ${e.message}`);
+        }));
       } else {
         perf.mark('GPT_DONE');
       }
+      // REST-fallback sentences finish out of order — only hand back to LISTENING once all are queued
+      await Promise.all(ttsTasks);
 
       perf.log('GPT_START', 'GPT_DONE');
       perf.summary('STT_FINAL');
@@ -722,7 +818,8 @@ ${systemPrompt}`;
       reader.cancel().catch(() => {});
     }
 
-    return signal.aborted ? '' : (fullReply.trim() || 'Kuch samajh nahi aaya, kripya dobara bolein.');
+    // Empty reply (e.g. tool-call only) must not be replaced by text the caller never heard
+    return signal.aborted ? '' : fullReply.trim();
   }
 
   // ── Fire first message ────────────────────────────────────────────────────
@@ -781,7 +878,9 @@ ${systemPrompt}`;
         }
       } catch (e: any) {
         if (e.name !== 'AbortError') {
-          const fallback = 'Namaste! Main aapki kaise madad kar sakta hoon?';
+          const fallback = language.startsWith('en')
+            ? 'Hello! How can I help you today?'
+            : 'Namaste! Main aapki kaise madad kar sakti hoon?';
           logger.warn(`[SarvamBridge][${callUuid}] GPT greeting failed: ${e.message}`);
           chatHistory.push({ role: 'assistant', content: fallback });
           transcriptLines.push(`Agent: ${fallback}`);
@@ -811,23 +910,11 @@ ${systemPrompt}`;
       return;
     }
 
-    const LANG_MAP: Record<string, string> = {
-      'hi': 'hi-IN', 'en': 'en-IN', 'bn': 'bn-IN', 'ta': 'ta-IN',
-      'te': 'te-IN', 'kn': 'kn-IN', 'ml': 'ml-IN', 'mr': 'mr-IN',
-      'pa': 'pa-IN', 'gu': 'gu-IN', 'od': 'od-IN', 'ur': 'ur-IN',
-    };
-    const rawLang  = agentConfig.language || 'hi-IN';
-    const language = LANG_MAP[rawLang] ?? (rawLang.includes('-') ? rawLang : 'hi-IN');
+    const language = SarvamBridgeService.normalizeLang(agentConfig.language || 'hi-IN') || 'hi-IN';
 
-    const BULBUL_V3_VOICES = ['priya'];
+    // Any bulbul:v3 speaker from the shared list is valid; unknown/legacy ids fall back to priya
     const rawVoice = (agentConfig.voice || 'priya').toLowerCase();
-    const VOICE_MAP: Record<string, string> = {
-      'anushka': 'priya', 'manisha': 'priya', 'vidya': 'priya',
-      'arya': 'priya',    'karun': 'priya',   'hitesh': 'priya',
-      'abhilash': 'priya','meera': 'priya',   'maya': 'priya',
-      'raj': 'priya',     'ravi': 'priya',
-    };
-    const voice = BULBUL_V3_VOICES.includes(rawVoice) ? rawVoice : (VOICE_MAP[rawVoice] || 'priya');
+    const voice = SARVAM_VOICES.some(v => v.id === rawVoice) ? rawVoice : 'priya';
     logger.info(`[SarvamBridge][${callUuid}] language=${language} voice=${voice}`);
 
     // ── Per-call state ────────────────────────────────────────────────────────
@@ -846,6 +933,13 @@ ${systemPrompt}`;
     (plivoWs as any).sarvamCallId               = callId;
     (plivoWs as any).sarvamTriggeredEndCall     = false;
     (plivoWs as any).sarvamToolNameBuf          = '';
+    (plivoWs as any).sarvamActiveLang           = language;
+    (plivoWs as any).sarvamSentenceText         = new Map<number, string>();
+    (plivoWs as any).sarvamSpokenByTurn         = new Map<number, string>();
+    (plivoWs as any).sarvamLastAgentText        = '';
+    (plivoWs as any).sarvamFillerTimer          = null as NodeJS.Timeout | null;
+    (plivoWs as any).sarvamStreamRemainder      = Buffer.alloc(0);
+    (plivoWs as any).sarvamReplyAudioQueued     = false;
 
     const transcriptLines: string[] = [];
     const chatHistory: { role: 'user' | 'assistant'; content: string }[] = [];
@@ -856,6 +950,21 @@ ${systemPrompt}`;
     (plivoWs as any).sarvamMasterAbortController = masterCtrl;
 
     try {
+      // ── TTS stream (opens in parallel with STT; REST is the fallback) ─────
+      const tts = new SarvamTtsStream(callUuid, sarvamApiKey, language, voice, {
+        onAudio: (buf) => SarvamBridgeService.pushStreamAudio(callUuid, plivoWs, buf, false),
+        onSentenceStart: (text) => SarvamBridgeService.noteSpokenText(plivoWs, text),
+        onSentenceDone: (text, audio) => {
+          SarvamBridgeService.pushStreamAudio(callUuid, plivoWs, Buffer.alloc(0), true);
+          if (audio.length) {
+            const lang = (plivoWs as any).sarvamActiveLang || language;
+            SarvamBridgeService.cacheTts(`${lang}:${voice}:${text}`, audio);
+          }
+        },
+      });
+      (plivoWs as any).sarvamTts = tts;
+      tts.open().catch(e => logger.warn(`[SarvamBridge][${callUuid}] TTS stream unavailable, using REST: ${e.message}`));
+
       // ── Fire greeting (non-blocking) ─────────────────────────────────────
       const greetPerf = new PerfTimer(`${callUuid}:greeting`);
       greetPerf.mark('GREETING_START');
@@ -874,22 +983,26 @@ ${systemPrompt}`;
         logger.error(`[SarvamBridge][${callUuid}] Filler prefetch error: ${e.message}`);
       });
 
-      // ── STT WebSocket ─────────────────────────────────────────────────────
-      // vad_signals=true  → receive START_SPEECH events for early barge-in
-      // high_vad_sensitivity=true → 0.5s silence threshold (was ~1s, saves 400-500ms)
+      // ── STT WebSocket (realtime) ──────────────────────────────────────────
+      // encoding=mulaw → Plivo frames pass through untouched (no PCM decode per 20 ms)
+      // language_code=auto → every final carries the detected language
+      // endpointing=vad + silence_duration_ms → end of turn ~450 ms after the caller stops
       const sttUrl = [
         SARVAM_STT_URL,
-        `?language-code=${language}`,
-        `&model=saaras:v3`,
+        `?language_code=${agentConfig.detectLanguage ? 'auto' : language}`,
+        `&model=saaras:v3-realtime`,
         `&mode=transcribe`,
+        `&encoding=mulaw`,
         `&sample_rate=8000`,
-        `&input_audio_codec=pcm_s16le`,
-        `&vad_signals=true`,
-        `&high_vad_sensitivity=true`,
+        `&endpointing=vad`,
+        `&silence_duration_ms=450`,
+        `&threshold=0.3`,
+        `&min_speech_duration_ms=250`,
+        `&stream_type=fast`,
       ].join('');
 
       const sttWs = new WebSocket(sttUrl, {
-        headers: { 'Api-Subscription-Key': sarvamApiKey }
+        headers: { 'api-subscription-key': sarvamApiKey }
       });
       (plivoWs as any).sarvamSttWs = sttWs;
 
@@ -899,11 +1012,8 @@ ${systemPrompt}`;
         // Silence keepalive: STT expects continuous audio at 20ms intervals.
         // Send PCM16 silence until first real Plivo audio arrives.
         // This prevents STT from timing out during the greeting phase.
-        const SILENCE_PCM = Buffer.alloc(320, 0); // 20ms silence at 8kHz
-        const SILENCE_B64 = SILENCE_PCM.toString('base64');
-        const SILENCE_MSG = JSON.stringify({
-          audio: { data: SILENCE_B64, encoding: 'audio/wav', sample_rate: 8000 }
-        });
+        // 20 ms of μ-law silence (0xFF) until the first real Plivo frame arrives
+        const SILENCE_MSG = SarvamBridgeService.sttAudioFrame(Buffer.alloc(MULAW_CHUNK_BYTES, 0xff).toString('base64'));
         const keepAlive = setInterval(() => {
           if (sttWs.readyState === WebSocket.OPEN) {
             if (!(plivoWs as any).sarvamRealAudioStarted) {
@@ -921,34 +1031,67 @@ ${systemPrompt}`;
         try {
           if (raw instanceof Buffer && raw[0] !== 123) return; // not JSON
           const msg = JSON.parse(typeof raw === 'string' ? raw : raw.toString('utf8'));
+          const event: string = String(msg.event || msg.type || '');
 
-          // VAD barge-in: fires ~100-200ms after speech onset
-          if (msg.type === 'user_started_speaking' || msg.type === 'START_SPEECH') {
+          // ── VAD: caller started speaking → early barge-in (150 ms debounce) ──
+          const legacySignal = msg.type === 'events' ? String(msg.data?.signal_type || '') : '';
+          if (event === 'vad.speech_start' || legacySignal === 'speech_start' || legacySignal === 'START_SPEECH') {
             const st: ConvState = (plivoWs as any).sarvamState;
-            if (st === 'SPEAKING' || st === 'THINKING') {
-              // Debounce VAD trigger by 150ms to ensure it is actual speech and not static pop noise
-              if (!(plivoWs as any).sarvamVadTimer) {
-                (plivoWs as any).sarvamVadTimer = setTimeout(() => {
-                  (plivoWs as any).sarvamVadTimer = null;
-                  const currentSt: ConvState = (plivoWs as any).sarvamState;
-                  if (currentSt === 'SPEAKING' || currentSt === 'THINKING') {
-                    logger.info(`[SarvamBridge][${callUuid}] Confirmed VAD barge-in (state: ${currentSt})`);
-                    SarvamBridgeService.interruptAI(callUuid, plivoWs);
-                  }
-                }, 150);
-              }
+            if ((st === 'SPEAKING' || st === 'THINKING') && !(plivoWs as any).sarvamVadTimer) {
+              (plivoWs as any).sarvamVadTimer = setTimeout(() => {
+                (plivoWs as any).sarvamVadTimer = null;
+                const cur: ConvState = (plivoWs as any).sarvamState;
+                if (cur === 'SPEAKING' || cur === 'THINKING') {
+                  logger.info(`[SarvamBridge][${callUuid}] VAD barge-in (state: ${cur})`);
+                  SarvamBridgeService.interruptAI(callUuid, plivoWs);
+                }
+              }, 150);
             }
             return;
           }
-
-          // Final transcript
-          const transcript = msg.data?.transcript || msg.transcript || msg.data?.text;
-          if (!transcript || !transcript.trim()) return;
+          if (event === 'error') {
+            logger.error(`[SarvamBridge][${callUuid}] STT error event: ${JSON.stringify(msg).substring(0, 300)}`);
+            return;
+          }
+          // Only finals drive a turn (partials are informational)
+          const isFinal = event === 'transcript.final' || (!event.startsWith('transcript.') && !!(msg.data?.transcript ?? msg.transcript));
+          if (!isFinal) return;
+          const transcript = String(msg.text ?? msg.data?.transcript ?? msg.transcript ?? '').trim();
+          if (!transcript) return;
 
           const st: ConvState = (plivoWs as any).sarvamState;
+          // Our own voice coming back through the handset must not become a "user" turn
+          if (st === 'SPEAKING' && SarvamBridgeService.looksLikeEcho(transcript, (plivoWs as any).sarvamLastAgentText || '')) {
+            logger.info(`[SarvamBridge][${callUuid}] Ignoring echo of agent speech: "${transcript.substring(0, 60)}"`);
+            return;
+          }
           if (st === 'SPEAKING' || st === 'THINKING') {
             SarvamBridgeService.interruptAI(callUuid, plivoWs);
           }
+
+          // What the caller heard from the turn we just cut off goes in BEFORE their new line,
+          // otherwise the model never sees its own half-sentence and repeats it.
+          {
+            const prevTurn: number = (plivoWs as any).sarvamTurnId ?? 0;
+            const byTurn: Map<number, string> | undefined = (plivoWs as any).sarvamSpokenByTurn;
+            const spoken = prevTurn > 0 ? (byTurn?.get(prevTurn) || '').trim() : '';
+            byTurn?.delete(prevTurn);
+            if (spoken) {
+              chatHistory.push({ role: 'assistant', content: `${spoken} — (interrupted by caller)` });
+              transcriptLines.push(`Agent (interrupted): ${spoken}`);
+            }
+          }
+
+          // Follow the caller's language when the agent has detection enabled
+          if (agentConfig.detectLanguage && typeof msg.language === 'string' && msg.language) {
+            const conf = typeof msg.language_confidence === 'number' ? msg.language_confidence : 1;
+            const detected = SarvamBridgeService.normalizeLang(msg.language);
+            if (conf >= 0.75 && detected && detected !== (plivoWs as any).sarvamActiveLang) {
+              logger.info(`[SarvamBridge][${callUuid}] Caller language → ${detected} (conf ${conf.toFixed(2)})`);
+              (plivoWs as any).sarvamActiveLang = detected;
+            }
+          }
+          const activeLang: string = (plivoWs as any).sarvamActiveLang || language;
 
           const perf = new PerfTimer(callUuid);
           perf.mark('STT_FINAL');
@@ -959,47 +1102,57 @@ ${systemPrompt}`;
           const historyCopy = [...chatHistory];
 
           SarvamBridgeService.setState(callUuid, plivoWs, 'THINKING');
-          
-          // Clear any completed audio map from previous turn and reset index pointer
-          if ((plivoWs as any).sarvamCompletedAudio) {
-            (plivoWs as any).sarvamCompletedAudio.clear();
-          }
-          (plivoWs as any).sarvamNextPlayIdx = 0;
-
-          // Play a smart filler (e.g., "Hmm...", "Achha...") immediately to mask latency
-          SarvamBridgeService.playFillerIfAvailable(callUuid, plivoWs, language, voice);
+          if ((plivoWs as any).sarvamCompletedAudio) (plivoWs as any).sarvamCompletedAudio.clear();
+          (plivoWs as any).sarvamNextPlayIdx  = 0;
+          (plivoWs as any).sarvamSentenceText = new Map<number, string>();
+          (plivoWs as any).sarvamToolNameBuf  = '';
+          (plivoWs as any).sarvamReplyAudioQueued = false;
+          (plivoWs as any).sarvamLastAgentText    = '';
 
           const turnId = ++(plivoWs as any).sarvamTurnId;
-          const ctrl   = new AbortController();
+          const spokenByTurn: Map<number, string> = (plivoWs as any).sarvamSpokenByTurn;
+          spokenByTurn.set(turnId, '');
+          const ctrl = new AbortController();
           (plivoWs as any).sarvamAbortController = ctrl;
 
-          // NON-BLOCKING: returns immediately, new STT messages can be processed
+          // Filler only if the first sentence is slow (avoids "achha… achha ji" on every turn)
+          SarvamBridgeService.scheduleFiller(callUuid, plivoWs, activeLang, voice);
+
+          // Whatever the caller actually heard before interrupting goes into history,
+          // otherwise the model repeats the whole sentence on the next turn.
+          const recordInterrupted = () => {
+            const spoken = (spokenByTurn.get(turnId) || '').trim();
+            spokenByTurn.delete(turnId);
+            if (spoken) {
+              chatHistory.push({ role: 'assistant', content: `${spoken} — (interrupted by caller)` });
+              transcriptLines.push(`Agent (interrupted): ${spoken}`);
+            }
+          };
+
           SarvamBridgeService.streamGPTAndSpeak(
             callUuid, plivoWs,
             agentConfig.openaiApiKey,
             agentConfig.systemPrompt,
             historyCopy,
-            sarvamApiKey, language, voice,
+            sarvamApiKey, activeLang, voice,
             ctrl.signal, perf,
-            agentConfig.openaiModel
+            agentConfig.openaiModel,
+            !!agentConfig.detectLanguage
           ).then(reply => {
-            const currentTurn = (plivoWs as any).sarvamTurnId;
-            if (currentTurn !== turnId) {
-              if (reply) {
-                logger.info(`[SarvamBridge][${callUuid}] Interrupted reply saved to history (turn ${turnId} < ${currentTurn}): "${reply.substring(0, 80)}"`);
-                chatHistory.push({ role: 'assistant', content: reply });
-                transcriptLines.push(`Agent (partial): ${reply}`);
-              }
-              return;
-            }
+            if ((plivoWs as any).sarvamTurnId !== turnId) { recordInterrupted(); return; }
+            spokenByTurn.delete(turnId);
             if (reply) {
               logger.info(`[SarvamBridge][${callUuid}] Agent (t${turnId}): "${reply.substring(0, 80)}"`);
               transcriptLines.push(`Agent: ${reply}`);
               chatHistory.push({ role: 'assistant', content: reply });
             }
-            if (!(plivoWs as any).sarvamIsPacing) {
+            // Only reply audio keeps us in SPEAKING (paceNext hands back to LISTENING when it drains);
+            // a filler that is still playing must not swallow the LISTENING transition or end_call.
+            if (!(plivoWs as any).sarvamReplyAudioQueued || !(plivoWs as any).sarvamIsPacing) {
+              SarvamBridgeService.cancelFiller(plivoWs);
+              if (!(plivoWs as any).sarvamReplyAudioQueued) SarvamBridgeService.stopPacing(plivoWs);
               SarvamBridgeService.setState(callUuid, plivoWs, 'LISTENING');
-              
+
               if ((plivoWs as any).sarvamTriggeredEndCall) {
                 logger.info(`[SarvamBridge][${callUuid}] End call triggered by agent (no pending audio) - hanging up...`);
                 const callId = (plivoWs as any).sarvamCallId;
@@ -1013,10 +1166,13 @@ ${systemPrompt}`;
           }).catch(err => {
             if (err.name === 'AbortError') {
               logger.info(`[SarvamBridge][${callUuid}] GPT turn ${turnId} aborted`);
+              recordInterrupted();
             } else {
               logger.error(`[SarvamBridge][${callUuid}] GPT turn ${turnId} error: ${err.message}`);
+              spokenByTurn.delete(turnId);
             }
             if ((plivoWs as any).sarvamTurnId === turnId) {
+              SarvamBridgeService.cancelFiller(plivoWs);
               SarvamBridgeService.setState(callUuid, plivoWs, 'LISTENING');
             }
           });
@@ -1053,17 +1209,13 @@ ${systemPrompt}`;
 
     if (!(plivoWs as any).sarvamRealAudioStarted) {
       (plivoWs as any).sarvamRealAudioStarted = true;
-      logger.info(`[SarvamBridge][${callUuid}] First real Plivo audio — silence keepalive stops`);
+      const ka = (plivoWs as any).sarvamKeepAlive;
+      if (ka) { clearInterval(ka); (plivoWs as any).sarvamKeepAlive = null; }
+      logger.info(`[SarvamBridge][${callUuid}] First real Plivo audio — silence keepalive stopped`);
     }
 
-    const mulawBuf = Buffer.from(payload, 'base64');
-    const pcmBuf   = SarvamBridgeService.mulaw8k_to_pcm16_8k(mulawBuf);
-    // Pre-built template — avoids JSON.stringify on every 20ms audio chunk
-    sttWs.send(
-      SarvamBridgeService.STT_MSG_PREFIX +
-      pcmBuf.toString('base64') +
-      SarvamBridgeService.STT_MSG_SUFFIX
-    );
+    // Plivo already delivers μ-law 8 kHz — forward the base64 payload as-is
+    sttWs.send(SarvamBridgeService.sttAudioFrame(payload));
   }
 
   /** End session — returns transcript and duration */
@@ -1073,6 +1225,8 @@ ${systemPrompt}`;
 
     SarvamBridgeService.setState('call_end', plivoWs, 'TERMINATED');
     SarvamBridgeService.stopPacing(plivoWs);
+    SarvamBridgeService.cancelFiller(plivoWs);
+    (plivoWs as any).sarvamTts?.close();
 
     const sttWs = (plivoWs as any).sarvamSttWs as WebSocket | undefined;
     if (sttWs && (sttWs.readyState === WebSocket.OPEN || sttWs.readyState === WebSocket.CONNECTING)) {
