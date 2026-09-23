@@ -288,6 +288,7 @@ CREATE INDEX IF NOT EXISTS "twilio_openai_calls_twilio_call_sid_idx" ON "twilio_
 DO $$ BEGIN
   ALTER TABLE "plivo_phone_numbers" ADD CONSTRAINT "plivo_phone_numbers_stripe_subscription_id_unique" UNIQUE("stripe_subscription_id");
 EXCEPTION
+  WHEN duplicate_table THEN NULL;
   WHEN duplicate_object THEN NULL;
   WHEN unique_violation THEN RAISE WARNING 'skipped plivo_phone_numbers_stripe_subscription_id_unique: duplicate stripe_subscription_id rows exist - dedupe and re-run';
 END $$;
