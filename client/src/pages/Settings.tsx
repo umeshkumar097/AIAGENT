@@ -22,8 +22,9 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, Loader2, Trash2, AlertTriangle, LogOut, Globe, Download, Clock, ShieldCheck, Upload, FileCheck, FilePlus, X, CheckCircle2, XCircle, AlertCircle, Key, ExternalLink, Users, MapPin, RefreshCw, Plus, Mail } from "lucide-react";
+import { Save, Loader2, Trash2, AlertTriangle, LogOut, Globe, Download, Clock, ShieldCheck, Upload, FileCheck, FilePlus, X, CheckCircle2, XCircle, AlertCircle, Key, ExternalLink, Users, MapPin, RefreshCw, Plus, Mail, Receipt } from "lucide-react";
 import { ApiKeysTab } from "@/components/api-keys/ApiKeysTab";
+import { BillingDetailsSection } from "@/components/settings/BillingDetailsSection";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useMemo, useState, useEffect, Suspense } from "react";
 import { usePluginRegistry } from "@/contexts/plugin-registry";
@@ -406,6 +407,10 @@ export default function Settings() {
             <ShieldCheck className="h-4 w-4 mr-2" />
             KYC Documents
           </TabsTrigger>
+          <TabsTrigger value="billing" data-testid="tab-billing-details">
+            <Receipt className="h-4 w-4 mr-1" />
+            {t('settings.billingDetails.tab', 'Billing details')}
+          </TabsTrigger>
           <TabsTrigger value="addresses" data-testid="tab-addresses">
             <MapPin className="h-4 w-4 mr-2" />
             Addresses
@@ -586,6 +591,10 @@ export default function Settings() {
 
         <TabsContent value="kyc" className="space-y-6">
           <KycDocumentsSection user={user} />
+        </TabsContent>
+
+        <TabsContent value="billing" className="space-y-6">
+          <BillingDetailsSection />
         </TabsContent>
 
         <TabsContent value="addresses" className="space-y-6">

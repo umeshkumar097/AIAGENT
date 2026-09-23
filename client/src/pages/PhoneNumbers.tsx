@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, Search, Phone, ShoppingCart, Check, Trash2, CreditCard, Link as LinkIcon, Smartphone, Globe, MapPin, Upload, FileText, AlertCircle, Shield, Server, Loader2, RefreshCw } from "lucide-react";
 import { usePluginRegistry } from "@/contexts/plugin-registry";
 import { AuthStorage } from "@/lib/auth-storage";
+import { formatInr, startCashfreeCheckout, PAYMENT_GATEWAY_QUERY_KEY, type CashfreePublicConfig } from "@/lib/cashfree";
 import { usePluginStatus } from "@/hooks/use-plugin-status";
 import { DataPagination, usePagination } from "@/components/ui/data-pagination";
 import { useToast } from "@/hooks/use-toast";
@@ -297,35 +298,14 @@ export default function PhoneNumbers() {
     }
   }, [countries, searchCountry]);
 
-  // Handle Stripe Checkout return — buy the Plivo number after payment success
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("checkout_success") === "1") {
-      const sessionId = params.get("session_id");
-      if (sessionId) {
-        apiRequest("GET", `/api/phone-number/subscribe/checkout-success?session_id=${sessionId}`)
-          .then(r => r.json())
-          .then(data => {
-            if (data.success) {
-              toast({ title: "✅ Phone Number Activated!", description: `${data.phoneNumber} is now active. ₹400/month via Stripe.` });
-              queryClient.invalidateQueries({ queryKey: ["/api/plivo/phone-numbers"] });
-              queryClient.invalidateQueries({ queryKey: ["/api/phone-number/subscriptions"] });
-            }
-          })
-          .catch(err => console.error("Checkout confirm error:", err))
-          .finally(() => {
-            // Clean URL
-            window.history.replaceState({}, "", "/app/phone-numbers");
-          });
-      }
-    }
-  }, []);
-
   const { data: incomingData } = useQuery<{ connections: IncomingConnection[]; allConnections: IncomingConnection[]; availablePhoneNumbers: PhoneNumber[] }>({
     queryKey: ["/api/incoming-connections"],
   });
 
   const allConnections = incomingData?.allConnections || [];
+
+  const { data: gatewayConfig } = useQuery<CashfreePublicConfig>({ queryKey: [...PAYMENT_GATEWAY_QUERY_KEY] });
+  const numberPriceLabel = formatInr(gatewayConfig?.phoneNumberPriceInr ?? 400);
 
   const getConnection = (phoneNumberId: string) => {
     return allConnections.find(c => c.phoneNumberId === phoneNumberId);
@@ -373,20 +353,8 @@ export default function PhoneNumbers() {
 
   const buyMutation = useMutation({
     mutationFn: async ({ phoneNumber, country }: { phoneNumber: string; friendlyName?: string; addressSid?: string; country?: string; numberType?: string }) => {
-      // Use Stripe Checkout Session — same as Plivo flow
-      const res = await apiRequest("POST", "/api/phone-number/subscribe", {
-        phoneNumber,
-        country: country || searchCountry || "US",
-        provider: "twilio",
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Subscription failed");
-
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
-        return;
-      }
-      throw new Error("Failed to get Stripe checkout URL");
+      // One-time Cashfree payment; the server provisions the number after the payment is confirmed
+      await startCashfreeCheckout({ type: "phone_number", phoneNumber, country: country || searchCountry || "US" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/phone-numbers"] });
@@ -429,20 +397,10 @@ export default function PhoneNumbers() {
     },
   });
 
-  // Plivo purchase via Stripe Checkout Session (₹400/month)
+  // Plivo purchase via Cashfree one-time payment (INR)
   const plivoBuyMutation = useMutation({
-    mutationFn: async ({ phoneNumber, country }: { phoneNumber: string; country: string }) => {
-      const res = await apiRequest("POST", "/api/phone-number/subscribe", { phoneNumber, country });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Subscription failed");
-
-      // Backend returns a Stripe Checkout Session URL → redirect user there
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
-        return; // page will redirect
-      }
-
-      throw new Error("Failed to get Stripe checkout URL");
+    mutationFn: async ({ phoneNumber, country, numberType }: { phoneNumber: string; country: string; numberType?: string }) => {
+      await startCashfreeCheckout({ type: "phone_number", phoneNumber, country, numberType });
     },
     onSuccess: () => {
       // This fires only if no redirect (shouldn't happen normally)
@@ -481,9 +439,11 @@ export default function PhoneNumbers() {
 
   const handlePlivoBuy = () => {
     if (!selectedPlivoNumber) return;
+    const type = selectedPlivoNumber.type;
     plivoBuyMutation.mutate({
       phoneNumber: selectedPlivoNumber.phoneNumber,
       country: plivoSearchCountry,
+      numberType: type === 'toll_free' || type === 'national' ? type : 'local',
     });
   };
 
@@ -492,22 +452,22 @@ export default function PhoneNumbers() {
     plivoReleaseMutation.mutate(plivoNumberToRelease.id);
   };
 
-  const handleBuyClick = (provider: 'twilio' | 'plivo' | 'select') => {
-    if (provider === 'twilio') {
-      if (!canPurchaseTwilio) {
-        setKycRequiredDialogOpen(true);
-        return;
-      }
-      setBuyDialogOpen(true);
-    } else if (provider === 'plivo') {
-      if (!canPurchasePlivo) {
-        setKycRequiredDialogOpen(true);
-        return;
-      }
-      setPlivoBuyDialogOpen(true);
-    } else {
-      setProviderSelectDialogOpen(true);
+  // New numbers are provisioned through Plivo only (paid once via Cashfree); the Twilio search/buy flow is retired.
+  // Existing Twilio numbers stay listed and can still be released.
+  const handleBuyClick = (_provider: 'twilio' | 'plivo' | 'select') => {
+    if (!plivoEnabled) {
+      toast({
+        title: t('phoneNumbers.toast.purchaseFailed'),
+        description: 'Phone numbers are provisioned through Plivo, which is not enabled on this platform. Please contact support.',
+        variant: "destructive",
+      });
+      return;
     }
+    if (!canPurchasePlivo) {
+      setKycRequiredDialogOpen(true);
+      return;
+    }
+    setPlivoBuyDialogOpen(true);
   };
 
   const getKycStatusBadgeVariant = (status?: string): "default" | "secondary" | "destructive" | "outline" => {
@@ -613,7 +573,7 @@ export default function PhoneNumbers() {
               {t('phoneNumbers.manageConnections')}
             </Button>
             <Button 
-              onClick={() => plivoEnabled ? handleBuyClick('select') : handleBuyClick('twilio')} 
+              onClick={() => handleBuyClick('plivo')} 
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
               data-testid="button-buy-number"
             >
@@ -693,7 +653,7 @@ export default function PhoneNumbers() {
               <p className="text-muted-foreground mb-4">
                 {t('phoneNumbers.empty.description')}
               </p>
-              <Button onClick={() => handleBuyClick('twilio')}>
+              <Button onClick={() => handleBuyClick('plivo')}>
                 <Plus className="h-4 w-4 mr-2" />
                 {t('phoneNumbers.empty.buyFirst')}
               </Button>
@@ -1009,9 +969,9 @@ export default function PhoneNumbers() {
           <div className="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/50 rounded-lg p-4 flex items-start gap-3">
             <CreditCard className="h-5 w-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-0.5" />
             <div>
-              <h4 className="font-semibold text-sm mb-1 text-indigo-700 dark:text-indigo-300">Stripe Billing</h4>
+              <h4 className="font-semibold text-sm mb-1 text-indigo-700 dark:text-indigo-300">Cashfree Billing</h4>
               <p className="text-sm text-muted-foreground">
-                Phone numbers are billed at <strong>₹400/month</strong> via Stripe. Cancel anytime.
+                Phone numbers cost <strong>{numberPriceLabel}</strong> one-time via Cashfree (INR, GST invoice), then renew monthly in minutes. Release anytime.
               </p>
             </div>
           </div>
@@ -1185,11 +1145,11 @@ export default function PhoneNumbers() {
               className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
             >
               {buyMutation.isPending ? (
-                <><div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2" />Redirecting to Stripe...</>
+                <><div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2" />Redirecting to Cashfree...</>
               ) : (
                 <>
                   <ShoppingCart className="h-4 w-4 mr-2" />
-                  {selectedNumber ? 'Rent for ₹400/month' : 'Select a Number'}
+                  {selectedNumber ? `Rent for ${numberPriceLabel}` : 'Select a Number'}
                 </>
               )}
             </Button>
@@ -1236,23 +1196,23 @@ export default function PhoneNumbers() {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            {/* Stripe Billing Info Banner */}
+            {/* Cashfree Billing Info Banner */}
             {plivoSearchCountry && (() => {
               const pricing = getPlivoPricing(plivoSearchCountry);
               return (
                 <div className="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/50 rounded-lg p-4">
                   <div className="flex items-center gap-3 mb-2">
                     <CreditCard className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                    <span className="font-semibold text-indigo-700 dark:text-indigo-300">Stripe Billing</span>
+                    <span className="font-semibold text-indigo-700 dark:text-indigo-300">Cashfree Billing</span>
                   </div>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-muted-foreground">Monthly Rental:</span>
-                      <span className="font-bold ml-2 text-indigo-700 dark:text-indigo-300">₹400/month</span>
+                      <span className="text-muted-foreground">Activation (one-time):</span>
+                      <span className="font-bold ml-2 text-indigo-700 dark:text-indigo-300">{numberPriceLabel}</span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Billing:</span>
-                      <span className="font-semibold ml-2">Stripe auto-renewal</span>
+                      <span className="text-muted-foreground">Renewal:</span>
+                      <span className="font-semibold ml-2">Monthly in minutes</span>
                     </div>
                   </div>
                   {pricing?.kycRequired && (
@@ -1414,7 +1374,7 @@ export default function PhoneNumbers() {
               ) : (
                 <>
                   <ShoppingCart className="h-4 w-4 mr-2" />
-                  {selectedPlivoNumber ? 'Rent for ₹400/month' : 'Select a Number'}
+                  {selectedPlivoNumber ? `Rent for ${numberPriceLabel}` : 'Select a Number'}
                 </>
               )}
             </Button>

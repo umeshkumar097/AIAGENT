@@ -11,6 +11,8 @@ import { useTranslation } from 'react-i18next';
 import { Link } from "wouter";
 import { AuthStorage } from "@/lib/auth-storage";
 import { useToast } from "@/hooks/use-toast";
+import { downloadInvoicePdf, gatewayLabel } from "@/lib/invoices";
+import { formatInr } from "@/lib/cashfree";
 
 interface Transaction {
   id: string;
@@ -28,6 +30,8 @@ interface Transaction {
   hasRefund: boolean;
   refundId: string | null;
   refundNoteNumber: string | null;
+  paymentMethod?: string | null;
+  refundedAmount?: string | null;
   createdAt: string;
   completedAt: string | null;
 }
@@ -77,42 +81,13 @@ export default function TransactionHistory({ embedded = false }: TransactionHist
   const handleDownloadInvoice = async (invoiceId: string, invoiceNumber?: string) => {
     setDownloadingInvoice(invoiceId);
     try {
-      const headers: Record<string, string> = {};
-      const authHeader = AuthStorage.getAuthHeader();
-      if (authHeader) {
-        headers['Authorization'] = authHeader;
+      const ok = await downloadInvoicePdf(invoiceId, { invoiceNumber });
+      if (ok) {
+        toast({
+          title: t('transactionHistory.invoiceDownloaded'),
+          description: t('transactionHistory.invoiceDownloadedDesc'),
+        });
       }
-      
-      const response = await fetch(`/api/invoices/${invoiceId}/download`, {
-        headers,
-        credentials: 'include',
-      });
-      
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'Failed to download invoice' }));
-        throw new Error(error.message || 'Failed to download invoice');
-      }
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Invoice-${invoiceNumber || invoiceId}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      toast({
-        title: t('transactionHistory.invoiceDownloaded'),
-        description: t('transactionHistory.invoiceDownloadedDesc'),
-      });
-    } catch (error: any) {
-      toast({
-        title: t('transactionHistory.downloadFailed'),
-        description: error.message || 'Failed to download invoice',
-        variant: 'destructive',
-      });
     } finally {
       setDownloadingInvoice(null);
     }
@@ -163,12 +138,8 @@ export default function TransactionHistory({ embedded = false }: TransactionHist
   };
 
   const formatCurrency = (amount: string, currency: string) => {
-    const currencySymbols: Record<string, string> = {
-      'USD': '$', 'EUR': '€', 'GBP': '£', 'INR': '₹', 'BRL': 'R$',
-      'NGN': '₦', 'GHS': '₵', 'ZAR': 'R', 'MXN': '$', 'ARS': '$',
-    };
-    const symbol = currencySymbols[currency] || currency + ' ';
-    return `${symbol}${parseFloat(amount).toFixed(2)}`;
+    if (!currency || currency.toUpperCase() === 'INR') return formatInr(amount);
+    return `${currency} ${parseFloat(amount).toFixed(2)}`;
   };
 
   const getStatusBadge = (status: string) => {
@@ -179,7 +150,10 @@ export default function TransactionHistory({ embedded = false }: TransactionHist
         return <Badge variant="secondary" className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">{t('transactionHistory.statusPending')}</Badge>;
       case 'failed':
         return <Badge variant="secondary" className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">{t('transactionHistory.statusFailed')}</Badge>;
+      case 'fulfilment_failed':
+        return <Badge variant="secondary" className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">{t('transactionHistory.statusFulfilmentFailed', 'Paid - needs attention')}</Badge>;
       case 'refunded':
+      case 'partially_refunded':
         return <Badge variant="secondary" className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400">{t('transactionHistory.statusRefunded')}</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
@@ -187,7 +161,14 @@ export default function TransactionHistory({ embedded = false }: TransactionHist
   };
 
   const getTypeBadge = (type: string, planName: string | null, packageName: string | null) => {
-    if (type === 'subscription') {
+    if (type === 'phone_number') {
+      return (
+        <Badge variant="secondary" className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+          {t('billing.cashfree.phoneNumberRental', 'Phone number')}
+        </Badge>
+      );
+    }
+    if (type === 'subscription' || type === 'plan') {
       return (
         <div className="flex items-center gap-2">
           <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
@@ -207,16 +188,7 @@ export default function TransactionHistory({ embedded = false }: TransactionHist
     );
   };
 
-  const getGatewayLabel = (gateway: string) => {
-    const labels: Record<string, string> = {
-      'stripe': 'Stripe',
-      'razorpay': 'Razorpay',
-      'paypal': 'PayPal',
-      'paystack': 'Paystack',
-      'mercadopago': 'MercadoPago',
-    };
-    return labels[gateway] || gateway;
-  };
+  const getGatewayLabel = (gateway: string) => gatewayLabel(gateway);
 
   const totalPages = data ? Math.ceil(data.pagination.total / limit) : 0;
 
@@ -365,11 +337,12 @@ export default function TransactionHistory({ embedded = false }: TransactionHist
                         </TableCell>
                         <TableCell>
                           <span className="text-sm text-muted-foreground">{getGatewayLabel(tx.gateway)}</span>
+                          {tx.paymentMethod && <div className="text-xs text-muted-foreground uppercase">{tx.paymentMethod}</div>}
                         </TableCell>
                         <TableCell>{getStatusBadge(tx.status)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex flex-col items-end gap-1">
-                            {tx.hasInvoice && tx.invoiceId && (
+                            {tx.invoiceId && (
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -401,7 +374,7 @@ export default function TransactionHistory({ embedded = false }: TransactionHist
                                 {t('transactionHistory.downloadRefundNote')}
                               </Button>
                             )}
-                            {!tx.hasInvoice && !tx.hasRefund && (
+                            {!tx.invoiceId && !(tx.hasRefund && tx.refundId) && (
                               <span className="text-sm text-muted-foreground">-</span>
                             )}
                           </div>

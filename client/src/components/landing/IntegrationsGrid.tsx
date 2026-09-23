@@ -18,7 +18,6 @@ import { motion } from "framer-motion";
 import { Mic2, Calendar, Webhook, Bot } from "lucide-react";
 import {
   SiTwilio,
-  SiStripe,
   SiZapier,
   SiOpenai,
   SiSlack,
@@ -118,15 +117,6 @@ const integrations: Integration[] = [
     position: { x: 75, y: 35 },
     size: "sm",
     delay: 0.8,
-  },
-  {
-    name: "Stripe",
-    icon: SiStripe,
-    color: "#635BFF",
-    bgColor: "bg-white",
-    position: { x: 82, y: 55 },
-    size: "md",
-    delay: 0.9,
   },
   {
     name: "HubSpot",

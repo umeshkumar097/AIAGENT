@@ -19,6 +19,8 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { downloadInvoicePdf, gatewayLabel } from "@/lib/invoices";
+import { AdminInvoicesTab } from "@/components/admin/AdminInvoicesTab";
 import { useToast } from "@/hooks/use-toast";
 import { AuthStorage } from "@/lib/auth-storage";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,7 +29,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -76,18 +77,26 @@ interface Analytics {
 
 type TimeRange = 'week' | 'month' | 'year' | 'all';
 
-const GATEWAY_COLORS: Record<string, string> = {
-  stripe: "#635BFF",
-  razorpay: "#3395FF",
-  paypal: "#003087",
-  paystack: "#00C3F7",
-  mercadopago: "#009EE3",
+const CASHFREE_COLOR = "#6B3FE4";
+const LEGACY_COLOR = "#6B7280";
+const gatewayColor = (gateway: string | null | undefined) => (gateway === "cashfree" ? CASHFREE_COLOR : LEGACY_COLOR);
+
+const typeLabel = (type: string) => {
+  if (type === "subscription" || type === "plan") return "Plan";
+  if (type === "phone_number") return "Phone number";
+  return "Credits";
+};
+const typeBadgeClass = (type: string) => {
+  if (type === "subscription" || type === "plan") return "border-green-500/30 text-green-700";
+  if (type === "phone_number") return "border-purple-500/30 text-purple-700";
+  return "border-amber-500/30 text-amber-700";
 };
 
 const STATUS_COLORS: Record<string, string> = {
   completed: "bg-green-500/10 text-green-700 border-green-500/30",
   pending: "bg-yellow-500/10 text-yellow-700 border-yellow-500/30",
   failed: "bg-red-500/10 text-red-700 border-red-500/30",
+  fulfilment_failed: "bg-orange-500/10 text-orange-700 border-orange-500/30",
   refunded: "bg-purple-500/10 text-purple-700 border-purple-500/30",
   partially_refunded: "bg-orange-500/10 text-orange-700 border-orange-500/30",
 };
@@ -113,7 +122,7 @@ export default function TransactionsManagement() {
     queryKey: ["/api/admin/transactions", gatewayFilter, typeFilter, statusFilter],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (gatewayFilter !== "all") params.append("gateway", gatewayFilter);
+      if (gatewayFilter !== "all" && gatewayFilter !== "legacy") params.append("gateway", gatewayFilter);
       if (typeFilter !== "all") params.append("type", typeFilter);
       if (statusFilter !== "all") params.append("status", statusFilter);
       
@@ -146,6 +155,7 @@ export default function TransactionsManagement() {
   });
 
   const filteredTransactions = transactions?.filter((tx) => {
+    if (gatewayFilter === "legacy" && tx.gateway === "cashfree") return false;
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
     return (
@@ -167,36 +177,8 @@ export default function TransactionsManagement() {
   const handleDownloadInvoice = async (invoiceId: string, invoiceNumber: string) => {
     setDownloadingInvoice(invoiceId);
     try {
-      const authHeader = AuthStorage.getAuthHeader();
-      if (!authHeader) throw new Error("Authentication required");
-      const response = await fetch(`/api/invoices/admin/${invoiceId}/download`, {
-        headers: { Authorization: authHeader },
-      });
-      
-      if (!response.ok) {
-        throw new Error("Failed to download invoice");
-      }
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Invoice-${invoiceNumber}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      toast({
-        title: "Invoice Downloaded",
-        description: `Invoice ${invoiceNumber} has been downloaded`,
-      });
-    } catch (error: any) {
-      toast({
-        title: "Download Failed",
-        description: error.message || "Failed to download invoice",
-        variant: "destructive",
-      });
+      const ok = await downloadInvoicePdf(invoiceId, { invoiceNumber, admin: true });
+      if (ok) toast({ title: "Invoice Downloaded", description: `Invoice ${invoiceNumber} has been downloaded` });
     } finally {
       setDownloadingInvoice(null);
     }
@@ -243,15 +225,15 @@ export default function TransactionsManagement() {
 
   const gatewayChartData = analytics?.revenueByGateway
     ? Object.entries(analytics.revenueByGateway).map(([gateway, revenue]) => ({
-        name: gateway.charAt(0).toUpperCase() + gateway.slice(1),
+        name: gatewayLabel(gateway),
         value: revenue,
-        fill: GATEWAY_COLORS[gateway] || "#6B7280",
+        fill: gatewayColor(gateway),
       }))
     : [];
 
   const typeChartData = analytics?.revenueByType
     ? Object.entries(analytics.revenueByType).map(([type, revenue]) => ({
-        name: type === "subscription" ? "Subscriptions" : "Credit Packages",
+        name: type === "subscription" || type === "plan" ? "Plans" : type === "phone_number" ? "Phone numbers" : "Credit packages",
         value: revenue,
         fill: TYPE_COLORS[type] || "#6B7280",
       }))
@@ -522,11 +504,8 @@ export default function TransactionsManagement() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Gateways</SelectItem>
-                      <SelectItem value="stripe">Stripe</SelectItem>
-                      <SelectItem value="razorpay">Razorpay</SelectItem>
-                      <SelectItem value="paypal">PayPal</SelectItem>
-                      <SelectItem value="paystack">Paystack</SelectItem>
-                      <SelectItem value="mercadopago">MercadoPago</SelectItem>
+                      <SelectItem value="cashfree">Cashfree</SelectItem>
+                      <SelectItem value="legacy">Legacy gateways</SelectItem>
                     </SelectContent>
                   </Select>
                   <Select value={typeFilter} onValueChange={setTypeFilter}>
@@ -589,8 +568,8 @@ export default function TransactionsManagement() {
                             <div className="text-xs text-muted-foreground">{tx.user?.email}</div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline" className={tx.type === "subscription" ? "border-green-500/30 text-green-700" : "border-amber-500/30 text-amber-700"}>
-                              {tx.type === "subscription" ? "Plan" : "Credits"}
+                            <Badge variant="outline" className={typeBadgeClass(tx.type)}>
+                              {typeLabel(tx.type)}
                             </Badge>
                           </TableCell>
                           <TableCell className="max-w-[200px] truncate">
@@ -605,11 +584,11 @@ export default function TransactionsManagement() {
                             <Badge
                               variant="outline"
                               style={{
-                                borderColor: GATEWAY_COLORS[tx.gateway] || "#6B7280",
-                                color: GATEWAY_COLORS[tx.gateway] || "#6B7280",
+                                borderColor: gatewayColor(tx.gateway),
+                                color: gatewayColor(tx.gateway),
                               }}
                             >
-                              {tx.gateway.charAt(0).toUpperCase() + tx.gateway.slice(1)}
+                              {gatewayLabel(tx.gateway)}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right font-medium">
@@ -693,7 +672,7 @@ export default function TransactionsManagement() {
         </TabsContent>
 
         <TabsContent value="invoices" className="space-y-4">
-          <InvoicesTab />
+          <AdminInvoicesTab />
         </TabsContent>
 
         <TabsContent value="refunds" className="space-y-4">
@@ -732,17 +711,20 @@ function TransactionDetailsDialog({ transaction, open, onClose, onRefundComplete
 
   const refundMutation = useMutation({
     mutationFn: async (data: { transactionId: string; amount: number; reason: string }) => {
-      return apiRequest("POST", `/api/admin/refunds/${data.transactionId}`, {
+      const response = await apiRequest("POST", "/api/admin/payments/refunds", {
+        transactionId: data.transactionId,
         amount: data.amount,
         reason: data.reason,
       });
+      return response.json();
     },
     onSuccess: () => {
       toast({
         title: "Refund Initiated",
-        description: "The refund has been submitted to the payment gateway.",
+        description: "The refund has been submitted to Cashfree and a credit note was issued.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/invoices"] });
       setShowRefundForm(false);
       setRefundAmount("");
       setRefundReason("");
@@ -787,7 +769,8 @@ function TransactionDetailsDialog({ transaction, open, onClose, onRefundComplete
     });
   };
 
-  const canRefund = transaction?.status === "completed" && !transaction?.hasRefunds;
+  const isCashfree = transaction?.gateway === "cashfree";
+  const canRefund = isCashfree && transaction?.status === "completed" && !transaction?.hasRefunds;
   const maxRefundAmount = transaction ? parseFloat(transaction.amount) : 0;
 
   const getStatusIcon = (status: string) => {
@@ -798,6 +781,8 @@ function TransactionDetailsDialog({ transaction, open, onClose, onRefundComplete
         return <Clock className="h-5 w-5 text-yellow-500" />;
       case "failed":
         return <XCircle className="h-5 w-5 text-red-500" />;
+      case "fulfilment_failed":
+        return <AlertTriangle className="h-5 w-5 text-orange-500" />;
       case "refunded":
       case "partially_refunded":
         return <RotateCcw className="h-5 w-5 text-purple-500" />;
@@ -843,8 +828,8 @@ function TransactionDetailsDialog({ transaction, open, onClose, onRefundComplete
             </div>
             <div className="space-y-1">
               <Label className="text-muted-foreground text-xs">Type</Label>
-              <Badge variant="outline" className={transaction.type === "subscription" ? "border-green-500/30 text-green-700" : "border-amber-500/30 text-amber-700"}>
-                {transaction.type === "subscription" ? "Subscription" : "Credits Purchase"}
+              <Badge variant="outline" className={typeBadgeClass(transaction.type)}>
+                {typeLabel(transaction.type)}
               </Badge>
             </div>
             <div className="space-y-1">
@@ -852,11 +837,11 @@ function TransactionDetailsDialog({ transaction, open, onClose, onRefundComplete
               <Badge
                 variant="outline"
                 style={{
-                  borderColor: GATEWAY_COLORS[transaction.gateway] || "#6B7280",
-                  color: GATEWAY_COLORS[transaction.gateway] || "#6B7280",
+                  borderColor: gatewayColor(transaction.gateway),
+                  color: gatewayColor(transaction.gateway),
                 }}
               >
-                {transaction.gateway.charAt(0).toUpperCase() + transaction.gateway.slice(1)}
+                {gatewayLabel(transaction.gateway)}
               </Badge>
             </div>
           </div>
@@ -956,7 +941,7 @@ function TransactionDetailsDialog({ transaction, open, onClose, onRefundComplete
                     <Alert>
                       <AlertTriangle className="h-4 w-4" />
                       <AlertDescription>
-                        Refunds are processed through the payment gateway and may take 5-10 business days to reflect in the customer's account.
+                        Refunds are processed through Cashfree and may take 5-7 business days to reach the customer. A GST credit note is generated automatically.
                       </AlertDescription>
                     </Alert>
                     <div className="grid gap-4 sm:grid-cols-2">
@@ -1008,6 +993,18 @@ function TransactionDetailsDialog({ transaction, open, onClose, onRefundComplete
             </>
           )}
 
+          {!isCashfree && transaction.status === "completed" && !transaction.hasRefunds && (
+            <>
+              <Separator />
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  This is a legacy-gateway transaction ({gatewayLabel(transaction.gateway)}). Refunds must be issued from that gateway's dashboard.
+                </AlertDescription>
+              </Alert>
+            </>
+          )}
+
           {/* Already Refunded Notice */}
           {transaction.hasRefunds && (
             <>
@@ -1015,7 +1012,7 @@ function TransactionDetailsDialog({ transaction, open, onClose, onRefundComplete
               <Alert className="bg-purple-500/10 border-purple-500/20">
                 <RotateCcw className="h-4 w-4 text-purple-500" />
                 <AlertDescription className="text-purple-700 dark:text-purple-300">
-                  This transaction has been refunded. Check the gateway dashboard for refund details.
+                  This transaction has been refunded. See the Invoices tab for the credit note.
                 </AlertDescription>
               </Alert>
             </>
@@ -1029,275 +1026,6 @@ function TransactionDetailsDialog({ transaction, open, onClose, onRefundComplete
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function InvoicesTab() {
-  const { data: invoicesData, isLoading } = useQuery<{ invoices: any[]; isReadOnlyAdmin: boolean }>({
-    queryKey: ["/api/admin/transactions/invoices/all"],
-  });
-  const invoices = invoicesData?.invoices;
-  const isReadOnlyAdmin = invoicesData?.isReadOnlyAdmin ?? false;
-  const [downloadingId, setDownloadingId] = useState<string | null>(null);
-  const [bulkDownloading, setBulkDownloading] = useState(false);
-  const [exportStartDate, setExportStartDate] = useState("");
-  const [exportEndDate, setExportEndDate] = useState("");
-  const [exportType, setExportType] = useState<"all" | "invoices" | "refunds">("all");
-  const { toast } = useToast();
-
-  const formatCurrency = (amount: number | string, currency: string = "INR") => {
-    const num = typeof amount === "string" ? parseFloat(amount) : amount;
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency.toUpperCase(),
-    }).format(num);
-  };
-
-  const handleDownload = async (invoiceId: string, invoiceNumber: string) => {
-    setDownloadingId(invoiceId);
-    try {
-      const authHeader = AuthStorage.getAuthHeader();
-      if (!authHeader) throw new Error("Authentication required");
-      const response = await fetch(`/api/invoices/admin/${invoiceId}/download`, {
-        headers: { Authorization: authHeader },
-      });
-      
-      if (!response.ok) {
-        throw new Error("Failed to download invoice");
-      }
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Invoice-${invoiceNumber}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      toast({
-        title: "Invoice Downloaded",
-        description: `Invoice ${invoiceNumber} has been downloaded`,
-      });
-    } catch (error: any) {
-      toast({
-        title: "Download Failed",
-        description: error.message || "Failed to download invoice",
-        variant: "destructive",
-      });
-    } finally {
-      setDownloadingId(null);
-    }
-  };
-
-  const handleBulkDownload = async () => {
-    setBulkDownloading(true);
-    try {
-      const authHeader = AuthStorage.getAuthHeader();
-      if (!authHeader) throw new Error("Authentication required");
-      
-      const params = new URLSearchParams();
-      if (exportStartDate) params.append("startDate", exportStartDate);
-      if (exportEndDate) params.append("endDate", exportEndDate);
-      params.append("type", exportType);
-      
-      const response = await fetch(`/api/admin/transactions/export/zip?${params}`, {
-        headers: { Authorization: authHeader },
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to download documents");
-      }
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      
-      const contentDisposition = response.headers.get("Content-Disposition");
-      const fileName = contentDisposition
-        ? contentDisposition.split("filename=")[1]?.replace(/"/g, "")
-        : `documents-export.zip`;
-      
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      toast({
-        title: "Export Downloaded",
-        description: "Documents have been downloaded as ZIP file",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Export Failed",
-        description: error.message || "Failed to export documents",
-        variant: "destructive",
-      });
-    } finally {
-      setBulkDownloading(false);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Bulk Export</CardTitle>
-          <CardDescription>Download all invoices and refund notes as a ZIP file</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap items-end gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="export-type">Document Type</Label>
-              <Select value={exportType} onValueChange={(v) => setExportType(v as "all" | "invoices" | "refunds")}>
-                <SelectTrigger className="w-[180px]" data-testid="select-export-type">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Documents</SelectItem>
-                  <SelectItem value="invoices">Invoices Only</SelectItem>
-                  <SelectItem value="refunds">Refund Notes Only</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="export-start-date">From Date</Label>
-              <Input
-                id="export-start-date"
-                type="date"
-                value={exportStartDate}
-                onChange={(e) => setExportStartDate(e.target.value)}
-                className="w-[180px]"
-                data-testid="input-export-start-date"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="export-end-date">To Date</Label>
-              <Input
-                id="export-end-date"
-                type="date"
-                value={exportEndDate}
-                onChange={(e) => setExportEndDate(e.target.value)}
-                className="w-[180px]"
-                data-testid="input-export-end-date"
-              />
-            </div>
-            <Button
-              onClick={handleBulkDownload}
-              disabled={bulkDownloading || isReadOnlyAdmin}
-              data-testid="button-bulk-export"
-            >
-              {bulkDownloading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Exporting...
-                </>
-              ) : (
-                <>
-                  <Download className="mr-2 h-4 w-4" />
-                  Export as ZIP
-                </>
-              )}
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            Leave dates empty to export all documents. Only documents with generated PDFs will be included.
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>All Invoices</CardTitle>
-          <CardDescription>Generated invoices for completed transactions</CardDescription>
-        </CardHeader>
-        <CardContent>
-        {invoices && invoices.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Invoice #</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {invoices.map((invoice) => (
-                <TableRow key={invoice.id} data-testid={`row-invoice-${invoice.id}`}>
-                  <TableCell className="font-mono">{invoice.invoiceNumber}</TableCell>
-                  <TableCell>{format(new Date(invoice.issuedAt), "MMM d, yyyy")}</TableCell>
-                  <TableCell>
-                    <div className="font-medium">{invoice.user?.name || invoice.customerName}</div>
-                    <div className="text-xs text-muted-foreground">{invoice.user?.email || invoice.customerEmail}</div>
-                  </TableCell>
-                  <TableCell className="max-w-[200px] truncate">{invoice.description}</TableCell>
-                  <TableCell className="text-right font-medium">
-                    {formatCurrency(invoice.total, invoice.currency)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={
-                        invoice.status === "paid"
-                          ? "bg-green-500/10 text-green-700 border-green-500/30"
-                          : invoice.status === "sent"
-                          ? "bg-blue-500/10 text-blue-700 border-blue-500/30"
-                          : "bg-gray-500/10 text-gray-700 border-gray-500/30"
-                      }
-                    >
-                      {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {!isReadOnlyAdmin ? (
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        title="Download PDF"
-                        disabled={downloadingId === invoice.id}
-                        onClick={() => handleDownload(invoice.id, invoice.invoiceNumber)}
-                        data-testid={`button-download-invoice-${invoice.id}`}
-                      >
-                        {downloadingId === invoice.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Download className="h-4 w-4" />
-                        )}
-                      </Button>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        ) : (
-          <div className="text-center py-12 text-muted-foreground">
-            <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No invoices generated yet</p>
-            <p className="text-sm">Invoices will appear here after successful transactions</p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-    </div>
   );
 }
 

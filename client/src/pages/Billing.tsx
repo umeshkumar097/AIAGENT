@@ -1,90 +1,22 @@
 /**
- * ============================================================
- * © 2025 Zonvo AI — a brand of Bisht Technologies Private Limited
- * Original Author: BTPL Engineering Team
- * Website: https://zonvo.tech
- * Contact: cs@zonvo.tech
- *
- * Distributed under the Envato / CodeCanyon License Agreement.
- * Licensed to the purchaser for use as defined by the
- * Envato Market (CodeCanyon) Regular or Extended License.
- *
- * You are NOT permitted to redistribute, resell, sublicense,
- * or share this source code, in whole or in part.
- * Respect the author's rights and Envato licensing terms.
- * ============================================================
+ * Billing — plans, minute packs, history (payments + invoices + ledger) and phone numbers.
+ * All purchases go through Cashfree (INR, one-time payments).
  */
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CreditCard, Download, Plus, Loader2, Check, Crown, Calendar, AlertCircle, Wallet, Coins, Receipt, TrendingUp, Sparkles, ArrowUpRight, Clock, Globe, FileText, ChevronLeft, ChevronRight, Phone, Trash2 } from "lucide-react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
-import { formatDistanceToNow, format } from "date-fns";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useSearch, useLocation } from "wouter";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { AuthStorage } from "@/lib/auth-storage";
+import { useTranslation } from "react-i18next";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { CreditPurchaseDialog } from "@/components/CreditPurchaseDialog";
-import { useTranslation } from 'react-i18next';
+import { Plus, Loader2, Check, Crown, AlertCircle, Wallet, Coins, Receipt, TrendingUp, Sparkles, ArrowUpRight, FileText, Phone, ShieldCheck } from "lucide-react";
+import { CreditPurchaseDialog, type CreditPackageOption } from "@/components/CreditPurchaseDialog";
+import { CreditLedger } from "@/components/billing/CreditLedger";
+import { InvoicesList } from "@/components/billing/InvoicesList";
 import TransactionHistory from "@/pages/TransactionHistory";
-import { UpgradePlansContent } from "@/pages/Upgrade";
+import { UpgradePlansContent, type UserSubscription } from "@/pages/Upgrade";
 import { PhoneNumberSubscriptionSection } from "@/components/PhoneNumberSubscriptionSection";
-
-type GatewayType = 'stripe' | 'razorpay' | 'paypal' | 'paystack' | 'mercadopago';
-
-interface CurrencyOption {
-  code: string;
-  symbol: string;
-  name: string;
-  gateways: GatewayType[];
-}
-
-interface PaymentGatewayConfig {
-  stripeEnabled: boolean;
-  razorpayEnabled: boolean;
-  paypalEnabled: boolean;
-  paystackEnabled: boolean;
-  mercadopagoEnabled: boolean;
-  stripePublicKey?: string;
-  stripeCurrency?: string;
-  stripeCurrencySymbol?: string;
-  stripeCurrencyLocked?: boolean;
-  razorpayKeyId?: string;
-  razorpayCurrency?: string;
-  razorpayCurrencySymbol?: string;
-  paypalClientId?: string;
-  paypalCurrency?: string;
-  paypalCurrencySymbol?: string;
-  paypalMode?: string;
-  paystackPublicKey?: string;
-  paystackCurrency?: string;
-  paystackCurrencySymbol?: string;
-  paystackCurrencies?: string[];
-  paystackDefaultCurrency?: string;
-  mercadopagoPublicKey?: string;
-  mercadopagoCurrency?: string;
-  mercadopagoCurrencySymbol?: string;
-  mercadopagoCurrencies?: string[];
-}
+import { formatInr } from "@/lib/cashfree";
 
 interface User {
   credits: number;
@@ -92,449 +24,41 @@ interface User {
   email?: string;
 }
 
-interface Plan {
-  id: string;
-  name: string;
-  displayName: string;
-  description: string;
-  monthlyPrice: string;
-  yearlyPrice: string | null;
-  razorpayMonthlyPrice: string | null;
-  razorpayYearlyPrice: string | null;
-  maxAgents: number;
-  maxCampaigns: number;
-  maxContactsPerCampaign: number;
-  includedMinutes: number;
-}
+type BillingTab = "plans" | "packs" | "history" | "numbers";
 
-interface UserSubscription {
-  id: string;
-  planId: string;
-  stripeSubscriptionId: string | null;
-  razorpaySubscriptionId: string | null;
-  paypalSubscriptionId: string | null;
-  paystackSubscriptionCode: string | null;
-  paystackEmailToken: string | null;
-  mercadopagoSubscriptionId: string | null;
-  status: string;
-  billingPeriod: string;
-  currentPeriodStart: string;
-  currentPeriodEnd: string;
-  cancelAtPeriodEnd: boolean;
-  plan: Plan;
-}
-
-interface CreditPackage {
-  id: string;
-  name: string;
-  description: string | null;
-  credits: number;
-  price: string;
-  razorpayPrice: string | null;
-  paypalPrice: string | null;
-  paystackPrice: string | null;
-  mercadopagoPrice: string | null;
-  isActive: boolean;
-  stripePriceId: string | null;
-}
-
-interface CreditTransaction {
-  id: string;
-  type: string;
-  amount: number;
-  description: string;
-  createdAt: string;
-  stripePaymentId: string | null;
-}
+const TAB_ALIASES: Record<string, BillingTab> = {
+  plans: "plans",
+  packs: "packs",
+  credits: "history",
+  history: "history",
+  invoices: "history",
+  numbers: "numbers",
+};
 
 export default function Billing() {
   const { t } = useTranslation();
-  const { toast } = useToast();
   const [, setLocation] = useLocation();
   const searchString = useSearch();
-  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const [loadingCheckout, setLoadingCheckout] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<BillingTab>("plans");
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
-  const [selectedCurrency, setSelectedCurrency] = useState<string>("");
-  const [activeTab, setActiveTab] = useState("plans");
-  const [transactionPage, setTransactionPage] = useState(0);
-  const transactionPageSize = 10;
 
   useEffect(() => {
-    const params = new URLSearchParams(searchString);
-    const tab = params.get("tab");
-    if (tab === "plans") {
-      setActiveTab("plans");
-    } else if (tab === "packs") {
-      setActiveTab("packs");
-    } else if (tab === "history" || tab === "credits") {
-      setActiveTab("history");
-    }
+    const tab = new URLSearchParams(searchString).get("tab");
+    if (tab && TAB_ALIASES[tab]) setActiveTab(TAB_ALIASES[tab]);
   }, [searchString]);
 
   const handleTabChange = (value: string) => {
-    setActiveTab(value);
-    if (value === "plans") {
-      setLocation("/app/billing");
-    } else {
-      setLocation(`/app/billing?tab=${value}`);
-    }
+    const tab = (TAB_ALIASES[value] || "plans") as BillingTab;
+    setActiveTab(tab);
+    setLocation(tab === "plans" ? "/app/billing" : `/app/billing?tab=${tab}`);
   };
 
-  const { data: transactions, isLoading: transactionsLoading } = useQuery<CreditTransaction[]>({
-    queryKey: ["/api/credit-transactions"],
-  });
+  const { data: user, isLoading: userLoading } = useQuery<User>({ queryKey: ["/api/auth/me"] });
+  const { data: subscription, isLoading: subscriptionLoading } = useQuery<UserSubscription | null>({ queryKey: ["/api/user-subscription"] });
+  const { data: packages, isLoading: packagesLoading } = useQuery<CreditPackageOption[]>({ queryKey: ["/api/credit-packages"] });
 
-  const totalTransactionPages = transactions ? Math.ceil(transactions.length / transactionPageSize) : 0;
-  
-  useEffect(() => {
-    if (transactions && transactionPage >= totalTransactionPages && totalTransactionPages > 0) {
-      setTransactionPage(totalTransactionPages - 1);
-    }
-  }, [transactions, transactionPage, totalTransactionPages]);
-
-  const currencySymbols: Record<string, string> = {
-    'USD': '$', 'EUR': '€', 'GBP': '£', 'CAD': 'C$', 'AUD': 'A$',
-    'JPY': '¥', 'INR': '₹', 'BRL': 'R$', 'MXN': '$', 'CHF': 'CHF',
-    'NGN': '₦', 'GHS': '₵', 'ZAR': 'R', 'KES': 'KSh',
-    'ARS': '$', 'CLP': '$', 'COP': '$', 'PEN': 'S/', 'UYU': '$'
-  };
-
-  const currencyNames: Record<string, string> = {
-    'USD': 'US Dollar', 'EUR': 'Euro', 'GBP': 'British Pound', 'CAD': 'Canadian Dollar',
-    'AUD': 'Australian Dollar', 'JPY': 'Japanese Yen', 'INR': 'Indian Rupee',
-    'BRL': 'Brazilian Real', 'MXN': 'Mexican Peso', 'CHF': 'Swiss Franc',
-    'NGN': 'Nigerian Naira', 'GHS': 'Ghanaian Cedi', 'ZAR': 'South African Rand',
-    'KES': 'Kenyan Shilling', 'ARS': 'Argentine Peso', 'CLP': 'Chilean Peso',
-    'COP': 'Colombian Peso', 'PEN': 'Peruvian Sol', 'UYU': 'Uruguayan Peso'
-  };
-
-  const { data: user, isLoading: userLoading } = useQuery<User>({
-    queryKey: ["/api/auth/me"],
-  });
-
-  const { data: paymentGateway, isLoading: gatewayLoading } = useQuery<PaymentGatewayConfig>({
-    queryKey: ["/api/settings/payment-gateway"],
-  });
-
-  const { data: plans, isLoading: plansLoading } = useQuery<Plan[]>({
-    queryKey: ["/api/plans"],
-  });
-
-  const { data: subscription, isLoading: subscriptionLoading } = useQuery<UserSubscription | null>({
-    queryKey: ["/api/user-subscription"],
-  });
-
-  const { data: packages, isLoading: packagesLoading } = useQuery<CreditPackage[]>({
-    queryKey: ["/api/credit-packages"],
-  });
-
-  const availableCurrencies = useMemo((): CurrencyOption[] => {
-    if (!paymentGateway) return [];
-    
-    const currencyMap = new Map<string, GatewayType[]>();
-    
-    if (paymentGateway.stripeEnabled && paymentGateway.stripeCurrency) {
-      const curr = paymentGateway.stripeCurrency.toUpperCase();
-      currencyMap.set(curr, [...(currencyMap.get(curr) || []), 'stripe']);
-    }
-    
-    if (paymentGateway.razorpayEnabled) {
-      currencyMap.set('INR', [...(currencyMap.get('INR') || []), 'razorpay']);
-    }
-    
-    if (paymentGateway.paypalEnabled) {
-      const curr = (paymentGateway.paypalCurrency || "INR").toUpperCase();
-      currencyMap.set(curr, [...(currencyMap.get(curr) || []), 'paypal']);
-    }
-    
-    if (paymentGateway.paystackEnabled) {
-      const curr = (paymentGateway.paystackCurrency || 'NGN').toUpperCase();
-      currencyMap.set(curr, [...(currencyMap.get(curr) || []), 'paystack']);
-    }
-    
-    if (paymentGateway.mercadopagoEnabled) {
-      const curr = (paymentGateway.mercadopagoCurrency || 'BRL').toUpperCase();
-      currencyMap.set(curr, [...(currencyMap.get(curr) || []), 'mercadopago']);
-    }
-    
-    return Array.from(currencyMap.entries()).map(([code, gateways]) => ({
-      code,
-      symbol: currencySymbols[code] || code,
-      name: currencyNames[code] || code,
-      gateways
-    }));
-  }, [paymentGateway]);
-
-  const getGatewayForCurrency = (currencyCode: string): GatewayType | null => {
-    const currency = availableCurrencies.find(c => c.code === currencyCode);
-    if (!currency || currency.gateways.length === 0) return null;
-    if (currency.gateways.includes('stripe')) return 'stripe';
-    return currency.gateways[0];
-  };
-
-  const getPackagePrice = (pkg: CreditPackage, currencyCode: string): { price: string; symbol: string } => {
-    const gateway = getGatewayForCurrency(currencyCode);
-    const symbol = currencySymbols[currencyCode] || '$';
-    
-    switch (gateway) {
-      case 'razorpay':
-        return { price: pkg.razorpayPrice || pkg.price, symbol };
-      case 'paypal':
-        return { price: pkg.paypalPrice || pkg.price, symbol };
-      case 'paystack':
-        return { price: pkg.paystackPrice || pkg.price, symbol };
-      case 'mercadopago':
-        return { price: pkg.mercadopagoPrice || pkg.price, symbol };
-      default:
-        return { price: pkg.price, symbol: paymentGateway?.stripeCurrencySymbol || '$' };
-    }
-  };
-
-  useEffect(() => {
-    if (paymentGateway && !selectedCurrency) {
-      if (availableCurrencies.length > 0) {
-        if (paymentGateway.stripeEnabled && paymentGateway.stripeCurrency) {
-          setSelectedCurrency(paymentGateway.stripeCurrency.toUpperCase());
-        } else {
-          setSelectedCurrency(availableCurrencies[0].code);
-        }
-      }
-    }
-  }, [paymentGateway]);
-
-  useEffect(() => {
-    const handlePaymentRedirect = async () => {
-      const params = new URLSearchParams(window.location.search);
-      
-      const stripeSessionId = params.get('session_id');
-      const stripeSuccess = params.get('success');
-      const paypalSubscription = params.get('paypal_subscription');
-      const paypalSubscriptionId = params.get('subscription_id');
-      const paystackSubscription = params.get('paystack_subscription');
-      const paystackCredits = params.get('paystack_credits');
-      const mercadopago = params.get('mercadopago');
-      const mercadopagoSubscription = params.get('mercadopago_subscription');
-      const mercadopagoPreapprovalId = params.get('preapproval_id');
-      const reference = params.get('reference');
-      const packageId = params.get('package_id');
-      const planId = params.get('plan_id');
-      const billingPeriod = params.get('billing_period');
-      const paymentId = params.get('payment_id');
-      
-      const clearUrlParams = () => {
-        window.history.replaceState({}, '', window.location.pathname);
-      };
-      
-      try {
-        if (stripeSuccess === 'true' && stripeSessionId) {
-          const response = await apiRequest("POST", "/api/stripe/verify-session", { sessionId: stripeSessionId });
-          if (response.ok) {
-            toast({
-              title: t('billing.toast.paymentSuccess'),
-              description: t('billing.toast.paymentSuccessDesc'),
-            });
-            queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-            queryClient.invalidateQueries({ queryKey: ["/api/user-subscription"] });
-            queryClient.invalidateQueries({ queryKey: ["/api/credit-transactions"] });
-          }
-          clearUrlParams();
-        }
-        
-        else if (paystackSubscription === 'success' && reference) {
-          const response = await apiRequest("POST", "/api/paystack/verify-subscription", { reference });
-          if (response.ok) {
-            toast({
-              title: t('billing.toast.subscriptionSuccess'),
-              description: t('billing.toast.subscriptionSuccessDesc'),
-            });
-            queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-            queryClient.invalidateQueries({ queryKey: ["/api/user-subscription"] });
-          }
-          clearUrlParams();
-        }
-        
-        else if (paystackCredits === 'success' && reference && packageId) {
-          const response = await apiRequest("POST", "/api/paystack/verify-credits", { reference, packageId });
-          if (response.ok) {
-            toast({
-              title: t('billing.toast.paymentSuccess'),
-              description: t('billing.toast.paymentSuccessDesc'),
-            });
-            queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-            queryClient.invalidateQueries({ queryKey: ["/api/credit-transactions"] });
-          }
-          clearUrlParams();
-        }
-        
-        else if (mercadopago === 'success' && paymentId) {
-          const response = await apiRequest("POST", "/api/mercadopago/verify-payment", { paymentId });
-          if (response.ok) {
-            toast({
-              title: t('billing.toast.paymentSuccess'),
-              description: t('billing.toast.paymentSuccessDesc'),
-            });
-            queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-            queryClient.invalidateQueries({ queryKey: ["/api/credit-transactions"] });
-          }
-          clearUrlParams();
-        }
-        
-        else if (mercadopagoSubscription === 'success' && mercadopagoPreapprovalId && planId) {
-          const response = await apiRequest("POST", "/api/mercadopago/confirm-subscription", {
-            subscriptionId: mercadopagoPreapprovalId,
-            planId,
-            billingPeriod: billingPeriod || 'monthly',
-          });
-          if (response.ok) {
-            toast({
-              title: t('billing.toast.subscriptionSuccess'),
-              description: t('billing.toast.subscriptionSuccessDesc'),
-            });
-            queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-            queryClient.invalidateQueries({ queryKey: ["/api/user-subscription"] });
-          } else {
-            const error = await response.json();
-            throw new Error(error.error || 'Subscription confirmation failed');
-          }
-          clearUrlParams();
-        }
-        
-        else if (paypalSubscription === 'success' && paypalSubscriptionId && planId) {
-          const response = await apiRequest("POST", "/api/paypal/confirm-subscription", {
-            subscriptionId: paypalSubscriptionId,
-            planId,
-            billingPeriod: billingPeriod || 'monthly',
-          });
-          if (response.ok) {
-            toast({
-              title: t('billing.toast.subscriptionSuccess'),
-              description: t('billing.toast.subscriptionSuccessDesc'),
-            });
-            queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-            queryClient.invalidateQueries({ queryKey: ["/api/user-subscription"] });
-          } else {
-            const error = await response.json();
-            throw new Error(error.error || 'Subscription confirmation failed');
-          }
-          clearUrlParams();
-        }
-        
-        else if (mercadopago === 'failed' || mercadopago === 'pending') {
-          toast({
-            title: mercadopago === 'pending' ? 'Payment Pending' : 'Payment Failed',
-            description: mercadopago === 'pending' ? 'Your payment is being processed.' : 'Your payment could not be completed.',
-            variant: mercadopago === 'failed' ? 'destructive' : 'default',
-          });
-          clearUrlParams();
-        }
-      } catch (error: any) {
-        console.error('Payment verification error:', error);
-        toast({
-          title: 'Verification Failed',
-          description: error.message || 'Could not verify your payment. Please contact support.',
-          variant: 'destructive',
-        });
-        clearUrlParams();
-      }
-    };
-    
-    handlePaymentRedirect();
-  }, []);
-
-  const cancelMutation = useMutation({
-    mutationFn: async () => {
-      // Determine which gateway to use based on the subscription
-      let endpoint: string;
-      if (subscription?.razorpaySubscriptionId) {
-        endpoint = "/api/razorpay/cancel-subscription";
-      } else if (subscription?.paypalSubscriptionId) {
-        endpoint = "/api/paypal/cancel-subscription";
-      } else if (subscription?.paystackSubscriptionCode) {
-        endpoint = "/api/paystack/cancel-subscription";
-      } else if (subscription?.mercadopagoSubscriptionId) {
-        endpoint = "/api/mercadopago/cancel-subscription";
-      } else {
-        endpoint = "/api/stripe/cancel-subscription";
-      }
-      
-      const response = await apiRequest("POST", endpoint);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to cancel subscription");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: t('billing.subscriptionCancelled'),
-        description: t('billing.subscriptionCancelledMessage'),
-      });
-      setCancelDialogOpen(false);
-      queryClient.invalidateQueries({ queryKey: ["/api/user-subscription"] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: t('billing.cancelFailed'),
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handlePurchaseCredits = (packageId: string) => {
-    setSelectedPackageId(packageId);
-    setPurchaseDialogOpen(true);
-  };
-
-  const handlePurchaseSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/credit-transactions"] });
-  };
-
-  const handleExportTransactions = async () => {
-    try {
-      const headers: Record<string, string> = {};
-      const authHeader = AuthStorage.getAuthHeader();
-      if (authHeader) {
-        headers['Authorization'] = authHeader;
-      }
-
-      const response = await fetch("/api/credit-transactions/export", {
-        headers,
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: t('billing.exportFailed', 'Export failed') }));
-        throw new Error(error.message || t('billing.exportFailed', 'Export failed'));
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `credit-transactions-${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast({
-        title: t('billing.exportSuccess', { defaultValue: 'Export Successful' }),
-        description: t('billing.exportSuccessDesc', { defaultValue: 'Your transactions have been exported.' }),
-      });
-    } catch (error: any) {
-      toast({
-        title: t('billing.exportFailed', { defaultValue: 'Export Failed' }),
-        description: error.message || t('billing.exportFailedDesc', { defaultValue: 'Failed to export transactions.' }),
-        variant: 'destructive',
-      });
-    }
-  };
-
-  if (userLoading || plansLoading || subscriptionLoading || packagesLoading || transactionsLoading || gatewayLoading) {
+  if (userLoading || subscriptionLoading || packagesLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -544,6 +68,12 @@ export default function Billing() {
 
   const currentBalance = user?.credits || 0;
   const hasActiveSubscription = !!(subscription && subscription.status === "active");
+  const activePackages = (packages || []).filter((p) => p.isActive !== false);
+
+  const openPurchase = (packageId?: string) => {
+    setSelectedPackageId(packageId || activePackages[0]?.id || null);
+    setPurchaseDialogOpen(true);
+  };
 
   return (
     <div className="space-y-8">
@@ -555,9 +85,13 @@ export default function Billing() {
               <Wallet className="h-7 w-7 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-foreground">{t('billing.title')}</h1>
-              <p className="text-muted-foreground mt-0.5">{t('billing.subtitle')}</p>
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground">{t("billing.title", "Billing")}</h1>
+              <p className="text-muted-foreground mt-0.5">{t("billing.subtitle", "Manage your plan, minutes and invoices")}</p>
             </div>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <ShieldCheck className="h-4 w-4 text-emerald-600" />
+            {t("billing.cashfree.poweredBy", "Secure INR payments by Cashfree · GST invoices included")}
           </div>
         </div>
 
@@ -567,105 +101,55 @@ export default function Billing() {
               <Coins className="h-4 w-4 text-slate-600 dark:text-slate-400" />
               <div className="text-2xl font-bold text-slate-700 dark:text-slate-200" data-testid="text-header-balance">{currentBalance.toLocaleString()}</div>
             </div>
-            <div className="text-slate-600/70 dark:text-slate-400/70 text-sm">{t('billing.currentBalance')}</div>
+            <div className="text-slate-600/70 dark:text-slate-400/70 text-sm">{t("billing.currentBalance", "Available minutes")}</div>
           </div>
           <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-sm rounded-xl p-4 border border-slate-200/50 dark:border-slate-700/50">
             <div className="flex items-center gap-2">
               <Crown className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-              <div className="text-2xl font-bold text-indigo-700 dark:text-indigo-300">{subscription?.plan.displayName || t('billing.free')}</div>
+              <div className="text-2xl font-bold text-indigo-700 dark:text-indigo-300">{subscription?.plan.displayName || t("billing.free", "Free")}</div>
             </div>
-            <div className="text-indigo-600/70 dark:text-indigo-400/70 text-sm">{t('billing.currentPlan')}</div>
+            <div className="text-indigo-600/70 dark:text-indigo-400/70 text-sm">{t("billing.currentPlan", "Current plan")}</div>
           </div>
           <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-sm rounded-xl p-4 border border-slate-200/50 dark:border-slate-700/50">
             <div className="flex items-center gap-2">
               <Receipt className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-              <div className="text-2xl font-bold text-slate-700 dark:text-slate-200">{transactions?.length || 0}</div>
+              <div className="text-2xl font-bold text-slate-700 dark:text-slate-200">
+                {subscription?.currentPeriodEnd && hasActiveSubscription ? new Date(subscription.currentPeriodEnd).toLocaleDateString() : "-"}
+              </div>
             </div>
-            <div className="text-slate-600/70 dark:text-slate-400/70 text-sm">{t('billing.transactions')}</div>
+            <div className="text-slate-600/70 dark:text-slate-400/70 text-sm">{t("billing.cashfree.planValidUntil", "Plan valid until")}</div>
           </div>
           <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-sm rounded-xl p-4 border border-slate-200/50 dark:border-slate-700/50">
             <div className="flex items-center gap-2">
               <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-300 capitalize">{subscription?.status || t('common.active')}</div>
+              <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-300 capitalize">{subscription?.status || t("common.active", "Active")}</div>
             </div>
-            <div className="text-emerald-600/70 dark:text-emerald-400/70 text-sm">{t('common.status')}</div>
+            <div className="text-emerald-600/70 dark:text-emerald-400/70 text-sm">{t("common.status", "Status")}</div>
           </div>
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="mb-6">
+        <TabsList className="mb-6 flex-wrap h-auto">
           <TabsTrigger value="plans" className="gap-2" data-testid="tab-plans">
             <Crown className="h-4 w-4" />
-            {t('billing.plans', 'Plans')}
+            {t("billing.plans", "Plans")}
           </TabsTrigger>
           <TabsTrigger value="packs" className="gap-2" data-testid="tab-packs">
             <Coins className="h-4 w-4" />
-            Minute Packs
+            {t("billing.creditPacks", "Minute packs")}
           </TabsTrigger>
           <TabsTrigger value="history" className="gap-2" data-testid="tab-history">
             <FileText className="h-4 w-4" />
-            {t('billing.transactionHistory', 'Transaction History')}
+            {t("billing.transactionHistory", "History & invoices")}
           </TabsTrigger>
           <TabsTrigger value="numbers" className="gap-2" data-testid="tab-phone-numbers">
             <Phone className="h-4 w-4" />
-            Phone Numbers
+            {t("billing.cashfree.phoneNumbers", "Phone numbers")}
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="plans" className="space-y-8">
-          {subscription && hasActiveSubscription && !subscription.cancelAtPeriodEnd && subscription.plan.name !== "free" && (subscription.stripeSubscriptionId || subscription.razorpaySubscriptionId || subscription.paypalSubscriptionId || subscription.paystackSubscriptionCode || subscription.mercadopagoSubscriptionId) && (
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-50 via-white to-purple-50/50 dark:from-indigo-950/40 dark:via-slate-800/80 dark:to-purple-950/30 border border-indigo-200/50 dark:border-indigo-700/30 p-6">
-              <div className="absolute inset-0 bg-grid-indigo-200/30 dark:bg-grid-indigo-700/10 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.5))]" />
-              <div className="relative">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
-                    <Calendar className="h-5 w-5 text-white" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">{t('billing.subscriptionPeriod', 'Subscription Period')}</h3>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="bg-white/70 dark:bg-slate-800/50 rounded-xl p-4 border border-indigo-100 dark:border-indigo-800/30">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Clock className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
-                      <span className="text-sm font-medium text-indigo-600 dark:text-indigo-400">{t('billing.startDate', 'Start Date')}</span>
-                    </div>
-                    <div className="text-xl font-bold text-slate-800 dark:text-slate-100" data-testid="text-subscription-start-date">
-                      {subscription.currentPeriodStart ? format(new Date(subscription.currentPeriodStart), 'MMM dd, yyyy') : '-'}
-                    </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      {subscription.currentPeriodStart ? formatDistanceToNow(new Date(subscription.currentPeriodStart), { addSuffix: true }) : ''}
-                    </div>
-                  </div>
-                  <div className="bg-white/70 dark:bg-slate-800/50 rounded-xl p-4 border border-purple-100 dark:border-purple-800/30">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Calendar className="h-4 w-4 text-purple-500 dark:text-purple-400" />
-                      <span className="text-sm font-medium text-purple-600 dark:text-purple-400">{t('billing.renewalDate', 'Renewal Date')}</span>
-                    </div>
-                    <div className="text-xl font-bold text-slate-800 dark:text-slate-100" data-testid="text-subscription-end-date">
-                      {subscription.currentPeriodEnd ? format(new Date(subscription.currentPeriodEnd), 'MMM dd, yyyy') : '-'}
-                    </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      {subscription.currentPeriodEnd ? formatDistanceToNow(new Date(subscription.currentPeriodEnd), { addSuffix: true }) : ''}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {subscription && subscription.plan.name !== "free" && !subscription.cancelAtPeriodEnd && (subscription.stripeSubscriptionId || subscription.razorpaySubscriptionId || subscription.paypalSubscriptionId || subscription.paystackSubscriptionCode || subscription.mercadopagoSubscriptionId) && (
-            <div className="flex justify-end">
-              <Button 
-                variant="outline" 
-                onClick={() => setCancelDialogOpen(true)}
-                data-testid="button-cancel-subscription"
-              >
-                {t('billing.cancelSubscription')}
-              </Button>
-            </div>
-          )}
-
           <UpgradePlansContent />
         </TabsContent>
 
@@ -673,42 +157,20 @@ export default function Billing() {
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-50 via-white to-indigo-50/50 dark:from-slate-900 dark:via-slate-800/80 dark:to-indigo-950/30 border border-slate-200 dark:border-slate-700/50 p-6 md:p-8">
             <div className="absolute inset-0 bg-grid-slate-200/50 dark:bg-grid-slate-700/20 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.5))]" />
             <div className="relative">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 dark:from-emerald-600 dark:to-emerald-700 flex items-center justify-center shadow-lg shadow-emerald-500/25 dark:shadow-emerald-600/20">
-                    <Coins className="h-7 w-7 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Minutes & Usage</h2>
-                    <p className="text-slate-600 dark:text-slate-400 text-sm">Your available calling minutes and usage history</p>
-                  </div>
+              <div className="flex items-center gap-4 mb-6">
+                <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                  <Coins className="h-7 w-7 text-white" />
                 </div>
-                
-                {availableCurrencies.length > 1 && (
-                  <div className="flex items-center gap-2">
-                    <Globe className="h-4 w-4 text-muted-foreground" />
-                    <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
-                      <SelectTrigger className="w-[140px] bg-white/80 dark:bg-slate-800/60" data-testid="select-billing-currency">
-                        <SelectValue placeholder="Currency" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableCurrencies.map((currency) => (
-                          <SelectItem key={currency.code} value={currency.code}>
-                            {currency.symbol} {currency.code}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{t("billing.creditsAndUsage", "Minutes & usage")}</h2>
+                  <p className="text-slate-600 dark:text-slate-400 text-sm">{t("billing.creditsSubtitle", "Your available calling minutes")}</p>
+                </div>
               </div>
 
               {!hasActiveSubscription && (
                 <Alert className="mb-6 border-amber-200 dark:border-amber-800/50 bg-amber-50/80 dark:bg-amber-950/30">
                   <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                  <AlertDescription className="text-amber-700 dark:text-amber-300">
-                    {t('billing.membershipRequired')}
-                  </AlertDescription>
+                  <AlertDescription className="text-amber-700 dark:text-amber-300">{t("billing.membershipRequired", "An active plan is required to buy minute packs.")}</AlertDescription>
                 </Alert>
               )}
 
@@ -719,115 +181,81 @@ export default function Billing() {
                       <Wallet className="h-10 w-10 text-white" />
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Current Balance</div>
-                      <div className="text-5xl font-bold font-mono tabular-nums text-slate-800 dark:text-slate-100" data-testid="text-credit-balance">
-                        {currentBalance.toLocaleString()}
-                      </div>
+                      <div className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{t("billing.currentBalance", "Current balance")}</div>
+                      <div className="text-5xl font-bold font-mono tabular-nums text-slate-800 dark:text-slate-100" data-testid="text-credit-balance">{currentBalance.toLocaleString()}</div>
                       <div className="text-sm text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
                         <Sparkles className="h-3 w-3" />
-                        Available minutes
+                        {t("billing.availableCredits", "Available minutes")}
                       </div>
                     </div>
                   </div>
-                  <Button 
-                    size="lg" 
-                    onClick={() => packages && packages[0] && handlePurchaseCredits(packages[0].id)}
-                    disabled={!hasActiveSubscription || !!loadingCheckout}
-                    className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 dark:from-emerald-600 dark:to-emerald-700 shadow-lg shadow-emerald-500/25"
+                  <Button
+                    size="lg"
+                    onClick={() => openPurchase()}
+                    disabled={!hasActiveSubscription || activePackages.length === 0}
+                    className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-lg shadow-emerald-500/25"
                     data-testid="button-recharge-credits"
                   >
                     <Plus className="h-5 w-5 mr-2" />
-                    Add Minutes
+                    {t("billing.purchaseCredits", "Add minutes")}
                   </Button>
                 </div>
               </div>
 
-              {packages && packages.length > 0 && (
+              {activePackages.length > 0 && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
                     <TrendingUp className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                    Minute Packages
+                    {t("billing.creditPackages", "Minute packages")}
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {packages.map((pkg, index) => {
-                      const priceInfo = getPackagePrice(pkg, selectedCurrency);
-                      const displayPrice = parseFloat(priceInfo.price);
-                      const currencySymbol = priceInfo.symbol;
+                    {activePackages.map((pkg, index) => {
+                      const price = typeof pkg.price === "string" ? parseFloat(pkg.price) : pkg.price;
                       const isPopular = index === 1;
-                      
                       return (
-                        <div 
-                          key={pkg.id} 
+                        <div
+                          key={pkg.id}
                           className={`relative bg-white dark:bg-slate-800/80 rounded-xl border overflow-hidden transition-all duration-200 hover:shadow-lg ${
-                            isPopular 
-                              ? "ring-2 ring-indigo-500 dark:ring-indigo-400 border-indigo-200 dark:border-indigo-800" 
-                              : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                            isPopular ? "ring-2 ring-indigo-500 dark:ring-indigo-400 border-indigo-200 dark:border-indigo-800" : "border-slate-200 dark:border-slate-700"
                           }`}
                           data-testid={`card-package-${pkg.name.toLowerCase().replace(/\s+/g, "-")}`}
                         >
                           {isPopular && (
                             <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white text-xs font-medium py-1.5 text-center">
                               <Sparkles className="h-3 w-3 inline mr-1" />
-                              {t('billing.popular')}
+                              {t("billing.popular", "Popular")}
                             </div>
                           )}
-                          <div className={`p-5 ${isPopular ? 'pt-9' : ''}`}>
+                          <div className={`p-5 ${isPopular ? "pt-9" : ""}`}>
                             <div className="flex items-start justify-between mb-4">
                               <div>
                                 <h4 className="text-lg font-semibold text-slate-800 dark:text-slate-100">{pkg.name}</h4>
-                                {pkg.description && (
-                                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{pkg.description}</p>
-                                )}
+                                {pkg.description && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{pkg.description}</p>}
                               </div>
-                              <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${
-                                isPopular 
-                                  ? 'bg-indigo-100 dark:bg-indigo-900/50' 
-                                  : 'bg-slate-100 dark:bg-slate-700/50'
-                              }`}>
-                                <Coins className={`h-5 w-5 ${
-                                  isPopular 
-                                    ? 'text-indigo-600 dark:text-indigo-400' 
-                                    : 'text-slate-600 dark:text-slate-400'
-                                }`} />
+                              <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${isPopular ? "bg-indigo-100 dark:bg-indigo-900/50" : "bg-slate-100 dark:bg-slate-700/50"}`}>
+                                <Coins className={`h-5 w-5 ${isPopular ? "text-indigo-600 dark:text-indigo-400" : "text-slate-600 dark:text-slate-400"}`} />
                               </div>
                             </div>
-                            
                             <div className="mb-4">
-                              <div className="text-3xl font-bold text-slate-800 dark:text-slate-100">
-                                {currencySymbol}{displayPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                              </div>
+                              <div className="text-3xl font-bold text-slate-800 dark:text-slate-100">{formatInr(price)}</div>
                               <div className="flex items-center gap-2 mt-2">
-                                <span className="text-xl font-mono font-semibold text-emerald-600 dark:text-emerald-400">
-                                  {pkg.credits.toLocaleString()}
-                                </span>
-                                <span className="text-sm text-slate-500 dark:text-slate-400">minutes</span>
+                                <span className="text-xl font-mono font-semibold text-emerald-600 dark:text-emerald-400">{pkg.credits.toLocaleString()}</span>
+                                <span className="text-sm text-slate-500 dark:text-slate-400">{t("billing.cashfree.minutes", "minutes")}</span>
                               </div>
                             </div>
-                            
                             <div className="flex items-center gap-2 mb-4 text-xs text-slate-500 dark:text-slate-400">
                               <Check className="h-3.5 w-3.5 text-emerald-500" />
-                              {currencySymbol}{(displayPrice / pkg.credits).toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })} {t('billing.perMinute')}
+                              {formatInr(price / Math.max(pkg.credits, 1))} {t("billing.perMinute", "per minute")}
                             </div>
-                            
-                            <Button 
-                              className={`w-full ${
-                                isPopular 
-                                  ? "bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800" 
-                                  : ""
-                              }`}
+                            <Button
+                              className={`w-full ${isPopular ? "bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800" : ""}`}
                               variant={isPopular ? "default" : "outline"}
-                              onClick={() => handlePurchaseCredits(pkg.id)}
-                              disabled={!hasActiveSubscription || !!loadingCheckout}
+                              onClick={() => openPurchase(pkg.id)}
+                              disabled={!hasActiveSubscription}
                               data-testid={`button-buy-${pkg.name.toLowerCase().replace(/\s+/g, "-")}`}
                             >
-                              {loadingCheckout === `package-${pkg.id}` ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <>
-                                  {t('billing.purchase')}
-                                  <ArrowUpRight className="h-4 w-4 ml-1" />
-                                </>
-                              )}
+                              {t("billing.purchase", "Purchase")}
+                              <ArrowUpRight className="h-4 w-4 ml-1" />
                             </Button>
                           </div>
                         </div>
@@ -841,188 +269,17 @@ export default function Billing() {
         </TabsContent>
 
         <TabsContent value="history" className="space-y-8">
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-50 via-white to-slate-100/50 dark:from-slate-900 dark:via-slate-800/80 dark:to-slate-900/50 border border-slate-200 dark:border-slate-700/50 p-6 md:p-8">
-            <div className="absolute inset-0 bg-grid-slate-200/50 dark:bg-grid-slate-700/20 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.5))]" />
-            <div className="relative">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 dark:from-slate-600 dark:to-slate-700 flex items-center justify-center shadow-lg shadow-slate-500/25 dark:shadow-slate-600/20">
-                    <Receipt className="h-7 w-7 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{t('billing.transactionHistory')}</h2>
-                    <p className="text-slate-600 dark:text-slate-400 text-sm">{t('billing.transactionSubtitle', 'View your credit transactions and payment history')}</p>
-                  </div>
-                </div>
-                <Button 
-                  variant="outline" 
-                  onClick={handleExportTransactions} 
-                  data-testid="button-export-transactions"
-                  className="border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  {t('billing.exportCSV')}
-                </Button>
-              </div>
-
-              {transactions && transactions.length > 0 ? (
-                <>
-                  <div className="bg-white dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700/50 overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-slate-50/80 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
-                          <TableHead className="font-semibold uppercase text-xs text-slate-600 dark:text-slate-400 tracking-wider">{t('billing.tableHeaders.type')}</TableHead>
-                          <TableHead className="font-semibold uppercase text-xs text-slate-600 dark:text-slate-400 tracking-wider">{t('billing.tableHeaders.description')}</TableHead>
-                          <TableHead className="font-semibold uppercase text-xs text-slate-600 dark:text-slate-400 tracking-wider text-right">{t('billing.tableHeaders.amount')}</TableHead>
-                          <TableHead className="font-semibold uppercase text-xs text-slate-600 dark:text-slate-400 tracking-wider">{t('billing.tableHeaders.date')}</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {[...transactions]
-                          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                          .slice(transactionPage * transactionPageSize, (transactionPage + 1) * transactionPageSize)
-                          .map((transaction, index, arr) => (
-                          <TableRow 
-                            key={transaction.id}
-                            className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-700/30 ${
-                              index !== arr.length - 1 ? 'border-b border-slate-100 dark:border-slate-700/50' : ''
-                            }`}
-                          >
-                            <TableCell className="py-4">
-                              <Badge 
-                                variant={transaction.type === "credit" ? "default" : "destructive"}
-                                className={`${
-                                  transaction.type === "credit" 
-                                    ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/50 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800" 
-                                    : "bg-red-100 text-red-700 hover:bg-red-100 dark:bg-red-900/50 dark:text-red-400 border border-red-200 dark:border-red-800"
-                                }`}
-                              >
-                                {transaction.type === "credit" ? (
-                                  <><Plus className="h-3 w-3 mr-1" />Min Added</>
-                                ) : (
-                                  <>{t('billing.debit')}</>
-                                )}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="py-4">
-                              <div className="font-medium text-sm text-slate-800 dark:text-slate-200">{transaction.description}</div>
-                              {transaction.stripePaymentId && (
-                                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
-                                  <CreditCard className="h-3 w-3" />
-                                  {transaction.stripePaymentId.substring(0, 20)}...
-                                </div>
-                              )}
-                            </TableCell>
-                            <TableCell className="py-4 text-right">
-                              <span className={`font-mono text-sm font-bold ${
-                                transaction.type === "credit" 
-                                  ? "text-emerald-600 dark:text-emerald-400" 
-                                  : "text-red-600 dark:text-red-400"
-                              }`}>
-                                {transaction.type === "credit" ? "+" : "-"}{Math.abs(transaction.amount).toLocaleString()}
-                              </span>
-                            </TableCell>
-                            <TableCell className="py-4">
-                              <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-                                <Clock className="h-3.5 w-3.5" />
-                                {formatDistanceToNow(new Date(transaction.createdAt), { addSuffix: true })}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                  
-                  {totalTransactionPages > 1 && (
-                    <div className="flex items-center justify-between mt-4">
-                      <div className="text-sm text-slate-500 dark:text-slate-400">
-                        {t('billing.pagination', { 
-                          start: transactionPage * transactionPageSize + 1, 
-                          end: Math.min((transactionPage + 1) * transactionPageSize, transactions.length),
-                          total: transactions.length 
-                        })}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setTransactionPage(p => Math.max(0, p - 1))}
-                          disabled={transactionPage === 0}
-                          data-testid="button-billing-previous-page"
-                        >
-                          <ChevronLeft className="h-4 w-4" />
-                          {t('billing.previous')}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setTransactionPage(p => Math.min(p + 1, totalTransactionPages - 1))}
-                          disabled={transactionPage >= totalTransactionPages - 1}
-                          data-testid="button-billing-next-page"
-                        >
-                          {t('billing.next')}
-                          <ChevronRight className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="bg-white/60 dark:bg-slate-800/40 rounded-xl border border-slate-200/50 dark:border-slate-700/50 p-12 text-center">
-                  <div className="h-16 w-16 rounded-2xl bg-slate-100 dark:bg-slate-700/50 flex items-center justify-center mx-auto mb-4">
-                    <Receipt className="h-8 w-8 text-slate-400 dark:text-slate-500" />
-                  </div>
-                  <p className="text-slate-500 dark:text-slate-400">{t('billing.noTransactions')}</p>
-                </div>
-              )}
-            </div>
-          </div>
+          <TransactionHistory embedded />
+          <InvoicesList />
+          <CreditLedger />
         </TabsContent>
 
-        {/* ─── PHONE NUMBER SUBSCRIPTION TAB ─── */}
         <TabsContent value="numbers" className="space-y-8">
           <PhoneNumberSubscriptionSection hasActiveSubscription={hasActiveSubscription} />
         </TabsContent>
-
       </Tabs>
 
-      <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
-        <DialogContent data-testid="dialog-cancel-subscription">
-          <DialogHeader>
-            <DialogTitle>{t('billing.cancelConfirmTitle')}</DialogTitle>
-            <DialogDescription>
-              {t('billing.cancelConfirmMessage')}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>
-              {t('billing.keepSubscription')}
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={() => cancelMutation.mutate()}
-              disabled={cancelMutation.isPending}
-              data-testid="button-confirm-cancel"
-            >
-              {cancelMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                t('billing.cancelSubscription')
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {selectedPackageId && (
-        <CreditPurchaseDialog
-          open={purchaseDialogOpen}
-          onOpenChange={setPurchaseDialogOpen}
-          packageId={selectedPackageId}
-          onSuccess={handlePurchaseSuccess}
-        />
-      )}
+      <CreditPurchaseDialog open={purchaseDialogOpen} onOpenChange={setPurchaseDialogOpen} packageId={selectedPackageId} />
     </div>
   );
 }
