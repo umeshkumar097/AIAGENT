@@ -1131,7 +1131,94 @@ export interface AgentConfig {
   temperature?: number;
   transferRules?: TransferRule[];
   knowledgeBaseIds?: string[];
+  /** Call-time actions (appointments, save lead, callbacks, custom API lookups) */
+  actions?: AgentActionsConfig;
 }
+
+// ============================================
+// AGENT ACTIONS (config.actions) — tools the agent may call during a Sarvam call
+// ============================================
+
+/** A user-defined GET/POST endpoint exposed to the model as tool `api_<name>`. */
+export interface AgentApiTool {
+  id: string;                     // nanoid, stable
+  name: string;                   // [a-z0-9_]{2,30} → tool `api_<name>`
+  description: string;            // what it does / when to use (shown to the model)
+  url: string;                    // https only; may contain {{param}} placeholders
+  method: "GET" | "POST";
+  headers?: Record<string, string>;   // stored as-is, returned to the owner only, never logged
+  params: Array<{ name: string; type: "string" | "number"; description: string; required: boolean }>;
+  bodyTemplate?: string;          // POST: JSON with {{param}} placeholders (default: all params as JSON)
+  responsePath?: string;          // optional dot path to the useful part of the JSON response
+  timeoutMs?: number;             // default 8000, max 12000
+}
+
+export interface AgentActionsConfig {
+  appointments?: {
+    durationMinutes: number;      // default 30
+    timeZone: string;             // IANA, default 'Asia/Kolkata'
+    workingHours: { start: string; end: string };  // 'HH:MM', default 09:00–18:00
+    workingDays: number[];        // 0=Sun … 6=Sat, default [1,2,3,4,5,6]
+    confirmVia: Array<"whatsapp" | "email">;       // optional confirmation after booking, default []
+    serviceName?: string;
+  };
+  saveLead?: { fields: Array<{ key: string; label: string; required: boolean }> };  // extra fields beyond name/email/phone
+  callback?: { enabled: boolean; maxDaysAhead: number };   // default 7
+  apiTools?: AgentApiTool[];      // max 10
+}
+
+const HHMM_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+const TOOL_NAME_RE = /^[a-z0-9_]{2,30}$/;
+const PARAM_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]{0,39}$/;
+const HEADER_KEY_RE = /^[A-Za-z0-9-]{1,64}$/;
+
+function isValidTimeZone(tz: string): boolean {
+  try { new Intl.DateTimeFormat("en-US", { timeZone: tz }); return true; } catch { return false; }
+}
+
+export const AgentApiToolSchema = z.object({
+  id: z.string().min(1).max(40),
+  name: z.string().regex(TOOL_NAME_RE, "Tool name must be 2-30 lowercase letters, digits or underscores"),
+  description: z.string().trim().min(1).max(500),
+  url: z.string().trim().max(2000).refine((u) => /^https:\/\//i.test(u), "URL must start with https://"),
+  method: z.enum(["GET", "POST"]),
+  headers: z.record(z.string().regex(HEADER_KEY_RE), z.string().max(2000)).optional(),
+  params: z.array(z.object({
+    name: z.string().regex(PARAM_NAME_RE),
+    type: z.enum(["string", "number"]),
+    description: z.string().trim().max(300),
+    required: z.boolean(),
+  })).max(10),
+  bodyTemplate: z.string().max(4000).optional(),
+  responsePath: z.string().max(200).optional(),
+  timeoutMs: z.number().int().min(1000).max(12000).optional(),
+}).refine((t) => Object.keys(t.headers || {}).length <= 10, { message: "At most 10 headers" });
+
+export const AgentActionsConfigSchema = z.object({
+  appointments: z.object({
+    durationMinutes: z.number().int().min(5).max(240),
+    timeZone: z.string().refine(isValidTimeZone, "Invalid IANA time zone"),
+    workingHours: z.object({
+      start: z.string().regex(HHMM_RE, "Use HH:MM"),
+      end: z.string().regex(HHMM_RE, "Use HH:MM"),
+    }).refine((h) => h.start < h.end, { message: "Working hours must end after they start" }),
+    workingDays: z.array(z.number().int().min(0).max(6)).max(7),
+    confirmVia: z.array(z.enum(["whatsapp", "email"])).max(2),
+    serviceName: z.string().trim().max(120).optional(),
+  }).optional(),
+  saveLead: z.object({
+    fields: z.array(z.object({
+      key: z.string().regex(PARAM_NAME_RE),
+      label: z.string().trim().min(1).max(80),
+      required: z.boolean(),
+    })).max(8),
+  }).optional(),
+  callback: z.object({
+    enabled: z.boolean(),
+    maxDaysAhead: z.number().int().min(1).max(60),
+  }).optional(),
+  apiTools: z.array(AgentApiToolSchema).max(10).optional(),
+}).strict();
 
 /**
  * Transfer rule configuration for call transfers
@@ -2227,6 +2314,37 @@ export const insertPlivoCallSchema = createInsertSchema(plivoCalls).omit({
 });
 export type InsertPlivoCall = z.infer<typeof insertPlivoCallSchema>;
 export type PlivoCall = typeof plivoCalls.$inferSelect;
+
+// Scheduled Callbacks - the agent (or the owner) books a time; the callback cron places the call
+export const scheduledCallbacks = pgTable("scheduled_callbacks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  agentId: varchar("agent_id").references(() => agents.id, { onDelete: "set null" }),
+  sourceCallId: varchar("source_call_id"), // plivo_calls.id of the call that booked it
+  plivoPhoneNumberId: varchar("plivo_phone_number_id"),
+  contactName: text("contact_name"),
+  contactPhone: text("contact_phone").notNull(),
+  reason: text("reason"),
+  scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
+  timeZone: text("time_zone").notNull().default("Asia/Kolkata"),
+  status: text("status").notNull().default("pending"), // pending | calling | completed | failed | cancelled
+  attempts: integer("attempts").notNull().default(0),
+  lastError: text("last_error"),
+  resultCallId: varchar("result_call_id"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  scheduledCallbacksDueIdx: index("scheduled_callbacks_status_scheduled_at_idx").on(table.status, table.scheduledAt),
+  scheduledCallbacksUserIdx: index("scheduled_callbacks_user_created_idx").on(table.userId, table.createdAt),
+}));
+
+export const insertScheduledCallbackSchema = createInsertSchema(scheduledCallbacks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertScheduledCallback = z.infer<typeof insertScheduledCallbackSchema>;
+export type ScheduledCallback = typeof scheduledCallbacks.$inferSelect;
 
 // Campaign Jobs - For tracking individual call jobs in campaigns
 export const campaignJobs = pgTable("campaign_jobs", {

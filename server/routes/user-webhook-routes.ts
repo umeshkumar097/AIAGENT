@@ -93,7 +93,9 @@ export function createUserWebhookRoutes(ctx: RouteContext): Router {
         // Appointment events
         'appointment.booked', 'appointment.confirmed', 'appointment.cancelled', 'appointment.rescheduled', 'appointment.completed', 'appointment.no_show',
         // Form events
-        'form.submitted', 'form.lead_created'
+        'form.submitted', 'form.lead_created',
+        // Callback events (agent-scheduled call backs)
+        'callback.scheduled'
       ];
       
       const invalidEvents = events.filter((e: string) => !validEvents.includes(e));

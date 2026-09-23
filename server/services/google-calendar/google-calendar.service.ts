@@ -208,6 +208,48 @@ export async function deleteCalendarEvent(userId: string, eventId: string): Prom
   }
 }
 
+export interface BusyInterval { start: Date; end: Date }
+
+/**
+ * Busy blocks on the user's primary calendar between `from` and `to` (freebusy API).
+ * Best effort: returns [] when Google Calendar is not connected or the lookup fails.
+ */
+export async function getBusyIntervals(userId: string, from: Date, to: Date): Promise<BusyInterval[]> {
+  let token = await refreshCalendarToken(userId);
+  if (!token) return [];
+
+  const body = JSON.stringify({ timeMin: from.toISOString(), timeMax: to.toISOString(), items: [{ id: "primary" }] });
+  const query = (t: string) =>
+    fetch(`${GOOGLE_CALENDAR_API}/freeBusy`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
+      body,
+      signal: AbortSignal.timeout(6000),
+    });
+
+  try {
+    let resp = await query(token);
+    if (resp.status === 401) {
+      const fresh = await refreshCalendarToken(userId, true);
+      if (!fresh) return [];
+      token = fresh;
+      resp = await query(token);
+    }
+    if (!resp.ok) {
+      console.error("[GoogleCalendar] freeBusy failed:", resp.status);
+      return [];
+    }
+    const data = await resp.json() as { calendars?: Record<string, { busy?: Array<{ start: string; end: string }> }> };
+    const busy = data.calendars?.primary?.busy || [];
+    return busy
+      .map((b) => ({ start: new Date(b.start), end: new Date(b.end) }))
+      .filter((b) => !Number.isNaN(b.start.getTime()) && !Number.isNaN(b.end.getTime()));
+  } catch (err: any) {
+    console.error("[GoogleCalendar] freeBusy error:", err.message);
+    return [];
+  }
+}
+
 export async function isCalendarSyncEnabled(userId: string): Promise<boolean> {
   const [cred] = await db
     .select({ id: googleCalendarCredentials.id })

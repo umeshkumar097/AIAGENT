@@ -25,11 +25,13 @@ import { ElevenLabsBridgeService } from '../services/elevenlabs-bridge.service';
 import { SarvamBridgeService } from '../services/sarvam-bridge.service';
 import { PlivoRecordingService } from '../services/plivo-recording.service';
 import { db } from '../../../db';
-import { plivoCalls, agents, users, flowExecutions, plivoCredentials } from '@shared/schema';
+import { plivoCalls, agents, users, flowExecutions, plivoCredentials, plivoPhoneNumbers } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { logger } from '../../../utils/logger';
 import type { OpenAIVoice, OpenAIRealtimeModel, AgentTool } from '../types';
 import { buildCallMessagingTools, parseWhatsappVariables, type CallTool } from '../../../services/call-messaging-tools';
+import { buildCallActionTools, readActionsConfig } from '../../../services/call-actions';
+import { normalizePhone } from '../../../services/call-actions/util';
 
 /**
  * Which templates the OpenAI-Realtime messaging tools may use: the agent's list
@@ -367,6 +369,11 @@ async function initializeSession(
           messagingWhatsappVariables: agents.messagingWhatsappVariables,
           messagingEmailTemplates:    agents.messagingEmailTemplates,
           messagingWhatsappTemplates: agents.messagingWhatsappTemplates,
+          name:                       agents.name,
+          config:                     agents.config,
+          transferEnabled:            agents.transferEnabled,
+          transferPhoneNumber:        agents.transferPhoneNumber,
+          appointmentBookingEnabled:  agents.appointmentBookingEnabled,
         })
         .from(agents)
         .where(eq(agents.id, call.agentId))
@@ -391,6 +398,34 @@ async function initializeSession(
           });
         }
 
+        // Action tools (transfer / appointments / save_lead / callbacks / api_*) from the agent row
+        const callMeta = call.metadata as Record<string, unknown> | null;
+        const callDirection: 'inbound' | 'outbound' = call.callDirection === 'inbound' ? 'inbound' : 'outbound';
+        let plivoCredentialId = (callMeta?.plivoCredentialId as string | undefined) || null;
+        if (!plivoCredentialId && call.plivoPhoneNumberId) {
+          const [num] = await db.select({ plivoCredentialId: plivoPhoneNumbers.plivoCredentialId })
+            .from(plivoPhoneNumbers).where(eq(plivoPhoneNumbers.id, call.plivoPhoneNumberId)).limit(1);
+          plivoCredentialId = num?.plivoCredentialId || null;
+        }
+        const actions = readActionsConfig(agent.config);
+        callTools.push(...await buildCallActionTools({
+          userId: agent.userId,
+          agentId: call.agentId,
+          callId: call.id,
+          callUuid,
+          fromNumber: call.fromNumber,
+          toNumber: call.toNumber,
+          callDirection,
+          callerPhone: normalizePhone(callDirection === 'inbound' ? call.fromNumber : call.toNumber),
+          plivoPhoneNumberId: call.plivoPhoneNumberId || null,
+          plivoCredentialId,
+          campaignId: call.campaignId || null,
+          agent: { id: call.agentId, ...agent },
+          actions,
+          language: agent.language || 'hi-IN',
+          messagingTools: [...callTools],
+        }));
+
         // Get OpenAI key for GPT-4o LLM
         let openaiKey: string | null = null;
         if (call.openaiCredentialId) {
@@ -414,7 +449,6 @@ async function initializeSession(
           return false;
         }
 
-        const callMeta = call.metadata as Record<string, unknown> | null;
         await SarvamBridgeService.initializeSession(
           callUuid,
           plivoWs,
@@ -433,6 +467,12 @@ async function initializeSession(
             knowledgeBaseIds: agent.knowledgeBaseIds || null,
             userId: agent.userId,
             tools: callTools,
+            plivoCredentialId,
+            plivoPhoneNumberId: call.plivoPhoneNumberId || null,
+            callDirection,
+            fromNumber: call.fromNumber,
+            toNumber: call.toNumber,
+            actionsTimeZone: actions.appointments?.timeZone,
           },
           call.id
         );

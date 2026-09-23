@@ -19,7 +19,8 @@
 import { Router, Request, Response } from "express";
 import { RouteContext, AuthRequest } from "./common";
 import { eq, and } from "drizzle-orm";
-import { llmModels, flows, FlowNode, FlowEdge, knowledgeBase } from "@shared/schema";
+import { llmModels, flows, FlowNode, FlowEdge, knowledgeBase, AgentActionsConfigSchema, AgentApiToolSchema } from "@shared/schema";
+import { runApiTool } from "../services/call-actions";
 import { ElevenLabsService, isAgentOnSipPhoneNumber, getSipTrunkOutboundAddress } from "../services/elevenlabs";
 import { ElevenLabsPoolService } from "../services/elevenlabs-pool";
 import { OpenAIPoolService } from "../engines/plivo/services/openai-pool.service";
@@ -35,6 +36,30 @@ function normalizeTemplateList(value: unknown): string[] | null {
   if (!Array.isArray(value)) return null;
   const names = value.map(v => (typeof v === 'string' ? v.trim() : '')).filter(Boolean);
   return Array.from(new Set(names)).slice(0, 50);
+}
+
+/**
+ * Merge a request's `config` into the stored one at the top level (other keys are never dropped).
+ * `config.actions` is validated and replaced wholesale — the client sends the complete object on
+ * every save (omitting a section disables it). Never logs the config (API tool headers live in it).
+ */
+function mergeAgentConfig(existing: unknown, incoming: unknown): { config: Record<string, unknown> | null } | { error: string } {
+  const base = existing && typeof existing === 'object' && !Array.isArray(existing) ? { ...(existing as Record<string, unknown>) } : {};
+  if (incoming == null) return { config: Object.keys(base).length ? base : null };
+  if (typeof incoming !== 'object' || Array.isArray(incoming)) return { error: 'config must be an object' };
+  const { actions, ...rest } = incoming as Record<string, unknown>;
+  const merged: Record<string, unknown> = { ...base, ...rest };
+  if (actions === null) {
+    delete merged.actions;
+  } else if (actions !== undefined) {
+    const parsed = AgentActionsConfigSchema.safeParse(actions);
+    if (!parsed.success) {
+      const issue = parsed.error.issues[0];
+      return { error: `Invalid actions${issue?.path?.length ? ` at ${issue.path.join('.')}` : ''}: ${issue?.message || 'invalid'}` };
+    }
+    merged.actions = parsed.data;
+  }
+  return { config: merged };
 }
 
 async function fetchWhatsappTemplateNames(userId: string): Promise<string[]> {
@@ -133,6 +158,11 @@ export function createAgentRoutes(ctx: RouteContext): Router {
         telephonyProvider,
         openaiVoice
       } = req.body;
+
+      const configResult = mergeAgentConfig(null, config);
+      if ('error' in configResult) {
+        return res.status(400).json({ error: configResult.error });
+      }
 
       // Templates the agent may pick at runtime; the legacy single columns follow the first entry
       const emailTemplateList = normalizeTemplateList(messagingEmailTemplates);
@@ -468,7 +498,7 @@ export function createAgentRoutes(ctx: RouteContext): Router {
         voiceTone: voiceTone || null,
         personality: personality || null,
         systemPrompt,
-        config: config || null,
+        config: configResult.config,
         elevenLabsAgentId,
         elevenLabsCredentialId: usedCredentialId,
         elevenLabsVoiceId: (type === 'incoming' || type === 'flow') ? elevenLabsVoiceId : null,
@@ -721,6 +751,29 @@ export function createAgentRoutes(ctx: RouteContext): Router {
     }
   });
 
+  /**
+   * Run one custom API tool once with sample values (agent builder "Test" button). The tool
+   * definition comes from the request, so nothing is stored; the SSRF guard and https-only
+   * rules of the call-time tool apply. Returns the model-facing message.
+   */
+  router.post("/api/agents/tools/test", authenticateHybrid, async (req: AuthRequest, res: Response) => {
+    try {
+      const parsed = AgentApiToolSchema.safeParse(req.body?.tool);
+      if (!parsed.success) {
+        const issue = parsed.error.issues[0];
+        return res.status(400).json({ ok: false, error: `Invalid tool${issue?.path?.length ? ` at ${issue.path.join('.')}` : ''}: ${issue?.message || 'invalid'}` });
+      }
+      const values = req.body?.values && typeof req.body.values === 'object' && !Array.isArray(req.body.values)
+        ? req.body.values as Record<string, unknown>
+        : {};
+      const result = await runApiTool(parsed.data, values);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Test API tool error:", error.message);
+      res.status(500).json({ ok: false, error: "Failed to run the tool" });
+    }
+  });
+
   router.get("/api/agents/:id", authenticateHybrid, async (req: AuthRequest, res: Response) => {
     try {
       const agent = await storage.getAgent(req.params.id);
@@ -766,6 +819,14 @@ export function createAgentRoutes(ctx: RouteContext): Router {
         const list = normalizeTemplateList(req.body[listKey]);
         req.body[listKey] = list;
         if (req.body[singleKey] === undefined) req.body[singleKey] = list?.[0] ?? null;
+      }
+
+      if ('config' in req.body) {
+        const merged = mergeAgentConfig(agent.config, req.body.config);
+        if ('error' in merged) {
+          return res.status(400).json({ error: merged.error });
+        }
+        req.body.config = merged.config;
       }
 
       try {

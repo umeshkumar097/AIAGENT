@@ -1849,6 +1849,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const { googleCalendarRouter } = await import("./services/google-calendar/google-calendar.routes");
   app.use("/api/google-calendar", authenticateToken as unknown as import('express').RequestHandler, googleCalendarRouter);
 
+  // Scheduled callbacks (booked by agents via schedule_callback or manually from the Callbacks page)
+  const { callbackRouter } = await import("./routes/callback-routes");
+  app.use("/api/callbacks", authenticateToken as unknown as import('express').RequestHandler, callbackRouter);
+
   // This must be registered on the httpServer to properly handle Twilio WebSocket streams
   httpServer.on('upgrade', (request, socket, head) => {
     const pathname = request.url?.split('?')[0] || '';

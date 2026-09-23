@@ -13,7 +13,17 @@ const SOURCE = 'CallMessagingTools';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // ── Types ────────────────────────────────────────────────────────────────────
-export interface CallToolResult { success: boolean; message: string }
+export interface CallToolResult {
+  success: boolean;
+  /** What the model should relay / do next (always shown to the model). */
+  message: string;
+  /** Structured payload for the model (slots, API lookups). Kept small. */
+  data?: unknown;
+  /** Side effect the bridge must perform after the follow-up reply has been spoken. Never shown to the model. */
+  action?: "transfer";
+  /** Target for `action: 'transfer'`. Never shown to the model. */
+  phoneNumber?: string;
+}
 
 export interface CallToolDefinition {
   type: 'function';

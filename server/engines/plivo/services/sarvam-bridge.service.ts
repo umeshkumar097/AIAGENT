@@ -11,9 +11,11 @@ import { SarvamTtsStream } from './sarvam-tts-stream';
 import { SarvamKnowledge } from './sarvam-knowledge';
 import type { CallTool } from '../../../services/call-messaging-tools';
 import {
-  accumulateToolCallDeltas, buildToolRoundMessages, executeStreamedToolCalls, toolFillerText,
+  accumulateToolCallDeltas, buildToolRoundMessages, executeStreamedToolCalls, pendingTransferTarget, toolFillerText,
   type ChatMessage, type StreamedToolCall,
 } from './sarvam-tools';
+import { executePlivoTransfer, markCallTransferred } from './plivo-transfer';
+import { actionPromptRules } from '../../../services/call-actions';
 
 // Persistent HTTPS agent for reusing connection keep-alive (reduces 120ms handshake overhead per TTS request)
 const keepAliveAgent = new https.Agent({
@@ -65,8 +67,16 @@ export interface SarvamAgentConfig {
   knowledgeBaseIds?: string[] | null;
   /** Owner of the knowledge base items */
   userId?: string;
-  /** Call-time tools (send_whatsapp / send_email) built once per call by plivo-stream */
+  /** Call-time tools (messaging + actions) built once per call by plivo-stream */
   tools?: CallTool[];
+  /** Needed to execute a transfer_call on this bridge (Plivo Update Call + Stop Stream) */
+  plivoCredentialId?: string | null;
+  plivoPhoneNumberId?: string | null;
+  callDirection?: 'inbound' | 'outbound';
+  fromNumber?: string | null;
+  toNumber?: string | null;
+  /** IANA zone for the "today is …" rule of the appointment/callback tools */
+  actionsTimeZone?: string;
 }
 
 // ── Per-call latency profiler ────────────────────────────────────────────────
@@ -367,17 +377,7 @@ export class SarvamBridgeService {
         SarvamBridgeService.setState(callUuid, plivoWs, 'LISTENING');
         (plivoWs as any).sarvamIsSpeaking = false;
         logger.info(`[SarvamBridge][${callUuid}] Audio queue drained → LISTENING`);
-        
-        // Handle end call trigger after speaking goodbye
-        if ((plivoWs as any).sarvamTriggeredEndCall) {
-          logger.info(`[SarvamBridge][${callUuid}] End call triggered by agent - hanging up...`);
-          const callId = (plivoWs as any).sarvamCallId;
-          if (callId) {
-            PlivoCallService.endCall(callId).catch((err: any) => {
-              logger.error(`[SarvamBridge][${callUuid}] Failed to execute endCall: ${err.message}`);
-            });
-          }
-        }
+        SarvamBridgeService.finishTurnActions(callUuid, plivoWs);
       }
       return;
     }
@@ -401,6 +401,55 @@ export class SarvamBridgeService {
     (plivoWs as any).sarvamIsPacing   = false;
   }
 
+  // ── End-of-turn side effects (after the reply audio drained) ─────────────
+  /** A pending transfer wins over end_call; otherwise honour end_call. */
+  private static finishTurnActions(callUuid: string, plivoWs: WebSocket): void {
+    const target = (plivoWs as any).sarvamPendingTransfer as string | null | undefined;
+    if (target) {
+      (plivoWs as any).sarvamPendingTransfer = null;
+      (plivoWs as any).sarvamTriggeredEndCall = false;
+      SarvamBridgeService.runTransfer(callUuid, plivoWs, target);
+      return;
+    }
+    if ((plivoWs as any).sarvamTriggeredEndCall) {
+      logger.info(`[SarvamBridge][${callUuid}] End call triggered by agent - hanging up...`);
+      const callId = (plivoWs as any).sarvamCallId;
+      if (callId) {
+        PlivoCallService.endCall(callId).catch((err: any) => {
+          logger.error(`[SarvamBridge][${callUuid}] Failed to execute endCall: ${err.message}`);
+        });
+      }
+    }
+  }
+
+  /** Plivo Update Call → Dial XML + Stop Stream. On success the stream closes and the session ends; on failure the caller is told and the call continues. */
+  private static runTransfer(callUuid: string, plivoWs: WebSocket, target: string): void {
+    if ((plivoWs as any).sarvamTransferStarted) return;
+    (plivoWs as any).sarvamTransferStarted = true;
+    const cfg = ((plivoWs as any).sarvamAgentConfig || {}) as SarvamAgentConfig;
+    logger.info(`[SarvamBridge][${callUuid}] Executing transfer → ${target}`);
+    executePlivoTransfer({
+      callUuid, plivoCredentialId: cfg.plivoCredentialId, fromNumber: cfg.fromNumber, toNumber: cfg.toNumber,
+      callDirection: cfg.callDirection, targetNumber: target,
+    }).then(result => {
+      if (result.success) {
+        SarvamBridgeService.setState(callUuid, plivoWs, 'TERMINATED');
+        void markCallTransferred(callUuid, target);
+        return;
+      }
+      (plivoWs as any).sarvamTransferStarted = false;
+      const tts = (plivoWs as any).sarvamTtsParams as { sarvamApiKey: string; voice: string } | undefined;
+      const lang: string = (plivoWs as any).sarvamActiveLang || 'hi-IN';
+      const apology = lang.startsWith('en')
+        ? 'Sorry, I could not connect you right now. How else can I help?'
+        : 'माफ़ कीजिए, अभी कनेक्ट नहीं हो पाया। मैं और कैसे मदद कर सकती हूँ?';
+      (plivoWs as any).sarvamTranscriptLines?.push(`Agent: ${apology}`);
+      if (tts && (plivoWs as any).sarvamState !== 'TERMINATED') {
+        SarvamBridgeService.speakViaTTS(callUuid, plivoWs, apology, tts.sarvamApiKey, lang, tts.voice).catch(() => {});
+      }
+    });
+  }
+
   // ── State machine helper ──────────────────────────────────────────────────
   private static setState(callUuid: string, plivoWs: WebSocket, next: ConvState): void {
     const prev: ConvState = (plivoWs as any).sarvamState ?? 'LISTENING';
@@ -415,6 +464,13 @@ export class SarvamBridgeService {
   private static interruptAI(callUuid: string, plivoWs: WebSocket): void {
     const prev: ConvState = (plivoWs as any).sarvamState ?? 'LISTENING';
     if (prev === 'LISTENING' || prev === 'TERMINATED') return;
+    // The transfer was already decided; the caller talking over the announcement must not lose it
+    if ((plivoWs as any).sarvamPendingTransfer) {
+      const target = (plivoWs as any).sarvamPendingTransfer as string;
+      (plivoWs as any).sarvamPendingTransfer = null;
+      (plivoWs as any).sarvamTriggeredEndCall = false;
+      SarvamBridgeService.runTransfer(callUuid, plivoWs, target);
+    }
 
     // 1. Abort in-flight GPT fetch
     const ctrl = (plivoWs as any).sarvamAbortController as AbortController | null;
@@ -499,7 +555,7 @@ export class SarvamBridgeService {
   // ── System prompt wrapper ─────────────────────────────────────────────────
   // Deliberately short: long rule lists (and lists of banned words) make the
   // model repeat itself and over-use fillers. Fillers are handled in audio.
-  private static buildWrapper(systemPrompt: string, voice: string, language: string, detectLanguage = false, knowledge: string | null = null, hasTools = false): string {
+  private static buildWrapper(systemPrompt: string, voice: string, language: string, detectLanguage = false, knowledge: string | null = null, hasTools = false, actionRules = ''): string {
     const langNames: Record<string, string> = {
       'hi': 'Hindi/Hinglish', 'en': 'English', 'bn': 'Bengali', 'ta': 'Tamil',
       'te': 'Telugu', 'kn': 'Kannada', 'ml': 'Malayalam', 'mr': 'Marathi',
@@ -529,7 +585,8 @@ ${languageRule}${genderRule}
 - Confirm important details (names, dates, numbers) briefly before moving on.
 - Never read out template text or variable names.
 - When the conversation is complete or the caller says goodbye, say a short goodbye and call end_call.${hasTools ? `
-- You can send WhatsApp templates / emails with the tools. Confirm the details with the caller in one sentence before sending, send at most once per request, and after the tool result tell the caller whether it was sent.` : ''}
+- Tools: confirm the details with the caller in one sentence before sending, booking or saving; call each tool at most once per request; after the result, tell the caller the outcome briefly.` : ''}${actionRules ? `
+${actionRules}` : ''}
 
 Your role & goal:
 ${systemPrompt}${knowledge ? `
@@ -667,8 +724,9 @@ ${knowledge}` : ''}`;
   ): Promise<string> {
     // depth 0: fresh turn (system + trimmed chat history). depth > 0: the tool follow-up pass,
     // where `history` already carries the system prompt, the assistant tool_calls and tool results.
+    const actionRules = depth === 0 && tools.length > 0 ? actionPromptRules(tools, (plivoWs as any).sarvamActionsTimeZone) : '';
     const messages: ChatMessage[] = depth === 0
-      ? [{ role: 'system', content: SarvamBridgeService.buildWrapper(systemPrompt, voice, language, detectLanguage, knowledge, tools.length > 0) },
+      ? [{ role: 'system', content: SarvamBridgeService.buildWrapper(systemPrompt, voice, language, detectLanguage, knowledge, tools.length > 0, actionRules) },
          ...history.slice(-HISTORY_MAX_MESSAGES)]
       : history;
 
@@ -867,6 +925,13 @@ ${knowledge}` : ''}`;
         .catch(() => {});
     }
     const executed = await execution;
+    // A transfer is performed once the follow-up sentence has been spoken; it wins over end_call
+    const transferTo = pendingTransferTarget(executed);
+    if (transferTo) {
+      (plivoWs as any).sarvamPendingTransfer = transferTo;
+      (plivoWs as any).sarvamTriggeredEndCall = false;
+      logger.info(`[SarvamBridge][${callUuid}] Transfer pending → ${transferTo} (after the reply is spoken)`);
+    }
     if (signal.aborted) return firstPass;
 
     const followUp = await SarvamBridgeService.streamGPTAndSpeak(
@@ -996,6 +1061,11 @@ ${knowledge}` : ''}`;
     (plivoWs as any).sarvamFillerTimer          = null as NodeJS.Timeout | null;
     (plivoWs as any).sarvamStreamRemainder      = Buffer.alloc(0);
     (plivoWs as any).sarvamReplyAudioQueued     = false;
+    (plivoWs as any).sarvamPendingTransfer      = null as string | null;
+    (plivoWs as any).sarvamTransferStarted      = false;
+    (plivoWs as any).sarvamAgentConfig          = agentConfig;
+    (plivoWs as any).sarvamActionsTimeZone      = agentConfig.actionsTimeZone;
+    (plivoWs as any).sarvamTtsParams            = { sarvamApiKey, voice };
 
     const transcriptLines: string[] = [];
     const chatHistory: { role: 'user' | 'assistant'; content: string }[] = [];
@@ -1119,6 +1189,7 @@ ${knowledge}` : ''}`;
           if (!transcript) return;
 
           const st: ConvState = (plivoWs as any).sarvamState;
+          if (st === 'TERMINATED') return; // transferred or torn down: no further turns
           // Our own voice coming back through the handset must not become a "user" turn
           if (st === 'SPEAKING' && SarvamBridgeService.looksLikeEcho(transcript, (plivoWs as any).sarvamLastAgentText || '')) {
             logger.info(`[SarvamBridge][${callUuid}] Ignoring echo of agent speech: "${transcript.substring(0, 60)}"`);
@@ -1217,16 +1288,7 @@ ${knowledge}` : ''}`;
               SarvamBridgeService.cancelFiller(plivoWs);
               if (!(plivoWs as any).sarvamReplyAudioQueued) SarvamBridgeService.stopPacing(plivoWs);
               SarvamBridgeService.setState(callUuid, plivoWs, 'LISTENING');
-
-              if ((plivoWs as any).sarvamTriggeredEndCall) {
-                logger.info(`[SarvamBridge][${callUuid}] End call triggered by agent (no pending audio) - hanging up...`);
-                const callId = (plivoWs as any).sarvamCallId;
-                if (callId) {
-                  PlivoCallService.endCall(callId).catch((err: any) => {
-                    logger.error(`[SarvamBridge][${callUuid}] Failed to execute endCall: ${err.message}`);
-                  });
-                }
-              }
+              SarvamBridgeService.finishTurnActions(callUuid, plivoWs);
             }
           }).catch(err => {
             if (err.name === 'AbortError') {

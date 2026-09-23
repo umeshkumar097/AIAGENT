@@ -97,9 +97,24 @@ export function buildToolRoundMessages(fullReply: string, executed: ExecutedTool
   const results: ChatMessage[] = executed.map(({ call, result }) => ({
     role: 'tool',
     tool_call_id: idOf(call),
-    content: JSON.stringify(result),
+    content: JSON.stringify(modelVisibleResult(result)),
   }));
   return [assistant, ...results];
+}
+
+/** Only success/message/data reach the model; `action`/`phoneNumber` are bridge-side side effects. */
+export function modelVisibleResult(result: CallToolResult): { success: boolean; message: string; data?: unknown } {
+  const visible: { success: boolean; message: string; data?: unknown } = { success: result.success, message: result.message };
+  if (result.data !== undefined) visible.data = result.data;
+  return visible;
+}
+
+/** The transfer target requested by any executed tool this round (transfer wins over end_call). */
+export function pendingTransferTarget(executed: ExecutedToolCall[]): string | null {
+  for (const { result } of executed) {
+    if (result.success && result.action === 'transfer' && result.phoneNumber) return result.phoneNumber;
+  }
+  return null;
 }
 
 /** Short spoken line while the tools run — only used when nothing was spoken yet in the turn. */

@@ -19,6 +19,7 @@ import { logger } from '../../../utils/logger';
 import { getDomain } from '../../../utils/domain';
 import { getTransferWebhookUrl } from '../config/plivo-config';
 import { PlivoRecordingService } from './plivo-recording.service';
+import { executePlivoTransfer } from './plivo-transfer';
 import { db } from '../../../db';
 import { plivoCredentials, plivoCalls, agents, appointments } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
@@ -1287,101 +1288,26 @@ CONVERSATION PACING (CRITICAL):
     logger.info(`[Transfer] Waiting 2.5s for AI to complete transfer announcement...`, undefined, 'AudioBridge');
     await new Promise(resolve => setTimeout(resolve, 2500));
 
-    try {
-      // Determine the Plivo-owned number based on call direction:
-      // - Inbound calls: toNumber is the Plivo number (what customer dialed TO)
-      // - Outbound calls: fromNumber is the Plivo number (what we dialed FROM)
-      // Plivo requires caller ID to be a verified/owned number
-      let callerId: string;
-
-      if (callDirection === 'inbound') {
-        callerId = toNumber || fromNumber || '';
-        logger.info(`[Transfer] Inbound call - using toNumber as caller ID: ${callerId}`, undefined, 'AudioBridge');
-      } else {
-        // Outbound or unknown - use fromNumber (the Plivo number we called from)
-        callerId = fromNumber || toNumber || '';
-        logger.info(`[Transfer] Outbound call - using fromNumber as caller ID: ${callerId}`, undefined, 'AudioBridge');
-      }
-
-      const baseUrl = getDomain();
-
-      const transferXmlUrl = `${baseUrl}/api/plivo/voice/transfer?target=${encodeURIComponent(targetNumber)}&callerId=${encodeURIComponent(callerId)}`;
-
-      logger.info(`[Transfer] Step 1: Calling Plivo Transfer API`, undefined, 'AudioBridge');
-      logger.info(`[Transfer] Transfer XML URL: ${transferXmlUrl}`, undefined, 'AudioBridge');
-
-      // Get Plivo credentials for the API calls
-      const credentials = plivoCredentialId
-        ? await db.select().from(plivoCredentials).where(eq(plivoCredentials.id, plivoCredentialId)).limit(1)
-        : [];
-
-      if (!credentials.length) {
-        throw new Error('Plivo credentials not found');
-      }
-
-      const { authId, authToken } = credentials[0];
-
-      // Step 1: Call Update Call API to redirect call to new URL
-      // Plivo will fetch the new aleg_url which returns Dial XML
-      const transferUrl = `https://api.plivo.com/v1/Account/${authId}/Call/${callUuid}/`;
-      logger.info(`[Transfer] Calling Transfer API: ${transferUrl}`, undefined, 'AudioBridge');
-
-      const transferResponse = await axios.post(transferUrl, {
-        legs: 'aleg',
-        aleg_url: transferXmlUrl,
-        aleg_method: 'GET'
-      }, {
-        auth: {
-          username: authId,
-          password: authToken
-        }
-      });
-
-      logger.info(`[Transfer] Transfer API Response: ${transferResponse.status}`, undefined, 'AudioBridge');
-      logger.info(`[Transfer] Transfer API Data:`, transferResponse.data, 'AudioBridge');
-
-      // Step 2: Stop the stream using DELETE API
-      // This triggers Plivo to fetch the aleg_url we just set
-      const stopStreamUrl = `https://api.plivo.com/v1/Account/${authId}/Call/${callUuid}/Stream/`;
-      logger.info(`[Transfer] Step 2: Stopping stream to trigger transfer...`, undefined, 'AudioBridge');
-      logger.info(`[Transfer] Stop Stream URL: ${stopStreamUrl}`, undefined, 'AudioBridge');
-
-      try {
-        const stopResponse = await axios.delete(stopStreamUrl, {
-          auth: {
-            username: authId,
-            password: authToken
-          }
-        });
-        logger.info(`[Transfer] Stop Stream Response: ${stopResponse.status}`, undefined, 'AudioBridge');
-      } catch (stopError: any) {
-        // Stream might already be stopped, log but continue
-        logger.warn(`[Transfer] Stop Stream error (may be ok): ${stopError.message}`, undefined, 'AudioBridge');
-      }
-
-      // Step 3: Mark session as disconnected (prevents end_call from triggering during transfer)
-      logger.info(`[Transfer] Step 3: Marking session as disconnected`, undefined, 'AudioBridge');
-      session.status = 'disconnected';
-
-      // Step 4: Close OpenAI WebSocket (stop AI from generating more audio)
-      if (session.openaiWs && session.openaiWs.readyState === WebSocket.OPEN) {
-        logger.info(`[Transfer] Step 4: Closing OpenAI WebSocket...`, undefined, 'AudioBridge');
-        session.openaiWs.close(1000, 'Transfer initiated');
-      }
-
-      logger.info(`[Transfer] ===== SUCCESS - Transfer initiated =====`, undefined, 'AudioBridge');
-      logger.info(`[Transfer] Plivo will now fetch transfer XML and connect to ${targetNumber}`, undefined, 'AudioBridge');
-      return { success: true };
-
-    } catch (error: any) {
-      logger.error(`[Transfer] ===== ERROR =====`, undefined, 'AudioBridge');
-      logger.error(`[Transfer] Error message: ${error.message}`, error, 'AudioBridge');
-      if (error.response) {
-        logger.error(`[Transfer] Response status: ${error.response.status}`, undefined, 'AudioBridge');
-        logger.error(`[Transfer] Response data: ${JSON.stringify(error.response.data)}`, undefined, 'AudioBridge');
-      }
-      return { success: false, error: error.message };
+    // Steps 1-2 (Update Call → Dial XML, then DELETE Stream) are shared with the Sarvam bridge
+    const result = await executePlivoTransfer({ callUuid, plivoCredentialId, fromNumber, toNumber, callDirection, targetNumber });
+    if (!result.success) {
+      logger.error(`[Transfer] ===== ERROR: ${result.error} =====`, undefined, 'AudioBridge');
+      return { success: false, error: result.error };
     }
+
+    // Step 3: Mark session as disconnected (prevents end_call from triggering during transfer)
+    logger.info(`[Transfer] Step 3: Marking session as disconnected`, undefined, 'AudioBridge');
+    session.status = 'disconnected';
+
+    // Step 4: Close OpenAI WebSocket (stop AI from generating more audio)
+    if (session.openaiWs && session.openaiWs.readyState === WebSocket.OPEN) {
+      logger.info(`[Transfer] Step 4: Closing OpenAI WebSocket...`, undefined, 'AudioBridge');
+      session.openaiWs.close(1000, 'Transfer initiated');
+    }
+
+    logger.info(`[Transfer] ===== SUCCESS - Transfer initiated =====`, undefined, 'AudioBridge');
+    logger.info(`[Transfer] Plivo will now fetch transfer XML and connect to ${targetNumber}`, undefined, 'AudioBridge');
+    return { success: true };
   }
 
   /**

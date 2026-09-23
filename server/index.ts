@@ -31,6 +31,7 @@ function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 import { startPhoneBillingCron } from "./services/phone-billing-cron";
+import { startCallbackCron } from "./services/callback-cron";
 import { startSubscriptionExpiryCron } from "./services/subscription-expiry-cron";
 import { startCreditBackfillMonitor } from "./services/credit-backfill-monitor";
 import { startPhoneReleaseRetryWorker } from "./services/phone-release-retry-worker";
@@ -649,6 +650,9 @@ app.use((req, res, next) => {
       if (process.env.IS_WEBSOCKET_ONLY !== 'true') {
         // Start phone number billing cron job
         startPhoneBillingCron();
+
+        // Place scheduled callbacks when due (schedule_callback tool / Callbacks page)
+        startCallbackCron();
 
         // Start subscription expiry reminders (7/3/1 days) + period-end expiry
         startSubscriptionExpiryCron();
