@@ -4,6 +4,8 @@
  * Runs on boot and then daily:
  *  - plan_expiring reminders at ≤7 / ≤3 / ≤1 days before current_period_end (once per threshold)
  *  - at period end: downgrade to the free plan (status 'expired') + plan_expired (once)
+ *  - auto-renew rows (mandate ACTIVE / BANK_APPROVAL_PENDING): no reminders, and a 3-day grace after the period
+ *    end for the Cashfree mandate charge to land before the plan expires
  *  - phone_number_expiring for rented numbers whose next billing date is ≤3 days away (once per cycle)
  * Overlap-safe: in-process flag + Postgres advisory lock (safe across instances).
  */
@@ -13,12 +15,15 @@ import { and, eq, gte, lte, sql, isNotNull } from 'drizzle-orm';
 import { logger } from '../utils/logger';
 import { dispatchEvent } from './event-dispatcher';
 import { expireSubscription } from './membership-service';
+import { MANDATE_LIVE_STATUSES } from '../engines/payment/gateways/cashfree/subscriptions';
 
 const SOURCE = 'SubscriptionExpiryCron';
 const DAY_MS = 24 * 60 * 60 * 1000;
 const RUN_INTERVAL_MS = DAY_MS;
 const BOOT_DELAY_MS = 90 * 1000;
 const PHONE_REMINDER_DAYS = 3;
+/** How long an auto-renewing plan waits past its period end for the mandate charge (Cashfree retries failed charges) */
+const AUTO_RENEW_GRACE_MS = 3 * DAY_MS;
 const LOCK_KEY = 'subscription_expiry_cron';
 
 /** Ascending so `find(t => daysLeft <= t)` yields the tightest threshold (1 day left → 1, not 7) */
@@ -109,8 +114,11 @@ async function processSubscriptions(now: Date): Promise<{ expired: number; remin
       expiresAt: periodEnd.toISOString(), amount: price, currency: 'INR',
     };
 
+    const mandateLive = subscription.autoRenew && MANDATE_LIVE_STATUSES.has(subscription.mandateStatus || '');
+
     try {
       if (periodEnd <= now) {
+        if (mandateLive && periodEnd.getTime() + AUTO_RENEW_GRACE_MS > now.getTime()) continue; // waiting for the mandate charge
         if (!(await expireSubscription(subscription.id, user.id))) continue; // renewed / already handled meanwhile
         expired++;
         if (!subscription.expiredNotifiedAt) {
@@ -120,6 +128,7 @@ async function processSubscriptions(now: Date): Promise<{ expired: number; remin
         continue;
       }
 
+      if (mandateLive) continue; // Cashfree charges the mandate at period end — no "renew now" reminders
       const daysLeft = Math.max(1, Math.ceil((periodEnd.getTime() - now.getTime()) / DAY_MS));
       const threshold = REMINDER_THRESHOLDS.find(t => daysLeft <= t) ?? null;
       if (!threshold || subscription[REMINDER_COLUMN[threshold]]) continue;

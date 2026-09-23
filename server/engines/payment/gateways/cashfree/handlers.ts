@@ -21,6 +21,7 @@ import {
   getOrderPayments,
   type CashfreePayment,
 } from './service';
+import { handleSubscriptionWebhook, isSubscriptionWebhook } from './subscription-webhooks';
 
 export const CASHFREE_GATEWAY = 'cashfree';
 
@@ -39,6 +40,11 @@ export interface CashfreeWebhookPayload {
       refund_note?: string;
     };
     error_details?: { error_reason?: string; error_description?: string } | null;
+    /** SUBSCRIPTION_* events (see subscription-webhooks.ts) */
+    subscription_details?: Record<string, unknown> | null;
+    authorization_details?: Record<string, unknown> | null;
+    payment_details?: Record<string, unknown> | null;
+    [key: string]: unknown;
   };
 }
 
@@ -115,7 +121,8 @@ export async function syncOrderWithCashfree(orderId: string): Promise<OrderSyncR
 }
 
 export interface WebhookHandleResult {
-  action: 'completed' | 'already_completed' | 'failed' | 'refund_recorded' | 'refund_ignored' | 'ignored';
+  action: 'completed' | 'already_completed' | 'failed' | 'refund_recorded' | 'refund_ignored' | 'ignored'
+    | 'mandate_synced' | 'renewed' | 'renewal_failed';
   orderId?: string;
   transactionId?: string;
 }
@@ -125,6 +132,7 @@ export interface WebhookHandleResult {
  */
 export async function handleCashfreeWebhook(payload: CashfreeWebhookPayload): Promise<WebhookHandleResult> {
   const type = payload?.type || '';
+  if (isSubscriptionWebhook(type)) return handleSubscriptionWebhook(payload);
   const data = payload?.data || {};
   const orderId = data.order?.order_id || data.refund?.order_id || data.payment?.order_id;
 

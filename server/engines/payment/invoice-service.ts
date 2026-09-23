@@ -19,7 +19,9 @@
 /**
  * GST tax invoices and credit notes (India).
  * - Seller block from invoice_* settings (Aiclex defaults), buyer block from users.billing* + gstin.
- * - Prices are GST-inclusive: taxable = total / (1 + rate); CGST+SGST when buyer state == seller state, else IGST.
+ * - Tax split: the PriceQuote stored on the transaction at checkout (metadata.gst) is used verbatim; transactions
+ *   without one (pre-checkout-page) are treated as GST-inclusive: taxable = total / (1 + rate).
+ *   CGST+SGST when buyer state == seller state, else IGST.
  * - Numbering: <prefix>/<FY>/<0001> per financial year (Apr–Mar); credit notes CN/<FY>/<n>.
  * - PDFs stored under data/invoices (INVOICE_STORAGE_DIR) and regenerated on demand if missing.
  */
@@ -30,8 +32,8 @@ import { storage } from '../../storage';
 import { logger } from '../../utils/logger';
 import type { Invoice, InsertInvoice, PaymentTransaction, User } from '@shared/schema';
 import {
-  CREDIT_NOTE_PREFIX, INVOICE_TIMEZONE, computeGst, getFinancialYear, getSellerInfo,
-  invoiceNumberToFilename, resolveStateCode, round2, stateNameForCode, type SellerInfo,
+  CREDIT_NOTE_PREFIX, INVOICE_TIMEZONE, computeGst, computeGstForPrice, getFinancialYear, getSellerInfo,
+  invoiceNumberToFilename, resolveStateCode, round2, stateNameForCode, type GstBreakdown, type PriceQuote, type SellerInfo,
 } from './invoice-gst';
 import { renderInvoicePdf, type InvoiceLineItem } from './invoice-pdf';
 
@@ -63,6 +65,14 @@ interface BuyerInfo {
   stateCode: string | null;
 }
 
+/** Explicit GST state code wins; otherwise derive from the GSTIN (first two digits) or the state name. */
+export function resolveBuyerStateCode(user: Pick<User, 'billingStateCode' | 'gstin' | 'billingState'>): string | null {
+  const gstin = (user.gstin || '').trim().toUpperCase();
+  return resolveStateCode(user.billingStateCode)
+    || (/^\d{2}/.test(gstin) ? resolveStateCode(gstin.slice(0, 2)) : null)
+    || resolveStateCode(user.billingState);
+}
+
 function buildBuyerInfo(user: User): BuyerInfo {
   const addressParts = [
     user.billingAddressLine1,
@@ -71,18 +81,24 @@ function buildBuyerInfo(user: User): BuyerInfo {
     [user.billingPostalCode, user.billingCountry].filter(Boolean).join(' '),
     user.billingPhone ? `Phone: ${user.billingPhone}` : null,
   ].map(p => (p || '').trim()).filter(Boolean);
-  const gstin = (user.gstin || '').trim().toUpperCase() || null;
-  // Explicit GST state code wins; otherwise derive from the GSTIN (first two digits) or the state name
-  const stateCode = resolveStateCode(user.billingStateCode)
-    || (gstin && /^\d{2}/.test(gstin) ? resolveStateCode(gstin.slice(0, 2)) : null)
-    || resolveStateCode(user.billingState);
   return {
     name: (user.billingName || user.company || user.name || '').trim() || user.email,
     email: user.email,
     address: addressParts.length ? addressParts.join('\n') : null,
-    gstin,
-    stateCode,
+    gstin: (user.gstin || '').trim().toUpperCase() || null,
+    stateCode: resolveBuyerStateCode(user),
   };
+}
+
+/** The checkout quote stored on the transaction (metadata.gst), when it is complete enough to invoice from. */
+export function storedPriceQuote(transaction: PaymentTransaction): PriceQuote | null {
+  const meta = (transaction.metadata || {}) as Record<string, unknown>;
+  const gst = meta.gst as Partial<PriceQuote> | undefined;
+  if (!gst || typeof gst !== 'object') return null;
+  const numeric = ['total', 'taxableAmount', 'taxAmount', 'cgst', 'sgst', 'igst', 'taxRate', 'listPrice'] as const;
+  if (!numeric.every(k => typeof gst[k] === 'number' && Number.isFinite(gst[k]))) return null;
+  if (typeof gst.isInterState !== 'boolean') return null;
+  return gst as PriceQuote;
 }
 
 export interface CreditNoteInput {
@@ -127,13 +143,15 @@ export class InvoiceService {
     const seller = await getSellerInfo();
     const buyer = buildBuyerInfo(user);
     const total = round2(toNumber(transaction.amount));
+    // The quote the customer saw at checkout wins; older transactions were GST-inclusive.
     // Unknown buyer state → treat as intra-state (CGST+SGST, place of supply = seller state)
-    const isInterState = !!buyer.stateCode && buyer.stateCode !== seller.stateCode;
-    const gst = computeGst(total, seller.gstRate, isInterState);
-    const placeOfSupplyCode = buyer.stateCode || seller.stateCode;
+    const quote = storedPriceQuote(transaction);
+    const isInterState = quote ? quote.isInterState : !!buyer.stateCode && buyer.stateCode !== seller.stateCode;
+    const gst: GstBreakdown = quote || computeGstForPrice(total, seller.gstRate, isInterState, true);
+    const placeOfSupplyCode = (quote ? quote.buyerStateCode : buyer.stateCode) || seller.stateCode;
     const issuedAt = transaction.completedAt || new Date();
     const financialYear = getFinancialYear(issuedAt);
-    const lineItems = this.buildLineItems(transaction);
+    const lineItems = this.buildLineItems(transaction, gst.taxableAmount);
 
     const invoice = await storage.createInvoiceWithNumber({
       transactionId: transaction.id,
@@ -154,7 +172,7 @@ export class InvoiceService {
       financialYear,
       ...this.sellerSnapshot(seller),
       buyerGstin: buyer.gstin,
-      buyerStateCode: buyer.stateCode,
+      buyerStateCode: quote ? quote.buyerStateCode : buyer.stateCode,
       placeOfSupply: this.placeOfSupplyLabel(placeOfSupplyCode),
       hsnSac: seller.hsnSac,
       taxableAmount: gst.taxableAmount.toFixed(2),
@@ -283,14 +301,17 @@ export class InvoiceService {
     }
   }
 
-  private buildLineItems(transaction: PaymentTransaction): LineItem[] {
-    const amount = round2(toNumber(transaction.amount));
+  /** One line per transaction; unit price = taxable (pre-GST) value so the totals block adds the tax once. */
+  private buildLineItems(transaction: PaymentTransaction, taxableAmount: number): LineItem[] {
+    const amount = round2(taxableAmount);
     if (transaction.type === 'credits' && transaction.creditsAwarded) {
       return [{ description: `${transaction.creditsAwarded} Credits — ${transaction.description}`, quantity: 1, unitPrice: amount, total: amount }];
     }
     if (transaction.type === 'subscription' || transaction.type === 'plan') {
       const billingPeriod = transaction.billingPeriod === 'yearly' ? 'Yearly' : 'Monthly';
-      return [{ description: `${transaction.description} (${billingPeriod} Subscription)`, quantity: 1, unitPrice: amount, total: amount }];
+      const meta = (transaction.metadata || {}) as Record<string, unknown>;
+      const kind = meta.recurring === true ? 'Subscription, auto-renewal' : 'Subscription';
+      return [{ description: `${transaction.description} (${billingPeriod} ${kind})`, quantity: 1, unitPrice: amount, total: amount }];
     }
     if (transaction.type === 'phone_number') {
       const meta = (transaction.metadata || {}) as Record<string, unknown>;

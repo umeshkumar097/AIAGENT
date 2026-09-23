@@ -64,6 +64,13 @@
       "when": 1790141996606,
       "tag": "0008_cashfree_billing",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790141997606,
+      "tag": "0009_cashfree_subscriptions",
+      "breakpoints": true
     }
   ]
 }

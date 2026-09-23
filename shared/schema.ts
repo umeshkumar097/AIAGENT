@@ -595,6 +595,16 @@ export const userSubscriptions = pgTable("user_subscriptions", {
   reminder3SentAt: timestamp("reminder_3_sent_at"),
   reminder1SentAt: timestamp("reminder_1_sent_at"),
   expiredNotifiedAt: timestamp("expired_notified_at"),
+  // Cashfree Subscriptions auto-renew mandate (UPI AutoPay / card / eNACH). The first period is always
+  // paid with a one-time order; the mandate only charges renewals at current_period_end.
+  autoRenew: boolean("auto_renew").notNull().default(false),
+  cashfreeSubscriptionId: text("cashfree_subscription_id"), // our subscription_id sent to Cashfree (zvsub_…)
+  cfSubscriptionId: text("cf_subscription_id"), // Cashfree's reference id
+  mandateStatus: text("mandate_status"), // INITIALIZED | BANK_APPROVAL_PENDING | ACTIVE | ON_HOLD | PAUSED | CANCELLED | COMPLETED | EXPIRED
+  mandatePaymentMethod: text("mandate_payment_method"), // upi | card | enach
+  mandateAuthorizedAt: timestamp("mandate_authorized_at"),
+  nextChargeAt: timestamp("next_charge_at"),
+  autoRenewCancelledAt: timestamp("auto_renew_cancelled_at"),
   
   // Admin-set per-user limit overrides (null = use plan defaults)
   overrideMaxAgents: integer("override_max_agents"), // Override plan's maxAgents

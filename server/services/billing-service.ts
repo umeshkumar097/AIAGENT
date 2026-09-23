@@ -7,15 +7,15 @@
  *   → applies the purchase effect in ONE DB transaction → GST invoice → notification events.
  */
 import { db } from '../db';
-import { paymentTransactions, users, type PaymentTransaction } from '@shared/schema';
+import { paymentTransactions, userSubscriptions, users, type PaymentTransaction } from '@shared/schema';
 import { and, eq, inArray } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { storage, type DbTransaction } from '../storage';
 import { logger } from '../utils/logger';
 import { dispatchEvent, type EventKey } from './event-dispatcher';
 import { activateOrExtendSubscription, applyPlanCredits } from './membership-service';
-import { invoiceService } from '../engines/payment/invoice-service';
-import { invoiceNumberToFilename, round2 } from '../engines/payment/invoice-gst';
+import { invoiceService, resolveBuyerStateCode } from '../engines/payment/invoice-service';
+import { computeGstForPrice, invoiceNumberToFilename, quotePrice, round2, type PriceQuote } from '../engines/payment/invoice-gst';
 import { PlivoPhoneService } from '../engines/plivo/services/plivo-phone.service';
 
 const SOURCE = 'BillingService';
@@ -39,6 +39,33 @@ export interface CreatePendingTransactionInput {
   phoneNumber?: string;
   country?: string;
   description: string;
+  /** Cashfree cf_subscription_id for mandate (auto-renew) charges */
+  gatewaySubscriptionId?: string;
+  /** Extra metadata merged into the row, e.g. { gst: PriceQuote, autoRenewRequested, recurring } */
+  metadata?: Record<string, unknown>;
+}
+
+export interface RecurringChargeInput {
+  userSubscriptionId: string;
+  cfSubscriptionId: string;
+  cfPaymentId: string;
+  /** Amount Cashfree actually debited (INR) */
+  amount: number;
+  paymentMethod?: string;
+  chargedAt?: Date;
+}
+
+export interface RecurringChargeFailureInput {
+  userSubscriptionId: string;
+  cfSubscriptionId: string;
+  cfPaymentId: string;
+  amount?: number;
+  reason: string;
+}
+
+/** payment_transactions.gateway_order_id for a mandate charge (Cashfree has no order for these) */
+export function recurringChargeOrderId(cfPaymentId: string): string {
+  return `cfsub_${cfPaymentId}`;
 }
 
 export interface CompletePurchaseInput {
@@ -162,6 +189,32 @@ async function purchasePhoneNumberAfterCommit(txn: PaymentTransaction): Promise<
   };
 }
 
+/**
+ * Pending-transaction input for a mandate charge: plan price from the subscription row, GST quoted for the
+ * user's current state. When the debited amount differs from the quote (plan price changed after the mandate
+ * was set up) the invoice is derived from the paid amount instead, so it always matches the money received.
+ */
+async function recurringPendingInput(userSubscriptionId: string, cfSubscriptionId: string, paidAmount?: number): Promise<Omit<CreatePendingTransactionInput, 'gatewayOrderId'> & { metadata: Record<string, unknown> }> {
+  const [row] = await db.select().from(userSubscriptions).where(eq(userSubscriptions.id, userSubscriptionId)).limit(1);
+  if (!row) throw new Error(`Subscription not found: ${userSubscriptionId}`);
+  const [plan, user] = await Promise.all([storage.getPlan(row.planId), storage.getUser(row.userId)]);
+  if (!plan) throw new Error(`Plan not found: ${row.planId}`);
+  if (!user) throw new Error(`User not found: ${row.userId}`);
+  const billingPeriod = row.billingPeriod === 'yearly' ? 'yearly' : 'monthly';
+  const listPrice = toNumber(billingPeriod === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice);
+  let gst: PriceQuote = await quotePrice(listPrice, resolveBuyerStateCode(user));
+  if (paidAmount !== undefined && Math.abs(gst.total - paidAmount) > 0.01) {
+    logger.warn(`Mandate charge ${paidAmount} differs from the quoted ${gst.total} for subscription ${row.id}; invoicing the paid amount`, undefined, SOURCE);
+    gst = { ...gst, ...computeGstForPrice(paidAmount, gst.taxRate, gst.isInterState, true), listPrice: paidAmount, pricesIncludeGst: true };
+  }
+  return {
+    userId: row.userId, type: 'plan', amount: paidAmount ?? gst.total, planId: plan.id, billingPeriod,
+    description: `${plan.displayName} plan (${billingPeriod}) auto-renewal`,
+    gatewaySubscriptionId: cfSubscriptionId,
+    metadata: { gst, userSubscriptionId: row.id, cashfreeSubscriptionId: row.cashfreeSubscriptionId },
+  };
+}
+
 export const billingService = {
   async createPendingTransaction(input: CreatePendingTransactionInput): Promise<{ transactionId: string }> {
     if (!input.userId || !input.gatewayOrderId) throw new Error('userId and gatewayOrderId are required');
@@ -185,9 +238,11 @@ export const billingService = {
       billingPeriod: input.billingPeriod || null,
       creditsAwarded: input.creditsAwarded || null,
       phoneNumberId: input.phoneNumberId || null,
+      gatewaySubscriptionId: input.gatewaySubscriptionId || null,
       description: input.description,
       status: 'pending',
       metadata: {
+        ...(input.metadata || {}),
         purchaseType: input.type,
         ...(input.phoneNumber ? { phoneNumber: input.phoneNumber } : {}),
         ...(input.country ? { country: input.country.toUpperCase() } : {}),
@@ -320,6 +375,35 @@ export const billingService = {
       transactionId: txn.id, orderId: gatewayOrderId, amount: toNumber(txn.amount), currency: txn.currency,
       description: txn.description, reason, purchaseType: purchaseTypeOf(txn),
     });
+  },
+
+  /**
+   * A successful Cashfree mandate charge (SUBSCRIPTION_PAYMENT_SUCCESS): creates the recurring plan transaction
+   * and finalises it through completePurchase (period extends from the current end, credits, invoice, events).
+   * Idempotent on cfPaymentId.
+   */
+  async recordRecurringCharge(input: RecurringChargeInput): Promise<CompletePurchaseResult> {
+    const gatewayOrderId = recurringChargeOrderId(input.cfPaymentId);
+    const amount = round2(input.amount);
+    if (!Number.isFinite(amount) || amount <= 0) throw new Error(`Recurring charge ${input.cfPaymentId} has no positive amount`);
+    if (!(await storage.getPaymentTransactionByOrderId(gatewayOrderId))) {
+      const pending = await recurringPendingInput(input.userSubscriptionId, input.cfSubscriptionId, amount);
+      await billingService.createPendingTransaction({ ...pending, gatewayOrderId, metadata: { ...pending.metadata, recurring: true, cfPaymentId: input.cfPaymentId } });
+    }
+    return billingService.completePurchase({
+      gatewayOrderId, gatewayPaymentId: input.cfPaymentId, paymentMethod: input.paymentMethod, paidAmount: amount,
+    });
+  },
+
+  /** A failed mandate charge: one 'failed' transaction + payment_failed per cfPaymentId (Cashfree retries the charge). */
+  async recordRecurringChargeFailure(input: RecurringChargeFailureInput): Promise<{ deduped: boolean; transactionId?: string }> {
+    const gatewayOrderId = recurringChargeOrderId(input.cfPaymentId);
+    const existing = await storage.getPaymentTransactionByOrderId(gatewayOrderId);
+    if (existing) return { deduped: true, transactionId: existing.id };
+    const pending = await recurringPendingInput(input.userSubscriptionId, input.cfSubscriptionId, input.amount);
+    const { transactionId } = await billingService.createPendingTransaction({ ...pending, gatewayOrderId, metadata: { ...pending.metadata, recurring: true, cfPaymentId: input.cfPaymentId } });
+    await billingService.failPurchase(gatewayOrderId, input.reason);
+    return { deduped: false, transactionId };
   },
 
   /**

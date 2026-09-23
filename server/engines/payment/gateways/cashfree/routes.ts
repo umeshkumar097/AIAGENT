@@ -2,9 +2,12 @@
 /**
  * Cashfree Routes — mounted at /api/cashfree
  *   GET  /config                     (auth)   → { enabled, appId, environment }
- *   POST /orders                     (auth)   → { orderId, paymentSessionId, environment, ... }
+ *   GET  /quote                      (auth)   → checkout price breakdown (quote-routes.ts)
+ *   POST /orders                     (auth)   → { orderId, paymentSessionId, environment, amount, quote, ... }
  *   GET  /orders/:orderId/status     (auth)   → verifies with Cashfree, finalises if PAID
- *   POST /webhook                    (public) → signature-verified, idempotent
+ *   POST /webhook                    (public) → signature-verified, idempotent (orders + SUBSCRIPTION_* events)
+ *   /subscriptions/*                 (auth)   → auto-renew mandates (subscription-routes.ts)
+ * Order amounts are GST quotes: list price from the plan / package row + GST for the buyer's state.
  */
 
 import crypto from 'crypto';
@@ -17,21 +20,25 @@ import { billingService, type PurchaseType } from '../../../../services/billing-
 import { PlivoPhoneService } from '../../../plivo/services/plivo-phone.service';
 import { logger } from '../../../../utils/logger';
 import { FRONTEND_URL, getWebhookUrl, recordWebhookReceived } from '../../webhook-helper';
+import { resolveBuyerStateCode } from '../../invoice-service';
+import { quotePrice } from '../../invoice-gst';
 import {
   CashfreeApiError,
+  FALLBACK_CUSTOMER_PHONE,
   createOrder,
   getCashfreeConfig,
   getCashfreeSettings,
   isCashfreeEnabled,
+  normaliseCustomerPhone,
   verifyWebhookSignature,
 } from './service';
 import { getTransactionByOrderId, handleCashfreeWebhook, syncOrderWithCashfree } from './handlers';
+import { cashfreeQuoteRouter, getPhoneNumberPriceInr } from './quote-routes';
+import { cashfreeSubscriptionRouter } from './subscription-routes';
 
 const router: Router = express.Router();
 
 const ORDER_EXPIRY_MINUTES = 30;
-const FALLBACK_CUSTOMER_PHONE = '9999999999';
-export const DEFAULT_PHONE_NUMBER_PRICE_INR = 400;
 /** Webhooks whose x-webhook-timestamp is further than this from our clock are rejected (replay protection) */
 const WEBHOOK_MAX_SKEW_MS = 5 * 60 * 1000;
 const PLIVO_NUMBER_TYPES = ['local', 'toll_free', 'national'] as const;
@@ -57,26 +64,14 @@ function isWebhookTimestampFresh(raw: unknown, now = Date.now()): boolean {
   return Math.abs(now - ms) <= WEBHOOK_MAX_SKEW_MS;
 }
 
-function normalisePhone(raw: unknown): string | null {
-  if (typeof raw !== 'string') return null;
-  const digits = raw.replace(/\D/g, '');
-  if (digits.length < 10 || digits.length > 15) return null;
-  return digits;
-}
-
 function toAmount(value: unknown): number {
   const n = typeof value === 'number' ? value : parseFloat(String(value ?? ''));
   return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0;
 }
 
-export async function getPhoneNumberPriceInr(): Promise<number> {
-  const setting = await storage.getGlobalSetting('phone_number_price_inr');
-  const n = toAmount(setting?.value);
-  return n > 0 ? n : DEFAULT_PHONE_NUMBER_PRICE_INR;
-}
-
 interface ResolvedPurchase {
   type: PurchaseType;
+  /** List price (excl. GST unless the seller setting says prices are inclusive) */
   amount: number;
   description: string;
   planId?: string;
@@ -96,7 +91,7 @@ class OrderRequestError extends Error {
   }
 }
 
-/** Amount ALWAYS comes from DB rows / settings — never from the client. */
+/** List price ALWAYS comes from DB rows / settings — never from the client. GST is quoted on top afterwards. */
 async function resolvePurchase(body: any, userId: string): Promise<ResolvedPurchase> {
   const type = body?.type as PurchaseType;
 
@@ -208,11 +203,14 @@ router.post('/orders', paymentRateLimiter, authenticateToken, async (req: AuthRe
       throw error;
     }
 
+    // The customer pays the quoted total; the quote is stored on the transaction so the invoice reproduces it exactly
+    const quote = await quotePrice(purchase.amount, resolveBuyerStateCode(user));
+    const autoRenewRequested = purchase.type === 'plan' && req.body?.autoRenew === true;
     const orderId = `zv_${purchase.type}_${crypto.randomBytes(6).toString('hex')}`;
     const { transactionId } = await billingService.createPendingTransaction({
       userId,
       type: purchase.type,
-      amount: purchase.amount,
+      amount: quote.total,
       gatewayOrderId: orderId,
       planId: purchase.planId,
       billingPeriod: purchase.billingPeriod,
@@ -221,9 +219,10 @@ router.post('/orders', paymentRateLimiter, authenticateToken, async (req: AuthRe
       phoneNumber: purchase.phoneNumber,
       country: purchase.country,
       description: purchase.description,
+      metadata: { gst: quote, ...(purchase.type === 'plan' ? { autoRenewRequested } : {}) },
     });
 
-    let customerPhone = normalisePhone(user.billingPhone);
+    let customerPhone = normaliseCustomerPhone(user.billingPhone);
     if (!customerPhone) {
       customerPhone = FALLBACK_CUSTOMER_PHONE;
       logger.warn(
@@ -240,7 +239,7 @@ router.post('/orders', paymentRateLimiter, authenticateToken, async (req: AuthRe
     try {
       order = await createOrder({
         order_id: orderId,
-        order_amount: purchase.amount,
+        order_amount: quote.total,
         order_currency: 'INR',
         customer_details: {
           customer_id: userId.replace(/[^A-Za-z0-9_-]/g, '_'),
@@ -280,9 +279,13 @@ router.post('/orders', paymentRateLimiter, authenticateToken, async (req: AuthRe
       orderId,
       paymentSessionId: order.payment_session_id,
       environment,
-      amount: purchase.amount,
+      amount: quote.total,
+      baseAmount: quote.taxableAmount,
+      taxAmount: quote.taxAmount,
+      quote,
       currency: 'INR',
       transactionId,
+      autoRenewRequested,
       cfOrderId: order.cf_order_id ? String(order.cf_order_id) : null,
     });
   } catch (error: any) {
@@ -326,6 +329,8 @@ router.get('/orders/:orderId/status', authenticateToken, async (req: AuthRequest
 
     const plan = transaction.planId ? await storage.getPlan(transaction.planId) : undefined;
     const metadata = (transaction.metadata || {}) as Record<string, unknown>;
+    // Plan orders: tell the result page whether to offer the auto-renew (mandate) step
+    const subscription = transaction.type === 'subscription' ? await storage.getUserSubscription(transaction.userId) : null;
 
     res.json({
       orderId,
@@ -345,6 +350,9 @@ router.get('/orders/:orderId/status', authenticateToken, async (req: AuthRequest
       paymentMethod: transaction.paymentMethod || null,
       failureReason: transaction.failureReason || null,
       completedAt: transaction.completedAt || null,
+      quote: metadata.gst ?? null,
+      autoRenewRequested: metadata.autoRenewRequested === true,
+      autoRenewActive: subscription?.autoRenew === true,
     });
   } catch (error: any) {
     logger.error('Error checking Cashfree order status', error, 'Cashfree');
@@ -397,5 +405,8 @@ router.post('/webhook', async (req: Request, res: Response) => {
     res.status(500).json({ received: false, error: 'Webhook processing failed' });
   }
 });
+
+router.use(cashfreeQuoteRouter);
+router.use(cashfreeSubscriptionRouter);
 
 export const cashfreeRouter = router;

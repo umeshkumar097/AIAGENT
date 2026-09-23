@@ -21,6 +21,8 @@ export const INVOICE_SETTING_DEFAULTS = {
   invoice_hsn_sac: '998314',
   invoice_footer_text: '',
   invoice_logo_url: '',
+  /** 'true' → list prices already include GST (legacy); 'false' → GST is added on top at checkout */
+  invoice_prices_include_gst: 'false',
 } as const;
 
 export type InvoiceSettingKey = keyof typeof INVOICE_SETTING_DEFAULTS;
@@ -103,6 +105,55 @@ export interface GstBreakdown {
   isInterState: boolean;
 }
 
+function splitTax(total: number, taxableAmount: number, taxAmount: number, rate: number, isInterState: boolean): GstBreakdown {
+  if (isInterState) {
+    return { total, taxableAmount, taxAmount, cgst: 0, sgst: 0, igst: taxAmount, taxRate: rate, isInterState };
+  }
+  const cgst = round2(taxAmount / 2);
+  const sgst = round2(taxAmount - cgst);
+  return { total, taxableAmount, taxAmount, cgst, sgst, igst: 0, taxRate: rate, isInterState };
+}
+
+/**
+ * GST-exclusive pricing: the list price is the taxable value and GST is added on top
+ * (total = base + base × rate). Intra-state → CGST + SGST, otherwise IGST.
+ */
+export function computeGstExclusive(baseAmount: number, ratePercent: number, isInterState: boolean): GstBreakdown {
+  const taxableAmount = round2(Math.max(0, baseAmount));
+  const rate = Math.max(0, ratePercent);
+  const taxAmount = round2(taxableAmount * rate / 100);
+  const total = round2(taxableAmount + taxAmount);
+  return splitTax(total, taxableAmount, taxAmount, rate, isInterState);
+}
+
+/** Picks inclusive or exclusive math for a list price depending on the seller setting. */
+export function computeGstForPrice(listPrice: number, ratePercent: number, isInterState: boolean, pricesIncludeGst: boolean): GstBreakdown {
+  return pricesIncludeGst ? computeGst(listPrice, ratePercent, isInterState) : computeGstExclusive(listPrice, ratePercent, isInterState);
+}
+
+/**
+ * A checkout quote for one line item, stored on the transaction (metadata.gst) at order time so the
+ * invoice reproduces exactly what the customer saw and paid.
+ */
+export interface PriceQuote extends GstBreakdown {
+  /** The list price shown on the plan / pack (excl. GST unless pricesIncludeGst) */
+  listPrice: number;
+  pricesIncludeGst: boolean;
+  /** Buyer GST state code used for the intra/inter-state decision (null → treated as intra-state) */
+  buyerStateCode: string | null;
+  sellerStateCode: string;
+}
+
+/** Quotes a list price for a buyer using the current seller settings (rate, state, inclusive flag). */
+export async function quotePrice(listPrice: number, buyerStateCode: string | null | undefined): Promise<PriceQuote> {
+  const seller = await getSellerInfo();
+  const buyer = resolveStateCode(buyerStateCode) || null;
+  // Unknown buyer state → intra-state (CGST+SGST), same rule as the invoice
+  const isInterState = !!buyer && buyer !== seller.stateCode;
+  const gst = computeGstForPrice(listPrice, seller.gstRate, isInterState, seller.pricesIncludeGst);
+  return { ...gst, listPrice: round2(listPrice), pricesIncludeGst: seller.pricesIncludeGst, buyerStateCode: buyer, sellerStateCode: seller.stateCode };
+}
+
 /**
  * Prices are GST-inclusive: taxable = total / (1 + rate). Intra-state (buyer state == seller state)
  * splits the tax into CGST + SGST, otherwise the whole tax is IGST.
@@ -112,12 +163,7 @@ export function computeGst(totalInclusive: number, ratePercent: number, isInterS
   const rate = Math.max(0, ratePercent);
   const taxableAmount = rate > 0 ? round2(total / (1 + rate / 100)) : total;
   const taxAmount = round2(total - taxableAmount);
-  if (isInterState) {
-    return { total, taxableAmount, taxAmount, cgst: 0, sgst: 0, igst: taxAmount, taxRate: rate, isInterState };
-  }
-  const cgst = round2(taxAmount / 2);
-  const sgst = round2(taxAmount - cgst);
-  return { total, taxableAmount, taxAmount, cgst, sgst, igst: 0, taxRate: rate, isInterState };
+  return splitTax(total, taxableAmount, taxAmount, rate, isInterState);
 }
 
 const ONES = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve',
@@ -180,6 +226,16 @@ export interface SellerInfo {
   hsnSac: string;
   footerText: string;
   logoUrl: string | null;
+  /** false (default) → GST is added on top of list prices at checkout */
+  pricesIncludeGst: boolean;
+}
+
+export function settingBool(value: unknown, fallback: boolean): boolean {
+  if (value === true || value === false) return value;
+  const str = settingString(value, '').toLowerCase();
+  if (str === 'true' || str === '1' || str === 'yes') return true;
+  if (str === 'false' || str === '0' || str === 'no') return false;
+  return fallback;
 }
 
 function settingString(value: unknown, fallback: string): string {
@@ -229,6 +285,7 @@ export async function getSellerInfo(): Promise<SellerInfo> {
     hsnSac: String(s.invoice_hsn_sac),
     footerText: String(s.invoice_footer_text),
     logoUrl: logoUrl || null,
+    pricesIncludeGst: settingBool(s.invoice_prices_include_gst, false),
   };
 }
 

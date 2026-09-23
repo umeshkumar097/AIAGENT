@@ -28,6 +28,7 @@ export type EventKey =
   | 'purchase_completed' | 'invoice_created' | 'payment_failed' | 'refund_processed'
   | 'credits_added' | 'credits_added_by_admin' | 'low_credits'
   | 'plan_activated' | 'plan_renewed' | 'plan_expiring' | 'plan_expired'
+  | 'auto_renew_enabled' | 'auto_renew_disabled'
   | 'phone_number_purchased' | 'phone_number_expiring' | 'phone_number_released' | 'phone_billing_failed'
   | 'campaign_completed' | 'campaign_failed'
   | 'kyc_approved' | 'kyc_rejected'

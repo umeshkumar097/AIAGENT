@@ -201,6 +201,20 @@ export const EVENT_TEMPLATE_DEFAULTS: Record<EventKey, EventTemplateDef> = {
       sample: { planName: 'Pro', expiredAt: '23 Sep 2026' },
       inApp: { title: '{{planName}} plan expired', message: 'Your account is now on the Free plan. Renew to restore access.', link: '/app/billing', icon: 'alert-triangle', priority: 70 } }),
 
+  auto_renew_enabled: def('Auto-renew Enabled', 'plan', 'Auto-renew is on for your {{planName}} plan - {{appName}}', 'Auto-renew enabled',
+    ['Your {{planName}} plan will now renew automatically via {{paymentMethod}}, so your agents, campaigns and phone numbers stay active without a manual payment each period. You can turn this off any time from the billing page.'],
+    { rows: [['Plan', '{{planName}}'], ['Billing period', '{{billingPeriod}}'], ['Renewal amount', '{{currency}} {{amount}}'], ['Next charge on', '{{nextChargeAt}}'], ['Payment method', '{{paymentMethod}}']], boxClass: 'good',
+      cta: { label: 'Manage Auto-renew', url: BILLING }, variables: ['planName', 'billingPeriod', 'amount', 'currency', 'nextChargeAt', 'paymentMethod'],
+      sample: { planName: 'Pro', billingPeriod: 'monthly', amount: '2,360.00', currency: 'INR', nextChargeAt: '23 Oct 2026', paymentMethod: 'UPI AutoPay' },
+      inApp: { title: 'Auto-renew enabled', message: 'Your {{planName}} plan renews automatically on {{nextChargeAt}} via {{paymentMethod}}.', link: '/app/billing', icon: 'refresh-cw', priority: 10 } }),
+
+  auto_renew_disabled: def('Auto-renew Disabled', 'plan', 'Auto-renew is off for your {{planName}} plan - {{appName}}', 'Auto-renew turned off',
+    ['Automatic renewal has been turned off for your {{planName}} plan. Your current period stays active until {{expiresAt}}; after that, renew with a one-time payment or enable auto-renew again from the billing page.'],
+    { rows: [['Plan', '{{planName}}'], ['Active until', '{{expiresAt}}']], boxClass: 'warn',
+      cta: { label: 'View Billing', url: BILLING }, variables: ['planName', 'expiresAt'],
+      sample: { planName: 'Pro', expiresAt: '23 Oct 2026' },
+      inApp: { title: 'Auto-renew turned off', message: 'Your {{planName}} plan will not renew automatically. It stays active until {{expiresAt}}.', link: '/app/billing', icon: 'alert-circle', priority: 40 } }),
+
   phone_number_purchased: def('Phone Number Purchased', 'phone', 'Phone number {{phoneNumber}} is ready - {{appName}}', 'Your new phone number',
     ['Your phone number has been provisioned and is ready to be assigned to an agent.'],
     { rows: [['Number', '{{phoneNumber}}'], ['Country', '{{country}}'], ['Amount', '{{currency}} {{amount}}'], ['Next renewal', '{{nextBillingDate}}']], boxClass: 'good',

@@ -22,6 +22,11 @@ function validateSetting(key: InvoiceSettingKey, raw: unknown): Validated {
     if (!Number.isFinite(rate) || rate < 0 || rate > 100) return { ok: false, error: 'invoice_gst_rate must be a number between 0 and 100' };
     return { ok: true, value: Math.round(rate * 100) / 100 };
   }
+  if (key === 'invoice_prices_include_gst') {
+    if (raw === true || raw === 'true') return { ok: true, value: 'true' };
+    if (raw === false || raw === 'false' || raw === null || raw === undefined || raw === '') return { ok: true, value: 'false' };
+    return { ok: false, error: 'invoice_prices_include_gst must be true or false' };
+  }
   if (raw === null || raw === undefined) return { ok: true, value: '' };
   if (typeof raw !== 'string' && typeof raw !== 'number') return { ok: false, error: `${key} must be a string` };
   const value = String(raw).trim();

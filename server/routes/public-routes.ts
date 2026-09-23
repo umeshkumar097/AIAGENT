@@ -19,6 +19,7 @@
 import { Router, Request, Response } from 'express';
 import { RouteContext, AuthRequest } from './common';
 import { getCashfreeConfig, getPhoneNumberPriceInr, DEFAULT_PHONE_NUMBER_PRICE_INR } from '../engines/payment/gateways/cashfree';
+import { INVOICE_SETTING_DEFAULTS, getSellerInfo } from '../engines/payment/invoice-gst';
 import { sql, eq, count } from 'drizzle-orm';
 import { users, calls, campaigns, twilioCountries, elevenLabsCredentials } from '@shared/schema';
 import { strictRateLimiter } from '../middleware/rateLimiter';
@@ -491,9 +492,10 @@ export function createPublicRoutes(ctx: RouteContext): Router {
 
   router.get("/api/settings/payment-gateway", async (_req: Request, res: Response) => {
     try {
-      const [config, phoneNumberPriceInr] = await Promise.all([
+      const [config, phoneNumberPriceInr, seller] = await Promise.all([
         getCashfreeConfig(),
         getPhoneNumberPriceInr(),
+        getSellerInfo(),
       ]);
 
       res.json({
@@ -504,6 +506,8 @@ export function createPublicRoutes(ctx: RouteContext): Router {
         currency: 'INR',
         currencySymbol: '₹',
         phoneNumberPriceInr,
+        gstRate: seller.gstRate,
+        pricesIncludeGst: seller.pricesIncludeGst,
       });
     } catch (error) {
       console.error('Error fetching payment gateway config:', error);
@@ -515,6 +519,8 @@ export function createPublicRoutes(ctx: RouteContext): Router {
         currency: 'INR',
         currencySymbol: '₹',
         phoneNumberPriceInr: DEFAULT_PHONE_NUMBER_PRICE_INR,
+        gstRate: INVOICE_SETTING_DEFAULTS.invoice_gst_rate,
+        pricesIncludeGst: false,
       });
     }
   });

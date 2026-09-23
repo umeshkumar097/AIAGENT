@@ -90,6 +90,55 @@ export interface CashfreeRefund {
   created_at?: string;
 }
 
+/** Cashfree Subscriptions (mandates: UPI AutoPay / card / eNACH) — POST /subscriptions */
+export interface CashfreeCreateSubscriptionInput {
+  subscription_id: string;
+  customer_details: { customer_name?: string; customer_email?: string; customer_phone: string };
+  plan_details: {
+    plan_name: string;
+    plan_type: 'PERIODIC';
+    plan_amount: number;
+    plan_max_amount: number;
+    plan_intervals: number;
+    plan_interval_type: 'MONTH' | 'YEAR';
+    plan_currency: 'INR';
+    plan_note?: string;
+  };
+  authorization_details: {
+    authorization_amount: number;
+    authorization_amount_refund: boolean;
+    payment_methods: string[];
+  };
+  subscription_meta?: { return_url?: string; notification_channel?: string[] };
+  subscription_first_charge_time?: string;
+  subscription_expiry_time?: string;
+  subscription_note?: string;
+  subscription_tags?: Record<string, string>;
+}
+
+export interface CashfreeSubscriptionAuthorisation {
+  authorization_status?: string;
+  authorization_amount?: number;
+  payment_method?: string;
+  payment_group?: string;
+}
+
+export interface CashfreeSubscription {
+  subscription_id: string;
+  cf_subscription_id?: string | number;
+  subscription_session_id?: string;
+  /** INITIALIZED | BANK_APPROVAL_PENDING | ACTIVE | ON_HOLD | PAUSED | CUSTOMER_PAUSED | CANCELLED | CUSTOMER_CANCELLED | COMPLETED | EXPIRED | LINK_EXPIRED */
+  subscription_status: string;
+  next_schedule_date?: string | null;
+  /** Cashfree spells this differently in API responses and webhooks — accept both. */
+  authorisation_details?: CashfreeSubscriptionAuthorisation | null;
+  authorization_details?: CashfreeSubscriptionAuthorisation | null;
+  plan_details?: Partial<CashfreeCreateSubscriptionInput['plan_details']> | null;
+  customer_details?: Partial<CashfreeCreateSubscriptionInput['customer_details']> | null;
+}
+
+export type CashfreeSubscriptionAction = 'CANCEL' | 'PAUSE' | 'ACTIVATE';
+
 export class CashfreeApiError extends Error {
   status: number;
   code?: string;
@@ -241,6 +290,37 @@ export async function createRefund(
   input: { refund_id: string; refund_amount: number; refund_note?: string },
 ): Promise<CashfreeRefund> {
   return cashfreeRequest<CashfreeRefund>('POST', `/orders/${encodeURIComponent(orderId)}/refunds`, input);
+}
+
+export async function createSubscription(input: CashfreeCreateSubscriptionInput): Promise<CashfreeSubscription> {
+  return cashfreeRequest<CashfreeSubscription>('POST', '/subscriptions', input);
+}
+
+export async function getSubscription(subscriptionId: string): Promise<CashfreeSubscription> {
+  return cashfreeRequest<CashfreeSubscription>('GET', `/subscriptions/${encodeURIComponent(subscriptionId)}`);
+}
+
+/** POST /subscriptions/{id}/manage — ACTIVATE requires next_scheduled_time (YYYY-MM-DD). */
+export async function manageSubscription(
+  subscriptionId: string,
+  action: CashfreeSubscriptionAction,
+  nextScheduledTime?: string,
+): Promise<CashfreeSubscription> {
+  return cashfreeRequest<CashfreeSubscription>('POST', `/subscriptions/${encodeURIComponent(subscriptionId)}/manage`, {
+    subscription_id: subscriptionId,
+    action,
+    ...(nextScheduledTime ? { action_details: { next_scheduled_time: nextScheduledTime } } : {}),
+  });
+}
+
+export const FALLBACK_CUSTOMER_PHONE = '9999999999';
+
+/** Cashfree requires customer_phone (10–15 digits). Returns null when the stored number is unusable. */
+export function normaliseCustomerPhone(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length < 10 || digits.length > 15) return null;
+  return digits;
 }
 
 /**
