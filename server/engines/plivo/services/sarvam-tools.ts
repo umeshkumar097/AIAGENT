@@ -150,7 +150,8 @@ export function goodbyeText(language: string): string {
 const END_CALL_INTENT = new RegExp([
   // Hinglish / Hindi (romanised and Devanagari)
   'call\\s*(cut|kat|band|rakh)', 'cut\\s*kar', 'kaat\\s*d', 'phone\\s*(rakh|band|kat)', 'rakh\\s*(do|dijiye|deta|deti|raha|rahi)', 'rakht[aei]\\s*h', 'रखत[ाी]\\s*ह',
-  'baat\\s*nahi+\\s*karn', 'baat\\s*nhi+\\s*karn', 'band\\s*kar(o|iye|\\s*do)', 'disconnect', 'hang\\s*up',
+  'baat\\s*nahi+\\s*karn', 'baat\\s*nhi+\\s*karn', 'band\\s*kar(o|iye|\\s*do)', 'disconnect', 'hang\\s*up', 'cut\\s+(the\\s+|this\\s+)?call', 'khat+am\\s*kar', 'call\\s*(khatam|khtm|end|over)',
+  'बंद\\s*कर', 'खत्म\\s*कर', 'काट\\s*(दो|दीजिए|दे)', 'कट\\s*कर',
   "don'?t\\s+want\\s+to\\s+talk", 'not\\s+(want|interested).{0,20}\\b(bye|call)', 'end\\s+(the\\s+)?call', 'stop\\s+calling',
   '\\b(bye|goodbye|alvida|good\\s*bye)\\b', 'कॉल\\s*(काट|कट|बंद|रख)', 'फ़?ोन\\s*(रख|काट|बंद)', 'बात\\s*नहीं\\s*करन', 'रख\\s*(दो|दीजिए|देता|देती)',
   'अलविदा', 'बाय',

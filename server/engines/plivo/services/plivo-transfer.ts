@@ -79,24 +79,33 @@ export async function executePlivoTransfer(p: PlivoTransferParams): Promise<Pliv
 export async function executePlivoHangup(p: { callUuid: string; plivoCredentialId?: string | null }): Promise<{ success: boolean; error?: string }> {
   const { callUuid } = p;
   try {
-    let credentials = p.plivoCredentialId
-      ? await db.select().from(plivoCredentials).where(eq(plivoCredentials.id, p.plivoCredentialId)).limit(1)
-      : [];
-    if (!credentials.length) {
-      credentials = await db.select().from(plivoCredentials).where(eq(plivoCredentials.isActive, true)).orderBy(desc(plivoCredentials.isPrimary)).limit(1);
-    }
-    if (!credentials.length) throw new Error('Plivo credentials not found');
-    const { authId, authToken } = credentials[0];
-    const auth = { username: authId, password: authToken };
+    // The session's credential first, then every other active account: a 404 from one account only
+    // means "not this account's call" (multi-credential installs), never "already ended".
+    const active = await db.select().from(plivoCredentials).where(eq(plivoCredentials.isActive, true)).orderBy(desc(plivoCredentials.isPrimary));
+    const preferred = p.plivoCredentialId ? active.filter((c) => c.id === p.plivoCredentialId) : [];
+    const candidates = [...preferred, ...active.filter((c) => !preferred.includes(c))];
+    if (!candidates.length) throw new Error('Plivo credentials not found');
 
-    const res = await axios.delete(`https://api.plivo.com/v1/Account/${authId}/Call/${callUuid}/`, { auth, timeout: 10000 });
-    logger.info(`[Hangup] ${callUuid}: Delete Call → ${res.status}`, undefined, SOURCE);
-    return { success: true };
+    let lastError = '';
+    for (const { authId, authToken } of candidates) {
+      try {
+        const res = await axios.delete(`https://api.plivo.com/v1/Account/${authId}/Call/${callUuid}/`, { auth: { username: authId, password: authToken }, timeout: 10000 });
+        logger.info(`[Hangup] ${callUuid}: Delete Call → ${res.status}`, undefined, SOURCE);
+        return { success: true };
+      } catch (error: any) {
+        const status = error.response?.status;
+        const detail = error.response ? ` (${status}: ${JSON.stringify(error.response.data).substring(0, 200)})` : '';
+        lastError = `${error.message}${detail}`;
+        if (status === 404) {
+          logger.warn(`[Hangup] ${callUuid}: not found under account ${authId} — trying the next credential`, undefined, SOURCE);
+          continue;
+        }
+        logger.error(`[Hangup] ${callUuid}: failed under ${authId}: ${lastError}`, undefined, SOURCE);
+      }
+    }
+    return { success: false, error: lastError || 'call not found in any Plivo account' };
   } catch (error: any) {
-    // 404 = the call already ended on Plivo's side — that is the outcome we wanted
-    if (error.response?.status === 404) return { success: true };
-    const detail = error.response ? ` (${error.response.status}: ${JSON.stringify(error.response.data).substring(0, 200)})` : '';
-    logger.error(`[Hangup] ${callUuid}: failed: ${error.message}${detail}`, undefined, SOURCE);
+    logger.error(`[Hangup] ${callUuid}: failed: ${error.message}`, undefined, SOURCE);
     return { success: false, error: error.message };
   }
 }

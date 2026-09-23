@@ -42,6 +42,8 @@ const SARVAM_TTS_REST_URL = 'https://api.sarvam.ai/text-to-speech';
 const TTS_CACHE_MAX = 300;
 // Play a short filler only if the first sentence audio is not ready by then
 const FILLER_DELAY_MS = 700;
+/** After asking Plivo to hang up, the media socket should close within this window */
+const HANGUP_VERIFY_MS = 3000;
 /** Frames (20 ms each) of a playing filler kept when reply audio arrives */
 const FILLER_KEEP_FRAMES = 5;
 // Keep the last N chat messages in the LLM context
@@ -513,20 +515,35 @@ export class SarvamBridgeService {
     }
     const cfg = ((plivoWs as any).sarvamAgentConfig || {}) as SarvamAgentConfig;
     const callId = (plivoWs as any).sarvamCallId as string | undefined;
-    void (async () => {
+    const attempt = async (n: number): Promise<boolean> => {
       const first = await executePlivoHangup({ callUuid, plivoCredentialId: cfg.plivoCredentialId });
-      if (first.success) return;
+      if (first.success) return true;
       if (callId) {
         try {
           await PlivoCallService.endCall(callId);
-          return;
+          return true;
         } catch (err: any) {
-          logger.error(`[SarvamBridge][${callUuid}] endCall fallback failed: ${err.message}`);
+          logger.error(`[SarvamBridge][${callUuid}] endCall fallback failed (attempt ${n}): ${err.message}`);
         }
       }
-      // Last resort: keep listening so the caller can retry, rather than sitting in silence until max duration
-      (plivoWs as any).sarvamHangupStarted = false;
-      (plivoWs as any).sarvamState = 'LISTENING';
+      return false;
+    };
+    void (async () => {
+      const ok = await attempt(1);
+      // Plivo closes the media stream once the call is gone. If the socket is still open a few seconds
+      // later the hangup did not take (wrong account, transient API error) → try once more, then give the
+      // caller a listening agent instead of dead air.
+      setTimeout(async () => {
+        if (plivoWs.readyState !== WebSocket.OPEN) return;
+        logger.warn(`[SarvamBridge][${callUuid}] Stream still open ${HANGUP_VERIFY_MS}ms after hangup (${ok ? 'API said ok' : 'API failed'}) — retrying`);
+        const again = await attempt(2);
+        setTimeout(() => {
+          if (plivoWs.readyState !== WebSocket.OPEN) return;
+          logger.error(`[SarvamBridge][${callUuid}] Hangup did not end the call (${again ? 'retry ok' : 'retry failed'}); returning to LISTENING`);
+          (plivoWs as any).sarvamHangupStarted = false;
+          (plivoWs as any).sarvamState = 'LISTENING';
+        }, HANGUP_VERIFY_MS);
+      }, HANGUP_VERIFY_MS);
     })();
   }
 
@@ -1487,7 +1504,7 @@ ${knowledge}` : ''}`;
               SarvamBridgeService.setState(callUuid, plivoWs, 'LISTENING');
               SarvamBridgeService.finishTurnActions(callUuid, plivoWs);
             }
-          }).catch(err => {
+          }).catch(async err => {
             if (err.name === 'AbortError') {
               logger.info(`[SarvamBridge][${callUuid}] GPT turn ${turnId} aborted`);
               recordInterrupted();
@@ -1497,6 +1514,20 @@ ${knowledge}` : ''}`;
             }
             if ((plivoWs as any).sarvamTurnId === turnId) {
               SarvamBridgeService.cancelFiller(plivoWs);
+              if (callerWantsEnd && err.name !== 'AbortError' && !(plivoWs as any).sarvamPendingTransfer) {
+                // The model failed but the caller clearly asked to end: say goodbye ourselves and hang up
+                (plivoWs as any).sarvamTriggeredEndCall = true;
+                const bye = goodbyeText(activeLang);
+                transcriptLines.push(`Agent: ${bye}`);
+                chatHistory.push({ role: 'assistant', content: bye });
+                await SarvamBridgeService.speakViaTTS(callUuid, plivoWs, bye, sarvamApiKey, activeLang, voice, undefined, perf, (plivoWs as any).sarvamNextPlayIdx ?? 0)
+                  .catch(() => {});
+                if (!(plivoWs as any).sarvamReplyAudioQueued) {
+                  SarvamBridgeService.setState(callUuid, plivoWs, 'LISTENING');
+                  SarvamBridgeService.finishTurnActions(callUuid, plivoWs);
+                }
+                return;
+              }
               SarvamBridgeService.setState(callUuid, plivoWs, 'LISTENING');
             }
           });
