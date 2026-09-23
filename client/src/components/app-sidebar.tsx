@@ -19,7 +19,7 @@ import {
   Plus, BarChart3, Home, Target, LogOut, Coins, Shield, CreditCard,
   TrendingUp, UserCheck, Workflow, Webhook, ClipboardList, Calendar,
   Layout, FileText, Wrench, Globe, Bot, ContactRound, MessageSquare,
-  ChevronRight,
+  ChevronRight, CalendarClock,
 } from "lucide-react";
 import { usePluginStatus } from "@/hooks/use-plugin-status";
 import {
@@ -77,6 +77,7 @@ export function AppSidebar() {
   const monitorItems = [
     ...(isMessagingEnabled ? [{ title: t('nav.conversations', 'Conversations'), url: "/app/conversations", icon: MessageSquare }] : []),
     { title: t('nav.calls'), url: "/app/calls", icon: Phone },
+    { title: t('nav.callbacks', 'Callbacks'), url: "/app/callbacks", icon: CalendarClock },
     { title: t('nav.analytics'), url: "/app/analytics", icon: BarChart3 },
   ];
 

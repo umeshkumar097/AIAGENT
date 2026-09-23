@@ -299,6 +299,7 @@ export const INTEGRATION_EVENT_GROUPS: IntegrationEventGroup[] = [
     events: [
       { value: "form.submitted", labelKey: "webhooks.events.formSubmitted", fallback: "Form submitted" },
       { value: "form.lead_created", labelKey: "webhooks.events.formLeadCreated", fallback: "Lead created from form" },
+      { value: "callback.scheduled", labelKey: "webhooks.events.callbackScheduledShort", fallback: "Callback scheduled by the agent" },
     ],
   },
 ];

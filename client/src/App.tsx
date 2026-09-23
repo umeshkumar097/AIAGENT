@@ -36,6 +36,7 @@ import Dashboard from "@/pages/Dashboard";
 import Campaigns from "@/pages/Campaigns";
 import CampaignDetail from "@/pages/CampaignDetail";
 import Calls from "@/pages/Calls";
+import CallbacksPage from "@/pages/CallbacksPage";
 import CallDetail from "@/pages/CallDetail";
 import Analytics from "@/pages/Analytics";
 import Billing from "@/pages/Billing";
@@ -334,6 +335,7 @@ function UserRouter() {
                 <Route path="/app/campaigns" component={Campaigns} />
                 <Route path="/app/calls/:id" component={CallDetail} />
                 <Route path="/app/calls" component={Calls} />
+                <Route path="/app/callbacks" component={CallbacksPage} />
                 <Route path="/app/contacts" component={AllContacts} />
                 <Route path="/app/analytics" component={Analytics} />
                 <Route path="/app/crm" component={CRMPage} />
@@ -429,6 +431,7 @@ function TeamMemberRouter() {
                 <Route path="/app/campaigns" component={Campaigns} />
                 <Route path="/app/calls/:id" component={CallDetail} />
                 <Route path="/app/calls" component={Calls} />
+                <Route path="/app/callbacks" component={CallbacksPage} />
                 <Route path="/app/contacts" component={AllContacts} />
                 <Route path="/app/analytics" component={Analytics} />
                 <Route path="/app/crm" component={CRMPage} />

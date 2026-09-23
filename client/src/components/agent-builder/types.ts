@@ -4,6 +4,11 @@
  * OpenAI Realtime on Plivo is the secondary option.
  */
 
+import {
+  actionsFromConfig, actionsToConfig, defaultActionsForm, HHMM_RE,
+  type AgentActionsConfig, type AgentActionsForm,
+} from "./actions";
+
 export type BuilderEngine = 'sarvam-plivo' | 'plivo';
 
 /** One positional WhatsApp body variable ({{1}}…{{n}}): collected from the caller or a fixed value. */
@@ -39,6 +44,10 @@ export interface AgentBuilderForm {
   messagingEmailTemplates: string[];
   messagingWhatsappTemplates: string[];
   messagingWhatsappVariables: WhatsappVariablesByTemplate;
+  /** Book appointment + check availability tools on calls (agents.appointmentBookingEnabled). */
+  appointmentBookingEnabled: boolean;
+  /** Save lead, callbacks, custom API lookups and appointment settings (agents.config.actions). */
+  actions: AgentActionsForm;
 }
 
 export interface BuilderAgent {
@@ -66,6 +75,8 @@ export interface BuilderAgent {
   messagingWhatsappTemplates?: string[] | null;
   /** JSON text — new keyed format or the legacy flat map (see parseWhatsappVariables). */
   messagingWhatsappVariables?: string | null;
+  appointmentBookingEnabled?: boolean | null;
+  config?: { actions?: AgentActionsConfig | null; [key: string]: unknown } | null;
 }
 
 export const DEFAULT_SARVAM_VOICE = 'priya';
@@ -195,6 +206,8 @@ export function defaultForm(): AgentBuilderForm {
     messagingEmailTemplates: [],
     messagingWhatsappTemplates: [],
     messagingWhatsappVariables: {},
+    appointmentBookingEnabled: false,
+    actions: defaultActionsForm(),
   };
 }
 
@@ -289,6 +302,8 @@ export function formFromAgent(agent: BuilderAgent, phoneNumberId = ''): AgentBui
     messagingEmailTemplates: templateList(agent.messagingEmailTemplates, agent.messagingEmailTemplate),
     messagingWhatsappTemplates: templateList(agent.messagingWhatsappTemplates, agent.messagingWhatsappTemplate),
     messagingWhatsappVariables: parseWhatsappVariables(agent.messagingWhatsappVariables, agent.messagingWhatsappTemplate),
+    appointmentBookingEnabled: !!agent.appointmentBookingEnabled,
+    actions: actionsFromConfig(agent.config?.actions),
   };
 }
 
@@ -317,6 +332,9 @@ export function toAgentPayload(form: AgentBuilderForm) {
     messagingEmailTemplate: form.messagingEmailTemplates[0] || '',
     messagingWhatsappTemplate: form.messagingWhatsappTemplates[0] || '',
     messagingWhatsappVariables: serialiseWhatsappVariables(form.messagingWhatsappVariables, form.messagingWhatsappTemplates),
+    appointmentBookingEnabled: form.appointmentBookingEnabled,
+    // The server merges `config` into the stored object, replacing `actions` wholesale
+    config: { actions: actionsToConfig(form.actions) },
     // Required by the API for flow agents; harmless defaults for conversational agents
     voiceTone: 'professional',
     personality: 'helpful',
@@ -327,5 +345,11 @@ export function validateForm(form: AgentBuilderForm): string | null {
   if (!form.name.trim()) return 'nameRequired';
   if (!form.systemPrompt.trim()) return 'promptRequired';
   if (form.transferEnabled && !form.transferPhoneNumber.trim()) return 'transferNumberRequired';
+  if (form.appointmentBookingEnabled) {
+    const { workingStart, workingEnd, workingDays } = form.actions.appointments;
+    if (!HHMM_RE.test(workingStart) || !HHMM_RE.test(workingEnd) || workingStart >= workingEnd) return 'appointmentHoursInvalid';
+    if (workingDays.length === 0) return 'appointmentDaysRequired';
+  }
+  if (form.actions.saveLeadEnabled && form.actions.saveLeadFields.some(f => !f.key.trim())) return 'leadFieldKeyRequired';
   return null;
 }

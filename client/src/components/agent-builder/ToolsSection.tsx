@@ -3,22 +3,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
+import AppointmentSettings from "./AppointmentSettings";
+import LeadFieldsEditor from "./LeadFieldsEditor";
+import ApiToolsEditor from "./ApiToolsEditor";
+import KnowledgeBasePicker, { type KnowledgeItem } from "./KnowledgeBasePicker";
 import type { AgentBuilderForm } from "./types";
+import type { AgentActionsForm, AppointmentsForm } from "./actions";
 
-export interface KnowledgeItem {
-  id: string;
-  title: string;
-  type: string;
-  /** From /api/rag-knowledge — only 'completed' items can be used on calls */
-  ragStatus?: 'pending' | 'processing' | 'completed' | 'failed';
-  chunkCount?: number;
-}
+export type { KnowledgeItem };
 
 interface Props {
   form: AgentBuilderForm;
   onChange: (patch: Partial<AgentBuilderForm>) => void;
   knowledgeBase: KnowledgeItem[];
+  /** Messaging plugin available — decides whether booking confirmations can be offered. */
+  messagingAvailable?: boolean;
 }
 
 function ToggleRow({ id, label, hint, checked, onCheckedChange }: {
@@ -35,13 +34,16 @@ function ToggleRow({ id, label, hint, checked, onCheckedChange }: {
   );
 }
 
-export default function ToolsSection({ form, onChange, knowledgeBase }: Props) {
+/**
+ * Step 4: what the agent may DO during a call (transfer, appointments, save lead,
+ * callbacks, API lookups, hang up, language) plus the knowledge it may consult.
+ */
+export default function ToolsSection({ form, onChange, knowledgeBase, messagingAvailable = false }: Props) {
   const { t } = useTranslation();
   const isSarvam = form.engine === 'sarvam-plivo';
-
-  const toggleKb = (id: string, on: boolean) => onChange({
-    knowledgeBaseIds: on ? [...form.knowledgeBaseIds, id] : form.knowledgeBaseIds.filter(x => x !== id),
-  });
+  const actions = form.actions;
+  const setActions = (patch: Partial<AgentActionsForm>) => onChange({ actions: { ...actions, ...patch } });
+  const setAppointments = (patch: Partial<AppointmentsForm>) => setActions({ appointments: { ...actions.appointments, ...patch } });
 
   return (
     <Card>
@@ -71,6 +73,69 @@ export default function ToolsSection({ form, onChange, knowledgeBase }: Props) {
           )}
         </div>
 
+        <div>
+          <ToggleRow
+            id="appointments"
+            label={t('agentBuilder.actions.appointments.toggle', 'Book appointments')}
+            hint={t('agentBuilder.actions.appointments.hint', 'Checks free slots (your calendar too, when connected) and books one for the caller.')}
+            checked={form.appointmentBookingEnabled}
+            onCheckedChange={(v) => onChange({ appointmentBookingEnabled: v })}
+          />
+          {form.appointmentBookingEnabled && (
+            <AppointmentSettings
+              value={actions.appointments}
+              onChange={setAppointments}
+              whatsappAvailable={messagingAvailable && form.messagingWhatsappEnabled}
+              emailAvailable={messagingAvailable && form.messagingEmailEnabled}
+            />
+          )}
+        </div>
+
+        <div>
+          <ToggleRow
+            id="save-lead"
+            label={t('agentBuilder.actions.saveLead.toggle', 'Save the caller as a lead')}
+            hint={t('agentBuilder.actions.saveLead.hint', 'Captures name, phone, email and the fields below into Contacts and your connected CRM.')}
+            checked={actions.saveLeadEnabled}
+            onCheckedChange={(v) => setActions({ saveLeadEnabled: v })}
+          />
+          {actions.saveLeadEnabled && (
+            <LeadFieldsEditor fields={actions.saveLeadFields} onChange={(saveLeadFields) => setActions({ saveLeadFields })} />
+          )}
+        </div>
+
+        <div>
+          <ToggleRow
+            id="callback"
+            label={t('agentBuilder.actions.callback.toggle', 'Schedule a callback')}
+            hint={t('agentBuilder.actions.callback.hint', 'The agent agrees a time with the caller and the platform calls them back automatically.')}
+            checked={actions.callbackEnabled}
+            onCheckedChange={(v) => setActions({ callbackEnabled: v })}
+          />
+          {actions.callbackEnabled && (
+            <div className="pb-3 flex items-center gap-2">
+              <Label htmlFor="callback-max-days" className="text-xs whitespace-nowrap">{t('agentBuilder.actions.callback.maxDays', 'At most')}</Label>
+              <Input
+                id="callback-max-days" type="number" min={1} max={30} className="h-8 w-20"
+                value={actions.callbackMaxDaysAhead}
+                onChange={(e) => setActions({ callbackMaxDaysAhead: Math.max(1, Math.min(30, Number(e.target.value) || 1)) })}
+                data-testid="input-callback-max-days"
+              />
+              <span className="text-xs text-muted-foreground">{t('agentBuilder.actions.callback.daysAhead', 'days ahead')}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="pt-2">
+          <div className="space-y-0.5 pb-2">
+            <Label>{t('agentBuilder.actions.apiTools.title', 'Custom API lookups')}</Label>
+            <p className="text-xs text-muted-foreground">
+              {t('agentBuilder.actions.apiTools.hint', 'Let the agent fetch live data from your own systems — order status, balances, bookings.')}
+            </p>
+          </div>
+          <ApiToolsEditor tools={actions.apiTools} onChange={(apiTools) => setActions({ apiTools })} />
+        </div>
+
         <ToggleRow
           id="end-conversation"
           label={t('agentBuilder.endCall', 'Let the agent end the call')}
@@ -89,35 +154,11 @@ export default function ToolsSection({ form, onChange, knowledgeBase }: Props) {
           onCheckedChange={(v) => onChange({ detectLanguageEnabled: v })}
         />
 
-        <div className="pt-3 space-y-2">
-          <Label>{t('agentBuilder.knowledge', 'Knowledge base')}</Label>
-          {knowledgeBase.length === 0 ? (
-            <p className="text-xs text-muted-foreground">{t('agentBuilder.noKnowledge', 'No documents yet. Add them under Knowledge Base and they will show up here.')}</p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {knowledgeBase.map(kb => {
-                const ready = kb.ragStatus === 'completed' || (kb.chunkCount ?? 0) > 0;
-                const statusLabel = ready
-                  ? null
-                  : kb.ragStatus === 'failed'
-                    ? t('agentBuilder.kbFailed', 'indexing failed')
-                    : t('agentBuilder.kbProcessing', 'indexing…');
-                return (
-                  <label key={kb.id} className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer hover:bg-muted/40">
-                    <Checkbox
-                      checked={form.knowledgeBaseIds.includes(kb.id)}
-                      onCheckedChange={(v) => toggleKb(kb.id, v === true)}
-                      data-testid={`kb-${kb.id}`}
-                    />
-                    <span className="truncate">{kb.title}</span>
-                    {statusLabel && <span className="text-[10px] text-amber-600 dark:text-amber-400 whitespace-nowrap">{statusLabel}</span>}
-                    <span className="ml-auto text-[10px] uppercase text-muted-foreground">{kb.type}</span>
-                  </label>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        <KnowledgeBasePicker
+          knowledgeBase={knowledgeBase}
+          selectedIds={form.knowledgeBaseIds}
+          onChange={(knowledgeBaseIds) => onChange({ knowledgeBaseIds })}
+        />
       </CardContent>
     </Card>
   );

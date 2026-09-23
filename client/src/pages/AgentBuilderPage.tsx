@@ -21,6 +21,7 @@ import ToolsSection, { type KnowledgeItem } from "@/components/agent-builder/Too
 import PhoneSection, { type AvailableNumber, type CurrentConnection } from "@/components/agent-builder/PhoneSection";
 import MessagingSection from "@/components/agent-builder/MessagingSection";
 import { usePluginStatus } from "@/hooks/use-plugin-status";
+import { enabledActionLabels } from "@/components/agent-builder/actions";
 import {
   DEFAULT_OPENAI_VOICE, DEFAULT_REALTIME_MODEL, SARVAM_LANGUAGES,
   defaultForm, formFromAgent, toAgentPayload, validateForm,
@@ -100,6 +101,9 @@ export default function AgentBuilderPage() {
     nameRequired: t('agentBuilder.errors.nameRequired', 'Give the agent a name.'),
     promptRequired: t('agentBuilder.errors.promptRequired', 'Write the instructions first.'),
     transferNumberRequired: t('agentBuilder.errors.transferNumberRequired', 'Add the transfer phone number.'),
+    appointmentHoursInvalid: t('agentBuilder.errors.appointmentHoursInvalid', 'Appointment working hours: the end time must be after the start.'),
+    appointmentDaysRequired: t('agentBuilder.errors.appointmentDaysRequired', 'Pick at least one working day for appointments.'),
+    leadFieldKeyRequired: t('agentBuilder.errors.leadFieldKeyRequired', 'Every lead field needs a key.'),
   }[validationKey];
 
   // ── Save ────────────────────────────────────────────────────────────────
@@ -191,6 +195,13 @@ export default function AgentBuilderPage() {
   const numberLabel = form.phoneNumberId
     ? (connections?.availablePhoneNumbers.find(n => n.id === form.phoneNumberId)?.phoneNumber || current?.phoneNumber || '')
     : null;
+  const actionLabels = enabledActionLabels(form.actions, form, {
+    transfer: t('agentBuilder.summary.actionTransfer', 'Transfer'),
+    appointments: t('agentBuilder.summary.actionAppointments', 'Appointments'),
+    saveLead: t('agentBuilder.summary.actionSaveLead', 'Save lead'),
+    callbacks: t('agentBuilder.summary.actionCallbacks', 'Callbacks'),
+    apiTools: (n) => t('agentBuilder.summary.actionApiTools', '{{count}} API lookups', { count: n }),
+  });
 
   const submitButton = (
     <Button
@@ -266,7 +277,7 @@ export default function AgentBuilderPage() {
             realtimeModels={realtimeRes?.models || []}
           />
           <PromptSection form={form} onChange={onChange} />
-          <ToolsSection form={form} onChange={onChange} knowledgeBase={knowledgeBase} />
+          <ToolsSection form={form} onChange={onChange} knowledgeBase={knowledgeBase} messagingAvailable={messagingPluginEnabled} />
           {messagingPluginEnabled && <MessagingSection form={form} onChange={onChange} />}
           <PhoneSection
             step={messagingPluginEnabled ? 6 : 5}
@@ -290,6 +301,7 @@ export default function AgentBuilderPage() {
                 <SummaryRow label={t('agentBuilder.speaker', 'Speaker')} value={voiceLabel} />
                 <SummaryRow label={t('agentBuilder.model', 'AI model')} value={form.model} />
                 <SummaryRow label={t('agentBuilder.summary.number', 'Number')} value={numberLabel || t('agentBuilder.summary.noNumber', 'None')} />
+                <SummaryRow label={t('agentBuilder.summary.actions', 'Actions')} value={actionLabels.length ? actionLabels.join(', ') : t('agentBuilder.summary.noActions', 'None')} />
                 {messagingPluginEnabled && form.messagingWhatsappEnabled && (
                   <SummaryRow label={t('agentBuilder.summary.whatsapp', 'WhatsApp')} value={templateCount(form.messagingWhatsappTemplates.length)} />
                 )}
