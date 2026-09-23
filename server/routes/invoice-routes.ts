@@ -16,15 +16,90 @@
  * ============================================================
  */
 
-import { Router, Response } from "express";
+import { Router, Request, Response } from "express";
 import { storage } from "../storage";
 import { requireRole, type AuthRequest } from "../middleware/auth";
 import { authenticateHybrid } from "../middleware/hybrid-auth";
+import { checkAdminOrTeamMember, requireAdminPermission, type AdminRequest } from "../middleware/admin-auth";
 import { invoiceService } from "../services/invoice-service";
+import { invoiceNumberToFilename } from "../engines/payment/invoice-gst";
 import { logger } from "../utils/logger";
+import type { Invoice } from "@shared/schema";
 
 const router = Router();
 const SOURCE = "InvoiceRoutes";
+
+const INVOICE_TYPES = new Set(["tax_invoice", "credit_note"]);
+
+function parsePagination(query: Request["query"], defaultLimit: number, maxLimit: number) {
+  const page = Math.max(parseInt(String(query.page ?? "1"), 10) || 1, 1);
+  const limit = Math.min(Math.max(parseInt(String(query.limit ?? String(defaultLimit)), 10) || defaultLimit, 1), maxLimit);
+  return { page, limit, offset: (page - 1) * limit };
+}
+
+function parseDate(value: unknown, endOfDay = false): Date | undefined {
+  if (typeof value !== "string" || !value.trim()) return undefined;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return undefined;
+  if (endOfDay && /^\d{4}-\d{2}-\d{2}$/.test(value)) date.setUTCHours(23, 59, 59, 999);
+  return date;
+}
+
+function serializeInvoice<T extends Invoice>(invoice: T) {
+  return { ...invoice, pdfAvailable: !!invoice.pdfGeneratedAt };
+}
+
+function sendPdf(res: Response, invoice: Invoice, pdfBuffer: Buffer, inline: boolean): void {
+  const label = invoice.invoiceType === "credit_note" ? "CreditNote" : "Invoice";
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `${inline ? "inline" : "attachment"}; filename="${label}-${invoiceNumberToFilename(invoice.invoiceNumber)}.pdf"`);
+  res.setHeader("Content-Length", pdfBuffer.length);
+  res.send(pdfBuffer);
+}
+
+/**
+ * GET /api/invoices?page=&limit=&type=
+ * Paginated list of the caller's own invoices and credit notes
+ */
+router.get("/", authenticateHybrid, async (req: AuthRequest, res: Response) => {
+  try {
+    const { page, limit, offset } = parsePagination(req.query, 20, 100);
+    const type = typeof req.query.type === "string" && INVOICE_TYPES.has(req.query.type) ? req.query.type : undefined;
+    const { invoices, total } = await storage.getUserInvoicesPaginated(req.userId!, { limit, offset, type });
+    res.json({
+      invoices: invoices.map(serializeInvoice),
+      pagination: { page, limit, total, totalPages: Math.max(Math.ceil(total / limit), 1) },
+    });
+  } catch (error: any) {
+    logger.error("Failed to list invoices", error, SOURCE);
+    res.status(500).json({ message: "Failed to list invoices" });
+  }
+});
+
+/**
+ * GET /api/invoices/:invoiceId/pdf?inline=1
+ * Streams the PDF (owner or admin); regenerates the file when it is missing
+ */
+router.get("/:invoiceId/pdf", authenticateHybrid, async (req: AuthRequest, res: Response) => {
+  try {
+    const { invoiceId } = req.params;
+    const invoice = await storage.getInvoice(invoiceId);
+    if (!invoice) {
+      return res.status(404).json({ message: "Invoice not found" });
+    }
+    if (invoice.userId !== req.userId && req.userRole !== "admin") {
+      return res.status(403).json({ message: "Access denied - you can only download your own invoices" });
+    }
+    const pdfBuffer = await invoiceService.getInvoicePDF(invoiceId);
+    if (!pdfBuffer) {
+      return res.status(404).json({ message: "Failed to generate invoice PDF" });
+    }
+    sendPdf(res, invoice, pdfBuffer, req.query.inline === "1" || req.query.inline === "true");
+  } catch (error: any) {
+    logger.error(`Failed to stream invoice PDF: ${req.params.invoiceId}`, error, SOURCE);
+    res.status(500).json({ message: "Failed to download invoice" });
+  }
+});
 
 /**
  * GET /api/invoices/:invoiceId/download
@@ -51,7 +126,7 @@ router.get("/:invoiceId/download", authenticateHybrid, async (req: AuthRequest, 
     }
 
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="Invoice-${invoice.invoiceNumber}.pdf"`);
+    res.setHeader("Content-Disposition", `attachment; filename="Invoice-${invoiceNumberToFilename(invoice.invoiceNumber)}.pdf"`);
     res.setHeader("Content-Length", pdfBuffer.length);
     res.send(pdfBuffer);
   } catch (error: any) {
@@ -85,7 +160,7 @@ router.get("/by-number/:invoiceNumber/download", authenticateHybrid, async (req:
     }
 
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="Invoice-${invoiceNumber}.pdf"`);
+    res.setHeader("Content-Disposition", `attachment; filename="Invoice-${invoiceNumberToFilename(invoiceNumber)}.pdf"`);
     res.setHeader("Content-Length", pdfBuffer.length);
     res.send(pdfBuffer);
   } catch (error: any) {
@@ -113,7 +188,7 @@ router.get("/admin/:invoiceId/download", authenticateHybrid, requireRole("admin"
     }
 
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="Invoice-${invoice.invoiceNumber}.pdf"`);
+    res.setHeader("Content-Disposition", `attachment; filename="Invoice-${invoiceNumberToFilename(invoice.invoiceNumber)}.pdf"`);
     res.setHeader("Content-Length", pdfBuffer.length);
     res.send(pdfBuffer);
   } catch (error: any) {
@@ -126,7 +201,7 @@ router.get("/admin/:invoiceId/download", authenticateHybrid, requireRole("admin"
  * POST /api/invoices/admin/:transactionId/generate
  * Admin trigger to generate/regenerate invoice for a transaction
  */
-router.post("/admin/:transactionId/generate", authenticateHybrid, requireRole("admin"), async (req: AuthRequest, res: Response) => {
+router.post("/admin/:transactionId/generate", checkAdminOrTeamMember, requireAdminPermission("billing", "payments", "update"), async (req: AdminRequest, res: Response) => {
   try {
     const { transactionId } = req.params;
     const { regenerate } = req.body;
@@ -167,7 +242,7 @@ router.post("/admin/:transactionId/generate", authenticateHybrid, requireRole("a
     
     logger.info(`Admin generated invoice for transaction: ${transactionId}`, { 
       invoiceNumber: invoice.invoiceNumber,
-      adminId: req.userId
+      adminId: req.userId || req.adminTeamMember?.memberId
     }, SOURCE);
 
     res.json({
@@ -213,3 +288,53 @@ router.get("/transaction/:transactionId", authenticateHybrid, async (req: AuthRe
 });
 
 export default router;
+
+/**
+ * Admin invoice router — mounted at /api/admin/invoices behind checkAdminOrTeamMember (server/routes.ts).
+ */
+export const adminInvoiceRouter = Router();
+
+/**
+ * GET /api/admin/invoices?userId=&from=&to=&type=&search=&page=&limit=
+ */
+adminInvoiceRouter.get("/", requireAdminPermission("billing", "transactions", "read"), async (req: AdminRequest, res: Response) => {
+  try {
+    const { page, limit, offset } = parsePagination(req.query, 50, 200);
+    const type = typeof req.query.type === "string" && INVOICE_TYPES.has(req.query.type) ? req.query.type : undefined;
+    const userId = typeof req.query.userId === "string" && req.query.userId.trim() ? req.query.userId.trim() : undefined;
+    const search = typeof req.query.search === "string" && req.query.search.trim() ? req.query.search.trim().slice(0, 100) : undefined;
+    const { invoices, total } = await storage.getAdminInvoices({
+      userId, type, search, limit, offset,
+      startDate: parseDate(req.query.from),
+      endDate: parseDate(req.query.to, true),
+    });
+    res.json({
+      invoices: invoices.map(serializeInvoice),
+      pagination: { page, limit, total, totalPages: Math.max(Math.ceil(total / limit), 1) },
+    });
+  } catch (error: any) {
+    logger.error("Failed to list invoices (admin)", error, SOURCE);
+    res.status(500).json({ message: "Failed to list invoices" });
+  }
+});
+
+/**
+ * GET /api/admin/invoices/:invoiceId/pdf?inline=1
+ */
+adminInvoiceRouter.get("/:invoiceId/pdf", requireAdminPermission("billing", "transactions", "read"), async (req: AdminRequest, res: Response) => {
+  try {
+    const { invoiceId } = req.params;
+    const invoice = await storage.getInvoice(invoiceId);
+    if (!invoice) {
+      return res.status(404).json({ message: "Invoice not found" });
+    }
+    const pdfBuffer = await invoiceService.getInvoicePDF(invoiceId);
+    if (!pdfBuffer) {
+      return res.status(404).json({ message: "Failed to generate invoice PDF" });
+    }
+    sendPdf(res, invoice, pdfBuffer, req.query.inline === "1" || req.query.inline === "true");
+  } catch (error: any) {
+    logger.error(`Admin failed to stream invoice PDF: ${req.params.invoiceId}`, error, SOURCE);
+    res.status(500).json({ message: "Failed to download invoice" });
+  }
+});
