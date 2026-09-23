@@ -165,15 +165,15 @@ ALTER TABLE "sip_phone_numbers" ADD COLUMN IF NOT EXISTS "credentials_synced_at"
 --> statement-breakpoint
 DO $$ BEGIN
   ALTER TABLE "flow_test_queue" ADD CONSTRAINT "flow_test_queue_flow_id_flows_id_fk" FOREIGN KEY ("flow_id") REFERENCES "public"."flows"("id") ON DELETE cascade ON UPDATE no action;
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+EXCEPTION WHEN duplicate_table THEN NULL; WHEN duplicate_object THEN NULL; END $$;
 --> statement-breakpoint
 DO $$ BEGIN
   ALTER TABLE "user_feedback" ADD CONSTRAINT "user_feedback_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+EXCEPTION WHEN duplicate_table THEN NULL; WHEN duplicate_object THEN NULL; END $$;
 --> statement-breakpoint
 DO $$ BEGIN
   ALTER TABLE "user_feedback" ADD CONSTRAINT "user_feedback_responded_by_users_id_fk" FOREIGN KEY ("responded_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+EXCEPTION WHEN duplicate_table THEN NULL; WHEN duplicate_object THEN NULL; END $$;
 --> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "phone_release_retry_queue_next_retry_at_idx" ON "phone_release_retry_queue" USING btree ("next_retry_at");
 --> statement-breakpoint
@@ -181,19 +181,19 @@ CREATE INDEX IF NOT EXISTS "phone_release_retry_queue_phone_number_id_idx" ON "p
 --> statement-breakpoint
 DO $$ BEGIN
   ALTER TABLE "sip_calls" ADD CONSTRAINT "sip_calls_sip_trunk_id_sip_trunks_id_fk" FOREIGN KEY ("sip_trunk_id") REFERENCES "public"."sip_trunks"("id") ON DELETE no action ON UPDATE no action;
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+EXCEPTION WHEN duplicate_table THEN NULL; WHEN duplicate_object THEN NULL; END $$;
 --> statement-breakpoint
 DO $$ BEGIN
   ALTER TABLE "sip_calls" ADD CONSTRAINT "sip_calls_sip_phone_number_id_sip_phone_numbers_id_fk" FOREIGN KEY ("sip_phone_number_id") REFERENCES "public"."sip_phone_numbers"("id") ON DELETE set null ON UPDATE no action;
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+EXCEPTION WHEN duplicate_table THEN NULL; WHEN duplicate_object THEN NULL; END $$;
 --> statement-breakpoint
 DO $$ BEGIN
   ALTER TABLE "sip_calls" ADD CONSTRAINT "sip_calls_agent_id_agents_id_fk" FOREIGN KEY ("agent_id") REFERENCES "public"."agents"("id") ON DELETE set null ON UPDATE no action;
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+EXCEPTION WHEN duplicate_table THEN NULL; WHEN duplicate_object THEN NULL; END $$;
 --> statement-breakpoint
 DO $$ BEGIN
   ALTER TABLE "sip_phone_numbers" ADD CONSTRAINT "sip_phone_numbers_eleven_labs_credential_id_eleven_labs_credentials_id_fk" FOREIGN KEY ("eleven_labs_credential_id") REFERENCES "public"."eleven_labs_credentials"("id") ON DELETE set null ON UPDATE no action;
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+EXCEPTION WHEN duplicate_table THEN NULL; WHEN duplicate_object THEN NULL; END $$;
 --> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "calls_user_id_idx" ON "calls" USING btree ("user_id");
 --> statement-breakpoint
@@ -225,7 +225,7 @@ CREATE INDEX IF NOT EXISTS "contacts_status_idx" ON "contacts" USING btree ("sta
 --> statement-breakpoint
 DO $$ BEGIN
   CREATE UNIQUE INDEX IF NOT EXISTS "credit_transactions_user_reference_unique" ON "credit_transactions" USING btree ("user_id","reference") WHERE reference IS NOT NULL;
-EXCEPTION WHEN unique_violation THEN RAISE WARNING 'skipped credit_transactions_user_reference_unique: duplicate (user_id, reference) rows exist - dedupe and re-run'; END $$;
+EXCEPTION WHEN duplicate_table THEN NULL; WHEN unique_violation THEN RAISE WARNING 'skipped credit_transactions_user_reference_unique: duplicate (user_id, reference) rows exist - dedupe and re-run'; END $$;
 --> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "credit_transactions_user_id_idx" ON "credit_transactions" USING btree ("user_id");
 --> statement-breakpoint
