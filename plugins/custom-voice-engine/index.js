@@ -13918,8 +13918,8 @@ var OpenRouterLlmProvider = class extends BaseLlmProvider {
         headers: {
           Authorization: `Bearer ${config.apiKey}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": "https://agentlabs.io",
-          "X-Title": "AgentLabs AI Voice Engine"
+          "HTTP-Referer": "https://zonvo.tech",
+          "X-Title": "Zonvo AI Voice Engine"
         },
         timeout: 6e4
       });
@@ -13984,8 +13984,8 @@ var OpenRouterLlmProvider = class extends BaseLlmProvider {
         headers: {
           Authorization: `Bearer ${config.apiKey}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": "https://agentlabs.io",
-          "X-Title": "AgentLabs AI Voice Engine"
+          "HTTP-Referer": "https://zonvo.tech",
+          "X-Title": "Zonvo AI Voice Engine"
         },
         responseType: "stream",
         timeout: 6e4,

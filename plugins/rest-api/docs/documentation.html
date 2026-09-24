@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>REST API Plugin - Documentation | AgentLabs</title>
+    <title>REST API Plugin - Documentation | Zonvo AI</title>
     <style>
         :root {
             --primary: #6366f1;
@@ -392,9 +392,9 @@
     <header>
         <div class="container">
             <h1>REST API Plugin</h1>
-            <p>Connect your external systems to AgentLabs with a powerful, secure REST API. Trigger calls, manage campaigns, and receive real-time webhooks programmatically.</p>
+            <p>Connect your external systems to Zonvo AI with a powerful, secure REST API. Trigger calls, manage campaigns, and receive real-time webhooks programmatically.</p>
             <span class="badge">Version 2.0.0</span>
-            <span class="badge">AgentLabs Compatible</span>
+            <span class="badge">Zonvo AI Compatible</span>
         </div>
     </header>
     
@@ -423,9 +423,9 @@
                 <div class="quick-start">
                     <h3>5-Minute Setup</h3>
                     <ol>
-                        <li><strong>Copy the plugin folder</strong> to your AgentLabs <code>plugins/</code> directory</li>
+                        <li><strong>Copy the plugin folder</strong> to your Zonvo AI <code>plugins/</code> directory</li>
                         <li><strong>Run the database migration:</strong> <code>npm run db:push</code></li>
-                        <li><strong>Restart your AgentLabs application:</strong> <code>pm2 restart agentlabs</code></li>
+                        <li><strong>Restart your Zonvo AI application:</strong> <code>pm2 restart zonvo-app</code></li>
                         <li><strong>Create an API key:</strong> Go to Settings &rarr; Developer Access &rarr; Create API Key</li>
                         <li><strong>Make your first API call:</strong> See the example below</li>
                     </ol>
@@ -456,7 +456,7 @@ curl -X POST https://your-domain.com/api/v1/calls \
             <!-- Features -->
             <section id="features">
                 <h2>Features</h2>
-                <p>The REST API Plugin provides everything you need to integrate AgentLabs with your existing systems.</p>
+                <p>The REST API Plugin provides everything you need to integrate Zonvo AI with your existing systems.</p>
                 
                 <div class="card-grid">
                     <div class="card">
@@ -509,10 +509,10 @@ curl -X POST https://your-domain.com/api/v1/calls \
                 
                 <h3>Requirements</h3>
                 <ul>
-                    <li>AgentLabs v4.0.0 or higher</li>
+                    <li>Zonvo AI v4.0.0 or higher</li>
                     <li>Node.js 18 or higher</li>
                     <li>PostgreSQL 14 or higher</li>
-                    <li>Admin access to your AgentLabs installation</li>
+                    <li>Admin access to your Zonvo AI installation</li>
                 </ul>
                 
                 <h3>Method 1: Admin UI Installer (Recommended)</h3>
@@ -529,13 +529,13 @@ curl -X POST https://your-domain.com/api/v1/calls \
                     </div>
                     <div class="step">
                         <h4>Upload Plugin ZIP</h4>
-                        <p>Click <strong>"Upload Plugin"</strong> and select the <code>AgentLabs-RestAPI-Plugin-v2.0.0.zip</code> file. The installer validates the manifest, extracts files, and runs database migrations automatically.</p>
+                        <p>Click <strong>"Upload Plugin"</strong> and select the <code>ZonvoAI-RestAPI-Plugin-v2.0.0.zip</code> file. The installer validates the manifest, extracts files, and runs database migrations automatically.</p>
                     </div>
                     <div class="step">
                         <h4>Restart Application</h4>
-                        <p>Restart your AgentLabs server to load the plugin:</p>
+                        <p>Restart your Zonvo AI server to load the plugin:</p>
 <pre>
-pm2 restart agentlabs
+pm2 restart zonvo-app
 </pre>
                     </div>
                     <div class="step">
@@ -562,8 +562,8 @@ curl https://your-domain.com/api/plugins/health
                         <h4>Extract Plugin Files</h4>
                         <p>Upload and extract the plugin ZIP on your server:</p>
 <pre>
-cd /path/to/agentlabs
-unzip AgentLabs-RestAPI-Plugin-v2.0.0.zip -d plugins/
+cd /path/to/zonvo
+unzip ZonvoAI-RestAPI-Plugin-v2.0.0.zip -d plugins/
 </pre>
                     </div>
                     <div class="step">
@@ -581,10 +581,10 @@ psql $DATABASE_URL -f plugins/rest-api/migrations/001_api_tables.sql
                     </div>
                     <div class="step">
                         <h4>Restart Application</h4>
-                        <p>Restart your AgentLabs server to load the plugin:</p>
+                        <p>Restart your Zonvo AI server to load the plugin:</p>
 <pre>
 <span class="code-comment"># Production</span>
-pm2 restart agentlabs
+pm2 restart zonvo-app
 
 <span class="code-comment"># Development</span>
 npm run dev
@@ -620,8 +620,8 @@ curl https://your-domain.com/api/docs
                 <h3>Creating an API Key</h3>
                 <div class="steps">
                     <div class="step">
-                        <h4>Log in to AgentLabs</h4>
-                        <p>Log in to your AgentLabs account as a regular user.</p>
+                        <h4>Log in to Zonvo AI</h4>
+                        <p>Log in to your Zonvo AI account as a regular user.</p>
                     </div>
                     <div class="step">
                         <h4>Go to Developer Settings</h4>
@@ -748,7 +748,7 @@ curl -H "X-API-Key: agl_sk_YOUR_API_KEY" \
                 <div class="alert alert-info">
                     <span class="alert-icon">&#128712;</span>
                     <div>
-                        <strong>Interactive Documentation:</strong> Visit <code>/api/docs/playground</code> on your AgentLabs installation to test these endpoints interactively.
+                        <strong>Interactive Documentation:</strong> Visit <code>/api/docs/playground</code> on your Zonvo AI installation to test these endpoints interactively.
                     </div>
                 </div>
                 
@@ -1065,7 +1065,7 @@ print_r($result);
                 <ul>
                     <li>Check the API documentation at <code>/api/docs</code></li>
                     <li>Review the server logs for detailed error messages</li>
-                    <li>Contact AgentLabs support with your error details</li>
+                    <li>Contact Zonvo AI support with your error details</li>
                 </ul>
             </section>
             
@@ -1115,8 +1115,8 @@ print_r($result);
     
     <footer>
         <div class="container">
-            <p><strong>REST API Plugin for AgentLabs</strong></p>
-            <p>Version 2.0.0 | &copy; 2026 AgentLabs. All rights reserved.</p>
+            <p><strong>REST API Plugin for Zonvo AI</strong></p>
+            <p>Version 2.0.0 | &copy; 2026 Zonvo AI. All rights reserved.</p>
         </div>
     </footer>
 </body>

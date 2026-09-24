@@ -1,8 +1,8 @@
 {
   "info": {
-    "_postman_id": "agentlabs-rest-api-v1",
-    "name": "AgentLabs REST API",
-    "description": "Complete API collection for AgentLabs AI-powered bulk calling platform.\n\n## Authentication\n\nAll endpoints require an API key. Add your key to the collection variables:\n1. Click on the collection name\n2. Go to Variables tab\n3. Set `api_key` to your API key\n\n## Getting Started\n\n1. Generate an API key from Settings > Developer in the AgentLabs dashboard\n2. Set the `base_url` variable to your instance URL\n3. Set your `api_key`\n4. Start making requests!",
+    "_postman_id": "zonvo-rest-api-v1",
+    "name": "Zonvo AI REST API",
+    "description": "Complete API collection for Zonvo AI AI-powered bulk calling platform.\n\n## Authentication\n\nAll endpoints require an API key. Add your key to the collection variables:\n1. Click on the collection name\n2. Go to Variables tab\n3. Set `api_key` to your API key\n\n## Getting Started\n\n1. Generate an API key from Settings > Developer in the Zonvo AI dashboard\n2. Set the `base_url` variable to your instance URL\n3. Set your `api_key`\n4. Start making requests!",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://your-agentlabs-instance.com",
+      "value": "https://app.zonvo.tech",
       "type": "string"
     },
     {
@@ -622,7 +622,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"url\": \"https://your-server.com/webhooks/agentlabs\",\n  \"events\": [\n    \"call.completed\",\n    \"call.failed\",\n    \"campaign.completed\"\n  ],\n  \"description\": \"Production webhook for call events\"\n}"
+              "raw": "{\n  \"url\": \"https://your-server.com/webhooks/zonvo\",\n  \"events\": [\n    \"call.completed\",\n    \"call.failed\",\n    \"campaign.completed\"\n  ],\n  \"description\": \"Production webhook for call events\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/v1/webhooks",
@@ -670,7 +670,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"url\": \"https://your-server.com/webhooks/agentlabs-v2\",\n  \"events\": [\n    \"call.completed\",\n    \"call.failed\",\n    \"campaign.completed\",\n    \"credits.low\"\n  ],\n  \"isActive\": true\n}"
+              "raw": "{\n  \"url\": \"https://your-server.com/webhooks/zonvo-v2\",\n  \"events\": [\n    \"call.completed\",\n    \"call.failed\",\n    \"campaign.completed\",\n    \"credits.low\"\n  ],\n  \"isActive\": true\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/v1/webhooks/:id",

@@ -3,11 +3,11 @@
   "displayName": "REST API Plugin",
   "version": "2.3.0",
   "description": "Comprehensive REST API for external system integration. Enables clients to trigger calls, manage campaigns, and receive events via webhooks programmatically.",
-  "author": "AgentLabs",
+  "author": "Zonvo AI",
   "license": "Commercial",
-  "homepage": "https://agentlabs.io/plugins/rest-api",
+  "homepage": "https://zonvo.tech/plugins/rest-api",
   "compatibility": {
-    "agentlabs": ">=1.0.0",
+    "zonvo-ai": ">=1.0.0",
     "node": ">=18.0.0"
   },
   "entryPoint": "index.ts",

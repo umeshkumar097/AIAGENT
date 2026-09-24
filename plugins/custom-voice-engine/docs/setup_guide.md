@@ -1,6 +1,6 @@
 # Custom Voice Engine: Server Setup & Configuration Guide
 
-This guide provides detailed instructions to install, configure, and debug the **Custom Voice Engine** plugin powered by **FreeSWITCH** and **AgentLabs**.
+This guide provides detailed instructions to install, configure, and debug the **Custom Voice Engine** plugin powered by **FreeSWITCH** and **Zonvo AI**.
 
 ---
 
@@ -13,7 +13,7 @@ sequenceDiagram
     participant User as Caller (Phone)
     participant Provider as Twilio SIP Gateway
     participant FS as FreeSWITCH (Host VM)
-    participant Backend as AgentLabs Backend (Docker)
+    participant Backend as Zonvo AI Backend (Docker)
     participant STT as Deepgram STT
     participant LLM as OpenRouter LLM
     participant TTS as Deepgram TTS
@@ -230,7 +230,7 @@ If your FreeSWITCH instance is deployed on AWS EC2 (or another cloud provider be
 
 ## 3. Dynamic IP & Dialplan Setup
 
-Because the AgentLabs Node.js server runs inside a Docker container, its internal IP address (e.g., `10.0.1.x`) changes every time the container is rebuilt or redeployed. 
+Because the Zonvo AI Node.js server runs inside a Docker container, its internal IP address (e.g., `10.0.1.x`) changes every time the container is rebuilt or redeployed. 
 
 To prevent connection failures, we use a **dynamic variable routing mechanism** instead of hardcoded IPs.
 
@@ -257,7 +257,7 @@ fs_cli -x "reloadxml"
 ```
 
 ### Step 2: Dynamic IP Broadcast (Automatic)
-The AgentLabs plugin has built-in auto-discovery:
+The Zonvo AI plugin has built-in auto-discovery:
 1. On container startup, the plugin detects its internal container bridge IP (e.g., `10.0.1.14`) via `os.networkInterfaces()`.
 2. It establishes an ESL connection to all registered online FreeSWITCH nodes.
 3. It executes `global_setvar ve_audio_ws_url ws://<IP>:3006/voice-engine/ws/audio` dynamically.

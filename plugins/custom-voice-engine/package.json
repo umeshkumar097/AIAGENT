@@ -1,8 +1,8 @@
 {
-  "name": "@agentlabs/custom-voice-engine",
+  "name": "@zonvo/custom-voice-engine",
   "version": "1.0.0",
-  "description": "Custom Voice Engine plugin for AgentLabs - FreeSWITCH powered voice pipeline with pluggable STT/LLM/TTS providers",
-  "author": "AgentLabs",
+  "description": "Custom Voice Engine plugin for Zonvo AI - FreeSWITCH powered voice pipeline with pluggable STT/LLM/TTS providers",
+  "author": "Zonvo AI",
   "license": "Commercial",
   "type": "module",
   "main": "index.ts",

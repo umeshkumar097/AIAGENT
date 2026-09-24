@@ -1,13 +1,13 @@
 {
-  "name": "@agentlabs/messaging-plugin",
+  "name": "@zonvo/messaging-plugin",
   "version": "1.0.3",
   "description": "Multi-channel messaging plugin supporting Meta WhatsApp Business API, WhatsWay WhatsApp gateway, and SMTP email. Features conversation inbox, email templates, embedded signup, and AI webhook tools.",
   "main": "index.js",
   "type": "module",
   "types": "index.ts",
-  "author": "AgentLabs",
+  "author": "Zonvo AI",
   "license": "Commercial",
-  "homepage": "https://agentlabs.io/plugins/messaging",
+  "homepage": "https://zonvo.tech/plugins/messaging",
   "keywords": [
     "messaging",
     "whatsapp",
@@ -50,9 +50,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/agentlabs/messaging-plugin"
+    "url": "https://github.com/zonvo-ai/messaging-plugin"
   },
   "bugs": {
-    "url": "https://github.com/agentlabs/messaging-plugin/issues"
+    "url": "https://github.com/zonvo-ai/messaging-plugin/issues"
   }
 }

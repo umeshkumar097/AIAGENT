@@ -77,7 +77,7 @@ export function createRestApiRouter(): Router {
     res.json({
       success: true,
       data: {
-        name: 'AgentLabs REST API',
+        name: 'Zonvo AI REST API',
         version: API_VERSION,
         documentation: '/api/v1/docs',
         endpoints: {
@@ -154,7 +154,7 @@ export function registerRestApiRoutes(app: Express, options: RegisterRestApiOpti
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AgentLabs API Reference</title>
+    <title>Zonvo AI API Reference</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -296,7 +296,7 @@ export function registerRestApiRoutes(app: Express, options: RegisterRestApiOpti
     <div class="header">
       <div class="header-left">
         <a href="/api/docs" class="logo">
-          <span class="logo-text">AgentLabs</span>
+          <span class="logo-text">Zonvo AI</span>
           <span class="logo-api">API</span>
         </a>
         <span class="version">v1.0</span>
@@ -439,7 +439,7 @@ export function registerRestApiRoutes(app: Express, options: RegisterRestApiOpti
         body { background: #fafbfc; }
         .swagger-ui .wrapper { max-width: 1200px; padding: 16px 24px; }
       `,
-      customSiteTitle: 'AgentLabs API Playground',
+      customSiteTitle: 'Zonvo AI API Playground',
       swaggerOptions: {
         persistAuthorization: true,
         displayRequestDuration: true,
@@ -488,7 +488,7 @@ export const pluginInfo = {
   name: 'rest-api',
   version: '1.0.0',
   description: 'Comprehensive REST API for external system integration',
-  author: 'AgentLabs',
+  author: 'Zonvo AI',
   features: [
     'API Key Authentication',
     'Rate Limiting',

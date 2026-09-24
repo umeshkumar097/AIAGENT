@@ -3,11 +3,11 @@
   "displayName": "Team Management Plugin",
   "version": "2.3.0",
   "description": "Complete team management with role-based access control. Enables users and admins to create team members with separate logins, assign roles, and configure section-wise CRUD permissions.",
-  "author": "AgentLabs",
+  "author": "Zonvo AI",
   "license": "Commercial",
-  "homepage": "https://agentlabs.io/plugins/team-management",
+  "homepage": "https://zonvo.tech/plugins/team-management",
   "compatibility": {
-    "agentlabs": ">=1.0.0",
+    "zonvo-ai": ">=1.0.0",
     "node": ">=18.0.0"
   },
   "entryPoint": "index.ts",

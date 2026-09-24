@@ -1,5 +1,5 @@
 /**
- * PM2 Ecosystem Configuration for AgentLabs (PRODUCTION)
+ * PM2 Ecosystem Configuration for Zonvo AI (PRODUCTION)
  * 
  * This file configures PM2 process manager for production deployment:
  * - Auto-restart on crash or memory limits exceeded
@@ -20,9 +20,9 @@
  * 
  * PM2 Commands:
  *   pm2 start ecosystem.config.cjs    - Start the application
- *   pm2 restart agentlabs             - Restart the application
- *   pm2 stop agentlabs                - Stop the application
- *   pm2 logs agentlabs                - View logs
+ *   pm2 restart zonvo-app             - Restart the application
+ *   pm2 stop zonvo-app                - Stop the application
+ *   pm2 logs zonvo-app                - View logs
  *   pm2 monit                         - Monitor in terminal
  *   pm2 status                        - Check status
  */
@@ -39,7 +39,7 @@ console.log(`[PM2 Config] Memory Limit (75%): ${memoryLimitString}`);
 
 module.exports = {
   apps: [{
-    name: 'agentlabs',
+    name: 'zonvo-app',
     script: 'dist/index.js',
     
     env: {

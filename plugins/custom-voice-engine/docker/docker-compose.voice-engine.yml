@@ -1,7 +1,7 @@
 # ============================================================
 # AI Voice Engine — Docker Compose
 # Includes: FreeSWITCH, Redis (cache), and monitoring
-# The main AgentLabs app runs separately
+# The main Zonvo AI app runs separately
 # ============================================================
 services:
   # ── FreeSWITCH with mod_audio_fork ────────────────────

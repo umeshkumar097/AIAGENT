@@ -76,7 +76,7 @@ router.get('/openai-sip/config', requireAdminPermission('phones', 'phone_numbers
           'Enter the Webhook URL shown below and select "realtime.call.incoming" event',
           'Copy the Webhook Secret from OpenAI and paste it below',
           'Configure your SIP trunk provider to point to the SIP Endpoint',
-          'Import phone numbers in AgentLabs and assign AI agents',
+          'Import phone numbers in Zonvo AI and assign AI agents',
           'Test by calling one of your imported numbers',
         ],
       },
@@ -196,8 +196,8 @@ router.get('/calls', requireAdminPermission('phones', 'phone_numbers', 'read'), 
       status: status as string | undefined,
       startDate: startDate ? new Date(startDate as string) : undefined,
       endDate: endDate ? new Date(endDate as string) : undefined,
-      limit: limit ? parseInt(limit as string) : 50,
-      offset: offset ? parseInt(offset as string) : 0,
+      limit: limit ? parseInt(limit as string, 10) : 50,
+      offset: offset ? parseInt(offset as string, 10) : 0,
     };
 
     const calls = await SipTrunkService.getSipCalls(filters);

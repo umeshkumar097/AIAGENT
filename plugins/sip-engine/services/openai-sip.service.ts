@@ -10,8 +10,8 @@
  * 
  * Flow:
  * 1. User configures SIP trunk pointing to: sip:$PROJECT_ID@sip.api.openai.com;transport=tls
- * 2. When call comes in, OpenAI sends webhook to AgentLabs
- * 3. AgentLabs accepts/rejects the call with agent configuration
+ * 2. When call comes in, OpenAI sends webhook to Zonvo AI
+ * 3. Zonvo AI accepts/rejects the call with agent configuration
  * 4. OpenAI handles the conversation directly
  */
 

@@ -51,8 +51,8 @@ router.get(
   apiAuthMiddleware('webhooks:read'),
   asyncHandler(async (req: AuthenticatedApiRequest, res: Response) => {
     const { userId } = req.apiAuth;
-    const page = parseInt(req.query.page as string) || 1;
-    const pageSize = Math.min(parseInt(req.query.pageSize as string) || 50, 100);
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const pageSize = Math.min(parseInt(req.query.pageSize as string, 10) || 50, 100);
     const offset = (page - 1) * pageSize;
     
     const [webhooks, countResult] = await Promise.all([
@@ -324,7 +324,7 @@ router.post(
       event: 'test.ping',
       timestamp: new Date().toISOString(),
       data: {
-        message: 'This is a test webhook delivery from AgentLabs API.',
+        message: 'This is a test webhook delivery from Zonvo AI API.',
         webhookId: webhook.id,
       },
     };
@@ -339,6 +339,9 @@ router.post(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-Zonvo-Signature': signature,
+          'X-Zonvo-Event': 'test.ping',
+          // Legacy header names kept so existing receivers keep verifying
           'X-AgentLabs-Signature': signature,
           'X-AgentLabs-Event': 'test.ping',
         },

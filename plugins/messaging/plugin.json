@@ -3,11 +3,11 @@
   "displayName": "Messaging Plugin",
   "version": "1.0.3",
   "description": "Email and WhatsApp messaging integration for AI agents. Emails go out through the platform email system (Resend/SMTP), WhatsApp template messages through Waki, and inbound WhatsApp chats are answered by the assigned agent (OpenAI + knowledge base) with human handoff.",
-  "author": "AgentLabs",
+  "author": "Zonvo AI",
   "license": "Commercial",
-  "homepage": "https://agentlabs.io/plugins/messaging",
+  "homepage": "https://zonvo.tech/plugins/messaging",
   "compatibility": {
-    "agentlabs": ">=1.0.0",
+    "zonvo-ai": ">=1.0.0",
     "node": ">=18.0.0"
   },
   "entryPoint": "index.ts",

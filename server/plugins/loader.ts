@@ -39,7 +39,8 @@ export interface PluginManifest {
   license?: string;
   homepage?: string;
   compatibility?: {
-    'Zonvo AI'?: string;
+    'zonvo-ai'?: string;
+    agentlabs?: string; // older plugin manifests
     node?: string;
   };
   entryPoint: string;

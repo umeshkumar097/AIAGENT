@@ -238,7 +238,7 @@ router.post(
       event: "test.ping",
       timestamp: (/* @__PURE__ */ new Date()).toISOString(),
       data: {
-        message: "This is a test webhook delivery from AgentLabs API.",
+        message: "This is a test webhook delivery from Zonvo AI API.",
         webhookId: webhook.id
       }
     };
@@ -248,8 +248,8 @@ router.post(
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-AgentLabs-Signature": signature,
-          "X-AgentLabs-Event": "test.ping"
+          "X-Zonvo AI-Signature": signature,
+          "X-Zonvo AI-Event": "test.ping"
         },
         body: JSON.stringify(testPayload),
         signal: AbortSignal.timeout(1e4)

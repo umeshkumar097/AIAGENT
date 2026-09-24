@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
-  title: AgentLabs REST API
+  title: Zonvo AI REST API
   description: |
-    Welcome to the AgentLabs REST API documentation. This API enables you to programmatically automate AI-powered voice communications at scale.
+    Welcome to the Zonvo AI REST API documentation. This API enables you to programmatically automate AI-powered voice communications at scale.
   version: 1.0.0
 
 servers:
@@ -12,9 +12,9 @@ servers:
 tags:
   - name: Introduction
     description: |
-      ## Welcome to AgentLabs API
+      ## Welcome to Zonvo AI API
 
-      AgentLabs provides a powerful REST API for automating AI-powered voice calls. Whether you're building customer outreach, appointment reminders, lead qualification, or interactive voice applications, our API gives you full control.
+      Zonvo AI provides a powerful REST API for automating AI-powered voice calls. Whether you're building customer outreach, appointment reminders, lead qualification, or interactive voice applications, our API gives you full control.
 
       <br /><br />
 
@@ -28,7 +28,7 @@ tags:
 
       ### Step 1: Generate an API Key
 
-      Navigate to your AgentLabs dashboard → Settings → Developer tab to create an API key. Keep this key secure—it provides full access to your account.
+      Navigate to your Zonvo AI dashboard → Settings → Developer tab to create an API key. Keep this key secure—it provides full access to your account.
 
       <br />
 
@@ -81,7 +81,7 @@ tags:
 
       ## Telephony Engines
 
-      AgentLabs supports three telephony engines for different use cases:
+      Zonvo AI supports three telephony engines for different use cases:
 
       <br />
 
@@ -1536,12 +1536,12 @@ paths:
               callEvents:
                 summary: Subscribe to call events
                 value:
-                  url: "https://your-server.com/webhooks/agentlabs"
+                  url: "https://your-server.com/webhooks/zonvo"
                   events: ["call.started", "call.completed", "call.failed"]
               allEvents:
                 summary: Subscribe to all events
                 value:
-                  url: "https://your-server.com/webhooks/agentlabs"
+                  url: "https://your-server.com/webhooks/zonvo"
                   events: ["call.started", "call.completed", "call.failed", "campaign.started", "campaign.completed"]
       responses:
         '201':
@@ -1651,7 +1651,7 @@ paths:
         <br />
         
         **Test Process:**
-        1. AgentLabs sends a test payload to your URL
+        1. Zonvo AI sends a test payload to your URL
         2. Your server should return 2xx status
         3. Response includes success/failure and timing info
         

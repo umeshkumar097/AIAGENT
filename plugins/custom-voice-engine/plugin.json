@@ -3,12 +3,12 @@
   "displayName": "Custom Voice Engine",
   "version": "1.0.0",
   "description": "Self-hosted Custom Voice Engine powered by FreeSWITCH. Provides real-time voice streaming with pluggable STT (Deepgram, Sarvam), LLM (OpenRouter), and TTS (Deepgram, Sarvam) providers. Includes customer memory, conversation engine, semantic caching, and call recording.",
-  "author": "AgentLabs",
+  "author": "Zonvo AI",
   "license": "Commercial",
-  "homepage": "https://agentlabs.io/plugins/custom-voice-engine",
+  "homepage": "https://zonvo.tech/plugins/custom-voice-engine",
 
   "compatibility": {
-    "agentlabs": ">=1.0.0",
+    "zonvo-ai": ">=1.0.0",
     "node": ">=22.0.0"
   },
 

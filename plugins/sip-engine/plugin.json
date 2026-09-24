@@ -3,11 +3,11 @@
   "displayName": "SIP Engine Plugin",
   "version": "2.3.0",
   "description": "SIP telephony integration supporting ElevenLabs SIP (multi-provider) and OpenAI SIP (incoming calls). Enables customers to use their own SIP trunks for AI-powered voice calls.",
-  "author": "AgentLabs",
+  "author": "Zonvo AI",
   "license": "Commercial",
-  "homepage": "https://agentlabs.io/plugins/sip-engine",
+  "homepage": "https://zonvo.tech/plugins/sip-engine",
   "compatibility": {
-    "agentlabs": ">=1.0.0",
+    "zonvo-ai": ">=1.0.0",
     "node": ">=18.0.0"
   },
   "entryPoint": "index.ts",

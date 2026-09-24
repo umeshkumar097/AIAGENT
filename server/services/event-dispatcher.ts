@@ -100,12 +100,12 @@ async function getBranding(): Promise<Branding> {
       storage.getGlobalSetting('smtp_from_email'),
     ]);
     return {
-      appName: String(appName?.value || process.env.APP_NAME || 'AgentLabs'),
+      appName: String(appName?.value || process.env.APP_NAME || 'Zonvo AI'),
       appUrl,
       supportEmail: String(supportEmail?.value || fromEmail?.value || process.env.SMTP_FROM_EMAIL || ''),
     };
   } catch {
-    return { appName: process.env.APP_NAME || 'AgentLabs', appUrl, supportEmail: process.env.SMTP_FROM_EMAIL || '' };
+    return { appName: process.env.APP_NAME || 'Zonvo AI', appUrl, supportEmail: process.env.SMTP_FROM_EMAIL || '' };
   }
 }
 

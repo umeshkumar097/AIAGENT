@@ -198,7 +198,7 @@ router.get('/config', async (req: Request, res: Response) => {
         instructions: [
           '1. Configure your SIP trunk to point to the sipEndpoint above',
           '2. Set the webhookUrl in your OpenAI Platform project settings',
-          '3. Import phone numbers and assign agents in AgentLabs',
+          '3. Import phone numbers and assign agents in Zonvo AI',
           '4. Incoming calls will be handled by the assigned AI agent',
         ],
       },

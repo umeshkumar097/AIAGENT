@@ -7889,7 +7889,7 @@ router7.post(
       event: "test.ping",
       timestamp: (/* @__PURE__ */ new Date()).toISOString(),
       data: {
-        message: "This is a test webhook delivery from AgentLabs API.",
+        message: "This is a test webhook delivery from Zonvo AI API.",
         webhookId: webhook.id
       }
     };
@@ -7899,8 +7899,8 @@ router7.post(
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-AgentLabs-Signature": signature,
-          "X-AgentLabs-Event": "test.ping"
+          "X-Zonvo AI-Signature": signature,
+          "X-Zonvo AI-Event": "test.ping"
         },
         body: JSON.stringify(testPayload),
         signal: AbortSignal.timeout(1e4)
@@ -8430,7 +8430,7 @@ function createRestApiRouter() {
     res.json({
       success: true,
       data: {
-        name: "AgentLabs REST API",
+        name: "Zonvo AI REST API",
         version: API_VERSION2,
         documentation: "/api/v1/docs",
         endpoints: {
@@ -8471,7 +8471,7 @@ function registerRestApiRoutes(app, options) {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AgentLabs API Reference</title>
+    <title>Zonvo AI API Reference</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -8613,7 +8613,7 @@ function registerRestApiRoutes(app, options) {
     <div class="header">
       <div class="header-left">
         <a href="/api/docs" class="logo">
-          <span class="logo-text">AgentLabs</span>
+          <span class="logo-text">Zonvo AI</span>
           <span class="logo-api">API</span>
         </a>
         <span class="version">v1.0</span>
@@ -8754,7 +8754,7 @@ function registerRestApiRoutes(app, options) {
         body { background: #fafbfc; }
         .swagger-ui .wrapper { max-width: 1200px; padding: 16px 24px; }
       `,
-      customSiteTitle: "AgentLabs API Playground",
+      customSiteTitle: "Zonvo AI API Playground",
       swaggerOptions: {
         persistAuthorization: true,
         displayRequestDuration: true,
@@ -8794,7 +8794,7 @@ var pluginInfo = {
   name: "rest-api",
   version: "1.0.0",
   description: "Comprehensive REST API for external system integration",
-  author: "AgentLabs",
+  author: "Zonvo AI",
   features: [
     "API Key Authentication",
     "Rate Limiting",

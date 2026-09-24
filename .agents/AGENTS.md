@@ -1,4 +1,4 @@
-# AgentLabs Workspace Rules
+# Zonvo AI Workspace Rules
 
 ## 🔐 SECURITY — GitHub Push Rules (CRITICAL)
 
