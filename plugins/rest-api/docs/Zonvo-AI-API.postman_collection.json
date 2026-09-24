@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "zonvo-rest-api-v1",
     "name": "Zonvo AI REST API",
-    "description": "Complete API collection for Zonvo AI AI-powered bulk calling platform.\n\n## Authentication\n\nAll endpoints require an API key. Add your key to the collection variables:\n1. Click on the collection name\n2. Go to Variables tab\n3. Set `api_key` to your API key\n\n## Getting Started\n\n1. Generate an API key from Settings > Developer in the Zonvo AI dashboard\n2. Set the `base_url` variable to your instance URL\n3. Set your `api_key`\n4. Start making requests!\n\n## What's new (v2.1.0, Sept 2026)\n\nFolders for **Callbacks** (single, bulk, cancel by externalRef), **Leads**, **Appointments** and **Do-not-call**, plus call outcomes (`GET /calls/outcomes`, `POST /calls/:id/outcome`, `outcome` filter on `GET /calls`) and scheduled calls (`POST /calls` with `scheduledAt`).",
+    "description": "Complete API collection for Zonvo AI AI-powered bulk calling platform.\n\n## Authentication\n\nAll endpoints require an API key. Add your key to the collection variables:\n1. Click on the collection name\n2. Go to Variables tab\n3. Set `api_key` to your API key\n\n## Getting Started\n\n1. Generate an API key from Settings > Developer in the Zonvo AI dashboard\n2. Set the `base_url` variable to your instance URL\n3. Set your `api_key`\n4. Start making requests!\n\n## What's new (v2.3.0, Sept 2026)\n\nFolders for **Callbacks** (single, bulk, cancel by externalRef), **Leads**, **Appointments** and **Do-not-call**, plus call outcomes (`GET /calls/outcomes`, `POST /calls/:id/outcome`, `outcome` filter on `GET /calls`) and scheduled calls (`POST /calls` with `scheduledAt`).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -280,7 +280,7 @@
                 }
               ]
             },
-            "description": "Set or correct an agent-kind outcome from your CRM",
+            "description": "Set or correct an agent-kind outcome from your CRM → { callId, outcome, outcomeSource: 'agent', note }",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"outcome\": \"interested\",\n  \"note\": \"Wants a demo next week\"\n}"
@@ -911,7 +911,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"url\": \"https://crm.example.com/hooks/zonvo\",\n  \"events\": [\n    \"call.completed\",\n    \"lead.upserted\",\n    \"appointment.booked\",\n    \"appointment.cancelled\",\n    \"callback.scheduled\"\n  ],\n  \"description\": \"Zonvo \\u2192 CRM\"\n}"
+              "raw": "{\n  \"name\": \"CRM sync\",\n  \"url\": \"https://crm.example.com/hooks/zonvo\",\n  \"events\": [\n    \"call.completed\",\n    \"lead.upserted\",\n    \"appointment.booked\",\n    \"appointment.cancelled\",\n    \"callback.scheduled\"\n  ],\n  \"description\": \"Zonvo \\u2192 CRM\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/v1/webhooks",
@@ -1142,7 +1142,7 @@
                 "bulk"
               ]
             },
-            "description": "Up to 500 contacts with one agent. Response lists created and skipped (do_not_call | duplicate | invalid_phone | past | too_far).",
+            "description": "Up to 500 contacts with one agent → 201 { created, skipped } (skip reasons: do_not_call | duplicate | invalid_phone | past | too_far).",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"agentId\": \"your-agent-uuid\",\n  \"timeZone\": \"Asia/Kolkata\",\n  \"contacts\": [\n    {\n      \"phone\": \"+919876543210\",\n      \"name\": \"Priya Sharma\",\n      \"scheduledAt\": \"2026-09-29T11:00:00+05:30\",\n      \"externalRef\": \"reg_8812-24h\",\n      \"reason\": \"Webinar reminder, 1 day before\",\n      \"variables\": {\n        \"first_name\": \"Priya\",\n        \"webinar_title\": \"GST filing for startups\",\n        \"webinar_time\": \"30 Sept, 11:00 AM IST\",\n        \"join_link\": \"https://example.com/j/8812\"\n      }\n    },\n    {\n      \"phone\": \"+919876543210\",\n      \"name\": \"Priya Sharma\",\n      \"scheduledAt\": \"2026-09-30T10:00:00+05:30\",\n      \"externalRef\": \"reg_8812-1h\",\n      \"reason\": \"Webinar reminder, 1 hour before\",\n      \"variables\": {\n        \"first_name\": \"Priya\",\n        \"webinar_title\": \"GST filing for startups\",\n        \"webinar_time\": \"30 Sept, 11:00 AM IST\",\n        \"join_link\": \"https://example.com/j/8812\"\n      }\n    }\n  ]\n}"
@@ -1172,7 +1172,7 @@
                 }
               ]
             },
-            "description": "Cancel a pending callback (404 if not pending)"
+            "description": "Cancel a pending callback (404 if not pending) → { cancelled: true, callback }"
           }
         },
         {
@@ -1197,7 +1197,7 @@
                 }
               ]
             },
-            "description": "Cancel the pending callback created with this externalRef"
+            "description": "Cancel the pending callback created with this externalRef → { cancelled: true, callback }"
           }
         }
       ]
@@ -1239,7 +1239,7 @@
                 }
               ]
             },
-            "description": "AI-qualified leads. Filters: stage, q, since (updatedAt ≥ ISO time), assigned (user id or 'unassigned')"
+            "description": "AI-qualified leads. Filters: stage, q, since (updatedAt ≥ ISO time), assigned (user id or 'none')"
           }
         },
         {
