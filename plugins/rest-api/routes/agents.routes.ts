@@ -9,11 +9,29 @@ import { Router, Response } from 'express';
 import { apiAuthMiddleware, asyncHandler } from '../middleware/auth.middleware.js';
 import type { AuthenticatedApiRequest, ApiResponse } from '../types.js';
 import { db } from '../../../server/db.js';
-import { agents, flows } from '../../../shared/schema.js';
+import { agents, flows, type Agent } from '../../../shared/schema.js';
 import { eq, and, desc, sql } from 'drizzle-orm';
-import { z } from 'zod';
+import { readActionsConfig } from '../../../server/services/call-actions/index.js';
 
 const router = Router();
+
+/**
+ * Call-time actions summary (agent builder step "Actions" + legacy boolean columns).
+ * Never exposes api tool URLs/headers — only how many are configured.
+ */
+function actionsSummary(agent: Agent) {
+  const a = readActionsConfig(agent.config);
+  const transferDigits = (agent.transferPhoneNumber || '').replace(/\D/g, '').length;
+  return {
+    transfer: !!agent.transferEnabled && transferDigits >= 6,
+    appointments: !!agent.appointmentBookingEnabled,
+    saveLead: !!a.saveLead,
+    callbacks: !!a.callback?.enabled,
+    apiTools: Array.isArray(a.apiTools) ? a.apiTools.length : 0,
+    voicemail: a.voicemail?.action === 'hangup' || a.voicemail?.action === 'leave_message' ? a.voicemail.action : null,
+    ownerAlerts: !!a.ownerAlerts?.enabled,
+  };
+}
 
 /**
  * GET /v1/agents - List agents
@@ -23,8 +41,8 @@ router.get(
   apiAuthMiddleware('agents:read'),
   asyncHandler(async (req: AuthenticatedApiRequest, res: Response) => {
     const { userId } = req.apiAuth;
-    const page = parseInt(req.query.page as string) || 1;
-    const pageSize = Math.min(parseInt(req.query.pageSize as string) || 20, 100);
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const pageSize = Math.min(parseInt(req.query.pageSize as string, 10) || 20, 100);
     const offset = (page - 1) * pageSize;
     
     const [agentList, countResult] = await Promise.all([
@@ -114,6 +132,7 @@ router.get(
         transferPhoneNumber: agent.transferPhoneNumber,
         isActive: agent.isActive,
         maxDurationSeconds: agent.maxDurationSeconds,
+        actions: actionsSummary(agent),
         createdAt: agent.createdAt,
         updatedAt: agent.updatedAt,
       },

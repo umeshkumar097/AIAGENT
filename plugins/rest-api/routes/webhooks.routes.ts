@@ -13,6 +13,8 @@ import { webhookSubscriptions } from '../../../shared/schema.js';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import crypto from 'crypto';
+import { nanoid } from 'nanoid';
+import { WEBHOOK_EVENT_TYPES } from '../../../server/services/webhook-test-service.js';
 
 const router = Router();
 
@@ -20,27 +22,26 @@ const updateWebhookSchema = z.object({
   url: z.string().url('Invalid webhook URL').optional(),
   events: z.array(z.string()).min(1, 'At least one event is required').optional(),
   isActive: z.boolean().optional(),
-  description: z.string().optional(),
+  description: z.string().max(1000).optional(),
+  name: z.string().trim().min(1).max(255).optional(),
 });
 
-const SUPPORTED_EVENTS = [
-  'call.started',
-  'call.completed',
-  'call.failed',
-  'campaign.started',
-  'campaign.completed',
-  'campaign.paused',
-  'contact.created',
-  'contact.updated',
-  'credits.low',
-  'credits.depleted',
+/**
+ * Subscriptions created here live in `webhook_subscriptions`, the same table the platform's
+ * webhookDeliveryService reads for every event it fires — so the list below is exactly what can be
+ * delivered: the platform event list (minus the manual `webhook.test`) plus `lead.upserted`.
+ */
+export const SUPPORTED_EVENTS: string[] = [
+  ...WEBHOOK_EVENT_TYPES.filter(e => e !== 'webhook.test'),
+  'lead.upserted',
 ];
 
 const createWebhookSchema = z.object({
   url: z.string().url('Invalid webhook URL'),
   events: z.array(z.string()).min(1, 'At least one event is required'),
-  secret: z.string().optional(),
-  description: z.string().optional(),
+  secret: z.string().min(16).max(64).optional(),
+  description: z.string().max(1000).optional(),
+  name: z.string().trim().min(1).max(255).optional(),
 });
 
 /**
@@ -73,12 +74,11 @@ router.get(
       success: true,
       data: webhooks.map(w => ({
         id: w.id,
+        name: w.name,
         url: w.url,
         events: w.events,
         isActive: w.isActive,
         description: w.description,
-        lastDeliveryAt: w.lastDeliveryAt,
-        lastDeliveryStatus: w.lastDeliveryStatus,
         createdAt: w.createdAt,
       })),
       meta: {
@@ -122,8 +122,8 @@ router.post(
       return res.status(400).json(response);
     }
     
-    const { url, events, secret, description } = parseResult.data;
-    
+    const { url, events, secret, description, name } = parseResult.data;
+
     // Validate events
     const invalidEvents = events.filter(e => !SUPPORTED_EVENTS.includes(e));
     if (invalidEvents.length > 0) {
@@ -138,14 +138,17 @@ router.post(
       };
       return res.status(400).json(response);
     }
-    
+
     // Generate secret if not provided
     const webhookSecret = secret || crypto.randomBytes(32).toString('hex');
-    
+
+    // `id` and `name` have no DB defaults (the app's webhook UI sets them too)
     const [webhook] = await db
       .insert(webhookSubscriptions)
       .values({
+        id: nanoid(),
         userId,
+        name: name || description?.substring(0, 255) || `API subscription ${new Date().toISOString().slice(0, 10)}`,
         url,
         events,
         secret: webhookSecret,
@@ -212,8 +215,8 @@ router.put(
       return res.status(400).json(response);
     }
     
-    const { url, events, isActive, description } = parseResult.data;
-    
+    const { url, events, isActive, description, name } = parseResult.data;
+
     if (events) {
       const invalidEvents = events.filter((e: string) => !SUPPORTED_EVENTS.includes(e));
       if (invalidEvents.length > 0) {
@@ -237,6 +240,7 @@ router.put(
         events: events ?? existing.events,
         isActive: isActive ?? existing.isActive,
         description: description ?? existing.description,
+        name: name ?? existing.name,
         updatedAt: new Date(),
       })
       .where(eq(webhookSubscriptions.id, id))
@@ -401,16 +405,38 @@ router.get(
 
 function getEventDescription(event: string): string {
   const descriptions: Record<string, string> = {
-    'call.started': 'Triggered when a call begins',
-    'call.completed': 'Triggered when a call ends successfully',
-    'call.failed': 'Triggered when a call fails',
-    'campaign.started': 'Triggered when a campaign starts',
-    'campaign.completed': 'Triggered when a campaign finishes',
-    'campaign.paused': 'Triggered when a campaign is paused',
-    'contact.created': 'Triggered when a contact is created',
-    'contact.updated': 'Triggered when a contact is updated',
-    'credits.low': 'Triggered when credits fall below threshold',
-    'credits.depleted': 'Triggered when credits are exhausted',
+    'campaign.started': 'A campaign started dialling',
+    'campaign.paused': 'A campaign was paused',
+    'campaign.resumed': 'A paused campaign resumed',
+    'campaign.completed': 'A campaign finished all its contacts',
+    'campaign.failed': 'A campaign stopped because of an error',
+    'campaign.cancelled': 'A campaign was cancelled',
+    'call.started': 'An outbound call was placed',
+    'call.ringing': 'The callee\'s phone is ringing',
+    'call.answered': 'The callee answered',
+    'call.completed': 'An outbound call ended (includes transcript, summary, outcome, metadata.externalRef)',
+    'call.failed': 'An outbound call could not be completed',
+    'call.transferred': 'The agent transferred the call to a human',
+    'call.no_answer': 'Nobody answered',
+    'call.busy': 'The line was busy',
+    'call.voicemail': 'An answering machine picked up',
+    'inbound_call.received': 'An inbound call arrived on one of your numbers',
+    'inbound_call.answered': 'An inbound call was answered by an agent',
+    'inbound_call.completed': 'An inbound call ended',
+    'inbound_call.missed': 'An inbound call was not answered',
+    'flow.started': 'A flow agent started its flow',
+    'flow.completed': 'A flow agent finished its flow',
+    'flow.failed': 'A flow agent\'s flow failed',
+    'appointment.booked': 'The agent booked an appointment during a call',
+    'appointment.confirmed': 'An appointment was confirmed',
+    'appointment.cancelled': 'An appointment was cancelled',
+    'appointment.rescheduled': 'An appointment was moved to another date/time',
+    'appointment.completed': 'An appointment was marked completed',
+    'appointment.no_show': 'An appointment was marked as a no-show',
+    'form.submitted': 'The agent collected a form during a call',
+    'form.lead_created': 'A form submission created a lead',
+    'callback.scheduled': 'A callback was scheduled (by the agent, the app or the API)',
+    'lead.upserted': 'A CRM lead was created or updated (after a call, by the agent, or through the API)',
   };
   return descriptions[event] || 'No description available';
 }

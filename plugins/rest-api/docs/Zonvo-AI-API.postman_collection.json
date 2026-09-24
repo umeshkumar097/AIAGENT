@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "zonvo-rest-api-v1",
     "name": "Zonvo AI REST API",
-    "description": "Complete API collection for Zonvo AI AI-powered bulk calling platform.\n\n## Authentication\n\nAll endpoints require an API key. Add your key to the collection variables:\n1. Click on the collection name\n2. Go to Variables tab\n3. Set `api_key` to your API key\n\n## Getting Started\n\n1. Generate an API key from Settings > Developer in the Zonvo AI dashboard\n2. Set the `base_url` variable to your instance URL\n3. Set your `api_key`\n4. Start making requests!",
+    "description": "Complete API collection for Zonvo AI AI-powered bulk calling platform.\n\n## Authentication\n\nAll endpoints require an API key. Add your key to the collection variables:\n1. Click on the collection name\n2. Go to Variables tab\n3. Set `api_key` to your API key\n\n## Getting Started\n\n1. Generate an API key from Settings > Developer in the Zonvo AI dashboard\n2. Set the `base_url` variable to your instance URL\n3. Set your `api_key`\n4. Start making requests!\n\n## What's new (v2.1.0, Sept 2026)\n\nFolders for **Callbacks** (single, bulk, cancel by externalRef), **Leads**, **Appointments** and **Do-not-call**, plus call outcomes (`GET /calls/outcomes`, `POST /calls/:id/outcome`, `outcome` filter on `GET /calls`) and scheduled calls (`POST /calls` with `scheduledAt`).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -38,8 +38,14 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/health",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "health"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "health"
+              ]
             },
             "description": "Check API health status (no authentication required)"
           }
@@ -51,8 +57,13 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1"
+              ]
             },
             "description": "Get API information and available endpoints"
           }
@@ -74,14 +85,20 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"agentId\": \"your-agent-uuid\",\n  \"toNumber\": \"+14155551234\",\n  \"fromNumber\": \"+14155555678\",\n  \"engine\": \"elevenlabs\",\n  \"metadata\": {\n    \"source\": \"api\",\n    \"campaign\": \"demo\"\n  }\n}"
+              "raw": "{\n  \"agentId\": \"your-agent-uuid\",\n  \"toNumber\": \"+919876543210\",\n  \"fromNumber\": \"+919999900000\",\n  \"engine\": \"plivo\",\n  \"dynamicVariables\": {\n    \"first_name\": \"Priya\",\n    \"order_id\": \"ORD-48213\"\n  },\n  \"metadata\": {\n    \"source\": \"api\",\n    \"crmId\": \"SF-00412\"\n  }\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/v1/calls",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "calls"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "calls"
+              ]
             },
-            "description": "Initiate a new outbound call"
+            "description": "Initiate a new outbound call. dynamicVariables are substituted into the agent prompt as {{key}}; metadata is returned in webhooks."
           }
         },
         {
@@ -90,9 +107,15 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/v1/calls?page=1&pageSize=20",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "calls"],
+              "raw": "{{base_url}}/api/v1/calls?page=1&pageSize=20&outcome=interested&agentId=&campaignId=&from=2026-09-01T00:00:00+05:30&to=",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "calls"
+              ],
               "query": [
                 {
                   "key": "page",
@@ -101,10 +124,30 @@
                 {
                   "key": "pageSize",
                   "value": "20"
+                },
+                {
+                  "key": "outcome",
+                  "value": "interested"
+                },
+                {
+                  "key": "agentId",
+                  "value": ""
+                },
+                {
+                  "key": "campaignId",
+                  "value": ""
+                },
+                {
+                  "key": "from",
+                  "value": "2026-09-01T00:00:00+05:30"
+                },
+                {
+                  "key": "to",
+                  "value": ""
                 }
               ]
             },
-            "description": "Get paginated list of all calls"
+            "description": "List calls. Filters: outcome, agentId, campaignId, from, to (ISO). Rows include outcome, outcomeSource, answeredBy."
           }
         },
         {
@@ -114,8 +157,15 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/calls/:id",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "calls", ":id"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "calls",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -133,8 +183,16 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/calls/:id/hangup",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "calls", ":id", "hangup"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "calls",
+                ":id",
+                "hangup"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -143,6 +201,90 @@
               ]
             },
             "description": "End an active call"
+          }
+        },
+        {
+          "name": "Schedule Call for Later",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/calls",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "calls"
+              ]
+            },
+            "description": "A future scheduledAt returns 202 { scheduled: true, callbackId, scheduledAt } — manage it under Callbacks",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agentId\": \"your-agent-uuid\",\n  \"toNumber\": \"+919876543210\",\n  \"scheduledAt\": \"2026-09-29T11:00:00+05:30\",\n  \"dynamicVariables\": {\n    \"first_name\": \"Priya\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "List Call Outcomes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/calls/outcomes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "calls",
+                "outcomes"
+              ]
+            },
+            "description": "Catalogue of outcome ids with labels and kind (agent | system)"
+          }
+        },
+        {
+          "name": "Set Call Outcome",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/calls/:id/outcome",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "calls",
+                ":id",
+                "outcome"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "call-uuid"
+                }
+              ]
+            },
+            "description": "Set or correct an agent-kind outcome from your CRM",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"outcome\": \"interested\",\n  \"note\": \"Wants a demo next week\"\n}"
+            }
           }
         }
       ]
@@ -166,8 +308,14 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/campaigns",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "campaigns"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "campaigns"
+              ]
             },
             "description": "Create a new calling campaign"
           }
@@ -179,8 +327,14 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/campaigns?page=1&pageSize=20",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "campaigns"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "campaigns"
+              ],
               "query": [
                 {
                   "key": "page",
@@ -202,8 +356,15 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/campaigns/:id",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "campaigns", ":id"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "campaigns",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -230,8 +391,16 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/campaigns/:id/contacts",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "campaigns", ":id", "contacts"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "campaigns",
+                ":id",
+                "contacts"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -249,8 +418,16 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/campaigns/:id/start",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "campaigns", ":id", "start"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "campaigns",
+                ":id",
+                "start"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -268,8 +445,16 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/campaigns/:id/pause",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "campaigns", ":id", "pause"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "campaigns",
+                ":id",
+                "pause"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -292,8 +477,14 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/agents?page=1&pageSize=20",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "agents"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "agents"
+              ],
               "query": [
                 {
                   "key": "page",
@@ -315,8 +506,15 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/agents/:id",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "agents", ":id"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "agents",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -334,8 +532,16 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/agents/:id/flow",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "agents", ":id", "flow"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "agents",
+                ":id",
+                "flow"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -362,8 +568,16 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/agents/:id/flow",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "agents", ":id", "flow"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "agents",
+                ":id",
+                "flow"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -395,8 +609,14 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/contacts",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "contacts"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "contacts"
+              ]
             },
             "description": "Create a new CRM contact"
           }
@@ -408,8 +628,14 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/contacts?page=1&pageSize=50",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "contacts"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "contacts"
+              ],
               "query": [
                 {
                   "key": "page",
@@ -431,8 +657,15 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/contacts/:id",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "contacts", ":id"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "contacts",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -459,8 +692,15 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/contacts/:id",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "contacts", ":id"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "contacts",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -478,8 +718,15 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/contacts/:id",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "contacts", ":id"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "contacts",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -506,8 +753,15 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/contacts/bulk-import",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "contacts", "bulk-import"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "contacts",
+                "bulk-import"
+              ]
             },
             "description": "Import multiple contacts at once (up to 10,000)"
           }
@@ -524,8 +778,15 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/credits/balance",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "credits", "balance"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "credits",
+                "balance"
+              ]
             },
             "description": "Get current credit balance"
           }
@@ -537,8 +798,15 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/credits/usage?days=30",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "credits", "usage"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "credits",
+                "usage"
+              ],
               "query": [
                 {
                   "key": "days",
@@ -561,8 +829,15 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/analytics/calls?days=30",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "analytics", "calls"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "analytics",
+                "calls"
+              ],
               "query": [
                 {
                   "key": "days",
@@ -580,8 +855,15 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/analytics/campaigns",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "analytics", "campaigns"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "analytics",
+                "campaigns"
+              ]
             },
             "description": "Get analytics for all campaigns"
           }
@@ -593,8 +875,15 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/analytics/summary?days=30",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "analytics", "summary"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "analytics",
+                "summary"
+              ],
               "query": [
                 {
                   "key": "days",
@@ -622,14 +911,20 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"url\": \"https://your-server.com/webhooks/zonvo\",\n  \"events\": [\n    \"call.completed\",\n    \"call.failed\",\n    \"campaign.completed\"\n  ],\n  \"description\": \"Production webhook for call events\"\n}"
+              "raw": "{\n  \"url\": \"https://crm.example.com/hooks/zonvo\",\n  \"events\": [\n    \"call.completed\",\n    \"lead.upserted\",\n    \"appointment.booked\",\n    \"appointment.cancelled\",\n    \"callback.scheduled\"\n  ],\n  \"description\": \"Zonvo \\u2192 CRM\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/v1/webhooks",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "webhooks"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "webhooks"
+              ]
             },
-            "description": "Create a new webhook subscription"
+            "description": "Subscribe to events. The signing secret is returned once; verify X-Zonvo-Signature (hex HMAC-SHA256 of the raw body). GET /webhooks/events lists every event name."
           }
         },
         {
@@ -639,8 +934,14 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/webhooks",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "webhooks"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "webhooks"
+              ]
             },
             "description": "Get all webhook subscriptions"
           }
@@ -652,8 +953,15 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/webhooks/events",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "webhooks", "events"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "webhooks",
+                "events"
+              ]
             },
             "description": "Get list of all supported webhook events"
           }
@@ -674,8 +982,15 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/webhooks/:id",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "webhooks", ":id"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "webhooks",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -693,8 +1008,15 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/webhooks/:id",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "webhooks", ":id"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "webhooks",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -712,8 +1034,16 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/webhooks/:id/test",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "webhooks", ":id", "test"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "webhooks",
+                ":id",
+                "test"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -722,6 +1052,570 @@
               ]
             },
             "description": "Send a test payload to verify webhook configuration"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Callbacks",
+      "item": [
+        {
+          "name": "List Callbacks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/callbacks?status=pending&page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "callbacks"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Scheduled, running and finished callbacks. status = pending | calling | completed | failed | cancelled"
+          }
+        },
+        {
+          "name": "Schedule Callback",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/callbacks",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "callbacks"
+              ]
+            },
+            "description": "Schedule one automatic call. Future time, max 60 days ahead. 409 DO_NOT_CALL if the number is blocked. Same externalRef → existing callback (200).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agentId\": \"your-agent-uuid\",\n  \"contactPhone\": \"+919876543210\",\n  \"contactName\": \"Priya Sharma\",\n  \"scheduledAt\": \"2026-09-29T11:00:00+05:30\",\n  \"timeZone\": \"Asia/Kolkata\",\n  \"reason\": \"Follow up on the pricing question\",\n  \"externalRef\": \"crm-task-48213\",\n  \"variables\": {\n    \"first_name\": \"Priya\",\n    \"plan\": \"Growth\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Schedule Callbacks in Bulk",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/callbacks/bulk",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "callbacks",
+                "bulk"
+              ]
+            },
+            "description": "Up to 500 contacts with one agent. Response lists created and skipped (do_not_call | duplicate | invalid_phone | past | too_far).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agentId\": \"your-agent-uuid\",\n  \"timeZone\": \"Asia/Kolkata\",\n  \"contacts\": [\n    {\n      \"phone\": \"+919876543210\",\n      \"name\": \"Priya Sharma\",\n      \"scheduledAt\": \"2026-09-29T11:00:00+05:30\",\n      \"externalRef\": \"reg_8812-24h\",\n      \"reason\": \"Webinar reminder, 1 day before\",\n      \"variables\": {\n        \"first_name\": \"Priya\",\n        \"webinar_title\": \"GST filing for startups\",\n        \"webinar_time\": \"30 Sept, 11:00 AM IST\",\n        \"join_link\": \"https://example.com/j/8812\"\n      }\n    },\n    {\n      \"phone\": \"+919876543210\",\n      \"name\": \"Priya Sharma\",\n      \"scheduledAt\": \"2026-09-30T10:00:00+05:30\",\n      \"externalRef\": \"reg_8812-1h\",\n      \"reason\": \"Webinar reminder, 1 hour before\",\n      \"variables\": {\n        \"first_name\": \"Priya\",\n        \"webinar_title\": \"GST filing for startups\",\n        \"webinar_time\": \"30 Sept, 11:00 AM IST\",\n        \"join_link\": \"https://example.com/j/8812\"\n      }\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Cancel Callback",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/callbacks/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "callbacks",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "callback-uuid"
+                }
+              ]
+            },
+            "description": "Cancel a pending callback (404 if not pending)"
+          }
+        },
+        {
+          "name": "Cancel Callback by External Ref",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/callbacks?externalRef=reg_8812-24h",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "callbacks"
+              ],
+              "query": [
+                {
+                  "key": "externalRef",
+                  "value": "reg_8812-24h"
+                }
+              ]
+            },
+            "description": "Cancel the pending callback created with this externalRef"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Leads",
+      "item": [
+        {
+          "name": "List Leads",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/leads?stage=hot&since=2026-09-23T18:30:00.000Z&page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "leads"
+              ],
+              "query": [
+                {
+                  "key": "stage",
+                  "value": "hot"
+                },
+                {
+                  "key": "since",
+                  "value": "2026-09-23T18:30:00.000Z"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "AI-qualified leads. Filters: stage, q, since (updatedAt ≥ ISO time), assigned (user id or 'unassigned')"
+          }
+        },
+        {
+          "name": "Get Lead",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/leads/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "leads",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "lead-uuid"
+                }
+              ]
+            },
+            "description": "One lead with notes"
+          }
+        },
+        {
+          "name": "Update Lead",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/leads/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "leads",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "lead-uuid"
+                }
+              ]
+            },
+            "description": "Move stage, set tags, merge custom fields, assign owner. Forwarded to connected CRMs; fires lead.upserted.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stage\": \"appointment\",\n  \"tags\": [\n    \"webinar\",\n    \"demo-booked\"\n  ],\n  \"customFields\": {\n    \"crm_id\": \"SF-00412\"\n  },\n  \"assignedUserId\": null\n}"
+            }
+          }
+        },
+        {
+          "name": "Add Lead Note",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/leads/:id/notes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "leads",
+                ":id",
+                "notes"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "lead-uuid"
+                }
+              ]
+            },
+            "description": "Append a note (≤ 4,000 chars)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Called from CRM: confirmed demo on 30 Sept 11:00 IST.\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Appointments",
+      "item": [
+        {
+          "name": "List Appointments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/appointments?from=2026-09-24&to=2026-09-30&status=scheduled&page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appointments"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-09-24"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-09-30"
+                },
+                {
+                  "key": "status",
+                  "value": "scheduled"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "from / to are YYYY-MM-DD on appointmentDate; status = scheduled | confirmed | cancelled | completed | no_show"
+          }
+        },
+        {
+          "name": "Get Appointment",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/appointments/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appointments",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "appointment-uuid"
+                }
+              ]
+            },
+            "description": "One appointment"
+          }
+        },
+        {
+          "name": "Update Appointment Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/appointments/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appointments",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "appointment-uuid"
+                }
+              ]
+            },
+            "description": "Confirm / cancel / complete / no-show. Updates the linked calendar event and fires appointment.<status>.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"confirmed\",\n  \"statusReason\": \"Customer confirmed on WhatsApp\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Do-not-call",
+      "item": [
+        {
+          "name": "List Do-not-call Numbers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dnd?q=&page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dnd"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": ""
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Blocked numbers, newest first. q searches phone or note."
+          }
+        },
+        {
+          "name": "Check Number",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dnd/check?phone=9876543210",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dnd",
+                "check"
+              ],
+              "query": [
+                {
+                  "key": "phone",
+                  "value": "9876543210"
+                }
+              ]
+            },
+            "description": "Is this number blocked? Returns the normalised phone."
+          }
+        },
+        {
+          "name": "Add Do-not-call Number",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dnd",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dnd"
+              ]
+            },
+            "description": "Block a number (source: api). Idempotent — added:false when already blocked.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+919876543210\",\n  \"reason\": \"complaint\",\n  \"note\": \"Opted out via CRM preference centre\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Import Do-not-call Numbers",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dnd/import",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dnd",
+                "import"
+              ]
+            },
+            "description": "Block up to 5,000 numbers in one request",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phones\": [\n    \"+919876543210\",\n    \"9876543211\",\n    \"+919876543212\"\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Remove Do-not-call Number",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dnd/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dnd",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "dnd-entry-uuid"
+                }
+              ]
+            },
+            "description": "Unblock by entry id"
+          }
+        },
+        {
+          "name": "Remove Do-not-call Number by Phone",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dnd?phone=+919876543210",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dnd"
+              ],
+              "query": [
+                {
+                  "key": "phone",
+                  "value": "+919876543210"
+                }
+              ]
+            },
+            "description": "Unblock by phone number"
           }
         }
       ]

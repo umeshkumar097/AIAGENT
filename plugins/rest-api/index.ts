@@ -15,10 +15,11 @@
  * ============================================================
  */
 
-import { Router, type Express, type RequestHandler } from 'express';
+import { Router, type Express, type Request, type RequestHandler } from 'express';
 import YAML from 'yamljs';
 import swaggerUi from 'swagger-ui-express';
 import path from 'path';
+import { replaceDocsPlaceholder, resolveRequestOrigin } from '../../server/utils/request-origin.js';
 
 // Routes
 import callsRoutes from './routes/calls.routes.js';
@@ -28,6 +29,10 @@ import contactsRoutes from './routes/contacts.routes.js';
 import creditsRoutes from './routes/credits.routes.js';
 import analyticsRoutes from './routes/analytics.routes.js';
 import webhooksRoutes from './routes/webhooks.routes.js';
+import dndRoutes from './routes/dnd.routes.js';
+import callbacksRoutes from './routes/callbacks.routes.js';
+import leadsRoutes from './routes/leads.routes.js';
+import appointmentsRoutes from './routes/appointments.routes.js';
 import apiKeysRoutes from './routes/api-keys.routes.js';
 import adminApiKeysRoutes from './routes/admin.routes.js';
 
@@ -59,7 +64,11 @@ export function createRestApiRouter(): Router {
   router.use('/credits', creditsRoutes);
   router.use('/analytics', analyticsRoutes);
   router.use('/webhooks', webhooksRoutes);
-  
+  router.use('/dnd', dndRoutes);
+  router.use('/callbacks', callbacksRoutes);
+  router.use('/leads', leadsRoutes);
+  router.use('/appointments', appointmentsRoutes);
+
   // Health check endpoint (no auth required)
   router.get('/health', (req, res) => {
     res.json({
@@ -88,6 +97,10 @@ export function createRestApiRouter(): Router {
           credits: '/api/v1/credits',
           analytics: '/api/v1/analytics',
           webhooks: '/api/v1/webhooks',
+          dnd: '/api/v1/dnd',
+          callbacks: '/api/v1/callbacks',
+          leads: '/api/v1/leads',
+          appointments: '/api/v1/appointments',
         },
         authentication: {
           type: 'API Key',
@@ -141,15 +154,31 @@ export function registerRestApiRoutes(app: Express, options: RegisterRestApiOpti
     // This works in both development and production (compiled to dist/)
     const specPath = path.join(process.cwd(), 'plugins', 'rest-api', 'docs', 'openapi.yaml');
     const openApiDocument = YAML.load(specPath);
+    const specTemplate = JSON.stringify(openApiDocument);
 
-    // Serve OpenAPI spec as JSON for Redoc
-    app.get('/api/docs/openapi.json', (_req, res) => {
-      res.json(openApiDocument);
+    // The spec printed for the host the request arrived on: `servers` and every
+    // "https://your-domain.com" placeholder become that origin (app.zonvo.tech in production).
+    const specCache = new Map<string, unknown>();
+    const specForOrigin = (origin: string): unknown => {
+      const cached = specCache.get(origin);
+      if (cached) return cached;
+      const spec = JSON.parse(replaceDocsPlaceholder(specTemplate, origin)) as Record<string, unknown>;
+      spec.servers = [{ url: `${origin}/api/v1`, description: 'API v1' }];
+      if (specCache.size >= 20) specCache.clear();
+      specCache.set(origin, spec);
+      return spec;
+    };
+    const escapeHtml = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    // Serve OpenAPI spec as JSON for Redoc / Swagger UI
+    app.get('/api/docs/openapi.json', (req: Request, res) => {
+      res.json(specForOrigin(resolveRequestOrigin(req)));
     });
 
     // Serve custom Redoc page with Stripe-like clean design
-    app.get('/api/docs', (_req, res) => {
-      res.type('html').send(`<!doctype html>
+    app.get('/api/docs', (req: Request, res) => {
+      const origin = escapeHtml(resolveRequestOrigin(req));
+      res.type('html').send(replaceDocsPlaceholder(`<!doctype html>
 <html lang="en" data-theme="light">
   <head>
     <meta charset="utf-8" />
@@ -392,7 +421,7 @@ export function registerRestApiRoutes(app: Express, options: RegisterRestApiOpti
       })();
     </script>
   </body>
-</html>`);
+</html>`, origin));
     });
 
     // Serve Swagger UI playground for interactive API testing
@@ -454,8 +483,9 @@ export function registerRestApiRoutes(app: Express, options: RegisterRestApiOpti
       },
     };
     
+    // The playground loads the spec from the JSON route so it also carries the real host in `servers`
     app.use('/api/docs/playground', swaggerUi.serve);
-    app.get('/api/docs/playground', swaggerUi.setup(openApiDocument, swaggerUiOptions));
+    app.get('/api/docs/playground', swaggerUi.setup(undefined, { ...swaggerUiOptions, swaggerUrl: '/api/docs/openapi.json' }));
     
     console.log('[REST API] Redoc documentation available at /api/docs (public access)');
     console.log('[REST API] Swagger UI playground available at /api/docs/playground');
@@ -477,6 +507,10 @@ export function registerRestApiRoutes(app: Express, options: RegisterRestApiOpti
   console.log(`  - ${API_BASE_PATH}/credits`);
   console.log(`  - ${API_BASE_PATH}/analytics`);
   console.log(`  - ${API_BASE_PATH}/webhooks`);
+  console.log(`  - ${API_BASE_PATH}/dnd`);
+  console.log(`  - ${API_BASE_PATH}/callbacks`);
+  console.log(`  - ${API_BASE_PATH}/leads`);
+  console.log(`  - ${API_BASE_PATH}/appointments`);
   console.log('  - /api/user/api-keys (session auth)');
   console.log('  - /api/admin/api-keys (admin auth)');
 }
@@ -486,7 +520,7 @@ export function registerRestApiRoutes(app: Express, options: RegisterRestApiOpti
  */
 export const pluginInfo = {
   name: 'rest-api',
-  version: '1.0.0',
+  version: '2.3.0',
   description: 'Comprehensive REST API for external system integration',
   author: 'Zonvo AI',
   features: [
@@ -495,10 +529,14 @@ export const pluginInfo = {
     'Request Audit Logging',
     'IP Whitelisting',
     'Scoped Permissions',
-    'Calls API',
+    'Calls API (outcomes, scheduled calls, per-call variables)',
     'Campaigns API',
     'Agents API',
     'Contacts API',
+    'Leads API (CRM pipeline, notes)',
+    'Callbacks API (scheduled calls, bulk, idempotent externalRef)',
+    'Appointments API',
+    'Do-not-call API',
     'Credits API',
     'Analytics API',
     'Webhooks API',

@@ -67,6 +67,8 @@ export const WEBHOOK_EVENT_TYPES = [
   'form.lead_created',
   // Callback events (agent-scheduled call backs)
   'callback.scheduled',
+  // CRM
+  'lead.upserted',
   // System
   'webhook.test'
 ] as const;

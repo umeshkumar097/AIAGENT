@@ -77,6 +77,7 @@ const MIGRATIONS = [
   resolve(rootDir, 'migrations', '0015_user_billing_preferences.sql'),
   resolve(rootDir, 'migrations', '0016_call_qa_scores.sql'),
   resolve(rootDir, 'migrations', '0017_crm_inbox.sql'),
+  resolve(rootDir, 'migrations', '0018_callback_variables.sql'),
 ];
 
 /**

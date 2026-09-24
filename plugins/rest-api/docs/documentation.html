@@ -353,6 +353,7 @@
         .method-post { background: #dcfce7; color: #16a34a; }
         .method-put { background: #fef3c7; color: #d97706; }
         .method-delete { background: #fee2e2; color: #dc2626; }
+        .method-patch { background: #ede9fe; color: #6d28d9; }
         
         .endpoint-path {
             font-family: monospace;
@@ -392,8 +393,8 @@
     <header>
         <div class="container">
             <h1>REST API Plugin</h1>
-            <p>Connect your external systems to Zonvo AI with a powerful, secure REST API. Trigger calls, manage campaigns, and receive real-time webhooks programmatically.</p>
-            <span class="badge">Version 2.0.0</span>
+            <p>Connect your CRM, ERP or in-house app to Zonvo AI with a secure REST API. Trigger and schedule calls, sync leads and call outcomes, book and confirm appointments, schedule callbacks in bulk, keep a do-not-call list, and receive real-time webhooks.</p>
+            <span class="badge">Version 2.1.0</span>
             <span class="badge">Zonvo AI Compatible</span>
         </div>
     </header>
@@ -436,12 +437,13 @@
                 
 <pre>
 <span class="code-comment"># Trigger an outbound call</span>
-curl -X POST https://your-domain.com/api/v1/calls \
+curl -X POST https://app.zonvo.tech/api/v1/calls \
   -H "Authorization: Bearer agl_sk_YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "agentId": "your-agent-id",
-    "toNumber": "+14155551234"
+    "toNumber": "+919876543210",
+    "dynamicVariables": { "first_name": "Priya" }
   }'
 </pre>
                 
@@ -495,6 +497,26 @@ curl -X POST https://your-domain.com/api/v1/calls \
                         <p>Built-in rate limiting to prevent abuse with clear headers showing your limits.</p>
                     </div>
                     <div class="card">
+                        <div class="card-icon">&#128203;</div>
+                        <h4>Leads &amp; Outcomes</h4>
+                        <p>Pull AI-qualified leads with score, summary and next action; write stages, tags and notes back; read or set the outcome of every call.</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon">&#128197;</div>
+                        <h4>Appointments</h4>
+                        <p>List bookings made by your agents; confirm, cancel or mark no-show &mdash; the calendar event and the <code>appointment.*</code> webhook follow.</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon">&#9200;</div>
+                        <h4>Callbacks</h4>
+                        <p>Schedule one call or 500 at once, with per-contact variables and idempotent <code>externalRef</code> keys. Cancel by reference.</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon">&#128683;</div>
+                        <h4>Do-not-call List</h4>
+                        <p>Add, import (5,000 per request), check and remove blocked numbers. Campaigns, API calls and callbacks all honour it.</p>
+                    </div>
+                    <div class="card">
                         <div class="card-icon">&#128209;</div>
                         <h4>Interactive Docs</h4>
                         <p>Swagger UI playground to test API endpoints directly in your browser.</p>
@@ -542,11 +564,11 @@ pm2 restart zonvo-app
                         <h4>Verify Installation</h4>
                         <p>Check the health endpoint:</p>
 <pre>
-curl https://your-domain.com/api/plugins/health
+curl https://app.zonvo.tech/api/plugins/health
 
 <span class="code-comment"># Expected: REST API shows as "installed" with all tables "ok"</span>
 </pre>
-                        <p>You can also visit <code>https://your-domain.com/api/docs</code> to see the interactive API documentation.</p>
+                        <p>You can also visit <code>https://app.zonvo.tech/api/docs</code> to see the interactive API documentation.</p>
                     </div>
                 </div>
                 
@@ -595,10 +617,10 @@ npm run dev
                         <p>Check the health endpoint:</p>
 <pre>
 <span class="code-comment"># Check health</span>
-curl https://your-domain.com/api/plugins/health
+curl https://app.zonvo.tech/api/plugins/health
 
 <span class="code-comment"># Check API docs page</span>
-curl https://your-domain.com/api/docs
+curl https://app.zonvo.tech/api/docs
 </pre>
                     </div>
                 </div>
@@ -650,17 +672,23 @@ curl https://your-domain.com/api/docs
                 <h4>Option 1: Authorization Header (Recommended)</h4>
 <pre>
 curl -H "Authorization: Bearer agl_sk_YOUR_API_KEY" \
-     https://your-domain.com/api/v1/calls
+     https://app.zonvo.tech/api/v1/calls
 </pre>
                 
                 <h4>Option 2: X-API-Key Header</h4>
 <pre>
 curl -H "X-API-Key: agl_sk_YOUR_API_KEY" \
-     https://your-domain.com/api/v1/calls
+     https://app.zonvo.tech/api/v1/calls
 </pre>
                 
                 <h3>Permission Scopes</h3>
                 <p>API keys can be granted specific permissions to limit their access:</p>
+                <div class="alert alert-info">
+                    <span class="alert-icon">&#128712;</span>
+                    <div>
+                        <strong>New resources reuse existing scopes:</strong> Leads and Do-not-call use <code>contacts:read</code> / <code>contacts:write</code>; Callbacks, Appointments and call outcomes use <code>calls:read</code> / <code>calls:write</code>. Existing keys keep working without changes.
+                    </div>
+                </div>
                 
                 <table>
                     <thead>
@@ -743,7 +771,7 @@ curl -H "X-API-Key: agl_sk_YOUR_API_KEY" \
             <!-- API Reference -->
             <section id="api-reference">
                 <h2>API Reference</h2>
-                <p>All API endpoints are prefixed with <code>/api/v1</code>. For example: <code>https://your-domain.com/api/v1/calls</code></p>
+                <p>All API endpoints are prefixed with <code>/api/v1</code>. For example: <code>https://app.zonvo.tech/api/v1/calls</code></p>
                 
                 <div class="alert alert-info">
                     <span class="alert-icon">&#128712;</span>
@@ -767,7 +795,11 @@ curl -H "X-API-Key: agl_sk_YOUR_API_KEY" \
   "toNumber": "+14155551234",
   "fromNumber": "+14155559999",  <span class="code-comment">// Optional</span>
   "engine": "twilio-openai",      <span class="code-comment">// Optional: elevenlabs, plivo, twilio-openai</span>
-  "metadata": {                   <span class="code-comment">// Optional: custom data</span>
+  "dynamicVariables": {           <span class="code-comment">// Optional: {{first_name}} etc. in the agent prompt</span>
+    "first_name": "Priya"
+  },
+  "scheduledAt": "2026-09-29T11:00:00+05:30",  <span class="code-comment">// Optional: future time → 202 + callbackId</span>
+  "metadata": {                   <span class="code-comment">// Optional: returned in webhooks (e.g. externalRef)</span>
     "customerId": "C123"
   }
 }
@@ -789,7 +821,7 @@ curl -H "X-API-Key: agl_sk_YOUR_API_KEY" \
                 <div class="endpoint">
                     <span class="endpoint-method method-get">GET</span>
                     <span class="endpoint-path">/api/v1/calls</span>
-                    <p style="margin-top: 12px; margin-bottom: 0;">List all calls with pagination</p>
+                    <p style="margin-top: 12px; margin-bottom: 0;">List calls with pagination. Filters: <code>outcome</code>, <code>agentId</code>, <code>campaignId</code>, <code>from</code>, <code>to</code> (ISO dates). Rows include <code>outcome</code>, <code>outcomeSource</code> (agent | system | ai) and <code>answeredBy</code> (human | machine).</p>
                 </div>
                 
                 <div class="endpoint">
@@ -804,6 +836,18 @@ curl -H "X-API-Key: agl_sk_YOUR_API_KEY" \
                     <p style="margin-top: 12px; margin-bottom: 0;">Terminate an active call</p>
                 </div>
                 
+                <div class="endpoint">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/v1/calls/outcomes</span>
+                    <p style="margin-top: 12px; margin-bottom: 0;">Catalogue of outcome ids: interested, not_interested, callback_requested, wrong_number, already_customer, do_not_call, no_decision (agent) and voicemail, no_answer, busy, failed, transferred, appointment_booked (system)</p>
+                </div>
+
+                <div class="endpoint">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/v1/calls/:id/outcome</span>
+                    <p style="margin-top: 12px; margin-bottom: 0;">Set or correct an agent-kind outcome from your CRM: <code>{ "outcome": "interested", "note": "..." }</code></p>
+                </div>
+
                 <h3>Campaigns</h3>
                 
                 <div class="endpoint">
@@ -832,7 +876,7 @@ curl -H "X-API-Key: agl_sk_YOUR_API_KEY" \
                 
                 <div class="endpoint">
                     <span class="endpoint-method method-post">POST</span>
-                    <span class="endpoint-path">/api/v1/campaigns/:id/stop</span>
+                    <span class="endpoint-path">/api/v1/campaigns/:id/contacts</span>
                     <p style="margin-top: 12px; margin-bottom: 0;">Stop a campaign permanently</p>
                 </div>
                 
@@ -847,7 +891,7 @@ curl -H "X-API-Key: agl_sk_YOUR_API_KEY" \
                 <div class="endpoint">
                     <span class="endpoint-method method-get">GET</span>
                     <span class="endpoint-path">/api/v1/agents/:id</span>
-                    <p style="margin-top: 12px; margin-bottom: 0;">Get agent details</p>
+                    <p style="margin-top: 12px; margin-bottom: 0;">Agent detail incl. <code>actions</code>: <code>{ transfer, appointments, saveLead, callbacks, apiTools (count), voicemail (hangup | leave_message | null), ownerAlerts }</code>. Get agent details</p>
                 </div>
                 
                 <div class="endpoint">
@@ -872,10 +916,120 @@ curl -H "X-API-Key: agl_sk_YOUR_API_KEY" \
                 
                 <div class="endpoint">
                     <span class="endpoint-method method-post">POST</span>
-                    <span class="endpoint-path">/api/v1/contacts/bulk</span>
+                    <span class="endpoint-path">/api/v1/contacts/bulk-import</span>
                     <p style="margin-top: 12px; margin-bottom: 0;">Import multiple contacts at once</p>
                 </div>
                 
+                <h3>Leads</h3>
+                <p>AI-qualified leads created by your agents (<em>Save the caller as a lead</em>), Flows and the Quick CRM. Scopes: <code>contacts:read</code> / <code>contacts:write</code>.</p>
+                <div class="endpoint">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/v1/leads</span>
+                    <p style="margin-top: 12px; margin-bottom: 0;">List leads. Filters: <code>stage</code>, <code>q</code>, <code>since</code> (updatedAt ≥), <code>assigned</code> (user id or <code>unassigned</code>). Rows carry <code>leadScore</code>, <code>aiCategory</code>, <code>aiSummary</code>, <code>aiNextAction</code>, <code>sentiment</code>, <code>tags</code>, <code>customFields</code>, <code>hasAppointment</code>, <code>hasCallback</code>.</p>
+                </div>
+
+                <div class="endpoint">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/v1/leads/:id</span>
+                    <p style="margin-top: 12px; margin-bottom: 0;">One lead plus <code>notes: [{ id, text, createdAt }]</code></p>
+                </div>
+
+                <div class="endpoint">
+                    <span class="endpoint-method method-patch">PATCH</span>
+                    <span class="endpoint-path">/api/v1/leads/:id</span>
+                    <p style="margin-top: 12px; margin-bottom: 0;">Update <code>stage</code>, <code>tags</code>, <code>customFields</code> (shallow merge), <code>assignedUserId</code> (null to unassign), <code>email</code>, <code>company</code>. Forwarded to connected CRMs; fires <code>lead.upserted</code>.</p>
+                </div>
+
+                <div class="endpoint">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/v1/leads/:id/notes</span>
+                    <p style="margin-top: 12px; margin-bottom: 0;">Add a note: <code>{ "text": "..." }</code> (≤ 4,000 chars). Resets the Team inbox SLA clock.</p>
+                </div>
+
+                <h3>Appointments</h3>
+                <p>Bookings made with <em>Book appointments</em>. Scopes: <code>calls:read</code> / <code>calls:write</code>.</p>
+                <div class="endpoint">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/v1/appointments</span>
+                    <p style="margin-top: 12px; margin-bottom: 0;">List appointments. Filters: <code>from</code>, <code>to</code> (YYYY-MM-DD on <code>appointmentDate</code>), <code>status</code>.</p>
+                </div>
+
+                <div class="endpoint">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/v1/appointments/:id</span>
+                    <p style="margin-top: 12px; margin-bottom: 0;">One appointment: contact, <code>appointmentDate</code>, <code>appointmentTime</code>, <code>duration</code>, <code>serviceName</code>, <code>status</code>, <code>callId</code>, <code>googleCalendarEventId</code>.</p>
+                </div>
+
+                <div class="endpoint">
+                    <span class="endpoint-method method-patch">PATCH</span>
+                    <span class="endpoint-path">/api/v1/appointments/:id</span>
+                    <p style="margin-top: 12px; margin-bottom: 0;">Set <code>status</code> to scheduled | confirmed | cancelled | completed | no_show (+ <code>statusReason</code>). Updates the linked calendar event and fires <code>appointment.&lt;status&gt;</code>.</p>
+                </div>
+
+                <h3>Callbacks</h3>
+                <p>Automatic calls placed at a chosen time with a chosen agent. Scopes: <code>calls:read</code> / <code>calls:write</code>.</p>
+                <div class="endpoint">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/v1/callbacks</span>
+                    <p style="margin-top: 12px; margin-bottom: 0;">List callbacks. Filter: <code>status</code> = pending | calling | completed | failed | cancelled. Rows include <code>scheduledAt</code>, <code>attempts</code>, <code>lastError</code>, <code>resultCallId</code>, <code>variables</code>, <code>externalRef</code>, <code>source</code>.</p>
+                </div>
+
+                <div class="endpoint">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/v1/callbacks</span>
+                    <p style="margin-top: 12px; margin-bottom: 0;">Schedule one: <code>{ agentId, contactPhone, scheduledAt, contactName?, reason?, timeZone?, variables?, externalRef? }</code>. Future time, ≤ 60 days; 409 <code>DO_NOT_CALL</code> if blocked. Same <code>externalRef</code> → existing row, HTTP 200.</p>
+                </div>
+
+                <div class="endpoint">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/v1/callbacks/bulk</span>
+                    <p style="margin-top: 12px; margin-bottom: 0;">Schedule up to 500: <code>{ agentId, timeZone?, contacts: [{ phone, name?, scheduledAt, reason?, variables?, externalRef? }] }</code> → <code>{ created: [...], skipped: [{ phone, externalRef, reason }] }</code> with reasons do_not_call | duplicate | invalid_phone | past | too_far.</p>
+                </div>
+
+                <div class="endpoint">
+                    <span class="endpoint-method method-delete">DELETE</span>
+                    <span class="endpoint-path">/api/v1/callbacks/:id</span>
+                    <p style="margin-top: 12px; margin-bottom: 0;">Cancel a pending callback (404 if not pending).</p>
+                </div>
+
+                <div class="endpoint">
+                    <span class="endpoint-method method-delete">DELETE</span>
+                    <span class="endpoint-path">/api/v1/callbacks?externalRef=</span>
+                    <p style="margin-top: 12px; margin-bottom: 0;">Cancel the pending callback created with this reference.</p>
+                </div>
+
+                <h3>Do-not-call</h3>
+                <p>Numbers the account must never dial. The agent adds numbers itself when the caller asks not to be called again. Scopes: <code>contacts:read</code> / <code>contacts:write</code>.</p>
+                <div class="endpoint">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/v1/dnd</span>
+                    <p style="margin-top: 12px; margin-bottom: 0;">List blocked numbers (<code>q</code> search, paginated): <code>{ id, phone, reason, source, note, callId, createdAt }</code></p>
+                </div>
+
+                <div class="endpoint">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/v1/dnd/check?phone=</span>
+                    <p style="margin-top: 12px; margin-bottom: 0;">Is the number blocked? → <code>{ phone, blocked }</code> (phone normalised to +91…)</p>
+                </div>
+
+                <div class="endpoint">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/v1/dnd</span>
+                    <p style="margin-top: 12px; margin-bottom: 0;">Block a number: <code>{ phone, reason?: manual | complaint, note? }</code> → 201 <code>{ id, phone, added }</code></p>
+                </div>
+
+                <div class="endpoint">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/v1/dnd/import</span>
+                    <p style="margin-top: 12px; margin-bottom: 0;">Block many: <code>{ phones: [...] }</code> (≤ 5,000) → <code>{ added, skipped }</code></p>
+                </div>
+
+                <div class="endpoint">
+                    <span class="endpoint-method method-delete">DELETE</span>
+                    <span class="endpoint-path">/api/v1/dnd/:id</span>
+                    <p style="margin-top: 12px; margin-bottom: 0;">Unblock by id (or <code>DELETE /api/v1/dnd?phone=</code>) → <code>{ removed: true }</code></p>
+                </div>
+
                 <h3>Webhooks</h3>
                 
                 <div class="endpoint">
@@ -887,14 +1041,51 @@ curl -H "X-API-Key: agl_sk_YOUR_API_KEY" \
                 <div class="endpoint">
                     <span class="endpoint-method method-post">POST</span>
                     <span class="endpoint-path">/api/v1/webhooks</span>
-                    <p style="margin-top: 12px; margin-bottom: 0;">Create a new webhook subscription</p>
+                    <p style="margin-top: 12px; margin-bottom: 0;">Create a new webhook subscription: <code>{ url, events: [...], secret?, description? }</code>. The signing <code>secret</code> is returned once.</p>
                 </div>
+
+                <div class="endpoint">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/v1/webhooks/events</span>
+                    <p style="margin-top: 12px; margin-bottom: 0;">Live list of event names with descriptions.</p>
+                </div>
+
+                <h4>Events</h4>
+                <table>
+                    <thead><tr><th>Event</th><th>Fires when</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>call.started</code>, <code>call.ringing</code>, <code>call.answered</code></td><td>Outbound call placed / ringing / picked up</td></tr>
+                        <tr><td><code>call.completed</code></td><td>Call ended &mdash; carries <code>duration</code>, <code>transcript</code>, <code>aiSummary</code>, <code>outcome</code>, <code>outcomeSource</code>, <code>answeredBy</code>, <code>callbackId</code>, <code>metadata.externalRef</code></td></tr>
+                        <tr><td><code>call.failed</code>, <code>call.no_answer</code>, <code>call.busy</code>, <code>call.voicemail</code>, <code>call.transferred</code></td><td>Terminal states and transfers</td></tr>
+                        <tr><td><code>inbound_call.received</code> / <code>.answered</code> / <code>.completed</code> / <code>.missed</code></td><td>Inbound call lifecycle</td></tr>
+                        <tr><td><code>campaign.started</code> / <code>.paused</code> / <code>.resumed</code> / <code>.completed</code> / <code>.failed</code> / <code>.cancelled</code></td><td>Campaign lifecycle</td></tr>
+                        <tr><td><code>appointment.booked</code> / <code>.confirmed</code> / <code>.cancelled</code> / <code>.rescheduled</code> / <code>.completed</code> / <code>.no_show</code></td><td>Bookings by an agent, or status changes via <code>PATCH /appointments/:id</code></td></tr>
+                        <tr><td><code>callback.scheduled</code></td><td>A callback was scheduled by the agent or the API</td></tr>
+                        <tr><td><code>lead.upserted</code></td><td>A lead was created or updated (agent, CRM inbox or <code>PATCH /leads/:id</code>)</td></tr>
+                        <tr><td><code>form.submitted</code>, <code>form.lead_created</code>, <code>flow.started</code>, <code>flow.completed</code>, <code>flow.failed</code></td><td>Flow Builder</td></tr>
+                    </tbody>
+                </table>
+
+                <h4>Verifying signatures</h4>
+                <p>Every delivery carries <code>X-Zonvo-Signature</code> (legacy alias <code>X-AgentLabs-Signature</code>): the hex HMAC-SHA256 of the raw request body, keyed with your webhook secret. Platform deliveries also send <code>X-Webhook-Signature: sha256=&lt;hex&gt;</code>. Compare in constant time and ignore anything that does not match.</p>
+<pre>
+<span class="code-comment">// Node.js / Express — use express.raw({ type: 'application/json' }) on this route</span>
+<span class="code-keyword">const</span> crypto = require('crypto');
+
+<span class="code-keyword">function</span> verifyZonvo(req, secret) {
+  <span class="code-keyword">const</span> header = req.get('X-Zonvo-Signature') || req.get('X-AgentLabs-Signature')
+    || (req.get('X-Webhook-Signature') || '').replace(/^sha256=/, '');
+  <span class="code-keyword">const</span> expected = crypto.createHmac('sha256', secret).update(req.body).digest('hex');
+  <span class="code-keyword">return</span> header.length === expected.length
+    &amp;&amp; crypto.timingSafeEqual(Buffer.from(header, 'hex'), Buffer.from(expected, 'hex'));
+}
+</pre>
                 
                 <h3>Credits</h3>
                 
                 <div class="endpoint">
                     <span class="endpoint-method method-get">GET</span>
-                    <span class="endpoint-path">/api/v1/credits</span>
+                    <span class="endpoint-path">/api/v1/credits/balance</span>
                     <p style="margin-top: 12px; margin-bottom: 0;">Get current credit balance</p>
                 </div>
                 
@@ -915,7 +1106,7 @@ curl -H "X-API-Key: agl_sk_YOUR_API_KEY" \
 <span class="code-keyword">const</span> axios = require('axios');
 
 <span class="code-keyword">const</span> API_KEY = 'agl_sk_YOUR_API_KEY';
-<span class="code-keyword">const</span> BASE_URL = 'https://your-domain.com/api/v1';
+<span class="code-keyword">const</span> BASE_URL = 'https://app.zonvo.tech/api/v1';
 
 <span class="code-comment">// Trigger a call</span>
 <span class="code-keyword">async function</span> triggerCall(agentId, phoneNumber) {
@@ -947,7 +1138,7 @@ triggerCall('agent-id-here', '+14155551234')
 <span class="code-keyword">import</span> requests
 
 API_KEY = 'agl_sk_YOUR_API_KEY'
-BASE_URL = 'https://your-domain.com/api/v1'
+BASE_URL = 'https://app.zonvo.tech/api/v1'
 
 <span class="code-keyword">def</span> trigger_call(agent_id, phone_number):
     response = requests.post(
@@ -973,7 +1164,7 @@ print('Call triggered:', result)
 &lt;?php
 
 $apiKey = 'agl_sk_YOUR_API_KEY';
-$baseUrl = 'https://your-domain.com/api/v1';
+$baseUrl = 'https://app.zonvo.tech/api/v1';
 
 <span class="code-keyword">function</span> triggerCall($agentId, $phoneNumber) {
     <span class="code-keyword">global</span> $apiKey, $baseUrl;
@@ -1000,6 +1191,143 @@ $baseUrl = 'https://your-domain.com/api/v1';
 $result = triggerCall('agent-id-here', '+14155551234');
 print_r($result);
 </pre>
+
+                <h3>CRM integration: push a lead &rarr; schedule a callback &rarr; read the outcome</h3>
+                <p>The three calls every CRM connector makes. Replace the ids with your own; phone numbers may be sent as 10 digits (normalised to +91).</p>
+
+                <h4>curl</h4>
+<pre>
+<span class="code-comment"># 1. Push the lead from your CRM (or use POST /contacts/bulk-import for many)</span>
+curl -X POST https://app.zonvo.tech/api/v1/contacts \
+  -H "Authorization: Bearer $ZONVO_API_KEY" -H "Content-Type: application/json" \
+  -d '{ "name": "Priya Sharma", "phone": "+919876543210", "email": "priya@example.com",
+        "customFields": { "crm_id": "SF-00412", "plan": "Growth" } }'
+
+<span class="code-comment"># 2. Schedule the call for tomorrow 11:00 IST — externalRef makes it safe to retry</span>
+curl -X POST https://app.zonvo.tech/api/v1/callbacks \
+  -H "Authorization: Bearer $ZONVO_API_KEY" -H "Content-Type: application/json" \
+  -d '{ "agentId": "550e8400-e29b-41d4-a716-446655440000", "contactPhone": "+919876543210",
+        "contactName": "Priya Sharma", "scheduledAt": "2026-09-29T11:00:00+05:30",
+        "reason": "Follow up on the pricing question", "externalRef": "SF-00412-followup-1",
+        "variables": { "first_name": "Priya", "plan": "Growth" } }'
+
+<span class="code-comment"># 3. After the call: the callback row points at the call, the call carries the outcome</span>
+curl "https://app.zonvo.tech/api/v1/callbacks?status=completed" -H "Authorization: Bearer $ZONVO_API_KEY"
+curl "https://app.zonvo.tech/api/v1/calls/RESULT_CALL_ID" -H "Authorization: Bearer $ZONVO_API_KEY"
+<span class="code-comment"># → data.outcome = "interested", data.aiSummary = "...", data.transcript = "..."</span>
+
+<span class="code-comment"># 4. Write it back to the lead</span>
+curl -X PATCH https://app.zonvo.tech/api/v1/leads/LEAD_ID \
+  -H "Authorization: Bearer $ZONVO_API_KEY" -H "Content-Type: application/json" \
+  -d '{ "stage": "hot", "tags": ["api-followup"], "customFields": { "crm_id": "SF-00412" } }'
+</pre>
+
+                <h4>JavaScript / Node.js</h4>
+<pre>
+<span class="code-keyword">const</span> BASE = 'https://app.zonvo.tech/api/v1';
+<span class="code-keyword">const</span> headers = { Authorization: `Bearer ${process.env.ZONVO_API_KEY}`, 'Content-Type': 'application/json' };
+<span class="code-keyword">const</span> api = (method, path, body) =>
+  fetch(BASE + path, { method, headers, body: body &amp;&amp; JSON.stringify(body) }).then(r => r.json());
+
+<span class="code-keyword">async function</span> syncLead(crmLead) {
+  <span class="code-comment">// 1. push the lead</span>
+  <span class="code-keyword">await</span> api('POST', '/contacts', { name: crmLead.name, phone: crmLead.phone, customFields: { crm_id: crmLead.id } });
+
+  <span class="code-comment">// 2. schedule the call (idempotent on externalRef)</span>
+  <span class="code-keyword">const</span> { data: cb } = <span class="code-keyword">await</span> api('POST', '/callbacks', {
+    agentId: process.env.ZONVO_AGENT_ID, contactPhone: crmLead.phone, contactName: crmLead.name,
+    scheduledAt: crmLead.callAt, externalRef: `${crmLead.id}-followup-1`,
+    variables: { first_name: crmLead.firstName, plan: crmLead.plan },
+  });
+  <span class="code-keyword">return</span> cb.id;
+}
+
+<span class="code-comment">// 3. read the outcome — either poll or handle the call.completed webhook</span>
+<span class="code-keyword">async function</span> outcomeFor(callbackId) {
+  <span class="code-keyword">const</span> { data } = <span class="code-keyword">await</span> api('GET', `/callbacks?status=completed&amp;pageSize=100`);
+  <span class="code-keyword">const</span> row = data.find(c => c.id === callbackId);
+  <span class="code-keyword">if</span> (!row?.resultCallId) <span class="code-keyword">return</span> null;
+  <span class="code-keyword">const</span> { data: call } = <span class="code-keyword">await</span> api('GET', `/calls/${row.resultCallId}`);
+  <span class="code-keyword">return</span> { outcome: call.outcome, summary: call.aiSummary };   <span class="code-comment">// e.g. "interested"</span>
+}
+
+<span class="code-comment">// webhook handler (Express, express.raw body) — see "Verifying signatures" above</span>
+app.post('/hooks/zonvo', (req, res) => {
+  <span class="code-keyword">if</span> (!verifyZonvo(req, process.env.ZONVO_WEBHOOK_SECRET)) <span class="code-keyword">return</span> res.sendStatus(401);
+  <span class="code-keyword">const</span> evt = JSON.parse(req.body);
+  <span class="code-keyword">if</span> (evt.event === 'call.completed') crm.update(evt.data.metadata?.externalRef, { outcome: evt.data.outcome });
+  res.sendStatus(200);
+});
+</pre>
+
+                <h4>Python</h4>
+<pre>
+<span class="code-keyword">import</span> os, requests
+
+BASE = 'https://app.zonvo.tech/api/v1'
+H = {'Authorization': f"Bearer {os.environ['ZONVO_API_KEY']}"}
+
+<span class="code-keyword">def</span> sync_lead(lead):
+    <span class="code-comment"># 1. push the lead</span>
+    requests.post(f'{BASE}/contacts', headers=H, json={'name': lead['name'], 'phone': lead['phone'],
+                  'customFields': {'crm_id': lead['id']}}).raise_for_status()
+    <span class="code-comment"># 2. schedule the callback (same externalRef → same callback, HTTP 200)</span>
+    r = requests.post(f'{BASE}/callbacks', headers=H, json={
+        'agentId': os.environ['ZONVO_AGENT_ID'], 'contactPhone': lead['phone'], 'contactName': lead['name'],
+        'scheduledAt': lead['call_at'], 'externalRef': f"{lead['id']}-followup-1",
+        'variables': {'first_name': lead['first_name'], 'plan': lead['plan']}})
+    <span class="code-keyword">if</span> r.status_code == 409:   <span class="code-comment"># DO_NOT_CALL — mirror the opt-out in your CRM</span>
+        <span class="code-keyword">return</span> None
+    <span class="code-keyword">return</span> r.json()['data']['id']
+
+<span class="code-keyword">def</span> outcome_for(callback_id):
+    <span class="code-comment"># 3. read the outcome after the call</span>
+    rows = requests.get(f'{BASE}/callbacks', headers=H, params={'status': 'completed', 'pageSize': 100}).json()['data']
+    row = next((c <span class="code-keyword">for</span> c <span class="code-keyword">in</span> rows <span class="code-keyword">if</span> c['id'] == callback_id), None)
+    <span class="code-keyword">if</span> <span class="code-keyword">not</span> row <span class="code-keyword">or</span> <span class="code-keyword">not</span> row['resultCallId']:
+        <span class="code-keyword">return</span> None
+    call = requests.get(f"{BASE}/calls/{row['resultCallId']}", headers=H).json()['data']
+    <span class="code-keyword">return</span> call['outcome'], call.get('aiSummary')
+
+<span class="code-keyword">def</span> write_back(lead_id, outcome):
+    <span class="code-comment"># 4. move the lead in Zonvo's CRM too (fires lead.upserted and syncs to Zoho/Salesforce/GHL)</span>
+    stage = {'interested': 'hot', 'callback_requested': 'follow_up', 'not_interested': 'not_interested'}.get(outcome, 'follow_up')
+    requests.patch(f'{BASE}/leads/{lead_id}', headers=H, json={'stage': stage}).raise_for_status()
+</pre>
+
+                <h3>Webinar reminder calls from your own app</h3>
+                <p>A webinar platform wants an AI agent to remind opted-in registrants one day and one hour before the session, and to stop reminding anyone who unregisters. The customer pastes their <strong>API key</strong> and <strong>agent id</strong> into your app's settings page; your app then does the rest.</p>
+<pre>
+<span class="code-comment"># On registration: two reminders per registrant in one request (up to 500 contacts per call)</span>
+curl -X POST https://app.zonvo.tech/api/v1/callbacks/bulk \
+  -H "Authorization: Bearer $ZONVO_API_KEY" -H "Content-Type: application/json" \
+  -d '{
+    "agentId": "550e8400-e29b-41d4-a716-446655440000",
+    "timeZone": "Asia/Kolkata",
+    "contacts": [
+      { "phone": "+919876543210", "name": "Priya Sharma", "scheduledAt": "2026-09-29T11:00:00+05:30",
+        "externalRef": "reg_8812-24h", "reason": "Webinar reminder, 1 day before",
+        "variables": { "first_name": "Priya", "webinar_title": "GST filing for startups",
+                       "webinar_time": "30 Sept, 11:00 AM IST", "join_link": "https://example.com/j/8812" } },
+      { "phone": "+919876543210", "name": "Priya Sharma", "scheduledAt": "2026-09-30T10:00:00+05:30",
+        "externalRef": "reg_8812-1h", "reason": "Webinar reminder, 1 hour before",
+        "variables": { "first_name": "Priya", "webinar_title": "GST filing for startups",
+                       "webinar_time": "30 Sept, 11:00 AM IST", "join_link": "https://example.com/j/8812" } }
+    ]
+  }'
+<span class="code-comment"># → { "created": [{ "id", "phone", "externalRef", "scheduledAt" }, ...],</span>
+<span class="code-comment">#     "skipped": [{ "phone", "externalRef", "reason": "do_not_call" | "duplicate" | "invalid_phone" | "past" | "too_far" }] }</span>
+
+<span class="code-comment"># On unregister: cancel both by reference</span>
+curl -X DELETE "https://app.zonvo.tech/api/v1/callbacks?externalRef=reg_8812-24h" -H "Authorization: Bearer $ZONVO_API_KEY"
+curl -X DELETE "https://app.zonvo.tech/api/v1/callbacks?externalRef=reg_8812-1h"  -H "Authorization: Bearer $ZONVO_API_KEY"
+
+<span class="code-comment"># After each call: the call.completed webhook tells you which registration and how it went</span>
+{ "event": "call.completed",
+  "data": { "callId": "...", "callbackId": "...", "outcome": "interested", "answeredBy": "human",
+            "metadata": { "externalRef": "reg_8812-24h" }, "duration": 48 } }
+</pre>
+                <p>In the agent's prompt, write <code>Hi {{first_name}}, this is a reminder for {{webinar_title}} at {{webinar_time}}. The join link is {{join_link}}.</code> &mdash; the variables are substituted per call and also listed to the agent as <em>Details for this call</em>.</p>
             </section>
             
             <!-- Troubleshooting -->
@@ -1072,6 +1400,24 @@ print_r($result);
             <section id="changelog">
                 <h2>Changelog</h2>
                 
+                <h3>v2.1.0 - September 2026</h3>
+                <h4>Added</h4>
+                <ul>
+                    <li><strong>Leads API</strong> &mdash; <code>GET /leads</code>, <code>GET /leads/:id</code> (with notes), <code>PATCH /leads/:id</code>, <code>POST /leads/:id/notes</code>. Changes are forwarded to connected CRMs and fire <code>lead.upserted</code>.</li>
+                    <li><strong>Appointments API</strong> &mdash; list, get and <code>PATCH</code> status (confirm / cancel / complete / no-show) with calendar sync and <code>appointment.*</code> webhooks.</li>
+                    <li><strong>Callbacks API</strong> &mdash; <code>POST /callbacks</code>, <code>POST /callbacks/bulk</code> (≤ 500), <code>DELETE /callbacks/:id</code> and <code>DELETE /callbacks?externalRef=</code>; per-call <code>variables</code>, idempotent <code>externalRef</code>, <code>source</code>.</li>
+                    <li><strong>Do-not-call API</strong> &mdash; list, check, add, import (≤ 5,000) and remove blocked numbers.</li>
+                    <li><strong>Call outcomes</strong> &mdash; <code>outcome</code>, <code>outcomeSource</code>, <code>answeredBy</code> on call rows; <code>GET /calls?outcome=&amp;agentId=&amp;campaignId=&amp;from=&amp;to=</code>; <code>GET /calls/outcomes</code>; <code>POST /calls/:id/outcome</code>.</li>
+                    <li><strong>Scheduled calls</strong> &mdash; <code>POST /calls</code> with a future <code>scheduledAt</code> returns 202 with a <code>callbackId</code>; <code>dynamicVariables</code> are applied to the agent prompt on every engine.</li>
+                    <li><strong>Agent actions</strong> &mdash; <code>GET /agents/:id</code> returns an <code>actions</code> summary.</li>
+                    <li><strong>Webhooks</strong> &mdash; full platform event list (calls, inbound calls, campaigns, appointments, callbacks, leads, forms, flows) from <code>GET /webhooks/events</code>; <code>call.completed</code> carries <code>outcome</code>, <code>callbackId</code> and <code>metadata.externalRef</code>.</li>
+                </ul>
+                <h4>Changed</h4>
+                <ul>
+                    <li>API docs show the real host of your installation (<code>app.zonvo.tech</code> in production) instead of a placeholder.</li>
+                    <li>New "What you can automate", "Integrating from a CRM in 5 steps" and "Webinar reminder calls" guides in the API reference.</li>
+                </ul>
+
                 <h3>v2.0.0 - February 2026</h3>
                 <h4>Added</h4>
                 <ul>
@@ -1116,7 +1462,7 @@ print_r($result);
     <footer>
         <div class="container">
             <p><strong>REST API Plugin for Zonvo AI</strong></p>
-            <p>Version 2.0.0 | &copy; 2026 Zonvo AI. All rights reserved.</p>
+            <p>Version 2.1.0 | &copy; 2026 Zonvo AI. All rights reserved.</p>
         </div>
     </footer>
 </body>

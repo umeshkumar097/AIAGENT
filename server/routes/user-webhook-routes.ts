@@ -95,7 +95,9 @@ export function createUserWebhookRoutes(ctx: RouteContext): Router {
         // Form events
         'form.submitted', 'form.lead_created',
         // Callback events (agent-scheduled call backs)
-        'callback.scheduled'
+        'callback.scheduled',
+        // CRM: a lead was created or updated (call processor, save_lead tool, REST API)
+        'lead.upserted'
       ];
       
       const invalidEvents = events.filter((e: string) => !validEvents.includes(e));

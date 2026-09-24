@@ -12,6 +12,7 @@ import path from 'path';
 import fs from 'fs';
 
 import { scheduleGracefulRestart as scheduleServerRestart } from '../utils/graceful-restart';
+import { replaceDocsPlaceholder, resolveRequestOrigin } from '../utils/request-origin';
 import { fileURLToPath } from 'url';
 import { 
   discoverPlugins, 
@@ -290,6 +291,8 @@ publicPluginRouter.get('/:name/docs', async (req, res) => {
     let html = fs.readFileSync(docPath, 'utf8');
     // Replace template placeholder first; also catch any legacy "Zonvo AI" literals
     html = html.replace(/\{\{app_name\}\}/g, appName).replace(/Zonvo AI/g, appName);
+    // Base-URL examples show the host the docs were opened on (app.zonvo.tech in production)
+    html = replaceDocsPlaceholder(html, escapeHtml(resolveRequestOrigin(req)));
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(html);
   } catch (error: any) {

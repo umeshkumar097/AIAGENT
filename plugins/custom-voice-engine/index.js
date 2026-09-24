@@ -2106,11 +2106,19 @@ var init_schema = __esm({
       attempts: integer("attempts").notNull().default(0),
       lastError: text("last_error"),
       resultCallId: varchar("result_call_id"),
+      // Migration 0018 — API-scheduled calls (CRM / WebinarX reminders)
+      variables: jsonb("variables").$type(),
+      // {{key}} substitutions for prompt + first message
+      source: text("source").notNull().default("agent"),
+      // agent | manual | api
+      externalRef: text("external_ref"),
+      // caller's idempotency key / their record id, unique per user
       createdAt: timestamp("created_at").notNull().defaultNow(),
       updatedAt: timestamp("updated_at").notNull().defaultNow()
     }, (table) => ({
       scheduledCallbacksDueIdx: index("scheduled_callbacks_status_scheduled_at_idx").on(table.status, table.scheduledAt),
-      scheduledCallbacksUserIdx: index("scheduled_callbacks_user_created_idx").on(table.userId, table.createdAt)
+      scheduledCallbacksUserIdx: index("scheduled_callbacks_user_created_idx").on(table.userId, table.createdAt),
+      scheduledCallbacksExternalRefIdx: uniqueIndex("scheduled_callbacks_user_external_ref_idx").on(table.userId, table.externalRef)
     }));
     insertScheduledCallbackSchema = createInsertSchema(scheduledCallbacks).omit({
       id: true,
@@ -9573,6 +9581,8 @@ var init_webhook_test_service = __esm({
       "form.lead_created",
       // Callback events (agent-scheduled call backs)
       "callback.scheduled",
+      // CRM
+      "lead.upserted",
       // System
       "webhook.test"
     ];
@@ -9907,8 +9917,262 @@ var init_providers = __esm({
   }
 });
 
+// server/services/webhook-delivery.ts
+var webhook_delivery_exports = {};
+__export(webhook_delivery_exports, {
+  WebhookDeliveryService: () => WebhookDeliveryService,
+  webhookDeliveryService: () => webhookDeliveryService
+});
+import crypto2 from "crypto";
+import { eq as eq16, and as and8 } from "drizzle-orm";
+var RETRY_DELAYS, WebhookDeliveryService, webhookDeliveryService;
+var init_webhook_delivery = __esm({
+  "server/services/webhook-delivery.ts"() {
+    "use strict";
+    init_storage();
+    init_db();
+    init_schema();
+    init_url_validator();
+    init_hub();
+    RETRY_DELAYS = [0, 6e4, 3e5];
+    WebhookDeliveryService = class {
+      generateSignature(payload, secret) {
+        return crypto2.createHmac("sha256", secret).update(payload).digest("hex");
+      }
+      buildHeaders(webhook, payloadString, event) {
+        const signature = this.generateSignature(payloadString, webhook.secret);
+        const headers = {
+          "Content-Type": "application/json",
+          "User-Agent": "Platform-Webhook/1.0",
+          "X-Webhook-Event": event,
+          "X-Webhook-Delivery": crypto2.randomUUID(),
+          "X-Webhook-Signature": `sha256=${signature}`,
+          // Same HMAC-SHA256 hex of the raw body, under the names the REST API docs use (legacy names kept for old receivers)
+          "X-Zonvo-Signature": signature,
+          "X-Zonvo-Event": event,
+          "X-AgentLabs-Signature": signature,
+          "X-AgentLabs-Event": event
+        };
+        if (webhook.authType === "basic" && webhook.authCredentials) {
+          const creds = webhook.authCredentials;
+          if (creds.username && creds.password) {
+            const basicAuth = Buffer.from(`${creds.username}:${creds.password}`).toString("base64");
+            headers["Authorization"] = `Basic ${basicAuth}`;
+          }
+        } else if (webhook.authType === "bearer" && webhook.authCredentials) {
+          const creds = webhook.authCredentials;
+          if (creds.token) {
+            headers["Authorization"] = `Bearer ${creds.token}`;
+          }
+        }
+        if (webhook.headers) {
+          const customHeaders = webhook.headers;
+          Object.assign(headers, customHeaders);
+        }
+        return headers;
+      }
+      async deliverWebhook(webhook, payload, attemptNumber = 1) {
+        const payloadString = JSON.stringify(payload);
+        const headers = this.buildHeaders(webhook, payloadString, payload.event);
+        const startTime = Date.now();
+        console.log(`\u{1F4E4} [Webhook] Delivering to ${webhook.url} (attempt ${attemptNumber})`);
+        console.log(`   Event: ${payload.event}`);
+        try {
+          const urlCheck = await validateWebhookUrl(webhook.url);
+          if (!urlCheck.valid) {
+            console.warn(`\u{1F6AB} [Webhook] SSRF blocked: ${urlCheck.error} for URL ${webhook.url}`);
+            return {
+              success: false,
+              httpStatus: 0,
+              responseBody: `Blocked: ${urlCheck.error}`,
+              responseTime: 0,
+              error: urlCheck.error
+            };
+          }
+          const response = await fetch(webhook.url, {
+            method: webhook.method || "POST",
+            headers,
+            body: payloadString,
+            signal: AbortSignal.timeout(3e4),
+            redirect: "error"
+          });
+          const responseTime = Date.now() - startTime;
+          let responseBody = "";
+          try {
+            responseBody = await response.text();
+            if (responseBody.length > 1e4) {
+              responseBody = responseBody.substring(0, 1e4) + "...[truncated]";
+            }
+          } catch {
+            responseBody = "Unable to read response body";
+          }
+          const success = response.ok;
+          console.log(`${success ? "\u2705" : "\u274C"} [Webhook] Status: ${response.status}, Time: ${responseTime}ms`);
+          return {
+            success,
+            httpStatus: response.status,
+            responseBody,
+            responseTime
+          };
+        } catch (error) {
+          const responseTime = Date.now() - startTime;
+          const errorMessage2 = error.name === "TimeoutError" ? "Request timed out after 30 seconds" : error.message || "Unknown error";
+          console.error(`\u274C [Webhook] Delivery failed: ${errorMessage2}`);
+          return {
+            success: false,
+            responseTime,
+            error: errorMessage2
+          };
+        }
+      }
+      async deliverWithRetry(webhook, payload, maxAttempts = 3) {
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          const result = await this.deliverWebhook(webhook, payload, attempt);
+          const logData = {
+            webhookId: webhook.id,
+            event: payload.event,
+            payload,
+            success: result.success,
+            httpStatus: result.httpStatus || null,
+            responseBody: result.responseBody || null,
+            responseTime: result.responseTime || null,
+            error: result.error || null,
+            attemptNumber: attempt,
+            maxAttempts,
+            nextRetryAt: null
+          };
+          if (!result.success && attempt < maxAttempts) {
+            const delay = RETRY_DELAYS[attempt] || 3e5;
+            logData.nextRetryAt = new Date(Date.now() + delay);
+            console.log(`\u23F3 [Webhook] Scheduling retry in ${delay / 1e3}s`);
+          }
+          try {
+            const webhookExists = await storage.getWebhook(webhook.id);
+            if (webhookExists) {
+              await storage.createWebhookLog(logData);
+            } else {
+              console.log(`\u2139\uFE0F [Webhook] Skipping log - webhook ${webhook.id} was deleted`);
+            }
+          } catch (err) {
+            if (err.code === "23503" || err.message?.includes("foreign key constraint")) {
+              console.log(`\u2139\uFE0F [Webhook] Skipping log - webhook ${webhook.id} no longer exists`);
+            } else {
+              console.error(`\u274C [Webhook] Failed to log delivery:`, err);
+            }
+          }
+          if (result.success) {
+            console.log(`\u2705 [Webhook] Delivery successful on attempt ${attempt}`);
+            return;
+          }
+          if (attempt < maxAttempts) {
+            const delay = RETRY_DELAYS[attempt] || 6e4;
+            console.log(`\u23F3 [Webhook] Waiting ${delay / 1e3}s before retry...`);
+            await new Promise((resolve) => setTimeout(resolve, delay));
+          }
+        }
+        console.error(`\u274C [Webhook] All ${maxAttempts} attempts failed for ${webhook.url}`);
+      }
+      async triggerEvent(userId, event, data, campaignId) {
+        console.log(`\u{1F514} [Webhook] Triggering event: ${event}`);
+        console.log(`   UserId: ${userId}, CampaignId: ${campaignId || "N/A"}`);
+        integrationHub.dispatch(userId, event, data);
+        try {
+          const webhooks2 = await storage.getWebhooksForEvent(userId, event, campaignId || void 0);
+          if (webhooks2.length === 0) {
+            console.log(`\u2139\uFE0F [Webhook] No webhooks configured for event: ${event}`);
+            return;
+          }
+          console.log(`\u{1F4E4} [Webhook] Found ${webhooks2.length} webhook(s) to deliver`);
+          const payload = {
+            event,
+            timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+            data
+          };
+          const deliveryPromises = webhooks2.map(
+            (webhook) => this.deliverWithRetry(webhook, payload).catch((err) => {
+              console.error(`\u274C [Webhook] Error delivering to ${webhook.url}:`, err);
+            })
+          );
+          await Promise.allSettled(deliveryPromises);
+          console.log(`\u2705 [Webhook] Event ${event} processing complete`);
+        } catch (error) {
+          console.error(`\u274C [Webhook] Error triggering event ${event}:`, error);
+        }
+      }
+      async testWebhook(webhookId, userId) {
+        const [webhook] = await db.select().from(webhooks).where(and8(eq16(webhooks.id, webhookId), eq16(webhooks.userId, userId)));
+        if (!webhook) {
+          throw new Error("Webhook not found");
+        }
+        const testPayload = {
+          event: "webhook.test",
+          timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+          data: {
+            test: true,
+            message: "This is a test webhook from your platform"
+          }
+        };
+        console.log(`\u{1F9EA} Testing webhook ${webhookId}...`);
+        const result = await this.deliverWebhook(webhook, testPayload, 1);
+        return {
+          success: result.success,
+          statusCode: result.httpStatus || 0,
+          responseTime: result.responseTime || 0,
+          responseBody: result.responseBody || "",
+          error: result.error
+        };
+      }
+      async retryWebhook(logId, userId) {
+        const [log] = await db.select().from(webhookLogs).where(eq16(webhookLogs.id, logId));
+        if (!log) {
+          throw new Error("Webhook log not found");
+        }
+        const [webhook] = await db.select().from(webhooks).where(and8(eq16(webhooks.id, log.webhookId), eq16(webhooks.userId, userId)));
+        if (!webhook) {
+          throw new Error("Webhook not found or access denied");
+        }
+        console.log(`\u{1F504} Manually retrying webhook ${webhook.id} (log ${logId})...`);
+        const payload = {
+          event: log.event,
+          timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+          data: log.payload?.data || log.payload
+        };
+        const result = await this.deliverWebhook(webhook, payload, 1);
+        const logData = {
+          webhookId: webhook.id,
+          event: log.event,
+          payload: log.payload,
+          success: result.success,
+          httpStatus: result.httpStatus || null,
+          responseBody: result.responseBody || null,
+          responseTime: result.responseTime || null,
+          error: result.error || null,
+          attemptNumber: 1,
+          maxAttempts: 1,
+          nextRetryAt: null
+        };
+        try {
+          const newLog = await storage.createWebhookLog(logData);
+          return {
+            success: result.success,
+            newLogId: newLog?.id,
+            error: result.error
+          };
+        } catch (err) {
+          console.error(`\u274C [Webhook] Failed to log retry:`, err);
+          return {
+            success: result.success,
+            error: result.error
+          };
+        }
+      }
+    };
+    webhookDeliveryService = new WebhookDeliveryService();
+  }
+});
+
 // server/integrations/hub.ts
-import { eq as eq16 } from "drizzle-orm";
+import { eq as eq17 } from "drizzle-orm";
 function invalidateIntegrationCache(userId) {
   rowCache.delete(userId);
 }
@@ -9929,8 +10193,8 @@ async function appointmentPayloadForLead(lead, callId) {
   const details = asObject(lead.appointmentDetails);
   const apptId = str(details?.appointmentId);
   let row;
-  if (apptId) [row] = await db.select().from(appointments).where(eq16(appointments.id, apptId)).limit(1);
-  if (!row && callId) [row] = await db.select().from(appointments).where(eq16(appointments.callId, callId)).limit(1);
+  if (apptId) [row] = await db.select().from(appointments).where(eq17(appointments.id, apptId)).limit(1);
+  if (!row && callId) [row] = await db.select().from(appointments).where(eq17(appointments.callId, callId)).limit(1);
   if (row) {
     if (row.status === "cancelled") return null;
     return {
@@ -10037,13 +10301,16 @@ var init_hub = __esm({
           if (authFailure) invalidateIntegrationCache(row.userId);
         }
       }
-      /** Called by the CRM lead processor after a lead row was created/updated from a call. Never throws. */
+      /**
+       * Called after a lead row was created/updated (CRM lead processor, agent save_lead tool, REST API).
+       * Delivers `lead.upserted` to the user's webhook subscriptions and — through the delivery service —
+       * to every connected integration. Never throws.
+       */
       async onLeadUpserted(userId, lead, context) {
         try {
-          const rows = await connectedRows(userId);
-          if (!rows.length) return;
           const call = context.callData;
-          this.dispatch(userId, "lead.upserted", {
+          const { webhookDeliveryService: webhookDeliveryService2 } = await Promise.resolve().then(() => (init_webhook_delivery(), webhook_delivery_exports));
+          void webhookDeliveryService2.triggerEvent(userId, "lead.upserted", {
             lead: publicLead(lead),
             created: context.created,
             call: call ? {
@@ -10058,6 +10325,8 @@ var init_hub = __esm({
               campaignId: call.campaignId ?? null
             } : null
           });
+          const rows = await connectedRows(userId);
+          if (!rows.length) return;
           if (lead.hasAppointment) {
             const payload = await appointmentPayloadForLead(lead, call?.id ?? null);
             if (payload) this.dispatch(userId, "appointment.booked", payload);
@@ -10077,7 +10346,7 @@ __export(lead_processor_service_exports, {
   CRMLeadProcessor: () => CRMLeadProcessor,
   default: () => lead_processor_service_default
 });
-import { eq as eq17, and as and8, sql as sql19 } from "drizzle-orm";
+import { eq as eq18, and as and9, sql as sql19 } from "drizzle-orm";
 var CRMLeadProcessor, lead_processor_service_default;
 var init_lead_processor_service = __esm({
   "server/engines/crm/lead-processor.service.ts"() {
@@ -10420,7 +10689,7 @@ var init_lead_processor_service = __esm({
               bookedAt: appt.createdAt?.toISOString()
             };
           };
-          const byCallId = await db.select().from(appointments).where(eq17(appointments.callId, callData.id)).limit(1);
+          const byCallId = await db.select().from(appointments).where(eq18(appointments.callId, callData.id)).limit(1);
           if (byCallId.length > 0) {
             return formatAppt(byCallId[0], "callId");
           }
@@ -10428,8 +10697,8 @@ var init_lead_processor_service = __esm({
           if (!phone) return null;
           const normalizedPhone = phone.replace(/\D/g, "").slice(-10);
           if (normalizedPhone.length < 7) return null;
-          const byPhone = await db.select().from(appointments).where(and8(
-            eq17(appointments.userId, callData.userId),
+          const byPhone = await db.select().from(appointments).where(and9(
+            eq18(appointments.userId, callData.userId),
             sql19`${appointments.createdAt} > NOW() - INTERVAL '30 minutes'`,
             sql19`RIGHT(REGEXP_REPLACE(${appointments.contactPhone}, '[^0-9]', '', 'g'), 10) = ${normalizedPhone}`
           )).limit(1);
@@ -10490,33 +10759,33 @@ var init_lead_processor_service = __esm({
         const phoneNumber = this.resolveLeadPhone(callData);
         const hasValidPhone = phoneNumber && phoneNumber !== "Unknown";
         if (callData.engine === "elevenlabs-twilio") {
-          const [existingByCallId] = await db.select().from(leads).where(and8(
-            eq17(leads.userId, callData.userId),
-            eq17(leads.callId, callData.id)
+          const [existingByCallId] = await db.select().from(leads).where(and9(
+            eq18(leads.userId, callData.userId),
+            eq18(leads.callId, callData.id)
           )).limit(1);
           if (existingByCallId) return existingByCallId;
         }
         if (callData.campaignId && hasValidPhone) {
-          const [existingByCampaign] = await db.select().from(leads).where(and8(
-            eq17(leads.userId, callData.userId),
-            eq17(leads.phone, phoneNumber),
-            eq17(leads.campaignId, callData.campaignId)
+          const [existingByCampaign] = await db.select().from(leads).where(and9(
+            eq18(leads.userId, callData.userId),
+            eq18(leads.phone, phoneNumber),
+            eq18(leads.campaignId, callData.campaignId)
           )).limit(1);
           if (existingByCampaign) return existingByCampaign;
         }
         if (callData.incomingConnectionId && hasValidPhone) {
-          const [existingByConnection] = await db.select().from(leads).where(and8(
-            eq17(leads.userId, callData.userId),
-            eq17(leads.phone, phoneNumber),
-            eq17(leads.incomingConnectionId, callData.incomingConnectionId)
+          const [existingByConnection] = await db.select().from(leads).where(and9(
+            eq18(leads.userId, callData.userId),
+            eq18(leads.phone, phoneNumber),
+            eq18(leads.incomingConnectionId, callData.incomingConnectionId)
           )).limit(1);
           if (existingByConnection) return existingByConnection;
         }
         if (hasValidPhone && !callData.campaignId) {
-          const [existingByPhone] = await db.select().from(leads).where(and8(
-            eq17(leads.userId, callData.userId),
-            eq17(leads.phone, phoneNumber),
-            eq17(leads.sourceType, "incoming")
+          const [existingByPhone] = await db.select().from(leads).where(and9(
+            eq18(leads.userId, callData.userId),
+            eq18(leads.phone, phoneNumber),
+            eq18(leads.sourceType, "incoming")
           )).limit(1);
           return existingByPhone || null;
         }
@@ -10647,7 +10916,7 @@ var init_lead_processor_service = __esm({
        * Process a call from the ElevenLabs-Twilio engine (calls table)
        */
       static async processElevenLabsTwilioCall(callId) {
-        const [call] = await db.select().from(calls).where(eq17(calls.id, callId)).limit(1);
+        const [call] = await db.select().from(calls).where(eq18(calls.id, callId)).limit(1);
         if (!call || !call.userId) {
           console.log(`${this.LOG_PREFIX} Call not found or no user: ${callId}`);
           return null;
@@ -10686,7 +10955,7 @@ var init_lead_processor_service = __esm({
        * Process a call from the Plivo+OpenAI engine (plivo_calls table)
        */
       static async processPlivoOpenAICall(callId) {
-        const [call] = await db.select().from(plivoCalls).where(eq17(plivoCalls.id, callId)).limit(1);
+        const [call] = await db.select().from(plivoCalls).where(eq18(plivoCalls.id, callId)).limit(1);
         if (!call || !call.userId) {
           console.log(`${this.LOG_PREFIX} Plivo call not found or no user: ${callId}`);
           return null;
@@ -10725,7 +10994,7 @@ var init_lead_processor_service = __esm({
        * Process a call from the Twilio+OpenAI engine (twilio_openai_calls table)
        */
       static async processTwilioOpenAICall(callId) {
-        const [call] = await db.select().from(twilioOpenaiCalls).where(eq17(twilioOpenaiCalls.id, callId)).limit(1);
+        const [call] = await db.select().from(twilioOpenaiCalls).where(eq18(twilioOpenaiCalls.id, callId)).limit(1);
         if (!call || !call.userId) {
           console.log(`${this.LOG_PREFIX} Twilio-OpenAI call not found or no user: ${callId}`);
           return null;
@@ -10764,7 +11033,7 @@ var init_lead_processor_service = __esm({
        * Process a call from the SIP engine (sip_calls table)
        */
       static async processSipCall(callId) {
-        const [call] = await db.select().from(sipCalls).where(eq17(sipCalls.id, callId)).limit(1);
+        const [call] = await db.select().from(sipCalls).where(eq18(sipCalls.id, callId)).limit(1);
         if (!call || !call.userId) {
           console.log(`${this.LOG_PREFIX} SIP call not found or no user: ${callId}`);
           return null;

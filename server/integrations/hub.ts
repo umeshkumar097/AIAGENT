@@ -129,13 +129,17 @@ class IntegrationHub {
     }
   }
 
-  /** Called by the CRM lead processor after a lead row was created/updated from a call. Never throws. */
+  /**
+   * Called after a lead row was created/updated (CRM lead processor, agent save_lead tool, REST API).
+   * Delivers `lead.upserted` to the user's webhook subscriptions and — through the delivery service —
+   * to every connected integration. Never throws.
+   */
   async onLeadUpserted(userId: string, lead: LeadRow, context: LeadUpsertContext): Promise<void> {
     try {
-      const rows = await connectedRows(userId);
-      if (!rows.length) return;
       const call = context.callData;
-      this.dispatch(userId, "lead.upserted", {
+      // Lazy import: webhook-delivery imports this hub (triggerEvent dispatches here as well)
+      const { webhookDeliveryService } = await import("../services/webhook-delivery");
+      void webhookDeliveryService.triggerEvent(userId, "lead.upserted", {
         lead: publicLead(lead),
         created: context.created,
         call: call ? {
@@ -143,6 +147,8 @@ class IntegrationHub {
           transcript: call.transcript ?? null, from: call.fromNumber ?? null, to: call.toNumber ?? null, engine: call.engine ?? null, campaignId: call.campaignId ?? null,
         } : null,
       });
+      const rows = await connectedRows(userId);
+      if (!rows.length) return;
       if (lead.hasAppointment) {
         const payload = await appointmentPayloadForLead(lead, call?.id ?? null);
         if (payload) this.dispatch(userId, "appointment.booked", payload);

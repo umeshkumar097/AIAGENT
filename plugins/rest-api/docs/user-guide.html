@@ -173,9 +173,22 @@
     <a href="#campaigns"     class="nav-link"><span class="icon">📣</span>Campaigns</a>
     <a href="#contacts"      class="nav-link"><span class="icon">👥</span>Contacts</a>
     <a href="#calls"         class="nav-link"><span class="icon">📱</span>Calls & Logs</a>
+    <a href="#outcomes"      class="nav-link"><span class="icon">🎯</span>Call Outcomes & Retry</a>
+    <a href="#callbacks"     class="nav-link"><span class="icon">⏰</span>Callbacks</a>
+    <a href="#dnd"           class="nav-link"><span class="icon">🚫</span>Do-not-call List</a>
+    <a href="#appointments"  class="nav-link"><span class="icon">📅</span>Appointments</a>
+    <a href="#crm"           class="nav-link"><span class="icon">🗂️</span>Leads & CRM Inbox</a>
     <a href="#analytics"     class="nav-link"><span class="icon">📈</span>Analytics</a>
 
+    <div class="nav-section">Agent Actions</div>
+    <a href="#agent-tools"   class="nav-link"><span class="icon">🧰</span>Tools & Voicemail</a>
+    <a href="#test-call"     class="nav-link"><span class="icon">🎧</span>Browser Test Call</a>
+    <a href="#messaging"     class="nav-link"><span class="icon">💬</span>WhatsApp & Email</a>
+    <a href="#auto-reply"    class="nav-link"><span class="icon">🤖</span>WhatsApp Auto-reply</a>
+    <a href="#call-quality"  class="nav-link"><span class="icon">⭐</span>Call Quality Score</a>
+
     <div class="nav-section">Advanced</div>
+    <a href="#integrations"  class="nav-link"><span class="icon">🔌</span>Integrations</a>
     <a href="#webhooks"      class="nav-link"><span class="icon">🔗</span>Webhooks</a>
     <a href="#api-keys"      class="nav-link"><span class="icon">🔑</span>API Keys</a>
     <a href="#voices"        class="nav-link"><span class="icon">🎵</span>Voices</a>
@@ -188,7 +201,7 @@
 <main id="main">
   <div class="topbar">
     <span class="topbar-title">Zonvo Platform Documentation</span>
-    <span class="topbar-badge">v5.4</span>
+    <span class="topbar-badge">Sept 2026</span>
   </div>
 
   <div class="content">
@@ -238,6 +251,16 @@
           <div class="card-icon">🔑</div>
           <div class="card-title">REST API</div>
           <div class="card-desc">Programmatically calls trigger karo aur data fetch karo.</div>
+        </div>
+        <div class="card">
+          <div class="card-icon">🧰</div>
+          <div class="card-title">Agent Actions</div>
+          <div class="card-desc">Transfer, appointment booking, lead save, callbacks, custom API lookups, voicemail handling — sab agent builder mein.</div>
+        </div>
+        <div class="card">
+          <div class="card-icon">🗂️</div>
+          <div class="card-title">Quick CRM</div>
+          <div class="card-desc">AI-scored leads, team inbox, SLA, aur Zoho / Salesforce / GoHighLevel sync.</div>
         </div>
       </div>
     </section>
@@ -321,12 +344,12 @@
           </div>
         </div></div>
         <div class="step"><span class="step-num">4</span><div class="step-body">
-          <div class="step-title">Telephony Provider Set Karo</div>
-          <div class="step-desc">Plivo (Indian numbers) ya Twilio (international) choose karo. Phone number assign karo.</div>
+          <div class="step-title">Tools & Knowledge (Step 4)</div>
+          <div class="step-desc">Transfer, appointments, save lead, callbacks, custom API lookups, knowledge base, aur voicemail handling yahan on karo. Details neeche <a href="#agent-tools">Tools & Voicemail</a> mein.</div>
         </div></div>
         <div class="step"><span class="step-num">5</span><div class="step-body">
-          <div class="step-title">Test & Publish</div>
-          <div class="step-desc"><strong>Test Call</strong> button se pehle test karo. Sab theek lage toh <strong>Publish</strong> karo.</div>
+          <div class="step-title">WhatsApp & Email (Step 5) → Save → Test</div>
+          <div class="step-desc">Agent ko templates bhejne do aur owner alerts set karo. Save ke baad <strong>Test in browser</strong> se mic pe baat karke check karo, phir phone number attach karo.</div>
         </div></div>
       </div>
       <div class="note">System prompt likhte waqt simple, conversational language use karo. Hindi ya Hinglish mein likho agar Indian customers ke liye hai.</div>
@@ -466,11 +489,11 @@
       <div class="steps">
         <div class="step"><span class="step-num">1</span><div class="step-body">
           <div class="step-title">Calls Page Kholo</div>
-          <div class="step-desc">Sidebar → <strong>Calls</strong>. Filter by date, status, agent, duration.</div>
+          <div class="step-desc">Sidebar → <strong>Monitor → Calls</strong>. Filter by date, status, sentiment, direction, agent — aur <strong>Outcome</strong> (Interested, Callback requested, Voicemail…).</div>
         </div></div>
         <div class="step"><span class="step-num">2</span><div class="step-body">
           <div class="step-title">Call Details Dekhna</div>
-          <div class="step-desc">Kisi bhi call pe click karo: Recording sunna, Transcript padhna, AI-generated summary dekhna.</div>
+          <div class="step-desc">Kisi bhi call pe click karo: Recording sunna, Transcript padhna, AI-generated summary, Outcome (aur kisne set kiya — agent / system), Answered by (human / machine) aur <strong>Call quality</strong> score dekhna.</div>
         </div></div>
         <div class="step"><span class="step-num">3</span><div class="step-body">
           <div class="step-title">Call Data Export</div>
@@ -485,6 +508,140 @@
         <tr><td><span class="badge badge-purple">Busy</span></td><td>Line busy thi</td></tr>
         <tr><td><span class="badge badge-blue">Failed</span></td><td>Technical issue se call fail hua</td></tr>
       </table>
+    </section>
+
+    <!-- OUTCOMES & RETRY -->
+    <section id="outcomes" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:#f9731620">🎯</div>
+        <h2>Call Outcomes & Smart Retry</h2>
+      </div>
+      <p>Har khatam hui call ka ek <strong>outcome</strong> hota hai. Agent baat-cheet ke end mein khud set karta hai, ya platform telephony events se set karta hai.</p>
+      <table>
+        <tr><th>Outcome</th><th>Kaun set karta hai</th><th>Matlab</th></tr>
+        <tr><td><span class="badge badge-green">Interested</span></td><td>Agent</td><td>Customer aage badhna chahta hai — lead hot</td></tr>
+        <tr><td><span class="badge badge-blue">Callback requested</span></td><td>Agent</td><td>Baad mein call karne ko kaha — callback auto-schedule hota hai</td></tr>
+        <tr><td><span class="badge badge-purple">Not interested / No decision / Already a customer / Wrong number</span></td><td>Agent</td><td>Final outcomes — campaign dobara dial nahi karti</td></tr>
+        <tr><td><span class="badge badge-orange">Do not call</span></td><td>Agent</td><td>Customer ne mana kiya — number DND list mein chala gaya</td></tr>
+        <tr><td><span class="badge badge-orange">No answer / Busy / Failed / Voicemail</span></td><td>System</td><td>Retry rules ke hisaab se dobara try hota hai</td></tr>
+        <tr><td><span class="badge badge-green">Appointment booked / Transferred</span></td><td>System</td><td>Agent ne booking ki ya call human ko transfer hui</td></tr>
+      </table>
+      <h3>Campaign Smart Retry Kaise Set Karein</h3>
+      <div class="steps">
+        <div class="step"><span class="step-num">1</span><div class="step-body">
+          <div class="step-title">Build → Campaigns → + Create Campaign</div>
+          <div class="step-desc">Campaign details bharne ke baad <strong>Auto-retry missed calls</strong> section kholo.</div>
+        </div></div>
+        <div class="step"><span class="step-num">2</span><div class="step-body">
+          <div class="step-title">Har Outcome Ke Liye Rule</div>
+          <div class="step-desc"><strong>No answer, Busy, Call failed, Voicemail</strong> — har ek ke liye alag <strong>Wait (minutes)</strong> (5 se 10,080) aur <strong>Max calls</strong> (0–10, pehli call included) set karo.</div>
+        </div></div>
+        <div class="step"><span class="step-num">3</span><div class="step-body">
+          <div class="step-title">Outcome Filter Se Track Karo</div>
+          <div class="step-desc">Monitor → Calls → <strong>Outcome</strong> filter, ya Analytics → Insights → Outcome breakdown.</div>
+        </div></div>
+      </div>
+      <div class="note">Interested, Not interested, Wrong number, Already a customer, Do not call aur Appointment booked <strong>final</strong> hain — in par kabhi retry nahi hota.</div>
+    </section>
+
+    <!-- CALLBACKS -->
+    <section id="callbacks" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:#3b82f620">⏰</div>
+        <h2>Callbacks</h2>
+      </div>
+      <p>Jab customer kehta hai "kal 11 baje call karna", agent callback schedule kar deta hai aur platform us time pe automatically call karta hai. Aap manually bhi schedule kar sakte ho.</p>
+      <div class="steps">
+        <div class="step"><span class="step-num">1</span><div class="step-body">
+          <div class="step-title">Agent Mein On Karo</div>
+          <div class="step-desc">Build → Agents → agent kholo → Step 4 <strong>Tools & knowledge</strong> → <strong>Schedule a callback</strong> toggle. "At most … days ahead" set karo (default 7, max 60).</div>
+        </div></div>
+        <div class="step"><span class="step-num">2</span><div class="step-body">
+          <div class="step-title">Monitor → Callbacks</div>
+          <div class="step-desc">Sidebar → <strong>Monitor → Callbacks</strong>. Har callback ka Contact, When, Reason, Agent aur status dikhta hai: <span class="badge badge-blue">Pending</span> <span class="badge badge-orange">Calling</span> <span class="badge badge-green">Called</span> <span class="badge badge-purple">Failed</span> Cancelled.</div>
+        </div></div>
+        <div class="step"><span class="step-num">3</span><div class="step-body">
+          <div class="step-title">Manually Schedule Karo</div>
+          <div class="step-desc"><strong>Schedule a callback</strong> button → Agent (sirf Plivo/Sarvam agents), Phone number, Name, When (aapka local time), Reason (agent ko sunai deta hai) → <strong>Schedule</strong>. Pending callback ko cancel bhi kar sakte ho.</div>
+        </div></div>
+      </div>
+      <div class="tip">Called callback ki row se seedha result call khulti hai — outcome aur transcript wahin dekho. CRM se bulk callbacks (variables ke saath) REST API se schedule karo: <code>POST /api/v1/callbacks/bulk</code>.</div>
+    </section>
+
+    <!-- DO NOT CALL -->
+    <section id="dnd" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:#f9731620">🚫</div>
+        <h2>Do-not-call List</h2>
+      </div>
+      <p>Jo numbers kabhi dial nahi hone chahiye. Campaigns, API calls aur callbacks — sab is list ko respect karte hain.</p>
+      <div class="steps">
+        <div class="step"><span class="step-num">1</span><div class="step-body">
+          <div class="step-title">All Contacts → Do not call</div>
+          <div class="step-desc">Sidebar → <strong>Telephony → All Contacts</strong> → <strong>Do not call</strong> tab. Yahan blocked numbers, reason (caller request / manual / import / complaint) aur source (agent / manual / upload / api) dikhte hain.</div>
+        </div></div>
+        <div class="step"><span class="step-num">2</span><div class="step-body">
+          <div class="step-title">Number Add Ya Upload Karo</div>
+          <div class="step-desc">Ek number note ke saath add karo, ya list upload karo. 10-digit number automatically +91 ban jaata hai.</div>
+        </div></div>
+        <div class="step"><span class="step-num">3</span><div class="step-body">
+          <div class="step-title">Agent Khud Add Karta Hai</div>
+          <div class="step-desc">Call pe customer kahe "dobara call mat karna" / "unsubscribe" — agent number list mein daal deta hai, ek line mein confirm karta hai, aur call end karta hai. Call ka outcome <strong>Do not call</strong> ban jaata hai.</div>
+        </div></div>
+      </div>
+      <div class="warn">Galti se add hua number list se remove karo — warna us number pe koi campaign ya callback nahi jayegi.</div>
+    </section>
+
+    <!-- APPOINTMENTS -->
+    <section id="appointments" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:#22c55e20">📅</div>
+        <h2>Appointments & Availability</h2>
+      </div>
+      <p>Agent free slots check karke customer ke liye appointment book karta hai — aapke calendar ke hisaab se.</p>
+      <div class="steps">
+        <div class="step"><span class="step-num">1</span><div class="step-body">
+          <div class="step-title">Agent Mein "Book appointments" On Karo</div>
+          <div class="step-desc">Build → Agents → Step 4 <strong>Tools & knowledge</strong> → <strong>Book appointments</strong>. Set karo: <strong>Slot length</strong> (default 30 min), <strong>Time zone</strong> (Asia/Kolkata), <strong>Working hours</strong> (09:00–18:00), <strong>Working days</strong>, <strong>Service name</strong>, aur <strong>Send a confirmation after booking</strong> (WhatsApp / Email — Step 5 mein enable hona chahiye).</div>
+        </div></div>
+        <div class="step"><span class="step-num">2</span><div class="step-body">
+          <div class="step-title">Calendar Connect Karo (Optional)</div>
+          <div class="step-desc"><strong>Flow Builder → Appointments</strong> mein Google Calendar connect karo, ya Build → Tools → Integrations mein Cal.com / GoHighLevel calendar. Tab agent sirf sach-much free slots offer karta hai aur booking calendar mein bhi banti hai.</div>
+        </div></div>
+        <div class="step"><span class="step-num">3</span><div class="step-body">
+          <div class="step-title">Appointments Dekho & Update Karo</div>
+          <div class="step-desc"><strong>Flow Builder → Appointments</strong> (dashboard ke appointments card se bhi). Status: scheduled → confirmed / cancelled / completed / no-show. Lead pe bhi <em>Appointment Booked</em> stage lag jaata hai.</div>
+        </div></div>
+      </div>
+      <div class="tip">Agent pehle <em>check_availability</em> karta hai, 2–3 slots offer karta hai, naam-date-time confirm karke book karta hai. Owner alert "Appointment booked" trigger se turant email/WhatsApp lo.</div>
+    </section>
+
+    <!-- LEADS & CRM INBOX -->
+    <section id="crm" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:#a855f720">🗂️</div>
+        <h2>Save Lead & CRM Inbox</h2>
+      </div>
+      <p>Agent call pe customer ka naam, phone, email aur aapke custom fields collect karke <strong>Quick CRM</strong> mein lead banata hai — AI score, summary aur next action ke saath.</p>
+      <div class="steps">
+        <div class="step"><span class="step-num">1</span><div class="step-body">
+          <div class="step-title">"Save the caller as a lead" On Karo</div>
+          <div class="step-desc">Build → Agents → Step 4 <strong>Tools & knowledge</strong> → <strong>Save the caller as a lead</strong>. Extra fields add karo (e.g. Budget, City) aur required mark karo — agent unhe zaroor poochhega.</div>
+        </div></div>
+        <div class="step"><span class="step-num">2</span><div class="step-body">
+          <div class="step-title">Manage → Quick CRM</div>
+          <div class="step-desc">Kanban ya list view mein leads: stage (New Lead, Hot Lead, Appointment Booked, Form Submitted, Needs Follow-up, Not Interested, No Answer), lead score, sentiment, tags. Lead kholo → recording, AI summary, transcript, notes aur activity.</div>
+        </div></div>
+        <div class="step"><span class="step-num">3</span><div class="step-body">
+          <div class="step-title">Team Inbox — Assignment</div>
+          <div class="step-desc">Quick CRM → <strong>Team Inbox</strong> view. Filters: <strong>Mine / Unassigned / Overdue / All</strong>. Har lead ko team member assign karo (row se ya <strong>bulk assign</strong>), notes add karo.</div>
+        </div></div>
+        <div class="step"><span class="step-num">4</span><div class="step-body">
+          <div class="step-title">SLA & Auto-assign</div>
+          <div class="step-desc"><strong>SLA & auto-assign</strong> button → <strong>Auto-assign new leads</strong>: Off ya Round-robin across active team members. <strong>SLA per stage (hours)</strong> aur default SLA (48 h). Jis lead pe SLA ke andar koi update/note nahi hua, wo <strong>Overdue</strong> mein dikhti hai; note add karne se clock reset hota hai.</div>
+        </div></div>
+      </div>
+      <div class="note">Saved leads automatically connected CRM (Zoho, Salesforce, GoHighLevel) mein sync hoti hain aur <code>lead.upserted</code> webhook fire hota hai. REST API: <code>GET /api/v1/leads</code>, <code>PATCH /api/v1/leads/:id</code>.</div>
     </section>
 
     <!-- ANALYTICS -->
@@ -516,7 +673,158 @@
           <div class="card-desc">Kaunsa agent best perform kar raha hai — calls, duration, outcomes.</div>
         </div>
       </div>
+      <h3>Insights Tab</h3>
+      <p>Monitor → <strong>Analytics</strong> → <strong>Insights</strong> tab (saare time IST mein). Agent aur period filter karo.</p>
+      <table>
+        <tr><th>Block</th><th>Kya dikhata hai</th></tr>
+        <tr><td>KPIs</td><td>Calls dialed, Answer rate, Interested rate (answered calls ka %), Appointments, credits used</td></tr>
+        <tr><td>Call funnel</td><td>Dialed → answered → interested → appointment</td></tr>
+        <tr><td>Outcome breakdown</td><td>Har outcome ka share — interested, callback requested, no answer, voicemail…</td></tr>
+        <tr><td>Best hours heatmap</td><td>Kis din / kis ghante calls sabse zyada uthti hain</td></tr>
+        <tr><td>Language mix, Agent performance, Usage series</td><td>Kaunsi bhasha, kaunsa agent best, minutes ka trend; call quality distribution</td></tr>
+      </table>
       <div class="note">Analytics data har 15 minutes mein update hota hai. Real-time calls ke liye Dashboard use karo.</div>
+    </section>
+
+    <!-- AGENT TOOLS & VOICEMAIL -->
+    <section id="agent-tools" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:#f9731620">🧰</div>
+        <h2>Agent Tools & Voicemail Detection</h2>
+      </div>
+      <p>Build → Agents → agent kholo → Step 4 <strong>Tools & knowledge</strong>. Sab optional hai aur baad mein badla ja sakta hai.</p>
+      <table>
+        <tr><th>Toggle</th><th>Agent kya karta hai</th></tr>
+        <tr><td><strong>Transfer to a human</strong></td><td>Customer insaan maange toh diye gaye number pe call transfer</td></tr>
+        <tr><td><strong>Book appointments</strong></td><td>Free slots check karke booking (dekho <a href="#appointments">Appointments</a>)</td></tr>
+        <tr><td><strong>Save the caller as a lead</strong></td><td>Naam, phone, email + custom fields → Quick CRM aur connected CRM</td></tr>
+        <tr><td><strong>Schedule a callback</strong></td><td>Customer se time tay karke automatic callback (max N days ahead)</td></tr>
+        <tr><td><strong>Custom API lookups</strong></td><td>Aapke apne system se live data — order status, balance, booking (10 tak HTTPS tools, parameters ke saath; <em>Test with sample values</em> se check karo)</td></tr>
+        <tr><td><strong>Knowledge base</strong></td><td>Uploaded documents se jawab</td></tr>
+        <tr><td><strong>Let the agent end the call</strong></td><td>Baat khatam hone par politely hang up — minutes bachte hain</td></tr>
+      </table>
+      <h3>When Voicemail Answers</h3>
+      <p>Outbound calls pe answering machine automatically detect hoti hai (Answered by: machine). Step 4 mein <strong>When voicemail answers</strong> choose karo:</p>
+      <table>
+        <tr><th>Option</th><th>Result</th></tr>
+        <tr><td><strong>Hang up (no minutes used)</strong></td><td>Call turant cut, koi minute charge nahi, outcome <em>Voicemail</em> — campaign retry rule ke hisaab se dobara try</td></tr>
+        <tr><td><strong>Leave this message</strong></td><td>Aapka likha message (400 chars tak) voicemail pe bolta hai, phir cut</td></tr>
+      </table>
+      <div class="tip">Agent ko batane ke liye ki call kis baare mein hai, API se <code>dynamicVariables</code> ya callback <code>variables</code> bhejo — prompt mein <code>{{first_name}}</code> jaise placeholders use karo.</div>
+    </section>
+
+    <!-- BROWSER TEST CALL -->
+    <section id="test-call" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:#3b82f620">🎧</div>
+        <h2>Browser Test Call</h2>
+      </div>
+      <p>Phone ya minutes ke bina agent se baat karo — seedha browser ke microphone se.</p>
+      <div class="steps">
+        <div class="step"><span class="step-num">1</span><div class="step-body">
+          <div class="step-title">Agent Save Karo</div>
+          <div class="step-desc">Build → Agents → agent kholo → <strong>Save</strong>. Test sirf saved Sarvam agents pe chalta hai.</div>
+        </div></div>
+        <div class="step"><span class="step-num">2</span><div class="step-body">
+          <div class="step-title">Test in browser → Start call</div>
+          <div class="step-desc">Agent page pe <strong>Test in browser</strong> button → <strong>Start call</strong>. Browser microphone permission maangega — Allow karo.</div>
+        </div></div>
+        <div class="step"><span class="step-num">3</span><div class="step-body">
+          <div class="step-title">Baat Karo, Transcript Dekho</div>
+          <div class="step-desc">Status: Connecting → Listening → Agent speaking. Transcript live dikhta hai. <strong>End call</strong> / <strong>Call again</strong>.</div>
+        </div></div>
+      </div>
+      <div class="note">Microphone block ho gaya? Browser ke site settings mein mic Allow karke dobara try karo.</div>
+    </section>
+
+    <!-- WHATSAPP & EMAIL -->
+    <section id="messaging" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:#22c55e20">💬</div>
+        <h2>WhatsApp & Email Step + Owner Alerts</h2>
+      </div>
+      <p>Build → Agents → Step 5 <strong>WhatsApp & Email</strong>. Pehle Waki (WhatsApp) account connect karo: Sidebar → <strong>WhatsApp & Email</strong> (Settings → Messaging).</p>
+      <div class="steps">
+        <div class="step"><span class="step-num">1</span><div class="step-body">
+          <div class="step-title">Agent Ko Templates Bhejne Do</div>
+          <div class="step-desc"><strong>Let the agent send WhatsApp templates</strong> — approved Waki templates choose karo (kuch nahi chuna = koi bhi template). <strong>Let the agent send emails</strong> — active email templates choose karo (<em>Manage templates</em> se banao).</div>
+        </div></div>
+        <div class="step"><span class="step-num">2</span><div class="step-body">
+          <div class="step-title">Notify Me After Calls (Owner Alerts)</div>
+          <div class="step-desc"><strong>Notify me after calls</strong> on karo. <strong>Send when the call ends with</strong>: Interested lead, Appointment booked, Callback requested, Call transferred, Asked not to be called, ya Every completed call.</div>
+        </div></div>
+        <div class="step"><span class="step-num">3</span><div class="step-body">
+          <div class="step-title">Channel Set Karo</div>
+          <div class="step-desc"><strong>Email</strong> (comma-separated, 3 tak, ya "Use my account email") aur/ya <strong>WhatsApp number</strong> + <strong>WhatsApp template</strong>. Template ke numbered placeholders ko fields se map karo: Caller name, Caller phone, Outcome, Call summary, Appointment, Callback time, Agent name, Call time, Duration, Link to the call — ya fixed text.</div>
+        </div></div>
+      </div>
+      <div class="tip">Alert call khatam hote hi jaata hai, per call sirf ek baar. Waki connected nahi hai toh email phir bhi kaam karta hai.</div>
+    </section>
+
+    <!-- WHATSAPP AUTO-REPLY -->
+    <section id="auto-reply" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:#22c55e20">🤖</div>
+        <h2>WhatsApp Inbound Auto-reply</h2>
+      </div>
+      <p>Customer WhatsApp pe message kare toh aapka agent (uska prompt + knowledge base) jawab de — 24-hour session window ke andar.</p>
+      <div class="steps">
+        <div class="step"><span class="step-num">1</span><div class="step-body">
+          <div class="step-title">Messaging → WhatsApp → Auto-reply</div>
+          <div class="step-desc">Sidebar → <strong>WhatsApp & Email</strong> → <strong>WhatsApp</strong> tab → <strong>Auto-reply on new chats</strong> on karo aur jawab dene wala agent choose karo.</div>
+        </div></div>
+        <div class="step"><span class="step-num">2</span><div class="step-body">
+          <div class="step-title">Webhook URL Waki Mein Daalo</div>
+          <div class="step-desc">Card mein dikhne wala <strong>Waki inbound webhook URL</strong> copy karke apne Waki (WhatsWay) account ki inbound webhook setting mein paste karo. URL mein aapka private secret hai — share mat karo; zaroorat ho toh regenerate karo aur Waki mein update karo.</div>
+        </div></div>
+        <div class="step"><span class="step-num">3</span><div class="step-body">
+          <div class="step-title">Conversations Mein Dekho</div>
+          <div class="step-desc">Monitor → <strong>Conversations</strong> mein har chat aur AI replies dikhti hain. Customer "human / agent se baat karni hai" bole toh AI hand-off maang leta hai aur aap takeover karte ho.</div>
+        </div></div>
+      </div>
+      <div class="note">Sirf text/button messages ka jawab jaata hai, 5 minute se purane messages skip hote hain, aur session window ke bahar kuch nahi bheja jaata (template bhejne ke liye agent ka WhatsApp step use karo).</div>
+    </section>
+
+    <!-- CALL QUALITY -->
+    <section id="call-quality" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:#a855f720">⭐</div>
+        <h2>Call Quality Score</h2>
+      </div>
+      <p>Transcript wali har completed call kuch minutes mein automatically score hoti hai (10 mein se).</p>
+      <div class="steps">
+        <div class="step"><span class="step-num">1</span><div class="step-body">
+          <div class="step-title">Monitor → Calls → Call Kholo</div>
+          <div class="step-desc">Call detail mein <strong>Call quality</strong> card: overall score, sub-scores — Greeting, Understanding, Objection handling, Prompt compliance, Closing.</div>
+        </div></div>
+        <div class="step"><span class="step-num">2</span><div class="step-body">
+          <div class="step-title">Strengths, Improvements, Flags</div>
+          <div class="step-desc">Kya achha tha, kya sudharna hai, aur flags: Rude, Wrong information, Talked over caller, Unresolved. Agent ka prompt inhi ke hisaab se tune karo.</div>
+        </div></div>
+        <div class="step"><span class="step-num">3</span><div class="step-body">
+          <div class="step-title">Re-score</div>
+          <div class="step-desc">Scoring fail ho ya prompt badla ho toh <strong>Re-score</strong> dabao (thodi der ka gap rakha jaata hai). Analytics → Insights mein poore account ka score distribution dikhta hai.</div>
+        </div></div>
+      </div>
+      <div class="note">"Automatic call scoring is turned off on this platform" dikhe toh admin ne feature band rakha hai.</div>
+    </section>
+
+    <!-- INTEGRATIONS -->
+    <section id="integrations" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:#3b82f620">🔌</div>
+        <h2>Integrations (CRM & Calendar)</h2>
+      </div>
+      <p>Build → <strong>Tools</strong> → <strong>Integrations</strong>. Leads, notes aur appointments automatically aapke CRM mein jaate hain; har card pe <strong>Test</strong>, <strong>Logs</strong>, <strong>Disconnect</strong>.</p>
+      <table>
+        <tr><th>Provider</th><th>Connect kaise</th><th>Kya sync hota hai</th></tr>
+        <tr><td>Zoho CRM</td><td>Connect (OAuth) — admin app keys zaroori</td><td>Leads, notes, appointment events</td></tr>
+        <tr><td>Salesforce</td><td>Connect (OAuth) — admin app keys zaroori</td><td>Leads, tasks, events</td></tr>
+        <tr><td>GoHighLevel</td><td>Connect (OAuth) → location → calendar choose karo</td><td>Contacts, call notes, appointments</td></tr>
+        <tr><td>Cal.com</td><td>API key paste → event type + booking time zone</td><td>Agent ki bookings Cal.com bookings bante hain</td></tr>
+        <tr><td>Zapier / Pabbly</td><td>Apna webhook URL paste karo</td><td>Har lead / appointment event forward — 5000+ apps</td></tr>
+      </table>
+      <div class="warn"><strong>Admin ke liye:</strong> Zoho, Salesforce aur GoHighLevel ke liye Admin → Settings → <strong>CRM Integration App Keys</strong> mein Client ID / Client Secret (aur Zoho accounts domain — India = accounts.zoho.in, Salesforce login URL) daalo. Provider ke OAuth app mein wahan dikhaya gaya redirect URI (<code>/app/integrations/callback/&lt;provider&gt;</code>) register karo. Bina keys ke users ko "Open admin settings" dikhega.</div>
     </section>
 
     <!-- WEBHOOKS -->
@@ -547,9 +855,13 @@
         <tr><td><code>call.started</code></td><td>Call connect hone par</td></tr>
         <tr><td><code>call.completed</code></td><td>Call khatam hone par (with transcript)</td></tr>
         <tr><td><code>call.failed</code></td><td>Call fail hone par</td></tr>
-        <tr><td><code>campaign.started</code></td><td>Campaign start hone par</td></tr>
-        <tr><td><code>campaign.completed</code></td><td>Campaign finish hone par</td></tr>
+        <tr><td><code>campaign.started</code> / <code>.completed</code> / <code>.paused</code></td><td>Campaign lifecycle</td></tr>
+        <tr><td><code>appointment.booked</code> / <code>.confirmed</code> / <code>.cancelled</code> / <code>.no_show</code></td><td>Agent ne booking ki ya status badla</td></tr>
+        <tr><td><code>callback.scheduled</code></td><td>Agent ya API ne callback schedule kiya</td></tr>
+        <tr><td><code>lead.upserted</code></td><td>Lead bani ya update hui</td></tr>
+        <tr><td><code>inbound_call.*</code>, <code>form.*</code>, <code>flow.*</code></td><td>Inbound calls, forms, Flow Builder</td></tr>
       </table>
+      <div class="note">Har delivery <code>X-Zonvo-Signature</code> header ke saath aati hai (raw body ka HMAC-SHA256, webhook secret se). Verify karke hi process karo — snippet API docs (<code>/api/docs</code>) mein hai.</div>
       <h3>Sample Webhook Payload</h3>
       <pre><code>{
   "event": "call.completed",
@@ -558,9 +870,12 @@
   "contact": { "name": "Rahul", "phone": "+919876543210" },
   "duration": 142,
   "status": "completed",
+  "outcome": "interested",
+  "outcomeSource": "agent",
+  "answeredBy": "human",
   "transcript": "Agent: Namaste Rahul ji...",
   "summary": "Customer interested in premium plan",
-  "timestamp": "2025-06-25T10:30:00Z"
+  "timestamp": "2026-09-24T10:30:00Z"
 }</code></pre>
     </section>
 
@@ -578,7 +893,7 @@
         </div></div>
         <div class="step"><span class="step-num">2</span><div class="step-body">
           <div class="step-title">New API Key Generate Karo</div>
-          <div class="step-desc"><strong>Generate API Key</strong> button click karo. Key ka naam do (e.g. "My CRM Integration").</div>
+          <div class="step-desc"><strong>Create API Key</strong> button click karo. Key ka naam do (e.g. "My CRM Integration") aur scopes choose karo — CRM sync ke liye <code>calls:read</code>, <code>calls:write</code>, <code>contacts:read</code>, <code>contacts:write</code>, <code>webhooks:write</code> kaafi hain.</div>
         </div></div>
         <div class="step"><span class="step-num">3</span><div class="step-body">
           <div class="step-title">Key Copy Karo (Sirf Ek Baar Dikhegi!)</div>
@@ -590,6 +905,17 @@
         </div></div>
       </div>
       <div class="warn">API key ko kabhi bhi public GitHub, frontend code, ya kisi aur ke saath share mat karo.</div>
+      <h3>API Se Kya Kya Hota Hai</h3>
+      <table>
+        <tr><th>Resource</th><th>Endpoints</th></tr>
+        <tr><td>Calls</td><td>Trigger / schedule (<code>scheduledAt</code>), list with <code>outcome</code> filter, set outcome, hangup</td></tr>
+        <tr><td>Callbacks</td><td>Single, bulk (500 tak, variables + externalRef), cancel</td></tr>
+        <tr><td>Leads</td><td>List / get / update stage, tags, owner / add notes</td></tr>
+        <tr><td>Appointments</td><td>List / get / confirm, cancel, complete, no-show</td></tr>
+        <tr><td>Do-not-call</td><td>List, check, add, import, remove</td></tr>
+        <tr><td>Campaigns, Contacts, Agents, Credits, Analytics, Webhooks</td><td>Pehle jaise</td></tr>
+      </table>
+      <div class="tip">Full reference aur playground: <code>https://app.zonvo.tech/api/docs</code> (REST API Growth aur Business plans mein available hai).</div>
     </section>
 
     <!-- VOICES -->
@@ -614,26 +940,51 @@
         <div class="section-icon" style="background:#f9731620">💳</div>
         <h2>Credits & Plans</h2>
       </div>
-      <p>Zonvo credit-based system use karta hai. Har call karne par credits consume hote hain.</p>
-      <h3>Credits Kaise Kaam Karte Hain</h3>
+      <p>Zonvo minutes-based hai: 1 minute call = 1 minute balance. Plan ke minutes har mahine milte hain; zyada chahiye toh top-up pack lo. Saare prices INR mein, GST alag (checkout pe 18% add hota hai).</p>
+      <h3>Plans (per month, excl. GST)</h3>
       <table>
-        <tr><th>Action</th><th>Credits Used</th></tr>
-        <tr><td>1 minute outbound call</td><td>Plan ke hisaab se vary karta hai</td></tr>
-        <tr><td>1 minute inbound call</td><td>Plan ke hisaab se vary karta hai</td></tr>
-        <tr><td>Campaign scheduling</td><td>Free</td></tr>
-        <tr><td>Webhook events</td><td>Free</td></tr>
+        <tr><th>Plan</th><th>Price</th><th>Minutes / month</th><th>Included</th></tr>
+        <tr><td><span class="badge badge-blue">Free</span></td><td>₹0</td><td>15</td><td>1 agent, 1 campaign, shared numbers — try karne ke liye</td></tr>
+        <tr><td><span class="badge badge-green">Starter</span></td><td>₹1,499</td><td>300</td><td>3 agents, 5 campaigns, 1 own number, campaigns, knowledge base, webhooks</td></tr>
+        <tr><td><span class="badge badge-orange">Growth</span></td><td>₹3,999</td><td>900</td><td>10 agents, 25 campaigns, 3 numbers, choice of LLM, REST API, integrations, advanced analytics</td></tr>
+        <tr><td><span class="badge badge-purple">Business</span></td><td>₹9,999</td><td>2,500</td><td>25 agents, 100 campaigns, 10 numbers, team access (5 members), REST API, priority support</td></tr>
       </table>
-      <h3>Credits Kaise Khareedein</h3>
+      <p>Yearly billing: 10 mahine ka price (Starter ₹14,990, Growth ₹39,990, Business ₹99,990) aur poore saal ke minutes (12×) ek saath.</p>
+      <h3>Top-up Packs (excl. GST)</h3>
+      <table>
+        <tr><th>Pack</th><th>Price</th><th>Per minute</th></tr>
+        <tr><td>100 minutes</td><td>₹549</td><td>₹5.49</td></tr>
+        <tr><td>500 minutes</td><td>₹2,499</td><td>₹5.00</td></tr>
+        <tr><td>1,000 minutes</td><td>₹4,499</td><td>₹4.50</td></tr>
+        <tr><td>2,500 minutes</td><td>₹10,499</td><td>₹4.20</td></tr>
+        <tr><td>5,000 minutes</td><td>₹19,999</td><td>₹4.00</td></tr>
+      </table>
+      <h3>Kaise Khareedein</h3>
       <div class="steps">
         <div class="step"><span class="step-num">1</span><div class="step-body">
-          <div class="step-title">Settings → Billing</div>
-          <div class="step-desc">Sidebar → <strong>Settings</strong> → <strong>Billing</strong>.</div>
+          <div class="step-title">Manage → Billing & Minutes</div>
+          <div class="step-desc">Sidebar → <strong>Billing & Minutes</strong>. Tabs: <strong>Plans</strong>, <strong>Packs</strong>, <strong>History</strong>, <strong>Numbers</strong>.</div>
         </div></div>
         <div class="step"><span class="step-num">2</span><div class="step-body">
-          <div class="step-title">Plan Upgrade ya Credits Add</div>
-          <div class="step-desc"><strong>Upgrade Plan</strong> ya <strong>Add Credits</strong> click karo. Payment gateway pe jaoge.</div>
+          <div class="step-title">Pay Karo (Cashfree)</div>
+          <div class="step-desc">Plan ya pack choose karo → Cashfree checkout (UPI, cards, netbanking). Pehla period one-time payment hai.</div>
+        </div></div>
+        <div class="step"><span class="step-num">3</span><div class="step-body">
+          <div class="step-title">Auto-renew (Step 2, Optional)</div>
+          <div class="step-desc">Payment ke baad <strong>Enable auto-renew</strong> → bank mandate approve karo (status: Pending approval → ON). Kabhi bhi <strong>Turn off</strong> kar sakte ho; "Skip for now" se manual renewal.</div>
         </div></div>
       </div>
+      <h3>Usage Alerts</h3>
+      <p>Billing & Minutes → <strong>Usage alerts</strong> card:</p>
+      <table>
+        <tr><th>Setting</th><th>Matlab</th></tr>
+        <tr><td>Alert at % of monthly minutes</td><td>Balance is % se neeche aate hi alert (ya fixed minutes number)</td></tr>
+        <tr><td>Alert email / WhatsApp number + template</td><td>Kahan alert bhejna hai (default: account email)</td></tr>
+        <tr><td>Pause campaigns when the balance hits 0</td><td>Running campaigns rok di jaati hain aur aapko bataya jaata hai; top-up ke baad resume karo</td></tr>
+        <tr><td>Daily usage summary</td><td>Roz 09:00 IST: minutes used, calls, balance</td></tr>
+        <tr><td>Send test alert</td><td>Saare channels pe test message</td></tr>
+      </table>
+      <div class="tip">Alert ek baar jaata hai; top-up ke baad balance threshold se upar jaate hi dobara arm ho jaata hai.</div>
     </section>
 
     <!-- TROUBLESHOOTING -->
@@ -649,7 +1000,11 @@
         <tr><td>Agent Hindi mein nahi bol raha</td><td>Agent settings mein Language "Hindi" ya "Hinglish" select karo. Sarvam AI voice use karo.</td></tr>
         <tr><td>Campaign calls fail ho rahe hain</td><td>Contact list mein phone numbers format check karo: +91XXXXXXXXXX hona chahiye.</td></tr>
         <tr><td>Webhook receive nahi ho raha</td><td>URL correct hai? Server publicly accessible hai? HTTPS use karo.</td></tr>
-        <tr><td>Credits khatam ho gaye</td><td>Settings → Billing → Add Credits.</td></tr>
+        <tr><td>Minutes khatam ho gaye / campaign paused</td><td>Billing & Minutes → Packs se top-up karo, phir campaign Resume karo. Usage alerts set karo taaki pehle pata chale.</td></tr>
+        <tr><td>Callback schedule nahi ho raha</td><td>Time future mein aur 60 din ke andar ho; number Do not call list mein na ho; agent Plivo/Sarvam wala ho.</td></tr>
+        <tr><td>Kisi number pe call nahi ja rahi</td><td>All Contacts → Do not call tab check karo — shayad customer ne mana kiya tha.</td></tr>
+        <tr><td>Zoho / Salesforce "Connect" kaam nahi karta</td><td>Admin ko Admin → Settings → CRM Integration App Keys bharni hongi aur redirect URI register karna hoga.</td></tr>
+        <tr><td>WhatsApp auto-reply nahi aa raha</td><td>Waki mein inbound webhook URL sahi hai? Agent chuna hai? Message 24-hour window ke andar aur 5 min se naya hona chahiye.</td></tr>
         <tr><td>API 401 Unauthorized error</td><td>API key expire toh nahi hui? Nayi key generate karo Settings → Developer mein.</td></tr>
       </table>
       <div class="note">Koi aur problem? <strong>info@aiclex.in</strong> pe email karo ya <strong>+91 84494 88090</strong> pe call karo. Hum 24 ghante mein response denge.</div>

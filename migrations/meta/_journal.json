@@ -127,6 +127,13 @@
       "when": 1790142005606,
       "tag": "0017_crm_inbox",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790142006606,
+      "tag": "0018_callback_variables",
+      "breakpoints": true
     }
   ]
 }

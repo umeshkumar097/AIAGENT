@@ -2106,11 +2106,19 @@ var init_schema = __esm({
       attempts: integer("attempts").notNull().default(0),
       lastError: text("last_error"),
       resultCallId: varchar("result_call_id"),
+      // Migration 0018 — API-scheduled calls (CRM / WebinarX reminders)
+      variables: jsonb("variables").$type(),
+      // {{key}} substitutions for prompt + first message
+      source: text("source").notNull().default("agent"),
+      // agent | manual | api
+      externalRef: text("external_ref"),
+      // caller's idempotency key / their record id, unique per user
       createdAt: timestamp("created_at").notNull().defaultNow(),
       updatedAt: timestamp("updated_at").notNull().defaultNow()
     }, (table) => ({
       scheduledCallbacksDueIdx: index("scheduled_callbacks_status_scheduled_at_idx").on(table.status, table.scheduledAt),
-      scheduledCallbacksUserIdx: index("scheduled_callbacks_user_created_idx").on(table.userId, table.createdAt)
+      scheduledCallbacksUserIdx: index("scheduled_callbacks_user_created_idx").on(table.userId, table.createdAt),
+      scheduledCallbacksExternalRefIdx: uniqueIndex("scheduled_callbacks_user_external_ref_idx").on(table.userId, table.externalRef)
     }));
     insertScheduledCallbackSchema = createInsertSchema(scheduledCallbacks).omit({
       id: true,

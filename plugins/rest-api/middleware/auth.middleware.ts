@@ -7,8 +7,7 @@
 
 import type { Request, Response, NextFunction } from 'express';
 import { ApiKeyService } from '../services/api-key.service.js';
-import type { AuthenticatedApiRequest, ApiResponse, ApiErrorCode } from '../types.js';
-import { API_ERROR_CODES } from '../types.js';
+import { API_ERROR_CODES, type AuthenticatedApiRequest, type ApiResponse, type ApiErrorCode } from '../types.js';
 import type { ApiScope } from '../../../shared/schema.js';
 import { nanoid } from 'nanoid';
 
@@ -229,7 +228,8 @@ export function requireScope(scope: ApiScope) {
  * Helper to wrap route handlers with error handling
  */
 export function asyncHandler(
-  fn: (req: AuthenticatedApiRequest, res: Response, next: NextFunction) => Promise<void>
+  // Handlers may `return res.status(...).json(...)` for early exits; the value is ignored
+  fn: (req: AuthenticatedApiRequest, res: Response, next: NextFunction) => Promise<unknown>
 ) {
   return (req: Request, res: Response, next: NextFunction) => {
     const authReq = req as AuthenticatedApiRequest;

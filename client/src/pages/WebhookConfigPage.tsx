@@ -178,6 +178,7 @@ export default function WebhookConfigPage() {
         { value: "form.submitted", label: t('webhooks.events.formSubmitted'), description: t('webhooks.events.formSubmittedDesc') },
         { value: "form.lead_created", label: t('webhooks.events.formLeadCreated'), description: t('webhooks.events.formLeadCreatedDesc') },
         { value: "callback.scheduled", label: t('webhooks.events.callbackScheduled', 'callback.scheduled - When the agent schedules a call back'), description: t('webhooks.events.callbackScheduledDesc', 'When a caller asks to be called back at a specific time') },
+        { value: "lead.upserted", label: t('webhooks.events.leadUpserted', 'lead.upserted - When a lead is created or updated'), description: t('webhooks.events.leadUpsertedDesc', 'After a call, the save_lead tool or the REST API creates or changes a lead') },
       ]
     }
   ];

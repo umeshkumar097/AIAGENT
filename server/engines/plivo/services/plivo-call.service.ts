@@ -689,6 +689,9 @@ export class PlivoCallService {
         }
 
         const eventType = status === 'completed' ? 'call.completed' : 'call.failed';
+        // Outcome + the scheduler's own identifiers (API-scheduled calls) so receivers can match the call
+        const callMeta = (updatedCall.metadata as Record<string, unknown> | null) || {};
+        const metaStr = (k: string): string | null => (typeof callMeta[k] === 'string' && callMeta[k] ? (callMeta[k] as string) : null);
 
         await webhookDeliveryService.triggerEvent(call.userId, eventType, {
           campaign: campaignInfo,
@@ -708,6 +711,10 @@ export class PlivoCallService {
             aiSummary: updatedCall.aiSummary,
             recordingUrl: updatedCall.recordingUrl,
             failureReason: status !== 'completed' ? ((metadata?.hangupCause as string) || status) : undefined,
+            outcome: metaStr('outcome'),
+            outcomeSource: metaStr('outcomeSource'),
+            answeredBy: metaStr('answeredBy'),
+            metadata: { externalRef: metaStr('externalRef'), callbackId: metaStr('callbackId'), callbackSource: metaStr('callbackSource') },
           }
         }, call.campaignId).catch(err => {
           logger.error(`Failed to trigger ${eventType} webhook: ${err.message}`, err, 'PlivoCall');

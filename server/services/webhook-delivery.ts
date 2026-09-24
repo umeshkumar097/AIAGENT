@@ -46,13 +46,19 @@ export class WebhookDeliveryService {
       .digest('hex');
   }
 
-  private buildHeaders(webhook: Webhook, payloadString: string): Record<string, string> {
+  private buildHeaders(webhook: Webhook, payloadString: string, event: string): Record<string, string> {
+    const signature = this.generateSignature(payloadString, webhook.secret);
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'User-Agent': 'Platform-Webhook/1.0',
-      'X-Webhook-Event': webhook.events?.[0] || 'unknown',
+      'X-Webhook-Event': event,
       'X-Webhook-Delivery': crypto.randomUUID(),
-      'X-Webhook-Signature': `sha256=${this.generateSignature(payloadString, webhook.secret)}`,
+      'X-Webhook-Signature': `sha256=${signature}`,
+      // Same HMAC-SHA256 hex of the raw body, under the names the REST API docs use (legacy names kept for old receivers)
+      'X-Zonvo-Signature': signature,
+      'X-Zonvo-Event': event,
+      'X-AgentLabs-Signature': signature,
+      'X-AgentLabs-Event': event,
     };
 
     if (webhook.authType === 'basic' && webhook.authCredentials) {
@@ -82,7 +88,7 @@ export class WebhookDeliveryService {
     attemptNumber: number = 1
   ): Promise<DeliveryResult> {
     const payloadString = JSON.stringify(payload);
-    const headers = this.buildHeaders(webhook, payloadString);
+    const headers = this.buildHeaders(webhook, payloadString, payload.event);
     const startTime = Date.now();
 
     console.log(`📤 [Webhook] Delivering to ${webhook.url} (attempt ${attemptNumber})`);

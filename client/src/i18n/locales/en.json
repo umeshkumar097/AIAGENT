@@ -2742,7 +2742,9 @@
       "formLeadCreatedDesc": "When a new lead is created from a form",
       "callbackScheduled": "callback.scheduled - When the agent schedules a call back",
       "callbackScheduledDesc": "When a caller asks to be called back at a specific time",
-      "callbackScheduledShort": "Callback scheduled by the agent"
+      "callbackScheduledShort": "Callback scheduled by the agent",
+      "leadUpserted": "lead.upserted - When a lead is created or updated",
+      "leadUpsertedDesc": "After a call, the save_lead tool or the REST API creates or changes a lead"
     },
     "logs": {
       "title": "Webhook Delivery Logs",

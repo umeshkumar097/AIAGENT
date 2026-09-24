@@ -2,8 +2,83 @@ openapi: 3.0.3
 info:
   title: Zonvo AI REST API
   description: |
-    Welcome to the Zonvo AI REST API documentation. This API enables you to programmatically automate AI-powered voice communications at scale.
-  version: 1.0.0
+    Welcome to the Zonvo AI REST API. Everything your AI voice agents do on the phone — calling, qualifying,
+    booking, promising a callback, honouring a do-not-call request — is available to your CRM, ERP or
+    in-house app through `https://app.zonvo.tech/api/v1`.
+
+    ## What you can automate
+
+    | Goal | Endpoints |
+    |------|-----------|
+    | **Trigger calls** from your own app, now or at a scheduled time | `POST /calls` (with `scheduledAt`, `dynamicVariables`) |
+    | **Run bulk campaigns** | `POST /campaigns`, `/campaigns/{id}/contacts`, `/start`, `/pause` |
+    | **Sync leads and call outcomes to your CRM** | `GET /leads`, `PATCH /leads/{id}`, `POST /leads/{id}/notes`, `GET /calls?outcome=`, `POST /calls/{id}/outcome` |
+    | **Book, confirm or cancel appointments** the agent made | `GET /appointments`, `PATCH /appointments/{id}` |
+    | **Schedule callbacks** (single or in bulk, with idempotency keys) | `POST /callbacks`, `POST /callbacks/bulk`, `DELETE /callbacks?externalRef=` |
+    | **Keep a do-not-call list** in sync with your compliance system | `GET /dnd`, `POST /dnd`, `POST /dnd/import`, `GET /dnd/check` |
+    | **Receive real-time webhooks** for calls, appointments, callbacks and leads | `POST /webhooks`, `GET /webhooks/events` |
+
+    ## Integrating from a CRM in 5 steps
+
+    1. **Create an API key** — Settings → Developer → *Create API Key*. Give it only the scopes you need
+       (`calls:write`, `contacts:read`, `contacts:write`, `webhooks:write` covers a typical CRM sync).
+    2. **Pick the agent** — `GET /agents` and note the `id`. `GET /agents/{id}` shows which call actions it has
+       enabled (`actions.saveLead`, `actions.callbacks`, `actions.appointments`, ...).
+    3. **Push your leads and dial** — create contacts with `POST /contacts` or `POST /contacts/bulk-import`, then
+       either `POST /calls` per lead (pass CRM fields as `dynamicVariables` so the agent can use them) or add
+       them to a campaign. Check `GET /dnd/check?phone=` first if your CRM holds its own opt-outs.
+    4. **Subscribe to webhooks** — `POST /webhooks` with `call.completed`, `lead.upserted`, `appointment.booked`
+       and `callback.scheduled`. Verify the `X-Zonvo-Signature` header (see *Webhooks*).
+    5. **Write results back** — on `call.completed`, read `outcome`, `transcript` and `aiSummary`; update the
+       lead stage with `PATCH /leads/{id}`; confirm appointments with `PATCH /appointments/{id}`; add a note with
+       `POST /leads/{id}/notes`. If the customer asked not to be called, the agent has already added them to
+       `GET /dnd` — mirror it in your CRM.
+
+    ## Worked example — webinar reminder calls from your own app
+
+    Your webinar platform wants an AI agent to remind opted-in registrants one day and one hour before the
+    session, and to stop reminding anyone who unregisters.
+
+    1. The customer pastes their **API key** and the **agent id** into your app's settings page.
+    2. When a registration arrives, schedule both reminders in one request:
+
+    ```bash
+    curl -X POST https://app.zonvo.tech/api/v1/callbacks/bulk \
+      -H "Authorization: Bearer $ZONVO_API_KEY" -H "Content-Type: application/json" \
+      -d '{
+        "agentId": "550e8400-e29b-41d4-a716-446655440000",
+        "timeZone": "Asia/Kolkata",
+        "contacts": [
+          { "phone": "+919876543210", "name": "Priya Sharma", "scheduledAt": "2026-09-29T11:00:00+05:30",
+            "externalRef": "reg_8812-24h", "reason": "Webinar reminder (1 day before)",
+            "variables": { "first_name": "Priya", "webinar_title": "GST filing for startups",
+                           "webinar_time": "30 Sept, 11:00 AM IST", "join_link": "https://example.com/j/8812" } },
+          { "phone": "+919876543210", "name": "Priya Sharma", "scheduledAt": "2026-09-30T10:00:00+05:30",
+            "externalRef": "reg_8812-1h", "reason": "Webinar reminder (1 hour before)",
+            "variables": { "first_name": "Priya", "webinar_title": "GST filing for startups",
+                           "webinar_time": "30 Sept, 11:00 AM IST", "join_link": "https://example.com/j/8812" } }
+        ]
+      }'
+    ```
+
+       `variables` are substituted as `{{first_name}}`, `{{webinar_title}}`, ... into the agent's prompt and first
+       message, and listed to the agent as *Details for this call*. `externalRef` makes the request idempotent:
+       re-sending the same ref returns the existing callback instead of creating a second one.
+    3. On unregister, cancel by ref: `DELETE /api/v1/callbacks?externalRef=reg_8812-24h` (and `-1h`).
+    4. Read the result from the `call.completed` webhook: `data.call.metadata.externalRef`,
+       `data.call.metadata.callbackId` and `data.call.outcome` (`interested`, `callback_requested`, `no_answer`,
+       `voicemail`, ...) tell you which
+       registration the call belonged to and how it went — or poll `GET /callbacks?status=completed` and
+       `GET /calls/{resultCallId}`.
+
+    ## Conventions
+
+    - Base URL `https://app.zonvo.tech/api/v1`; JSON in and out; UTC ISO-8601 timestamps unless a field says otherwise.
+    - Phone numbers are normalised to E.164 (`9876543210` → `+919876543210`).
+    - List endpoints paginate with `page` / `pageSize` (max 100; default 50, `/calls` 20) and return
+      `meta.pagination { page, pageSize, totalItems, totalPages, hasNext, hasPrev }`.
+    - Every response is `{ "success": true, "data": ... }` or `{ "success": false, "error": { "code", "message" } }`.
+  version: 2.3.0
 
 servers:
   - url: /api/v1
@@ -37,7 +112,7 @@ tags:
       Test your connection with a simple health check:
 
       ```bash
-      curl -X GET "https://your-domain.com/api/v1/health"
+      curl -X GET "https://app.zonvo.tech/api/v1/health"
       ```
 
       <br />
@@ -203,10 +278,16 @@ tags:
       The Calls API allows you to trigger outbound calls, monitor active calls, and retrieve call history with transcripts and recordings.
       
       **Common Use Cases:**
-      - Trigger individual calls to leads
-      - Check call status and duration
+      - Trigger individual calls to leads, now or at a scheduled time
+      - Personalise the conversation with `dynamicVariables` (`{{first_name}}`, `{{order_id}}`, ...)
+      - Check call status, duration and `outcome` / `answeredBy`
       - Retrieve transcripts and AI summaries
       - Hang up active calls
+      - Set or correct the outcome from your CRM (`POST /calls/{id}/outcome`)
+
+      **Outcomes:** every finished call carries `outcome` (see `GET /calls/outcomes`) and `outcomeSource`
+      (`agent` — set in conversation, `system` — telephony/booking events, `ai` — post-call classification)
+      plus `answeredBy` (`human` | `machine`) from answering-machine detection.
       
       **Credit Usage:** Each call consumes credits based on duration (1 credit = 1 minute).
       
@@ -243,6 +324,10 @@ tags:
       | `incoming` | Handles inbound calls on purchased phone numbers |
       
       **Note:** Agents must be active (`isActive: true`) before they can be used in calls or campaigns.
+
+      `GET /agents/{id}` includes an `actions` summary — which call actions the agent can perform
+      (transfer to a human, book appointments, save leads, schedule callbacks, custom API lookups,
+      voicemail handling, owner alerts). API tool URLs and headers are never exposed.
       
   - name: Contacts
     description: |
@@ -289,18 +374,162 @@ tags:
   - name: Webhooks
     description: |
       ## Real-Time Event Notifications
-      
-      Webhooks deliver real-time notifications to your server when events occur. Use them to sync data, trigger workflows, or build integrations.
-      
-      **Supported Events:**
-      - `call.started` — Call initiated
-      - `call.completed` — Call ended
-      - `call.failed` — Call failed
-      - `campaign.started` — Campaign began execution
-      - `campaign.completed` — Campaign finished
-      - `campaign.paused` — Campaign paused
-      
-      **Security:** All webhook payloads include an HMAC-SHA256 signature in the `X-Webhook-Signature` header for verification.
+
+      Webhooks deliver an HTTP POST to your endpoint when something happens on the platform. Use them to sync
+      data, trigger workflows, or build integrations. Subscribe with `POST /webhooks`; the live list of event
+      names is always available from `GET /webhooks/events`.
+
+      **Events**
+
+      | Event | Fires when |
+      |-------|-----------|
+      | `call.started` / `call.ringing` / `call.answered` | An outbound call is placed, rings, is picked up |
+      | `call.completed` | A call ends. `data.call` carries `duration`, `status`, `recordingUrl`, `outcome`, `outcomeSource`, `answeredBy` and `metadata { externalRef, callbackId, callbackSource }`; `data.analysis` the summary, sentiment and transcript |
+      | `call.failed` / `call.no_answer` / `call.busy` / `call.voicemail` | Terminal call states |
+      | `call.transferred` | The agent handed the call to a human |
+      | `inbound_call.received` / `.answered` / `.completed` / `.missed` | Inbound call lifecycle |
+      | `campaign.started` / `.paused` / `.resumed` / `.completed` / `.failed` / `.cancelled` | Campaign lifecycle |
+      | `appointment.booked` / `.confirmed` / `.cancelled` / `.rescheduled` / `.completed` / `.no_show` | Appointments booked by an agent or changed via `PATCH /appointments/{id}` |
+      | `callback.scheduled` | The agent (or the API) scheduled a callback |
+      | `lead.upserted` | A lead was created or updated — by an agent's `save_lead`, the CRM inbox, or `PATCH /leads/{id}` |
+      | `form.submitted` / `form.lead_created` | A Flow form was submitted / created a lead |
+      | `flow.started` / `.completed` / `.failed` | Flow Builder runs |
+
+      **Payload shape**
+
+      ```json
+      {
+        "event": "call.completed",
+        "timestamp": "2026-09-28T06:12:41.000Z",
+        "data": {
+          "call": {
+            "id": "c9f1d1a2-3b4c-4d5e-8f60-1a2b3c4d5e6f",
+            "direction": "outbound",
+            "status": "completed",
+            "fromNumber": "+919999900000",
+            "toNumber": "+919876543210",
+            "duration": 142,
+            "recordingUrl": "https://app.zonvo.tech/api/recordings/c9f1d1a2.mp3",
+            "outcome": "interested",
+            "outcomeSource": "agent",
+            "answeredBy": "human",
+            "metadata": { "externalRef": "reg_8812-24h", "callbackId": "7d1a6c9e-0b2f-4e3a-9c8d-5f6a7b8c9d0e", "callbackSource": "api" }
+          },
+          "contact": { "name": "Priya Sharma", "phone": "+919876543210" },
+          "agent": { "id": "550e8400-e29b-41d4-a716-446655440000", "name": "Webinar reminder" },
+          "analysis": { "sentiment": "positive", "summary": "Priya will join the webinar and wants the recording afterwards." }
+        }
+      }
+      ```
+
+      **Signature verification**
+
+      Every delivery is signed with your webhook's `secret` (returned once, on creation): the header
+      `X-Zonvo-Signature` (legacy alias `X-AgentLabs-Signature`) contains the hex HMAC-SHA256 of the **raw request
+      body** — no prefix. The event name is in `X-Zonvo-Event` (`X-AgentLabs-Event`). The same digest is also sent
+      as `X-Webhook-Signature: sha256=<hex>` with `X-Webhook-Event` and `X-Webhook-Delivery` (uuid) for older
+      receivers. Compare with a constant-time function and reject anything that does not match.
+
+      ```js
+      // Node.js / Express — mount with express.raw({ type: 'application/json' })
+      const crypto = require('crypto');
+
+      function verifyZonvo(req, secret) {
+        const header = req.get('X-Zonvo-Signature') || req.get('X-AgentLabs-Signature')
+          || (req.get('X-Webhook-Signature') || '').replace(/^sha256=/, '');
+        const expected = crypto.createHmac('sha256', secret).update(req.body).digest('hex'); // req.body is a Buffer
+        return header.length === expected.length
+          && crypto.timingSafeEqual(Buffer.from(header, 'hex'), Buffer.from(expected, 'hex'));
+      }
+      ```
+
+      ```python
+      # Python / Flask
+      import hmac, hashlib
+      def verify_zonvo(request, secret: str) -> bool:
+          sig = (request.headers.get('X-Zonvo-Signature')
+                 or request.headers.get('X-AgentLabs-Signature')
+                 or request.headers.get('X-Webhook-Signature', '').removeprefix('sha256='))
+          expected = hmac.new(secret.encode(), request.get_data(), hashlib.sha256).hexdigest()
+          return hmac.compare_digest(sig, expected)
+      ```
+
+      Respond with any 2xx within 30 seconds; a failed delivery is attempted 3 times (immediately, +1 min, +5 min).
+      Redirects are not followed and the URL must be a public HTTPS address. Use the `X-Webhook-Delivery` id to
+      de-duplicate retries.
+
+  - name: Do-not-call
+    description: |
+      ## Do-not-call list
+
+      Numbers your account must never dial. Campaigns, API calls and scheduled callbacks are all blocked against
+      it, and the agent adds numbers itself when a caller asks not to be called again (`mark_do_not_call`, e.g.
+      "dobara call mat karna"). Use these endpoints to mirror your CRM's opt-out list.
+
+      - `reason`: `caller_request` | `manual` | `import` | `complaint`
+      - `source`: `agent` | `manual` | `upload` | `api`
+      - `phone` is normalised to E.164 (`9876543210` → `+919876543210`).
+
+      **Required scopes:** `contacts:read` / `contacts:write`.
+
+  - name: Callbacks
+    description: |
+      ## Scheduled callbacks
+
+      A callback is an outbound call the platform places automatically at a chosen time with a chosen agent —
+      the same mechanism the agent uses when a caller says "call me tomorrow at 11". Rows are visible in the
+      dashboard under **Monitor → Callbacks**.
+
+      - `status`: `pending` → `calling` → `completed` | `failed`; `cancelled` when deleted before it ran.
+      - `scheduledAt` must be in the future and at most **60 days** ahead.
+      - The number must not be on the do-not-call list (`409 DO_NOT_CALL`).
+      - `variables` (≤ 20 keys, values ≤ 300 chars) are substituted as `{{key}}` into the agent's prompt and first
+        message and listed to the agent as *Details for this call*.
+      - `externalRef` (≤ 120 chars) is an idempotency key: re-posting the same ref returns the existing callback
+        (HTTP 200 instead of 201). Use it to cancel by reference and to correlate the `call.completed` webhook
+        (`data.metadata.externalRef`).
+      - `source`: `agent` (booked on a call) | `manual` (dashboard) | `api`.
+
+      **Required scopes:** `calls:read` / `calls:write`.
+
+  - name: Leads
+    description: |
+      ## CRM leads
+
+      Leads are what the agent's `save_lead` action and the Quick CRM create — one row per person, enriched
+      after every call with `leadScore`, `aiSummary`, `aiNextAction`, `sentiment` and `aiCategory`. Use this
+      resource to pull qualified leads into your CRM and to write stage changes, tags and notes back.
+
+      **Stages** (default pipeline; custom stages are accepted too): `new`, `hot`, `appointment`,
+      `form_submitted`, `follow_up`, `not_interested`, `no_answer`.
+
+      Any change made through the API is forwarded to your connected integrations (Zoho, Salesforce,
+      GoHighLevel, Zapier, Pabbly) and fires the `lead.upserted` webhook.
+
+      **Required scopes:** `contacts:read` / `contacts:write`.
+
+  - name: Appointments
+    description: |
+      ## Appointments
+
+      Appointments booked by an agent (`book_appointment` after `check_availability`) or through a Flow.
+      Times are stored as a date plus a local time in the agent's configured time zone (default
+      `Asia/Kolkata`). Status changes made here update the linked Google Calendar / Cal.com / GoHighLevel event
+      when one exists and fire the matching `appointment.*` webhook.
+
+      - `status`: `scheduled` | `confirmed` | `cancelled` | `completed` | `no_show`
+
+      **Required scopes:** `calls:read` / `calls:write`.
+
+x-tagGroups:
+  - name: Getting started
+    tags: [Introduction]
+  - name: Voice
+    tags: [Calls, Campaigns, Agents]
+  - name: CRM & Compliance
+    tags: [Contacts, Leads, Appointments, Callbacks, Do-not-call]
+  - name: Account
+    tags: [Credits, Analytics, Webhooks]
 
 security:
   - ApiKeyAuth: []
@@ -337,6 +566,34 @@ paths:
       operationId: listCalls
       tags: [Calls]
       parameters:
+        - name: outcome
+          in: query
+          description: Only calls with this outcome (see `GET /calls/outcomes`; unknown ids return 400)
+          schema:
+            $ref: '#/components/schemas/CallOutcome'
+        - name: agentId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: campaignId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: from
+          in: query
+          description: Calls created at or after this time (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+          example: "2026-09-01T00:00:00+05:30"
+        - name: to
+          in: query
+          description: Calls created before this time (ISO 8601)
+          schema:
+            type: string
+            format: date-time
         - $ref: '#/components/parameters/PageParam'
         - $ref: '#/components/parameters/PageSizeParam'
       responses:
@@ -361,6 +618,17 @@ paths:
         - An active AI agent (flow or incoming type)
         - Sufficient credits in your account
         - An active phone number (or provide `fromNumber`)
+        - The number is not on your do-not-call list (`GET /dnd/check`)
+
+        <br />
+
+        **Scheduling:** pass a future `scheduledAt` and the call is queued as a callback instead of being
+        placed now — the response is `202` with `callbackId`; manage it through the Callbacks endpoints.
+
+        **Personalisation:** `dynamicVariables` (≤ 20 keys, names `[A-Za-z0-9_]{1,40}`, values ≤ 300 chars) are
+        substituted into the agent's prompt and first message as `{{key}}` (or `{key}`) on every engine, and listed
+        to the agent as *Details for this call*. Put your own record id in `metadata.externalRef`: it is stored on
+        the call, echoed in `call.completed`, and — for scheduled calls — used as the idempotency key.
         
         <br />
         
@@ -393,6 +661,25 @@ paths:
                   toNumber: "+14155551234"
                   engine: "twilio-openai"
                   fromNumber: "+14155559999"
+              personalised:
+                summary: CRM lead with dynamic variables
+                value:
+                  agentId: "550e8400-e29b-41d4-a716-446655440000"
+                  toNumber: "+919876543210"
+                  dynamicVariables:
+                    first_name: "Priya"
+                    order_id: "ORD-48213"
+                    delivery_date: "26 September"
+                  metadata:
+                    crmId: "SF-00412"
+              scheduled:
+                summary: Schedule for later (returns 202)
+                value:
+                  agentId: "550e8400-e29b-41d4-a716-446655440000"
+                  toNumber: "+919876543210"
+                  scheduledAt: "2026-09-29T11:00:00+05:30"
+                  dynamicVariables:
+                    first_name: "Priya"
       responses:
         '201':
           description: Call initiated successfully. Returns call ID and initial status.
@@ -400,6 +687,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TriggerCallResponse'
+        '202':
+          description: Call scheduled for `scheduledAt` (a callback was created)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScheduledCallResponse'
+              example:
+                success: true
+                data:
+                  scheduled: true
+                  callbackId: "7d1a6c9e-0b2f-4e3a-9c8d-5f6a7b8c9d0e"
+                  scheduledAt: "2026-09-29T05:30:00.000Z"
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -408,6 +707,12 @@ paths:
           $ref: '#/components/responses/InsufficientCredits'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          description: Number is on the do-not-call list (`error.code` = `DO_NOT_CALL`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /calls/{id}:
     get:
@@ -463,6 +768,83 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HangupResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /calls/outcomes:
+    get:
+      summary: List Call Outcomes
+      description: |
+        The catalogue of call outcomes. `kind: agent` outcomes are set by the agent during the conversation
+        (`set_call_outcome`) and may also be set through `POST /calls/{id}/outcome`; `kind: system` outcomes are
+        set by the platform from telephony events (voicemail detection, no answer, transfer, booking).
+
+        **Required Scope:** `calls:read`
+      operationId: listCallOutcomes
+      tags: [Calls]
+      responses:
+        '200':
+          description: All outcome ids with labels
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallOutcomesResponse'
+              example:
+                success: true
+                data:
+                  - { id: interested, label: Interested, kind: agent }
+                  - { id: not_interested, label: Not interested, kind: agent }
+                  - { id: callback_requested, label: Callback requested, kind: agent }
+                  - { id: wrong_number, label: Wrong number, kind: agent }
+                  - { id: already_customer, label: Already a customer, kind: agent }
+                  - { id: do_not_call, label: Do not call, kind: agent }
+                  - { id: no_decision, label: No decision, kind: agent }
+                  - { id: voicemail, label: Voicemail, kind: system }
+                  - { id: no_answer, label: No answer, kind: system }
+                  - { id: busy, label: Busy, kind: system }
+                  - { id: failed, label: Failed, kind: system }
+                  - { id: transferred, label: Transferred, kind: system }
+                  - { id: appointment_booked, label: Appointment booked, kind: system }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /calls/{id}/outcome:
+    post:
+      summary: Set Call Outcome
+      description: |
+        Record or override the outcome of a call from your CRM — for example after a human reviewed the
+        recording. Only agent-kind outcomes are accepted (`interested`, `not_interested`, `callback_requested`,
+        `wrong_number`, `already_customer`, `do_not_call`, `no_decision`). The API is treated as authoritative:
+        it replaces any outcome the platform or the AI set. Returns 404 for calls that are not yours.
+
+        **Required Scope:** `calls:write`
+      operationId: setCallOutcome
+      tags: [Calls]
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetCallOutcomeRequest'
+            example:
+              outcome: interested
+              note: "Wants a demo next week — sales to follow up"
+      responses:
+        '200':
+          description: Outcome stored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetCallOutcomeResponse'
+              example:
+                success: true
+                data: { callId: "c9f1d1a2-3b4c-4d5e-8f60-1a2b3c4d5e6f", outcome: interested, outcomeSource: agent, note: "Wants a demo next week — sales to follow up" }
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -1519,7 +1901,8 @@ paths:
         <br />
         
         **Signature Verification:**
-        Each payload includes an `X-Webhook-Signature` header with an HMAC-SHA256 signature. Verify this to ensure authenticity.
+        Each payload is signed with the `secret` returned here: `X-Zonvo-Signature` (legacy `X-AgentLabs-Signature`)
+        holds the hex HMAC-SHA256 of the raw body. See the *Webhooks* section for a verification snippet.
         
         <br />
         
@@ -1538,11 +1921,13 @@ paths:
                 value:
                   url: "https://your-server.com/webhooks/zonvo"
                   events: ["call.started", "call.completed", "call.failed"]
-              allEvents:
-                summary: Subscribe to all events
+              crmSync:
+                summary: CRM sync
                 value:
-                  url: "https://your-server.com/webhooks/zonvo"
-                  events: ["call.started", "call.completed", "call.failed", "campaign.started", "campaign.completed"]
+                  name: "CRM sync"
+                  url: "https://crm.example.com/hooks/zonvo"
+                  events: ["call.completed", "lead.upserted", "appointment.booked", "appointment.cancelled", "callback.scheduled"]
+                  description: "Zonvo → CRM"
       responses:
         '201':
           description: Webhook created with signing secret
@@ -1564,10 +1949,11 @@ paths:
         <br />
         
         **Event Categories:**
-        - `call.*` — Call lifecycle events
-        - `campaign.*` — Campaign lifecycle events
-        - `contact.*` — Contact changes
-        - `subscription.*` — Billing events
+        - `call.*` / `inbound_call.*` — Call lifecycle, outcomes, transfers
+        - `campaign.*` — Campaign lifecycle
+        - `appointment.*` — Bookings and status changes
+        - `callback.scheduled`, `lead.upserted` — Agent actions
+        - `form.*`, `flow.*` — Flow Builder
         
         <br />
         
@@ -1678,6 +2064,685 @@ paths:
                 $ref: '#/components/schemas/WebhookTestResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /dnd:
+    get:
+      summary: List Do-not-call Numbers
+      description: |
+        Paginated list of blocked numbers, newest first. `q` matches the phone number or note.
+
+        **Required Scope:** `contacts:read`
+      operationId: listDoNotCall
+      tags: [Do-not-call]
+      parameters:
+        - name: q
+          in: query
+          description: Search by phone number or note
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+      responses:
+        '200':
+          description: Blocked numbers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoNotCallListResponse'
+              example:
+                success: true
+                data:
+                  - id: "3f2b6c1e-8a4d-4e7f-9b1c-2d3e4f5a6b7c"
+                    phone: "+919876543210"
+                    reason: caller_request
+                    source: agent
+                    note: "Caller asked not to be contacted again"
+                    callId: "c9f1d1a2-3b4c-4d5e-8f60-1a2b3c4d5e6f"
+                    createdAt: "2026-09-22T09:15:12.000Z"
+                meta:
+                  requestId: "6b1f0c1e-3d2a-4c5b-8e9f-0a1b2c3d4e5f"
+                  timestamp: "2026-09-24T08:00:00.000Z"
+                  pagination: { page: 1, pageSize: 20, totalItems: 1, totalPages: 1, hasNext: false, hasPrev: false }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      summary: Add a Do-not-call Number
+      description: |
+        Block a number. Idempotent: adding a number that is already blocked returns `added: false`.
+        Entries created here have `source: api`.
+
+        **Required Scope:** `contacts:write`
+      operationId: addDoNotCall
+      tags: [Do-not-call]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddDoNotCallRequest'
+            example:
+              phone: "+919876543210"
+              reason: complaint
+              note: "Opted out via CRM preference centre"
+      responses:
+        '201':
+          description: Number blocked (or already blocked)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddDoNotCallResponse'
+              example:
+                success: true
+                data: { id: "3f2b6c1e-8a4d-4e7f-9b1c-2d3e4f5a6b7c", phone: "+919876543210", added: true }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    delete:
+      summary: Remove a Do-not-call Number by Phone
+      description: |
+        Unblock a number by its phone number (alternative to `DELETE /dnd/{id}`).
+
+        **Required Scope:** `contacts:write`
+      operationId: removeDoNotCallByPhone
+      tags: [Do-not-call]
+      parameters:
+        - name: phone
+          in: query
+          required: true
+          schema:
+            type: string
+          example: "+919876543210"
+      responses:
+        '200':
+          description: Number removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemovedResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /dnd/check:
+    get:
+      summary: Check a Number
+      description: |
+        Is this number blocked? Call it before `POST /calls` when your CRM keeps its own opt-out data.
+
+        **Required Scope:** `contacts:read`
+      operationId: checkDoNotCall
+      tags: [Do-not-call]
+      parameters:
+        - name: phone
+          in: query
+          required: true
+          schema:
+            type: string
+          example: "9876543210"
+      responses:
+        '200':
+          description: Result with the normalised number
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoNotCallCheckResponse'
+              example:
+                success: true
+                data: { phone: "+919876543210", blocked: true }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /dnd/import:
+    post:
+      summary: Import Do-not-call Numbers
+      description: |
+        Bulk-add up to 5,000 numbers in one request. Invalid and already-blocked numbers are counted in
+        `skipped`. Entries have `reason: import`, `source: api`.
+
+        **Required Scope:** `contacts:write`
+      operationId: importDoNotCall
+      tags: [Do-not-call]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportDoNotCallRequest'
+            example:
+              phones: ["+919876543210", "9876543211", "+919876543212"]
+      responses:
+        '200':
+          description: Import summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportDoNotCallResponse'
+              example:
+                success: true
+                data: { added: 2, skipped: 1 }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /dnd/{id}:
+    delete:
+      summary: Remove a Do-not-call Number
+      description: |
+        Unblock a number by entry id.
+
+        **Required Scope:** `contacts:write`
+      operationId: removeDoNotCall
+      tags: [Do-not-call]
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Number removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemovedResponse'
+              example:
+                success: true
+                data: { removed: true }
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /callbacks:
+    get:
+      summary: List Callbacks
+      description: |
+        Scheduled, running and finished callbacks, newest first. An unknown `status` value returns 400.
+
+        **Required Scope:** `calls:read`
+      operationId: listCallbacks
+      tags: [Callbacks]
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, calling, completed, failed, cancelled]
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+      responses:
+        '200':
+          description: Callbacks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallbackListResponse'
+              example:
+                success: true
+                data:
+                  - id: "7d1a6c9e-0b2f-4e3a-9c8d-5f6a7b8c9d0e"
+                    contactName: "Priya Sharma"
+                    contactPhone: "+919876543210"
+                    reason: "Webinar reminder (1 day before)"
+                    scheduledAt: "2026-09-29T05:30:00.000Z"
+                    timeZone: "Asia/Kolkata"
+                    status: pending
+                    attempts: 0
+                    lastError: null
+                    agentId: "550e8400-e29b-41d4-a716-446655440000"
+                    agentName: "Webinar reminder"
+                    resultCallId: null
+                    variables: { first_name: "Priya", webinar_title: "GST filing for startups" }
+                    externalRef: "reg_8812-24h"
+                    source: api
+                    createdAt: "2026-09-24T08:00:00.000Z"
+                meta:
+                  requestId: "6b1f0c1e-3d2a-4c5b-8e9f-0a1b2c3d4e5f"
+                  timestamp: "2026-09-24T08:00:00.000Z"
+                  pagination: { page: 1, pageSize: 20, totalItems: 1, totalPages: 1, hasNext: false, hasPrev: false }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      summary: Schedule a Callback
+      description: |
+        Schedule one automatic call. The agent must belong to you; `scheduledAt` must be in the future and at most
+        60 days ahead; the number must not be on the do-not-call list.
+
+        Pass `externalRef` to make the request idempotent — the same ref returns the existing callback with
+        HTTP 200. Pass `variables` to personalise the conversation (`{{key}}` in the prompt / first message).
+
+        **Required Scope:** `calls:write`
+      operationId: createCallback
+      tags: [Callbacks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCallbackRequest'
+            example:
+              agentId: "550e8400-e29b-41d4-a716-446655440000"
+              contactPhone: "+919876543210"
+              contactName: "Priya Sharma"
+              scheduledAt: "2026-09-29T11:00:00+05:30"
+              timeZone: "Asia/Kolkata"
+              reason: "Follow up on the pricing question"
+              externalRef: "crm-task-48213"
+              variables: { first_name: "Priya", plan: "Growth" }
+      responses:
+        '201':
+          description: Callback scheduled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallbackResponse'
+        '200':
+          description: An identical `externalRef` already exists — the existing callback is returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallbackResponse'
+        '400':
+          description: Validation error — `error.details.reason` is `past`, `too_far` or `invalid_phone` when applicable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Agent not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Number is on the do-not-call list (`error.code` = `DO_NOT_CALL`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: { code: DO_NOT_CALL, message: "This number is on your do-not-call list.", details: { reason: do_not_call } }
+    delete:
+      summary: Cancel a Callback by External Reference
+      description: |
+        Cancel the pending callback that was created with this `externalRef`.
+
+        **Required Scope:** `calls:write`
+      operationId: cancelCallbackByRef
+      tags: [Callbacks]
+      parameters:
+        - name: externalRef
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 120
+          example: "reg_8812-24h"
+      responses:
+        '200':
+          description: Callback cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallbackCancelResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /callbacks/bulk:
+    post:
+      summary: Schedule Callbacks in Bulk
+      description: |
+        Schedule up to 500 callbacks with one agent in a single request — reminders, renewals, re-engagement.
+        Each contact is validated on its own; the response tells you which were created and which were skipped
+        and why (`do_not_call`, `duplicate` — same `externalRef` already exists, `invalid_phone`, `past`,
+        `too_far` — more than 60 days ahead).
+
+        **Required Scope:** `calls:write`
+      operationId: createCallbacksBulk
+      tags: [Callbacks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkCallbackRequest'
+            example:
+              agentId: "550e8400-e29b-41d4-a716-446655440000"
+              timeZone: "Asia/Kolkata"
+              contacts:
+                - phone: "+919876543210"
+                  name: "Priya Sharma"
+                  scheduledAt: "2026-09-29T11:00:00+05:30"
+                  externalRef: "reg_8812-24h"
+                  reason: "Webinar reminder (1 day before)"
+                  variables: { first_name: "Priya", webinar_title: "GST filing for startups", webinar_time: "30 Sept, 11:00 AM IST", join_link: "https://example.com/j/8812" }
+                - phone: "+919876543211"
+                  name: "Arjun Mehta"
+                  scheduledAt: "2026-09-29T11:00:00+05:30"
+                  externalRef: "reg_8813-24h"
+                  variables: { first_name: "Arjun", webinar_title: "GST filing for startups", webinar_time: "30 Sept, 11:00 AM IST", join_link: "https://example.com/j/8813" }
+      responses:
+        '201':
+          description: Per-contact result (201 even when every contact was skipped)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkCallbackResponse'
+              example:
+                success: true
+                data:
+                  created:
+                    - { id: "7d1a6c9e-0b2f-4e3a-9c8d-5f6a7b8c9d0e", phone: "+919876543210", externalRef: "reg_8812-24h", scheduledAt: "2026-09-29T05:30:00.000Z" }
+                  skipped:
+                    - { phone: "+919876543211", externalRef: "reg_8813-24h", reason: do_not_call }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Agent not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /callbacks/{id}:
+    delete:
+      summary: Cancel a Callback
+      description: |
+        Cancel a pending callback. Returns 404 when it does not exist, is not yours, or is no longer pending.
+
+        **Required Scope:** `calls:write`
+      operationId: cancelCallback
+      tags: [Callbacks]
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Callback cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallbackCancelResponse'
+              example:
+                success: true
+                data:
+                  cancelled: true
+                  callback: { id: "7d1a6c9e-0b2f-4e3a-9c8d-5f6a7b8c9d0e", contactPhone: "+919876543210", status: cancelled, externalRef: "reg_8812-24h", source: api }
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /leads:
+    get:
+      summary: List Leads
+      description: |
+        Leads created by your agents (`save_lead`), Flows and the CRM, with AI enrichment, newest update first.
+        Use `since` (ISO date-time, compares `updatedAt`) to poll for changes, `assigned` to filter by team member id
+        (`none` for leads without an owner). `q` matches phone, first/last name, email and company.
+
+        **Required Scope:** `contacts:read`
+      operationId: listLeads
+      tags: [Leads]
+      parameters:
+        - name: stage
+          in: query
+          schema:
+            type: string
+          example: hot
+        - name: q
+          in: query
+          description: Search name, phone, email or company
+          schema:
+            type: string
+        - name: since
+          in: query
+          description: Only leads updated at or after this time
+          schema:
+            type: string
+            format: date-time
+          example: "2026-09-23T18:30:00.000Z"
+        - name: assigned
+          in: query
+          description: Assigned user id, or `none` for unassigned leads
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+      responses:
+        '200':
+          description: Leads
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeadListResponse'
+              example:
+                success: true
+                data:
+                  - id: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+                    sourceType: incoming
+                    firstName: "Priya"
+                    lastName: "Sharma"
+                    phone: "+919876543210"
+                    email: "priya@example.com"
+                    company: "Sharma Traders"
+                    stage: hot
+                    leadScore: 82
+                    aiCategory: hot
+                    aiSummary: "Wants the Growth plan for a 5-seat sales team; asked about GST invoicing."
+                    aiNextAction: "Send pricing PDF and book a demo this week."
+                    sentiment: positive
+                    hasAppointment: false
+                    hasCallback: true
+                    tags: ["webinar", "sept-2026"]
+                    customFields: { budget: "5000/month", city: "Noida" }
+                    assignedUserId: null
+                    totalCalls: 2
+                    lastCallAt: "2026-09-24T06:12:41.000Z"
+                    callId: "c9f1d1a2-3b4c-4d5e-8f60-1a2b3c4d5e6f"
+                    createdAt: "2026-09-20T10:02:11.000Z"
+                    updatedAt: "2026-09-24T06:13:02.000Z"
+                meta:
+                  requestId: "6b1f0c1e-3d2a-4c5b-8e9f-0a1b2c3d4e5f"
+                  timestamp: "2026-09-24T08:00:00.000Z"
+                  pagination: { page: 1, pageSize: 20, totalItems: 1, totalPages: 1, hasNext: false, hasPrev: false }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /leads/{id}:
+    get:
+      summary: Get Lead
+      description: |
+        One lead with its notes (newest first).
+
+        **Required Scope:** `contacts:read`
+      operationId: getLead
+      tags: [Leads]
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Lead with notes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeadDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      summary: Update Lead
+      description: |
+        Write CRM changes back: move the stage, set tags, merge custom fields (shallow merge — existing keys you
+        do not send are kept), assign an owner (`assignedUserId` must be one of your assignees, or `null` to
+        unassign), correct email / company. The body is strict — unknown keys are rejected with 400, and an unknown
+        `stage` returns 400 with `details.allowedStages`. The change is forwarded to connected integrations and
+        fires `lead.upserted`.
+
+        **Required Scope:** `contacts:write`
+      operationId: updateLead
+      tags: [Leads]
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLeadRequest'
+            example:
+              stage: appointment
+              tags: ["webinar", "demo-booked"]
+              customFields: { crm_id: "SF-00412" }
+              assignedUserId: "9c8b7a6d-5e4f-4321-8abc-def012345678"
+      responses:
+        '200':
+          description: Updated lead
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeadResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /leads/{id}/notes:
+    post:
+      summary: Add a Lead Note
+      description: |
+        Append a note (≤ 4,000 characters). Notes appear in the Quick CRM lead drawer and reset the
+        follow-up SLA clock in the Team inbox.
+
+        **Required Scope:** `contacts:write`
+      operationId: createLeadNote
+      tags: [Leads]
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLeadNoteRequest'
+            example:
+              text: "Called from CRM: confirmed demo on 30 Sept 11:00 IST."
+      responses:
+        '201':
+          description: Note created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeadNoteResponse'
+              example:
+                success: true
+                data: { id: "0f1e2d3c-4b5a-4968-8776-655443322110", text: "Called from CRM: confirmed demo on 30 Sept 11:00 IST.", createdAt: "2026-09-24T08:00:00.000Z" }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /appointments:
+    get:
+      summary: List Appointments
+      description: |
+        Appointments booked by your agents and Flows. `from` / `to` filter on `appointmentDate` (YYYY-MM-DD or ISO date-time).
+
+        **Required Scope:** `calls:read`
+      operationId: listAppointments
+      tags: [Appointments]
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+          example: "2026-09-24"
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+          example: "2026-09-30"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [scheduled, confirmed, cancelled, completed, no_show]
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+      responses:
+        '200':
+          description: Appointments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentListResponse'
+              example:
+                success: true
+                data:
+                  - id: "b7e2f9a1-6c3d-4e5f-8a9b-0c1d2e3f4a5b"
+                    contactName: "Priya Sharma"
+                    contactPhone: "+919876543210"
+                    contactEmail: "priya@example.com"
+                    appointmentDate: "2026-09-30"
+                    appointmentTime: "11:00:00"
+                    duration: 30
+                    serviceName: "Product demo"
+                    notes: "Interested in the Growth plan"
+                    status: scheduled
+                    callId: "c9f1d1a2-3b4c-4d5e-8f60-1a2b3c4d5e6f"
+                    googleCalendarEventId: "k3j4h5g6f7d8s9a0"
+                    createdAt: "2026-09-24T06:12:41.000Z"
+                meta:
+                  requestId: "6b1f0c1e-3d2a-4c5b-8e9f-0a1b2c3d4e5f"
+                  timestamp: "2026-09-24T08:00:00.000Z"
+                  pagination: { page: 1, pageSize: 20, totalItems: 1, totalPages: 1, hasNext: false, hasPrev: false }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /appointments/{id}:
+    get:
+      summary: Get Appointment
+      description: |
+        **Required Scope:** `calls:read`
+      operationId: getAppointment
+      tags: [Appointments]
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Appointment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      summary: Update Appointment Status
+      description: |
+        Confirm, cancel, complete or mark as no-show. When the appointment has a Google Calendar event it is
+        updated best-effort — cancelling deletes the event and clears `googleCalendarEventId`. The matching webhook
+        (`appointment.confirmed`, `appointment.cancelled`, `appointment.completed`, `appointment.no_show`) fires only
+        when the status actually changes.
+
+        **Required Scope:** `calls:write`
+      operationId: updateAppointment
+      tags: [Appointments]
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAppointmentRequest'
+            example:
+              status: confirmed
+              statusReason: "Customer confirmed on WhatsApp"
+      responses:
+        '200':
+          description: Updated appointment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
 
@@ -1865,15 +2930,22 @@ components:
           type: string
           enum: [elevenlabs, plivo, twilio-openai]
           description: Telephony engine to use
+        dynamicVariables:
+          type: object
+          additionalProperties:
+            type: string
+          description: Substituted into the agent's prompt / first message as `{{key}}`. Max 20 keys, key `[A-Za-z0-9_]{1,40}`, values ≤ 300 chars.
+          maxProperties: 20
+          example: { first_name: "Priya", order_id: "ORD-48213" }
         metadata:
           type: object
           additionalProperties:
             type: string
-          description: Custom metadata to attach to the call
+          description: Custom metadata to attach to the call (returned in webhooks as `data.metadata`, e.g. your CRM id or `externalRef`)
         scheduledAt:
           type: string
           format: date-time
-          description: Schedule call for a future time
+          description: Future time (≤ 60 days) — the call is scheduled as a callback and the response is 202
 
     TriggerCallResponse:
       type: object
@@ -1929,6 +3001,26 @@ components:
           description: Duration in seconds
         creditsUsed:
           type: number
+          nullable: true
+          description: null for plivo / twilio-openai calls (minutes are billed from duration)
+        campaignId:
+          type: string
+          format: uuid
+          nullable: true
+        outcome:
+          allOf:
+            - $ref: '#/components/schemas/CallOutcome'
+          nullable: true
+          description: null while the call is in progress or when nothing was recorded
+        outcomeSource:
+          type: string
+          nullable: true
+          enum: [agent, system, ai, null]
+        answeredBy:
+          type: string
+          nullable: true
+          enum: [human, machine, null]
+          description: From answering-machine detection on outbound calls
         transcript:
           type: string
         aiSummary:
@@ -2197,6 +3289,8 @@ components:
               type: string
             maxDurationSeconds:
               type: integer
+            actions:
+              $ref: '#/components/schemas/AgentActionsSummary'
 
     AgentListResponse:
       type: object
@@ -2631,24 +3725,54 @@ components:
             type: string
             enum:
               - call.started
+              - call.ringing
+              - call.answered
               - call.completed
               - call.failed
+              - call.transferred
+              - call.no_answer
+              - call.busy
+              - call.voicemail
+              - inbound_call.received
+              - inbound_call.answered
+              - inbound_call.completed
+              - inbound_call.missed
               - campaign.started
-              - campaign.completed
               - campaign.paused
-              - contact.created
-              - contact.updated
-              - credits.low
-              - credits.depleted
+              - campaign.resumed
+              - campaign.completed
+              - campaign.failed
+              - campaign.cancelled
+              - appointment.booked
+              - appointment.confirmed
+              - appointment.cancelled
+              - appointment.rescheduled
+              - appointment.completed
+              - appointment.no_show
+              - callback.scheduled
+              - lead.upserted
+              - form.submitted
+              - form.lead_created
+              - flow.started
+              - flow.completed
+              - flow.failed
         secret:
           type: string
-          description: Custom signing secret (auto-generated if not provided)
+          minLength: 16
+          maxLength: 64
+          description: Custom signing secret, 16–64 characters (auto-generated if not provided)
+        name:
+          type: string
+          maxLength: 255
         description:
           type: string
 
     UpdateWebhookRequest:
       type: object
       properties:
+        name:
+          type: string
+          maxLength: 255
         url:
           type: string
           format: uri
@@ -2667,6 +3791,9 @@ components:
         id:
           type: string
           format: uuid
+        name:
+          type: string
+          nullable: true
         url:
           type: string
         events:
@@ -2677,11 +3804,7 @@ components:
           type: boolean
         description:
           type: string
-        lastDeliveryAt:
-          type: string
-          format: date-time
-        lastDeliveryStatus:
-          type: string
+          nullable: true
         createdAt:
           type: string
           format: date-time
@@ -2750,3 +3873,694 @@ components:
               type: string
         meta:
           $ref: '#/components/schemas/Meta'
+
+    # ---------------------------------------------------------------- Call outcomes
+    CallOutcome:
+      type: string
+      description: How the call went. Agent-kind outcomes are set in conversation or via the API; system-kind by the platform.
+      enum: [interested, not_interested, callback_requested, wrong_number, already_customer, do_not_call, no_decision, voicemail, no_answer, busy, failed, transferred, appointment_booked]
+
+    CallOutcomesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                $ref: '#/components/schemas/CallOutcome'
+              label:
+                type: string
+              kind:
+                type: string
+                enum: [agent, system]
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    SetCallOutcomeRequest:
+      type: object
+      required: [outcome]
+      properties:
+        outcome:
+          type: string
+          enum: [interested, not_interested, callback_requested, wrong_number, already_customer, do_not_call, no_decision]
+        note:
+          type: string
+          maxLength: 500
+
+    SetCallOutcomeResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            callId:
+              type: string
+            outcome:
+              type: string
+            outcomeSource:
+              type: string
+              example: agent
+            note:
+              type: string
+              nullable: true
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    ScheduledCallResponse:
+      type: object
+      description: Returned with HTTP 202 when `POST /calls` carries a future `scheduledAt`
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            scheduled:
+              type: boolean
+              example: true
+            callbackId:
+              type: string
+              format: uuid
+            scheduledAt:
+              type: string
+              format: date-time
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    AgentActionsSummary:
+      type: object
+      description: Which call actions the agent has enabled (API tool headers are never exposed)
+      properties:
+        transfer:
+          type: boolean
+        appointments:
+          type: boolean
+        saveLead:
+          type: boolean
+        callbacks:
+          type: boolean
+        apiTools:
+          type: integer
+          description: Number of custom API lookup tools
+        voicemail:
+          type: string
+          nullable: true
+          enum: [hangup, leave_message, null]
+        ownerAlerts:
+          type: boolean
+
+    # ---------------------------------------------------------------- Do-not-call
+    DoNotCallEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        phone:
+          type: string
+          example: "+919876543210"
+        reason:
+          type: string
+          enum: [caller_request, manual, import, complaint]
+        source:
+          type: string
+          enum: [agent, manual, upload, api]
+        note:
+          type: string
+          nullable: true
+        callId:
+          type: string
+          nullable: true
+          description: Call during which the agent added the number
+        createdAt:
+          type: string
+          format: date-time
+
+    DoNotCallListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/DoNotCallEntry'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    DoNotCallCheckResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            phone:
+              type: string
+              description: Normalised number
+            blocked:
+              type: boolean
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    AddDoNotCallRequest:
+      type: object
+      required: [phone]
+      properties:
+        phone:
+          type: string
+          description: E.164 or 10-digit Indian number
+          example: "+919876543210"
+        reason:
+          type: string
+          enum: [manual, complaint]
+          default: manual
+        note:
+          type: string
+          maxLength: 500
+
+    AddDoNotCallResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            phone:
+              type: string
+            added:
+              type: boolean
+              description: false when the number was already blocked
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    ImportDoNotCallRequest:
+      type: object
+      required: [phones]
+      properties:
+        phones:
+          type: array
+          minItems: 1
+          maxItems: 5000
+          items:
+            type: string
+
+    ImportDoNotCallResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            added:
+              type: integer
+            skipped:
+              type: integer
+              description: Invalid or already-blocked numbers
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    RemovedResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            removed:
+              type: boolean
+              example: true
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    # ---------------------------------------------------------------- Callbacks
+    CallbackVariables:
+      type: object
+      description: Up to 20 keys; values up to 300 characters. Available to the agent as `{{key}}`.
+      maxProperties: 20
+      additionalProperties:
+        type: string
+        maxLength: 300
+      example: { first_name: "Priya", webinar_title: "GST filing for startups" }
+
+    Callback:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        contactName:
+          type: string
+          nullable: true
+        contactPhone:
+          type: string
+          example: "+919876543210"
+        reason:
+          type: string
+          nullable: true
+        scheduledAt:
+          type: string
+          format: date-time
+        timeZone:
+          type: string
+          example: Asia/Kolkata
+        status:
+          type: string
+          enum: [pending, calling, completed, failed, cancelled]
+        attempts:
+          type: integer
+        lastError:
+          type: string
+          nullable: true
+        agentId:
+          type: string
+          format: uuid
+          nullable: true
+        agentName:
+          type: string
+          nullable: true
+        resultCallId:
+          type: string
+          nullable: true
+          description: The call placed for this callback — use it with `GET /calls/{id}`
+        variables:
+          $ref: '#/components/schemas/CallbackVariables'
+        externalRef:
+          type: string
+          nullable: true
+          maxLength: 120
+        source:
+          type: string
+          enum: [agent, manual, api]
+        createdAt:
+          type: string
+          format: date-time
+
+    CallbackResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/Callback'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    CallbackCancelResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            cancelled:
+              type: boolean
+              example: true
+            callback:
+              $ref: '#/components/schemas/Callback'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    CallbackListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Callback'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    CreateCallbackRequest:
+      type: object
+      required: [agentId, contactPhone, scheduledAt]
+      properties:
+        agentId:
+          type: string
+          format: uuid
+        contactPhone:
+          type: string
+          example: "+919876543210"
+        scheduledAt:
+          type: string
+          format: date-time
+          description: In the future, at most 60 days ahead. Include the offset (e.g. `+05:30`) or send UTC.
+          example: "2026-09-29T11:00:00+05:30"
+        contactName:
+          type: string
+        reason:
+          type: string
+          maxLength: 200
+          description: Told to the agent so it knows what the call is about
+        timeZone:
+          type: string
+          description: IANA zone shown in the dashboard
+          default: Asia/Kolkata
+        variables:
+          $ref: '#/components/schemas/CallbackVariables'
+        externalRef:
+          type: string
+          maxLength: 120
+          description: Idempotency key — same ref returns the existing callback (HTTP 200)
+
+    BulkCallbackRequest:
+      type: object
+      required: [agentId, contacts]
+      properties:
+        agentId:
+          type: string
+          format: uuid
+        timeZone:
+          type: string
+          default: Asia/Kolkata
+        contacts:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items:
+            type: object
+            required: [phone, scheduledAt]
+            properties:
+              phone:
+                type: string
+              name:
+                type: string
+              scheduledAt:
+                type: string
+                format: date-time
+              reason:
+                type: string
+                maxLength: 200
+              variables:
+                $ref: '#/components/schemas/CallbackVariables'
+              externalRef:
+                type: string
+                maxLength: 120
+
+    BulkCallbackResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            created:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  phone:
+                    type: string
+                  externalRef:
+                    type: string
+                    nullable: true
+                  scheduledAt:
+                    type: string
+                    format: date-time
+            skipped:
+              type: array
+              items:
+                type: object
+                properties:
+                  phone:
+                    type: string
+                  externalRef:
+                    type: string
+                    nullable: true
+                  reason:
+                    type: string
+                    enum: [do_not_call, duplicate, invalid_phone, past, too_far]
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    # ---------------------------------------------------------------- Leads
+    Lead:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        sourceType:
+          type: string
+          enum: [campaign, incoming]
+        firstName:
+          type: string
+          nullable: true
+        lastName:
+          type: string
+          nullable: true
+        phone:
+          type: string
+        email:
+          type: string
+          nullable: true
+        company:
+          type: string
+          nullable: true
+        stage:
+          type: string
+          description: Pipeline stage key (default pipeline — new, hot, appointment, form_submitted, follow_up, not_interested, no_answer)
+        leadScore:
+          type: integer
+          nullable: true
+          description: 1–100, AI-generated
+        aiCategory:
+          type: string
+          nullable: true
+          enum: [warm, hot, appointment_booked, form_submitted, call_transfer, need_follow_up, null]
+        aiSummary:
+          type: string
+          nullable: true
+        aiNextAction:
+          type: string
+          nullable: true
+        sentiment:
+          type: string
+          nullable: true
+          enum: [positive, neutral, negative, null]
+        hasAppointment:
+          type: boolean
+        hasCallback:
+          type: boolean
+        tags:
+          type: array
+          items:
+            type: string
+        customFields:
+          type: object
+          additionalProperties: true
+        assignedUserId:
+          type: string
+          nullable: true
+        totalCalls:
+          type: integer
+        lastCallAt:
+          type: string
+          format: date-time
+          nullable: true
+        callId:
+          type: string
+          nullable: true
+          description: The call that created the lead
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    LeadNote:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        text:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    LeadResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/Lead'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    LeadDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          allOf:
+            - $ref: '#/components/schemas/Lead'
+            - type: object
+              properties:
+                notes:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/LeadNote'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    LeadListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Lead'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    UpdateLeadRequest:
+      type: object
+      properties:
+        stage:
+          type: string
+          description: One of your pipeline stage keys
+        tags:
+          type: array
+          items:
+            type: string
+        customFields:
+          type: object
+          additionalProperties: true
+          description: Shallow-merged into the existing custom fields
+        assignedUserId:
+          type: string
+          nullable: true
+          description: Team member id, or null to unassign
+        email:
+          type: string
+        company:
+          type: string
+
+    CreateLeadNoteRequest:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+          maxLength: 4000
+
+    LeadNoteResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/LeadNote'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    # ---------------------------------------------------------------- Appointments
+    Appointment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        contactName:
+          type: string
+        contactPhone:
+          type: string
+        contactEmail:
+          type: string
+          nullable: true
+        appointmentDate:
+          type: string
+          format: date
+          example: "2026-09-30"
+        appointmentTime:
+          type: string
+          description: Local time (HH:MM:SS) in the agent's appointment time zone
+          example: "11:00:00"
+        duration:
+          type: integer
+          description: Minutes
+        serviceName:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [scheduled, confirmed, cancelled, completed, no_show]
+        statusReason:
+          type: string
+          nullable: true
+        callId:
+          type: string
+          nullable: true
+        googleCalendarEventId:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AppointmentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/Appointment'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    AppointmentListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Appointment'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    UpdateAppointmentRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [scheduled, confirmed, cancelled, completed, no_show]
+        statusReason:
+          type: string
+          maxLength: 500
