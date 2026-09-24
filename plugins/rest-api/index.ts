@@ -461,6 +461,11 @@ export function registerRestApiRoutes(app: Express, options: RegisterRestApiOpti
     console.log('[REST API] Swagger UI playground available at /api/docs/playground');
   } catch (error) {
     console.warn('[REST API] Could not load OpenAPI spec, documentation disabled:', error);
+    // Say so on the docs URL instead of letting it fall through to the auth catch-all (a bare 401
+    // "Authentication required" tells the operator nothing about the missing spec file)
+    app.get(['/api/docs', '/api/docs/openapi.json', '/api/docs/playground'], (_req, res) => {
+      res.status(503).type('text').send('API documentation is unavailable: plugins/rest-api/docs/openapi.yaml could not be loaded on this server.');
+    });
   }
   
   console.log(`[REST API] Plugin registered at ${API_BASE_PATH}`);

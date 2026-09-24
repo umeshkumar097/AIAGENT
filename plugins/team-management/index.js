@@ -15,14 +15,24 @@ import "dotenv/config";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 
-// shared/schema.js
+// shared/schema.ts
 var schema_exports = {};
 __export(schema_exports, {
+  AGENT_CALL_OUTCOMES: () => AGENT_CALL_OUTCOMES,
   AI_CATEGORY_COLORS: () => AI_CATEGORY_COLORS,
   AI_CATEGORY_LABELS: () => AI_CATEGORY_LABELS,
   AI_CATEGORY_PRIORITY: () => AI_CATEGORY_PRIORITY,
   AI_LEAD_CATEGORIES: () => AI_LEAD_CATEGORIES,
   API_SCOPES: () => API_SCOPES,
+  AgentActionsConfigSchema: () => AgentActionsConfigSchema,
+  AgentApiToolSchema: () => AgentApiToolSchema,
+  CALL_OUTCOMES: () => CALL_OUTCOMES,
+  FINAL_CALL_OUTCOMES: () => FINAL_CALL_OUTCOMES,
+  INTEGRATION_PROVIDERS: () => INTEGRATION_PROVIDERS,
+  RETRY_OUTCOMES: () => RETRY_OUTCOMES,
+  RetryRuleSchema: () => RetryRuleSchema,
+  RetryRulesSchema: () => RetryRulesSchema,
+  SYSTEM_CALL_OUTCOMES: () => SYSTEM_CALL_OUTCOMES,
   agentVersions: () => agentVersions,
   agents: () => agents,
   analyticsScripts: () => analyticsScripts,
@@ -48,16 +58,19 @@ __export(schema_exports, {
   crmCategoryPreferences: () => crmCategoryPreferences,
   demoSessions: () => demoSessions,
   determineAICategory: () => determineAICategory,
+  doNotCallNumbers: () => doNotCallNumbers,
   elevenLabsCredentials: () => elevenLabsCredentials,
   emailNotificationSettings: () => emailNotificationSettings,
   emailTemplates: () => emailTemplates,
   flowExecutions: () => flowExecutions,
+  flowTestQueue: () => flowTestQueue,
   flows: () => flows,
-  fonosterCredentials: () => fonosterCredentials,
   formFields: () => formFields,
   formSubmissions: () => formSubmissions,
   forms: () => forms,
   globalSettings: () => globalSettings,
+  googleCalendarCredentials: () => googleCalendarCredentials,
+  googleSheetsCredentials: () => googleSheetsCredentials,
   incomingAgents: () => incomingAgents,
   incomingConnections: () => incomingConnections,
   insertAgentSchema: () => insertAgentSchema,
@@ -77,16 +90,19 @@ __export(schema_exports, {
   insertCreditTransactionSchema: () => insertCreditTransactionSchema,
   insertCrmCategoryPreferencesSchema: () => insertCrmCategoryPreferencesSchema,
   insertDemoSessionSchema: () => insertDemoSessionSchema,
+  insertDoNotCallNumberSchema: () => insertDoNotCallNumberSchema,
   insertElevenLabsCredentialSchema: () => insertElevenLabsCredentialSchema,
   insertEmailNotificationSettingsSchema: () => insertEmailNotificationSettingsSchema,
   insertEmailTemplateSchema: () => insertEmailTemplateSchema,
   insertFlowExecutionSchema: () => insertFlowExecutionSchema,
   insertFlowSchema: () => insertFlowSchema,
-  insertFonosterCredentialSchema: () => insertFonosterCredentialSchema,
+  insertFlowTestQueueSchema: () => insertFlowTestQueueSchema,
   insertFormFieldSchema: () => insertFormFieldSchema,
   insertFormSchema: () => insertFormSchema,
   insertFormSubmissionSchema: () => insertFormSubmissionSchema,
   insertGlobalSettingsSchema: () => insertGlobalSettingsSchema,
+  insertGoogleCalendarCredentialSchema: () => insertGoogleCalendarCredentialSchema,
+  insertGoogleSheetsCredentialSchema: () => insertGoogleSheetsCredentialSchema,
   insertIncomingAgentSchema: () => insertIncomingAgentSchema,
   insertIncomingConnectionSchema: () => insertIncomingConnectionSchema,
   insertInvoiceSchema: () => insertInvoiceSchema,
@@ -100,12 +116,14 @@ __export(schema_exports, {
   insertLegacyWebhookDeliverySchema: () => insertLegacyWebhookDeliverySchema,
   insertLegacyWebhookSchema: () => insertLegacyWebhookSchema,
   insertLlmModelSchema: () => insertLlmModelSchema,
+  insertNotificationEventSchema: () => insertNotificationEventSchema,
   insertNotificationSchema: () => insertNotificationSchema,
   insertOpenaiCredentialSchema: () => insertOpenaiCredentialSchema,
   insertPaymentTransactionSchema: () => insertPaymentTransactionSchema,
   insertPaymentWebhookQueueSchema: () => insertPaymentWebhookQueueSchema,
   insertPhoneNumberRentalSchema: () => insertPhoneNumberRentalSchema,
   insertPhoneNumberSchema: () => insertPhoneNumberSchema,
+  insertPhoneReleaseRetryQueueSchema: () => insertPhoneReleaseRetryQueueSchema,
   insertPlanSchema: () => insertPlanSchema,
   insertPlatformLanguageSchema: () => insertPlatformLanguageSchema,
   insertPlivoCallSchema: () => insertPlivoCallSchema,
@@ -114,6 +132,7 @@ __export(schema_exports, {
   insertPlivoPhonePricingSchema: () => insertPlivoPhonePricingSchema,
   insertPromptTemplateSchema: () => insertPromptTemplateSchema,
   insertRefundSchema: () => insertRefundSchema,
+  insertScheduledCallbackSchema: () => insertScheduledCallbackSchema,
   insertSeoSettingsSchema: () => insertSeoSettingsSchema,
   insertSipCallSchema: () => insertSipCallSchema,
   insertSipPhoneNumberSchema: () => insertSipPhoneNumberSchema,
@@ -126,6 +145,7 @@ __export(schema_exports, {
   insertUsageRecordSchema: () => insertUsageRecordSchema,
   insertUserAddressSchema: () => insertUserAddressSchema,
   insertUserFeedbackSchema: () => insertUserFeedbackSchema,
+  insertUserIntegrationSchema: () => insertUserIntegrationSchema,
   insertUserKnowledgeStorageLimitSchema: () => insertUserKnowledgeStorageLimitSchema,
   insertUserKycDocumentSchema: () => insertUserKycDocumentSchema,
   insertUserSchema: () => insertUserSchema,
@@ -135,6 +155,7 @@ __export(schema_exports, {
   insertWebhookSchema: () => insertWebhookSchema,
   insertWebsiteWidgetSchema: () => insertWebsiteWidgetSchema,
   insertWidgetCallSessionSchema: () => insertWidgetCallSessionSchema,
+  integrationSyncLogs: () => integrationSyncLogs,
   invoices: () => invoices,
   knowledgeBase: () => knowledgeBase,
   knowledgeChunks: () => knowledgeChunks,
@@ -146,6 +167,7 @@ __export(schema_exports, {
   legacyWebhookDeliveries: () => legacyWebhookDeliveries,
   legacyWebhooks: () => legacyWebhooks,
   llmModels: () => llmModels,
+  notificationEvents: () => notificationEvents,
   notifications: () => notifications,
   openaiCredentials: () => openaiCredentials,
   otpVerifications: () => otpVerifications,
@@ -153,6 +175,7 @@ __export(schema_exports, {
   paymentWebhookQueue: () => paymentWebhookQueue,
   phoneNumberRentals: () => phoneNumberRentals,
   phoneNumbers: () => phoneNumbers,
+  phoneReleaseRetryQueue: () => phoneReleaseRetryQueue,
   plans: () => plans,
   platformLanguages: () => platformLanguages,
   plivoCalls: () => plivoCalls,
@@ -162,6 +185,7 @@ __export(schema_exports, {
   promptTemplates: () => promptTemplates,
   refreshTokens: () => refreshTokens,
   refunds: () => refunds,
+  scheduledCallbacks: () => scheduledCallbacks,
   seoSettings: () => seoSettings,
   sipCalls: () => sipCalls,
   sipPhoneNumbers: () => sipPhoneNumbers,
@@ -174,6 +198,7 @@ __export(schema_exports, {
   usageRecords: () => usageRecords,
   userAddresses: () => userAddresses,
   userFeedback: () => userFeedback,
+  userIntegrations: () => userIntegrations,
   userKnowledgeStorageLimits: () => userKnowledgeStorageLimits,
   userKycDocuments: () => userKycDocuments,
   userSubscriptions: () => userSubscriptions,
@@ -187,7 +212,7 @@ __export(schema_exports, {
   widgetCallSessions: () => widgetCallSessions
 });
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, boolean, jsonb, decimal, doublePrecision, serial, date, time, unique, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, boolean, jsonb, decimal, doublePrecision, serial, date, time, unique, uniqueIndex, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 var users = pgTable("users", {
@@ -248,10 +273,15 @@ var users = pgTable("users", {
   billingState: text("billing_state"),
   billingPostalCode: text("billing_postal_code"),
   billingCountry: text("billing_country"),
+  billingStateCode: text("billing_state_code"),
+  // GST state code (e.g. '09' for UP) — decides CGST/SGST vs IGST
+  billingPhone: text("billing_phone"),
+  gstin: text("gstin"),
+  // Buyer GSTIN for B2B invoices
   company: text("company"),
   // Company name for profile and team naming
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow()
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
 });
 var otpVerifications = pgTable("otp_verifications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -272,7 +302,10 @@ var refreshTokens = pgTable("refresh_tokens", {
   ipAddress: text("ip_address"),
   lastUsedAt: timestamp("last_used_at"),
   createdAt: timestamp("created_at").notNull().defaultNow()
-});
+}, (table) => ({
+  refreshTokensUserIdIdx: index("refresh_tokens_user_id_idx").on(table.userId),
+  refreshTokensExpiresAtIdx: index("refresh_tokens_expires_at_idx").on(table.expiresAt)
+}));
 var elevenLabsCredentials = pgTable("eleven_labs_credentials", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
@@ -360,13 +393,24 @@ var agents = pgTable("agents", {
   detectLanguageEnabled: boolean("detect_language_enabled").default(false),
   endConversationEnabled: boolean("end_conversation_enabled").default(false),
   appointmentBookingEnabled: boolean("appointment_booking_enabled").default(false),
+  messagingEmailEnabled: boolean("messaging_email_enabled").default(false),
+  messagingWhatsappEnabled: boolean("messaging_whatsapp_enabled").default(false),
+  messagingEmailTemplate: text("messaging_email_template"),
+  messagingWhatsappTemplate: text("messaging_whatsapp_template"),
+  messagingWhatsappVariables: text("messaging_whatsapp_variables"),
+  // Templates the agent may pick at runtime (empty = any active/approved template). The single
+  // *Template columns above stay as the legacy default / first choice.
+  messagingEmailTemplates: text("messaging_email_templates").array(),
+  messagingWhatsappTemplates: text("messaging_whatsapp_templates").array(),
+  expressiveMode: boolean("expressive_mode").default(false),
   // Knowledge Base (for incoming agents)
   knowledgeBaseIds: text("knowledge_base_ids").array(),
   // Shared Voice Configuration (used by both Incoming and Flow agents)
   elevenLabsVoiceId: text("eleven_labs_voice_id"),
-  voiceStability: doublePrecision("voice_stability").default(0.55),
+  voiceStability: doublePrecision("voice_stability").default(0.65),
   voiceSimilarityBoost: doublePrecision("voice_similarity_boost").default(0.85),
-  voiceSpeed: doublePrecision("voice_speed").default(1),
+  voiceSpeed: doublePrecision("voice_speed").default(0.92),
+  turnTimeout: doublePrecision("turn_timeout").default(1.5),
   // Flow Agent Fields (used when type='flow')
   flowId: varchar("flow_id"),
   // Reference to flows table for Flow Agents
@@ -374,6 +418,10 @@ var agents = pgTable("agents", {
   // Max conversation duration in seconds (default 10 min, range 60-1800)
   // Legacy/Common Fields
   agentLink: text("agent_link"),
+  engine: text("engine"),
+  openaiModel: text("openai_model"),
+  sarvamVoice: text("sarvam_voice"),
+  voice: text("voice"),
   config: jsonb("config"),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -429,7 +477,11 @@ var incomingAgents = pgTable("incoming_agents", {
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
-});
+}, (table) => ({
+  agentsUserIdIdx: index("agents_user_id_idx").on(table.userId),
+  agentsCredentialIdIdx: index("agents_credential_id_idx").on(table.elevenLabsCredentialId),
+  agentsElevenLabsAgentIdIdx: index("agents_eleven_labs_agent_id_idx").on(table.elevenLabsAgentId)
+}));
 var phoneNumbers = pgTable("phone_numbers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
@@ -454,9 +506,15 @@ var phoneNumbers = pgTable("phone_numbers", {
   // Next date when credits will be charged
   purchasedAt: timestamp("purchased_at").notNull().defaultNow(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  credentialsSyncedAt: timestamp("credentials_synced_at"),
+  // Last time Twilio credentials were re-synced into ElevenLabs (null = never explicitly synced)
   // DEPRECATED: Use incoming_connections table instead
   assignedIncomingAgentId: varchar("assigned_incoming_agent_id").references(() => incomingAgents.id, { onDelete: "set null" })
-});
+}, (table) => ({
+  phoneNumbersUserIdIdx: index("phone_numbers_user_id_idx").on(table.userId),
+  phoneNumbersStatusIdx: index("phone_numbers_status_idx").on(table.status),
+  phoneNumbersNextBillingDateIdx: index("phone_numbers_next_billing_date_idx").on(table.nextBillingDate)
+}));
 var incomingConnections = pgTable("incoming_connections", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -510,14 +568,23 @@ var campaigns = pgTable("campaigns", {
   // pending, in_progress, completed, failed, cancelled
   retryEnabled: boolean("retry_enabled").notNull().default(false),
   // Whether to auto-retry failed/no-response calls
-  // Contact Retry System
+  // Contact Retry System - configures automatic re-calling of contacts that didn't answer
   retryMaxAttempts: integer("retry_max_attempts").default(3),
+  // Max total call attempts per contact (including first)
   retryIntervalMinutes: integer("retry_interval_minutes").default(60),
+  // Minutes between retry passes
   retryOnNoAnswer: boolean("retry_on_no_answer").default(true),
+  // Retry contacts that didn't answer
   retryOnBusy: boolean("retry_on_busy").default(false),
+  // Retry contacts that were busy
   retryOnFailed: boolean("retry_on_failed").default(false),
+  // Retry contacts that failed (technical error)
+  // Per-outcome smart retry (no_answer / busy / failed / voicemail); null → derived from the legacy columns above
+  retryRules: jsonb("retry_rules").$type(),
   batchJobHistory: jsonb("batch_job_history").default([]),
+  // Array of {batchJobId, pass, contactCount, createdAt}
   currentRetryPass: integer("current_retry_pass").default(0),
+  // Which pass we're currently on (0 = initial, 1+ = retries)
   // Error tracking for failed campaigns
   errorMessage: text("error_message"),
   // Detailed error message when campaign fails
@@ -525,7 +592,12 @@ var campaigns = pgTable("campaigns", {
   // Error code for categorization (e.g., AGENT_NOT_SYNCED, NO_CONTACTS)
   config: jsonb("config"),
   createdAt: timestamp("created_at").notNull().defaultNow()
-});
+}, (table) => ({
+  campaignsUserIdIdx: index("campaigns_user_id_idx").on(table.userId),
+  campaignsStatusIdx: index("campaigns_status_idx").on(table.status),
+  campaignsDeletedAtIdx: index("campaigns_deleted_at_idx").on(table.deletedAt),
+  campaignsAgentIdIdx: index("campaigns_agent_id_idx").on(table.agentId)
+}));
 var contacts = pgTable("contacts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   campaignId: varchar("campaign_id").notNull().references(() => campaigns.id, { onDelete: "cascade" }),
@@ -535,11 +607,19 @@ var contacts = pgTable("contacts", {
   email: text("email"),
   customFields: jsonb("custom_fields"),
   status: text("status").notNull().default("pending"),
+  // Retry attempt tracking
   attemptCount: integer("attempt_count").default(1),
+  // How many call attempts have been made (1 = first call in progress)
   lastAttemptAt: timestamp("last_attempt_at"),
+  // When the last call was attempted
   nextRetryAt: timestamp("next_retry_at"),
+  // When the next retry is scheduled (null if not queued)
   createdAt: timestamp("created_at").notNull().defaultNow()
-});
+}, (table) => ({
+  contactsCampaignIdIdx: index("contacts_campaign_id_idx").on(table.campaignId),
+  contactsStatusIdx: index("contacts_status_idx").on(table.status)
+  // Note: contacts has no userId column — ownership is via campaignId → campaigns.userId.
+}));
 var calls = pgTable("calls", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
@@ -583,8 +663,20 @@ var calls = pgTable("calls", {
   // When call was transferred
   startedAt: timestamp("started_at"),
   endedAt: timestamp("ended_at"),
-  createdAt: timestamp("created_at").notNull().defaultNow()
-});
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  agentId: varchar("agent_id"),
+  engineType: text("engine_type"),
+  creditsUsed: integer("credits_used").default(0)
+}, (table) => ({
+  callsUserIdIdx: index("calls_user_id_idx").on(table.userId),
+  callsCampaignIdIdx: index("calls_campaign_id_idx").on(table.campaignId),
+  callsContactIdIdx: index("calls_contact_id_idx").on(table.contactId),
+  callsStatusIdx: index("calls_status_idx").on(table.status),
+  callsCreatedAtIdx: index("calls_created_at_idx").on(table.createdAt),
+  callsTwilioSidIdx: index("calls_twilio_sid_idx").on(table.twilioSid),
+  callsElevenLabsConversationIdIdx: index("calls_elevenlabs_conversation_id_idx").on(table.elevenLabsConversationId),
+  callsAgentIdIdx: index("calls_agent_id_idx").on(table.agentId)
+}));
 var creditTransactions = pgTable("credit_transactions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -598,7 +690,9 @@ var creditTransactions = pgTable("credit_transactions", {
   // For widget-originated credit deductions
   createdAt: timestamp("created_at").notNull().defaultNow()
 }, (table) => ({
-  userReferenceUnique: uniqueIndex("credit_transactions_user_reference_unique").on(table.userId, table.reference).where(sql`reference IS NOT NULL`)
+  userReferenceUnique: uniqueIndex("credit_transactions_user_reference_unique").on(table.userId, table.reference).where(sql`reference IS NOT NULL`),
+  creditTransactionsUserIdIdx: index("credit_transactions_user_id_idx").on(table.userId),
+  creditTransactionsCreatedAtIdx: index("credit_transactions_created_at_idx").on(table.createdAt)
 }));
 var tools = pgTable("tools", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -627,46 +721,9 @@ var plans = pgTable("plans", {
   displayName: text("display_name").notNull(),
   description: text("description").notNull(),
   monthlyPrice: decimal("monthly_price", { precision: 10, scale: 2 }).notNull(),
-  // USD price
+  // INR (Cashfree)
   yearlyPrice: decimal("yearly_price", { precision: 10, scale: 2 }),
-  // USD price
-  razorpayMonthlyPrice: decimal("razorpay_monthly_price", { precision: 10, scale: 2 }),
-  // INR price
-  razorpayYearlyPrice: decimal("razorpay_yearly_price", { precision: 10, scale: 2 }),
-  // INR price
-  stripeMonthlyPriceId: text("stripe_monthly_price_id"),
-  // Stripe Price ID for monthly plan
-  stripeYearlyPriceId: text("stripe_yearly_price_id"),
-  // Stripe Price ID for yearly plan
-  stripeProductId: text("stripe_product_id"),
-  // Stripe Product ID
-  razorpayPlanId: text("razorpay_plan_id"),
-  // Razorpay Plan ID (monthly)
-  razorpayYearlyPlanId: text("razorpay_yearly_plan_id"),
-  // Razorpay Plan ID (yearly)
-  // PayPal pricing and plan IDs
-  paypalMonthlyPrice: decimal("paypal_monthly_price", { precision: 10, scale: 2 }),
-  // PayPal price (supports multiple currencies)
-  paypalYearlyPrice: decimal("paypal_yearly_price", { precision: 10, scale: 2 }),
-  paypalProductId: text("paypal_product_id"),
-  // PayPal Product ID
-  paypalMonthlyPlanId: text("paypal_monthly_plan_id"),
-  // PayPal Plan ID for monthly
-  paypalYearlyPlanId: text("paypal_yearly_plan_id"),
-  // PayPal Plan ID for yearly
-  // Paystack pricing and plan codes (Africa: NGN, GHS, ZAR, KES)
-  paystackMonthlyPrice: decimal("paystack_monthly_price", { precision: 10, scale: 2 }),
-  paystackYearlyPrice: decimal("paystack_yearly_price", { precision: 10, scale: 2 }),
-  paystackMonthlyPlanCode: text("paystack_monthly_plan_code"),
-  // Paystack Plan Code for monthly
-  paystackYearlyPlanCode: text("paystack_yearly_plan_code"),
-  // Paystack Plan Code for yearly
-  // MercadoPago pricing and plan IDs (LATAM: BRL, MXN, ARS, CLP, COP)
-  mercadopagoMonthlyPrice: decimal("mercadopago_monthly_price", { precision: 10, scale: 2 }),
-  mercadopagoYearlyPrice: decimal("mercadopago_yearly_price", { precision: 10, scale: 2 }),
-  mercadopagoMonthlyPlanId: text("mercadopago_monthly_plan_id"),
-  // MercadoPago preapproval_plan_id
-  mercadopagoYearlyPlanId: text("mercadopago_yearly_plan_id"),
+  // INR (Cashfree)
   maxAgents: integer("max_agents").notNull().default(1),
   maxCampaigns: integer("max_campaigns").notNull().default(1),
   maxContactsPerCampaign: integer("max_contacts_per_campaign").notNull().default(5),
@@ -689,6 +746,11 @@ var plans = pgTable("plans", {
   // Free plan uses system pool
   features: jsonb("features"),
   // Additional feature flags
+  // Voice Engine - Controls which AI/telephony providers are shown to the user
+  // 'openai'      → Normal plan: OpenAI voices + Twilio only
+  // 'elevenlabs'  → Indian Voice plan: ElevenLabs voices + Plivo only
+  // 'both'        → All engines visible (admin / premium plans)
+  voiceProvider: text("voice_provider").notNull().default("openai"),
   // SIP Engine Plugin - Plan-level access control
   sipEnabled: boolean("sip_enabled").notNull().default(false),
   maxConcurrentSipCalls: integer("max_concurrent_sip_calls").notNull().default(1),
@@ -750,22 +812,7 @@ var creditPackages = pgTable("credit_packages", {
   description: text("description"),
   credits: integer("credits").notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  // USD price
-  razorpayPrice: decimal("razorpay_price", { precision: 10, scale: 2 }),
-  // INR price
-  stripeProductId: text("stripe_product_id"),
-  stripePriceId: text("stripe_price_id"),
-  razorpayItemId: text("razorpay_item_id"),
-  // Razorpay Item ID for credit package
-  // PayPal credit package pricing
-  paypalPrice: decimal("paypal_price", { precision: 10, scale: 2 }),
-  // PayPal price
-  // Paystack credit package pricing (Africa)
-  paystackPrice: decimal("paystack_price", { precision: 10, scale: 2 }),
-  // Paystack price
-  // MercadoPago credit package pricing (LATAM)
-  mercadopagoPrice: decimal("mercadopago_price", { precision: 10, scale: 2 }),
-  // MercadoPago price
+  // INR (Cashfree)
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
@@ -778,26 +825,29 @@ var userSubscriptions = pgTable("user_subscriptions", {
   // 'active', 'cancelled', 'expired'
   currentPeriodStart: timestamp("current_period_start").notNull().defaultNow(),
   currentPeriodEnd: timestamp("current_period_end").notNull(),
-  stripeSubscriptionId: text("stripe_subscription_id").unique(),
-  // Unique constraint for idempotency
-  razorpaySubscriptionId: text("razorpay_subscription_id").unique(),
-  // Razorpay Subscription ID
-  // PayPal subscription tracking
-  paypalSubscriptionId: text("paypal_subscription_id").unique(),
-  // PayPal Subscription ID
-  // Paystack subscription tracking (Africa)
-  paystackSubscriptionCode: text("paystack_subscription_code").unique(),
-  // Paystack Subscription Code
-  paystackCustomerCode: text("paystack_customer_code"),
-  // Paystack Customer Code
-  paystackEmailToken: text("paystack_email_token"),
-  // Token for customer management
-  // MercadoPago subscription tracking (LATAM)
-  mercadopagoSubscriptionId: text("mercadopago_subscription_id").unique(),
-  // MercadoPago preapproval ID
   cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
   billingPeriod: text("billing_period").notNull().default("monthly"),
   // 'monthly' or 'yearly'
+  // Cashfree one-time-per-period model: last paid order + expiry reminder bookkeeping
+  cashfreeOrderId: text("cashfree_order_id"),
+  reminder7SentAt: timestamp("reminder_7_sent_at"),
+  reminder3SentAt: timestamp("reminder_3_sent_at"),
+  reminder1SentAt: timestamp("reminder_1_sent_at"),
+  expiredNotifiedAt: timestamp("expired_notified_at"),
+  // Cashfree Subscriptions auto-renew mandate (UPI AutoPay / card / eNACH). The first period is always
+  // paid with a one-time order; the mandate only charges renewals at current_period_end.
+  autoRenew: boolean("auto_renew").notNull().default(false),
+  cashfreeSubscriptionId: text("cashfree_subscription_id"),
+  // our subscription_id sent to Cashfree (zvsub_…)
+  cfSubscriptionId: text("cf_subscription_id"),
+  // Cashfree's reference id
+  mandateStatus: text("mandate_status"),
+  // INITIALIZED | BANK_APPROVAL_PENDING | ACTIVE | ON_HOLD | PAUSED | CANCELLED | COMPLETED | EXPIRED
+  mandatePaymentMethod: text("mandate_payment_method"),
+  // upi | card | enach
+  mandateAuthorizedAt: timestamp("mandate_authorized_at"),
+  nextChargeAt: timestamp("next_charge_at"),
+  autoRenewCancelledAt: timestamp("auto_renew_cancelled_at"),
   // Admin-set per-user limit overrides (null = use plan defaults)
   overrideMaxAgents: integer("override_max_agents"),
   // Override plan's maxAgents
@@ -1196,6 +1246,127 @@ var insertKnowledgeProcessingQueueSchema = createInsertSchema(knowledgeProcessin
   createdAt: true,
   updatedAt: true
 });
+var AGENT_CALL_OUTCOMES = [
+  "interested",
+  "not_interested",
+  "callback_requested",
+  "wrong_number",
+  "already_customer",
+  "do_not_call",
+  "no_decision"
+];
+var SYSTEM_CALL_OUTCOMES = [
+  "voicemail",
+  "no_answer",
+  "busy",
+  "failed",
+  "transferred",
+  "appointment_booked"
+];
+var CALL_OUTCOMES = [
+  { id: "interested", label: "Interested", kind: "agent" },
+  { id: "not_interested", label: "Not interested", kind: "agent" },
+  { id: "callback_requested", label: "Callback requested", kind: "agent" },
+  { id: "wrong_number", label: "Wrong number", kind: "agent" },
+  { id: "already_customer", label: "Already a customer", kind: "agent" },
+  { id: "do_not_call", label: "Do not call", kind: "agent" },
+  { id: "no_decision", label: "No decision", kind: "agent" },
+  { id: "voicemail", label: "Voicemail", kind: "system" },
+  { id: "no_answer", label: "No answer", kind: "system" },
+  { id: "busy", label: "Busy", kind: "system" },
+  { id: "failed", label: "Failed", kind: "system" },
+  { id: "transferred", label: "Transferred", kind: "system" },
+  { id: "appointment_booked", label: "Appointment booked", kind: "system" }
+];
+var FINAL_CALL_OUTCOMES = [
+  "do_not_call",
+  "wrong_number",
+  "not_interested",
+  "interested",
+  "appointment_booked",
+  "already_customer"
+];
+var RETRY_OUTCOMES = ["no_answer", "busy", "failed", "voicemail"];
+var RetryRuleSchema = z.object({
+  enabled: z.boolean(),
+  delayMinutes: z.number().int().min(5).max(10080),
+  maxAttempts: z.number().int().min(0).max(10)
+});
+var RetryRulesSchema = z.object({
+  no_answer: RetryRuleSchema,
+  busy: RetryRuleSchema,
+  failed: RetryRuleSchema,
+  voicemail: RetryRuleSchema
+}).strict();
+var HHMM_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+var TOOL_NAME_RE = /^[a-z0-9_]{2,30}$/;
+var PARAM_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]{0,39}$/;
+var HEADER_KEY_RE = /^[A-Za-z0-9-]{1,64}$/;
+function isValidTimeZone(tz) {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
+var AgentApiToolSchema = z.object({
+  id: z.string().min(1).max(40),
+  name: z.string().regex(TOOL_NAME_RE, "Tool name must be 2-30 lowercase letters, digits or underscores"),
+  description: z.string().trim().min(1).max(500),
+  url: z.string().trim().max(2e3).refine((u) => /^https:\/\//i.test(u), "URL must start with https://"),
+  method: z.enum(["GET", "POST"]),
+  headers: z.record(z.string().regex(HEADER_KEY_RE), z.string().max(2e3)).optional(),
+  params: z.array(z.object({
+    name: z.string().regex(PARAM_NAME_RE),
+    type: z.enum(["string", "number"]),
+    description: z.string().trim().max(300),
+    required: z.boolean()
+  })).max(10),
+  bodyTemplate: z.string().max(4e3).optional(),
+  responsePath: z.string().max(200).optional(),
+  timeoutMs: z.number().int().min(1e3).max(12e3).optional()
+}).refine((t) => Object.keys(t.headers || {}).length <= 10, { message: "At most 10 headers" });
+var OWNER_ALERT_TRIGGERS = ["interested", "appointment_booked", "callback_requested", "transferred", "do_not_call", "all"];
+var OWNER_ALERT_FIELD_RE = /^(caller_name|caller_phone|outcome|summary|appointment|callback|agent_name|call_time|duration|call_link|text:[\s\S]{0,200})$/;
+var EMAIL_LIST_RE = /^[^\s@,]+@[^\s@,]+\.[^\s@,]+(\s*,\s*[^\s@,]+@[^\s@,]+\.[^\s@,]+){0,2}$/;
+var AgentActionsConfigSchema = z.object({
+  voicemail: z.object({
+    action: z.enum(["hangup", "leave_message"]),
+    message: z.string().trim().max(400).optional()
+  }).refine((v) => v.action !== "leave_message" || !!v.message?.trim(), { message: "A voicemail message is required", path: ["message"] }).optional(),
+  ownerAlerts: z.object({
+    enabled: z.boolean(),
+    triggers: z.array(z.enum(OWNER_ALERT_TRIGGERS)).max(6),
+    email: z.string().trim().max(320).refine((e) => e === "" || EMAIL_LIST_RE.test(e), "Up to 3 comma-separated email addresses").optional(),
+    whatsappPhone: z.string().trim().max(20).refine((p) => p === "" || /^\+?[\d\s-]{8,20}$/.test(p), "Invalid WhatsApp number").optional(),
+    whatsappTemplate: z.string().trim().max(120).optional(),
+    whatsappVariables: z.record(z.string().regex(/^[1-9]\d{0,2}$/), z.string().max(210).regex(OWNER_ALERT_FIELD_RE, "Unknown field")).optional()
+  }).optional(),
+  appointments: z.object({
+    durationMinutes: z.number().int().min(5).max(240),
+    timeZone: z.string().refine(isValidTimeZone, "Invalid IANA time zone"),
+    workingHours: z.object({
+      start: z.string().regex(HHMM_RE, "Use HH:MM"),
+      end: z.string().regex(HHMM_RE, "Use HH:MM")
+    }).refine((h) => h.start < h.end, { message: "Working hours must end after they start" }),
+    workingDays: z.array(z.number().int().min(0).max(6)).max(7),
+    confirmVia: z.array(z.enum(["whatsapp", "email"])).max(2),
+    serviceName: z.string().trim().max(120).optional()
+  }).optional(),
+  saveLead: z.object({
+    fields: z.array(z.object({
+      key: z.string().regex(PARAM_NAME_RE),
+      label: z.string().trim().min(1).max(80),
+      required: z.boolean()
+    })).max(8)
+  }).optional(),
+  callback: z.object({
+    enabled: z.boolean(),
+    maxDaysAhead: z.number().int().min(1).max(60)
+  }).optional(),
+  apiTools: z.array(AgentApiToolSchema).max(10).optional()
+}).strict();
 var flows = pgTable("flows", {
   id: varchar("id").primaryKey(),
   userId: varchar("user_id").notNull(),
@@ -1241,6 +1412,25 @@ var flowExecutions = pgTable("flow_executions", {
 var insertFlowExecutionSchema = createInsertSchema(flowExecutions).omit({
   id: true,
   startedAt: true
+});
+var flowTestQueue = pgTable("flow_test_queue", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  flowId: varchar("flow_id").notNull().references(() => flows.id, { onDelete: "cascade" }),
+  toPhone: text("to_phone").notNull(),
+  status: text("status").notNull().default("waiting"),
+  // waiting / processing / completed / failed / cancelled
+  callId: varchar("call_id"),
+  // set when status=completed
+  errorMessage: text("error_message"),
+  // set when status=failed|cancelled
+  processedAt: timestamp("processed_at"),
+  // set when leaving waiting
+  createdAt: timestamp("created_at").notNull().defaultNow()
+});
+var insertFlowTestQueueSchema = createInsertSchema(flowTestQueue).omit({
+  id: true,
+  createdAt: true
 });
 var webhookSubscriptions = pgTable("webhook_subscriptions", {
   id: varchar("id").primaryKey(),
@@ -1300,6 +1490,8 @@ var appointments = pgTable("appointments", {
   serviceName: varchar("service_name", { length: 255 }),
   notes: text("notes"),
   status: varchar("status", { length: 50 }).default("scheduled").notNull(),
+  statusReason: varchar("status_reason", { length: 500 }),
+  googleCalendarEventId: varchar("google_calendar_event_id", { length: 255 }),
   metadata: jsonb("metadata").$type(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
@@ -1315,6 +1507,7 @@ var appointmentSettings = pgTable("appointment_settings", {
   userId: varchar("user_id").notNull().unique(),
   allowOverlapping: boolean("allow_overlapping").default(false).notNull(),
   bufferMinutes: integer("buffer_minutes").default(0).notNull(),
+  syncToGoogleCalendar: boolean("sync_to_google_calendar").default(false).notNull(),
   workingHours: jsonb("working_hours").notNull().$type(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
@@ -1384,7 +1577,7 @@ var seoSettings = pgTable("seo_settings", {
   robotsRules: jsonb("robots_rules").$type().default([
     {
       userAgent: "*",
-      allow: ["/", "/pricing", "/features", "/blog", "/contact"],
+      allow: ["/", "/pricing", "/features", "/use-cases", "/integrations", "/blog", "/contact", "/about", "/privacy", "/terms"],
       disallow: ["/app/", "/admin/", "/api/"]
     }
   ]),
@@ -1479,7 +1672,7 @@ var paymentTransactions = pgTable("payment_transactions", {
   // For subscription payments
   // Amount & Currency
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  currency: text("currency").notNull().default("USD"),
+  currency: text("currency").notNull().default("INR"),
   // Related Records
   planId: varchar("plan_id").references(() => plans.id, { onDelete: "set null" }),
   creditPackageId: varchar("credit_package_id").references(() => creditPackages.id, { onDelete: "set null" }),
@@ -1490,6 +1683,15 @@ var paymentTransactions = pgTable("payment_transactions", {
   // 'monthly', 'yearly' for subscriptions
   creditsAwarded: integer("credits_awarded"),
   // For credit purchases
+  gatewayOrderId: text("gateway_order_id"),
+  // Cashfree order_id (idempotency key)
+  paymentMethod: text("payment_method"),
+  // upi, card, netbanking, wallet…
+  failureReason: text("failure_reason"),
+  refundedAmount: decimal("refunded_amount", { precision: 10, scale: 2 }).default("0.00"),
+  refundId: text("refund_id"),
+  phoneNumberId: varchar("phone_number_id"),
+  // For phone number rentals
   // Status
   status: text("status").notNull().default("pending"),
   // 'pending', 'completed', 'failed', 'refunded', 'partially_refunded'
@@ -1515,7 +1717,7 @@ var refunds = pgTable("refunds", {
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   // Refund Details
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  currency: text("currency").notNull().default("USD"),
+  currency: text("currency").notNull().default("INR"),
   // Gateway Information
   gateway: text("gateway").notNull(),
   // Same as original transaction
@@ -1578,11 +1780,32 @@ var invoices = pgTable("invoices", {
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
   tax: decimal("tax", { precision: 10, scale: 2 }).default("0.00"),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
-  currency: text("currency").notNull().default("USD"),
+  currency: text("currency").notNull().default("INR"),
   // Gateway & Payment Info
   gateway: text("gateway").notNull(),
   paymentMethod: text("payment_method"),
   // 'card', 'bank_transfer', etc.
+  // GST (India) — snapshot of seller/buyer tax details at issue time
+  invoiceType: text("invoice_type").notNull().default("tax_invoice"),
+  // 'tax_invoice' | 'credit_note'
+  relatedInvoiceId: varchar("related_invoice_id"),
+  // credit note → original invoice
+  financialYear: text("financial_year"),
+  // e.g. '25-26'
+  sellerName: text("seller_name"),
+  sellerGstin: text("seller_gstin"),
+  sellerAddress: text("seller_address"),
+  sellerStateCode: text("seller_state_code"),
+  buyerGstin: text("buyer_gstin"),
+  buyerStateCode: text("buyer_state_code"),
+  placeOfSupply: text("place_of_supply"),
+  hsnSac: text("hsn_sac"),
+  taxableAmount: decimal("taxable_amount", { precision: 10, scale: 2 }),
+  cgst: decimal("cgst", { precision: 10, scale: 2 }).default("0.00"),
+  sgst: decimal("sgst", { precision: 10, scale: 2 }).default("0.00"),
+  igst: decimal("igst", { precision: 10, scale: 2 }).default("0.00"),
+  taxRate: decimal("tax_rate", { precision: 5, scale: 2 }),
+  isInterState: boolean("is_inter_state").default(false),
   // PDF Storage
   pdfUrl: text("pdf_url"),
   // URL to stored PDF
@@ -1782,6 +2005,8 @@ var plivoPhoneNumbers = pgTable("plivo_phone_numbers", {
   nextBillingDate: timestamp("next_billing_date"),
   // Incoming agent connection
   assignedAgentId: varchar("assigned_agent_id").references(() => agents.id, { onDelete: "set null" }),
+  // Stripe subscription tracking (for monthly billing via Stripe)
+  stripeSubscriptionId: text("stripe_subscription_id").unique(),
   purchasedAt: timestamp("purchased_at").notNull().defaultNow(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
@@ -1842,11 +2067,65 @@ var plivoCalls = pgTable("plivo_calls", {
   endedAt: timestamp("ended_at"),
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").notNull().defaultNow()
-});
+}, (table) => ({
+  plivoCallsUserIdIdx: index("plivo_calls_user_id_idx").on(table.userId),
+  plivoCallsCampaignIdIdx: index("plivo_calls_campaign_id_idx").on(table.campaignId),
+  plivoCallsContactIdIdx: index("plivo_calls_contact_id_idx").on(table.contactId),
+  plivoCallsStatusIdx: index("plivo_calls_status_idx").on(table.status),
+  plivoCallsCreatedAtIdx: index("plivo_calls_created_at_idx").on(table.createdAt),
+  // plivoCalls has no call_id FK — it uses plivoCallUuid as the primary external identifier
+  plivoCallsPlivoCallUuidIdx: index("plivo_calls_plivo_call_uuid_idx").on(table.plivoCallUuid)
+}));
 var insertPlivoCallSchema = createInsertSchema(plivoCalls).omit({
   id: true,
   createdAt: true
 });
+var scheduledCallbacks = pgTable("scheduled_callbacks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  agentId: varchar("agent_id").references(() => agents.id, { onDelete: "set null" }),
+  sourceCallId: varchar("source_call_id"),
+  // plivo_calls.id of the call that booked it
+  plivoPhoneNumberId: varchar("plivo_phone_number_id"),
+  contactName: text("contact_name"),
+  contactPhone: text("contact_phone").notNull(),
+  reason: text("reason"),
+  scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
+  timeZone: text("time_zone").notNull().default("Asia/Kolkata"),
+  status: text("status").notNull().default("pending"),
+  // pending | calling | completed | failed | cancelled
+  attempts: integer("attempts").notNull().default(0),
+  lastError: text("last_error"),
+  resultCallId: varchar("result_call_id"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+}, (table) => ({
+  scheduledCallbacksDueIdx: index("scheduled_callbacks_status_scheduled_at_idx").on(table.status, table.scheduledAt),
+  scheduledCallbacksUserIdx: index("scheduled_callbacks_user_created_idx").on(table.userId, table.createdAt)
+}));
+var insertScheduledCallbackSchema = createInsertSchema(scheduledCallbacks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+var doNotCallNumbers = pgTable("do_not_call_numbers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  phone: text("phone").notNull(),
+  // normalised: +<digits>
+  reason: text("reason").notNull().default("manual"),
+  // caller_request | manual | import | complaint
+  source: text("source").notNull().default("manual"),
+  // agent | manual | upload | api
+  callId: varchar("call_id"),
+  // plivo_calls.id when added during a call
+  note: text("note"),
+  createdAt: timestamp("created_at").notNull().defaultNow()
+}, (table) => ({
+  doNotCallUserPhoneUnique: uniqueIndex("do_not_call_numbers_user_phone_unique").on(table.userId, table.phone),
+  doNotCallUserIdx: index("do_not_call_numbers_user_id_idx").on(table.userId)
+}));
+var insertDoNotCallNumberSchema = createInsertSchema(doNotCallNumbers).omit({ id: true, createdAt: true });
 var campaignJobs = pgTable("campaign_jobs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   campaignId: varchar("campaign_id").notNull(),
@@ -1934,7 +2213,15 @@ var twilioOpenaiCalls = pgTable("twilio_openai_calls", {
   endedAt: timestamp("ended_at"),
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").notNull().defaultNow()
-});
+}, (table) => ({
+  twilioOpenaiCallsUserIdIdx: index("twilio_openai_calls_user_id_idx").on(table.userId),
+  twilioOpenaiCallsCampaignIdIdx: index("twilio_openai_calls_campaign_id_idx").on(table.campaignId),
+  twilioOpenaiCallsContactIdIdx: index("twilio_openai_calls_contact_id_idx").on(table.contactId),
+  twilioOpenaiCallsStatusIdx: index("twilio_openai_calls_status_idx").on(table.status),
+  twilioOpenaiCallsCreatedAtIdx: index("twilio_openai_calls_created_at_idx").on(table.createdAt),
+  // twilioOpenaiCalls has no call_id FK — it uses twilioCallSid as the primary external identifier
+  twilioOpenaiCallsTwilioSidIdx: index("twilio_openai_calls_twilio_call_sid_idx").on(table.twilioCallSid)
+}));
 var insertTwilioOpenaiCallSchema = createInsertSchema(twilioOpenaiCalls).omit({
   id: true,
   createdAt: true
@@ -2037,7 +2324,8 @@ var leads = pgTable("leads", {
   // Tags for organization
   tags: text("tags").array(),
   // Assignment for team accounts
-  assignedUserId: varchar("assigned_user_id").references(() => users.id, { onDelete: "set null" }),
+  // Owner user id OR team_members.id — no FK (migration 0017 dropped it) so team members can be assignees
+  assignedUserId: varchar("assigned_user_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
@@ -2354,27 +2642,6 @@ var apiRateLimits = pgTable("api_rate_limits", {
   requestCount: integer("request_count").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
-var fonosterCredentials = pgTable("fonoster_credentials", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull(),
-  accessKeyId: text("access_key_id").notNull(),
-  apiKeyEncrypted: text("api_key_encrypted").notNull(),
-  apiSecretEncrypted: text("api_secret_encrypted").notNull(),
-  endpoint: text("endpoint"),
-  isPrimary: boolean("is_primary").notNull().default(false),
-  isActive: boolean("is_active").notNull().default(true),
-  healthStatus: text("health_status").notNull().default("unknown"),
-  lastHealthCheck: timestamp("last_health_check"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow()
-});
-var insertFonosterCredentialSchema = createInsertSchema(fonosterCredentials).omit({
-  id: true,
-  healthStatus: true,
-  lastHealthCheck: true,
-  createdAt: true,
-  updatedAt: true
-});
 var sipTrunks = pgTable("sip_trunks", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -2402,8 +2669,6 @@ var sipTrunks = pgTable("sip_trunks", {
   realm: text("realm"),
   registrarHost: text("registrar_host"),
   externalElevenLabsId: text("external_elevenlabs_id"),
-  externalFonosterTrunkId: text("external_fonoster_trunk_id"),
-  fonosterCredentialId: varchar("fonoster_credential_id").references(() => fonosterCredentials.id),
   isActive: boolean("is_active").notNull().default(true),
   healthStatus: text("health_status").notNull().default("unknown"),
   lastHealthCheck: timestamp("last_health_check"),
@@ -2429,7 +2694,8 @@ var sipPhoneNumbers = pgTable("sip_phone_numbers", {
   inboundEnabled: boolean("inbound_enabled").notNull().default(true),
   outboundEnabled: boolean("outbound_enabled").notNull().default(true),
   externalElevenLabsPhoneId: text("external_elevenlabs_phone_id"),
-  externalFonosterPhoneId: text("external_fonoster_phone_id"),
+  elevenLabsCredentialId: varchar("eleven_labs_credential_id").references(() => elevenLabsCredentials.id, { onDelete: "set null" }),
+  credentialsSyncedAt: timestamp("credentials_synced_at"),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
@@ -2442,11 +2708,11 @@ var insertSipPhoneNumberSchema = createInsertSchema(sipPhoneNumbers).omit({
 var sipCalls = pgTable("sip_calls", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  agentId: varchar("agent_id").references(() => agents.id),
+  agentId: varchar("agent_id").references(() => agents.id, { onDelete: "set null" }),
   campaignId: varchar("campaign_id").references(() => campaigns.id),
   contactId: varchar("contact_id").references(() => contacts.id),
   sipTrunkId: varchar("sip_trunk_id").references(() => sipTrunks.id),
-  sipPhoneNumberId: varchar("sip_phone_number_id").references(() => sipPhoneNumbers.id),
+  sipPhoneNumberId: varchar("sip_phone_number_id").references(() => sipPhoneNumbers.id, { onDelete: "set null" }),
   engine: varchar("engine", { length: 50 }).notNull(),
   // 'elevenlabs-sip' | 'openai-sip'
   externalCallId: varchar("external_call_id", { length: 255 }),
@@ -2463,6 +2729,8 @@ var sipCalls = pgTable("sip_calls", {
   transcript: jsonb("transcript"),
   // Matches SQL migration column name
   aiSummary: text("ai_summary"),
+  sentiment: varchar("sentiment", { length: 50 }),
+  classification: varchar("classification", { length: 50 }),
   sipHeaders: jsonb("sip_headers"),
   metadata: jsonb("metadata"),
   // Matches SQL migration column name
@@ -2471,7 +2739,16 @@ var sipCalls = pgTable("sip_calls", {
   endedAt: timestamp("ended_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
-});
+}, (table) => ({
+  sipCallsUserIdIdx: index("sip_calls_user_id_idx").on(table.userId),
+  sipCallsCampaignIdIdx: index("sip_calls_campaign_id_idx").on(table.campaignId),
+  sipCallsContactIdIdx: index("sip_calls_contact_id_idx").on(table.contactId),
+  sipCallsStatusIdx: index("sip_calls_status_idx").on(table.status),
+  sipCallsCreatedAtIdx: index("sip_calls_created_at_idx").on(table.createdAt),
+  // sipCalls has no call_id FK — uses externalCallId/openaiCallId/elevenlabsConversationId
+  sipCallsExternalCallIdIdx: index("sip_calls_external_call_id_idx").on(table.externalCallId),
+  sipCallsElevenlabsConversationIdIdx: index("sip_calls_elevenlabs_conversation_id_idx").on(table.elevenlabsConversationId)
+}));
 var insertSipCallSchema = createInsertSchema(sipCalls).omit({
   id: true,
   createdAt: true,
@@ -2548,6 +2825,125 @@ var insertUserFeedbackSchema = createInsertSchema(userFeedback).omit({
   createdAt: true,
   updatedAt: true
 });
+var googleCalendarCredentials = pgTable("google_calendar_credentials", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().unique(),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token").notNull(),
+  tokenExpiry: timestamp("token_expiry").notNull(),
+  connectedEmail: text("connected_email").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+});
+var insertGoogleCalendarCredentialSchema = createInsertSchema(googleCalendarCredentials).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+var googleSheetsCredentials = pgTable("google_sheets_credentials", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().unique(),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token").notNull(),
+  tokenExpiry: timestamp("token_expiry").notNull(),
+  connectedEmail: text("connected_email").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+});
+var insertGoogleSheetsCredentialSchema = createInsertSchema(googleSheetsCredentials).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+var INTEGRATION_PROVIDERS = ["gohighlevel", "salesforce", "zoho", "calcom", "zapier", "pabbly"];
+var userIntegrations = pgTable("user_integrations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull(),
+  // IntegrationProvider
+  status: text("status").notNull().default("connected"),
+  // 'connected' | 'error' | 'disconnected'
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  tokenExpiry: timestamp("token_expiry"),
+  /** Salesforce instance_url / Zoho api_domain / GoHighLevel API base */
+  instanceUrl: text("instance_url"),
+  /** GoHighLevel locationId, Salesforce org id, Zoho org, Cal.com user id */
+  externalAccountId: text("external_account_id"),
+  accountName: text("account_name"),
+  /** Provider options: zapier/pabbly { webhooks:[{url,events[]}] }, calcom { apiKey, eventTypeId, timeZone }, gohighlevel { calendarId }, … */
+  config: jsonb("config").$type(),
+  lastSyncAt: timestamp("last_sync_at"),
+  lastError: text("last_error"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+}, (table) => ({
+  userIntegrationsUserProviderIdx: uniqueIndex("user_integrations_user_provider_idx").on(table.userId, table.provider)
+}));
+var insertUserIntegrationSchema = createInsertSchema(userIntegrations).omit({ id: true, createdAt: true, updatedAt: true });
+var integrationSyncLogs = pgTable("integration_sync_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull(),
+  event: text("event").notNull(),
+  // lead.upserted | appointment.booked | form.submitted | call.completed | test …
+  action: text("action").notNull(),
+  // e.g. 'lead.create', 'contact.upsert', 'booking.create', 'webhook.post'
+  status: text("status").notNull(),
+  // 'success' | 'failed' | 'skipped'
+  /** Local record the push was about (lead id, appointment id, call id) */
+  sourceId: varchar("source_id"),
+  /** Provider-side id (Lead Id, contact id, booking uid, …) */
+  externalId: text("external_id"),
+  error: text("error"),
+  payload: jsonb("payload").$type(),
+  createdAt: timestamp("created_at").notNull().defaultNow()
+}, (table) => ({
+  integrationSyncLogsUserProviderIdx: index("integration_sync_logs_user_provider_idx").on(table.userId, table.provider, table.createdAt),
+  integrationSyncLogsSourceIdx: index("integration_sync_logs_source_idx").on(table.provider, table.sourceId)
+}));
+var phoneReleaseRetryQueue = pgTable("phone_release_retry_queue", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  phoneNumberId: varchar("phone_number_id").notNull(),
+  provider: text("provider").notNull(),
+  // 'twilio' | 'plivo'
+  providerSid: text("provider_sid").notNull(),
+  // twilioSid or plivoPhoneNumberId
+  userId: varchar("user_id"),
+  attempts: integer("attempts").notNull().default(0),
+  lastError: text("last_error"),
+  nextRetryAt: timestamp("next_retry_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+}, (table) => ({
+  phoneReleaseRetryQueueNextRetryAtIdx: index("phone_release_retry_queue_next_retry_at_idx").on(table.nextRetryAt),
+  phoneReleaseRetryQueuePhoneNumberIdIdx: index("phone_release_retry_queue_phone_number_id_idx").on(table.phoneNumberId)
+}));
+var insertPhoneReleaseRetryQueueSchema = createInsertSchema(phoneReleaseRetryQueue).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+var notificationEvents = pgTable("notification_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
+  eventKey: text("event_key").notNull(),
+  // e.g. 'purchase_completed', 'plan_expiring'
+  channel: text("channel").notNull(),
+  // 'email' | 'in_app'
+  status: text("status").notNull(),
+  // 'sent' | 'failed' | 'skipped'
+  recipient: text("recipient"),
+  subject: text("subject"),
+  error: text("error"),
+  payload: jsonb("payload"),
+  createdAt: timestamp("created_at").notNull().defaultNow()
+}, (table) => ({
+  userIdx: index("notification_events_user_id_idx").on(table.userId),
+  eventIdx: index("notification_events_event_key_idx").on(table.eventKey),
+  createdIdx: index("notification_events_created_at_idx").on(table.createdAt)
+}));
+var insertNotificationEventSchema = createInsertSchema(notificationEvents).omit({ id: true, createdAt: true });
 
 // server/db.js
 if (!process.env.DATABASE_URL) {

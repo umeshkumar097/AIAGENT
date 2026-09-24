@@ -2333,7 +2333,8 @@ var init_schema = __esm({
       // Tags for organization
       tags: text("tags").array(),
       // Assignment for team accounts
-      assignedUserId: varchar("assigned_user_id").references(() => users.id, { onDelete: "set null" }),
+      // Owner user id OR team_members.id — no FK (migration 0017 dropped it) so team members can be assignees
+      assignedUserId: varchar("assigned_user_id"),
       createdAt: timestamp("created_at").notNull().defaultNow(),
       updatedAt: timestamp("updated_at").notNull().defaultNow()
     });

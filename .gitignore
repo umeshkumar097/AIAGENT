@@ -82,7 +82,8 @@ update_db.cjs
 bcconfig.json
 
 
-# docs 
-docs/
+# docs (repo-root notes only — plugin docs such as the REST API OpenAPI spec are shipped)
+/docs/
+!plugins/rest-api/docs/
 # Runtime HMAC secret (generated on first start) — never commit
 .appointment-webhook-secret

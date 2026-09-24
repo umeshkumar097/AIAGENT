@@ -2333,7 +2333,8 @@ var init_schema = __esm({
       // Tags for organization
       tags: text("tags").array(),
       // Assignment for team accounts
-      assignedUserId: varchar("assigned_user_id").references(() => users.id, { onDelete: "set null" }),
+      // Owner user id OR team_members.id — no FK (migration 0017 dropped it) so team members can be assignees
+      assignedUserId: varchar("assigned_user_id"),
       createdAt: timestamp("created_at").notNull().defaultNow(),
       updatedAt: timestamp("updated_at").notNull().defaultNow()
     });
@@ -7656,6 +7657,7 @@ function tzOffsetMs(date2, timeZone) {
   return asUtc - Math.floor(date2.getTime() / 1e3) * 1e3;
 }
 function zonedDateTimeToUtc(date2, time2, timeZone) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date2 || "") || !/^\d{1,2}(:\d{2}(:\d{2})?)?$/.test(time2 || "")) return null;
   const [y, m, d] = date2.split("-").map(Number);
   const [hh, mm = 0, ss = 0] = time2.split(":").map(Number);
   if ([y, m, d, hh, mm, ss].some((n) => !Number.isFinite(n))) return null;
@@ -12702,7 +12704,15 @@ var MAX_CHUNK_CHARS = 2e3;
 var DEFAULT_STORAGE_LIMIT_BYTES = 20 * 1024 * 1024;
 var openaiClient = null;
 var lastApiKey = null;
+var API_KEY_CACHE_MS = 6e4;
+var cachedApiKey = null;
 async function getOpenAIApiKey() {
+  if (cachedApiKey && Date.now() - cachedApiKey.at < API_KEY_CACHE_MS) return cachedApiKey.key;
+  const key = await resolveOpenAIApiKey();
+  cachedApiKey = { key, at: Date.now() };
+  return key;
+}
+async function resolveOpenAIApiKey() {
   try {
     const [dbSetting] = await db.select().from(globalSettings).where(eq12(globalSettings.key, "openai_api_key")).limit(1);
     if (dbSetting?.value) {

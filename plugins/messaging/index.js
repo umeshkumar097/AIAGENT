@@ -2333,7 +2333,8 @@ var init_schema = __esm({
       // Tags for organization
       tags: text("tags").array(),
       // Assignment for team accounts
-      assignedUserId: varchar("assigned_user_id").references(() => users.id, { onDelete: "set null" }),
+      // Owner user id OR team_members.id — no FK (migration 0017 dropped it) so team members can be assignees
+      assignedUserId: varchar("assigned_user_id"),
       createdAt: timestamp("created_at").notNull().defaultNow(),
       updatedAt: timestamp("updated_at").notNull().defaultNow()
     });
@@ -11364,7 +11365,15 @@ var MAX_CHUNK_CHARS = 2e3;
 var DEFAULT_STORAGE_LIMIT_BYTES = 20 * 1024 * 1024;
 var openaiClient = null;
 var lastApiKey = null;
+var API_KEY_CACHE_MS = 6e4;
+var cachedApiKey = null;
 async function getOpenAIApiKey() {
+  if (cachedApiKey && Date.now() - cachedApiKey.at < API_KEY_CACHE_MS) return cachedApiKey.key;
+  const key = await resolveOpenAIApiKey();
+  cachedApiKey = { key, at: Date.now() };
+  return key;
+}
+async function resolveOpenAIApiKey() {
   try {
     const [dbSetting] = await db.select().from(globalSettings).where(eq7(globalSettings.key, "openai_api_key")).limit(1);
     if (dbSetting?.value) {
